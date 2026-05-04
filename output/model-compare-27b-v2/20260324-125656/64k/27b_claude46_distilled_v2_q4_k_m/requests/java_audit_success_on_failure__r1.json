@@ -1,0 +1,19 @@
+{
+  "task_id": "java_audit_success_on_failure",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_audit_success_on_failure\nScenario: Audit log currently records a successful change even when the write fails.\n\nInstructions:\nReview the flow and identify the most serious audit consistency bug. Give the smallest safe patch plan.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/profile/ProfileService.java ===\npackage com.example.profile;\n\npublic class ProfileService {\n    private final ProfileRepository profileRepository;\n    private final AuditRepository auditRepository;\n\n    public ProfileService(ProfileRepository profileRepository, AuditRepository auditRepository) {\n        this.profileRepository = profileRepository;\n        this.auditRepository = auditRepository;\n    }\n\n    public void changeStatus(long profileId, String newStatus) {\n        try {\n            Profile profile = profileRepository.require(profileId);\n            profile.setStatus(newStatus);\n            profileRepository.save(profile);\n        } finally {\n            auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n        }\n    }\n}\n\n=== File: src/main/java/com/example/profile/ProfileRepository.java ===\npackage com.example.profile;\n\npublic interface ProfileRepository {\n    Profile require(long profileId);\n    void save(Profile profile);\n}\n\n=== File: src/main/java/com/example/profile/AuditRepository.java ===\npackage com.example.profile;\n\npublic interface AuditRepository {\n    void recordSuccess(String eventType, long aggregateId);\n}\n"
+      }
+    ],
+    "max_tokens": 1000,
+    "stream": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "java_audit_success_on_failure",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 3915.915292018326,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Root cause**\n\n`ProfileService.changeStatus` records the audit entry in a `finally` block.  \nIf `profileRepository.save(profile)` throws (e.g. a DB constraint violation, dead‑lock, etc.) the method still executes `auditRepository.recordSuccess(...)`.  \nThus the audit log shows a *successful* status‑change even though the write to the profile failed – a classic audit‑consistency bug.\n\n**Smallest safe fix**\n\nMove the audit call out of the `finally` block and invoke it **only after** the save succeeds.  \nThe fix is a single line change: replace the `finally` with an explicit `try`/`catch` (or `if` after the save) and record the audit only on success.\n\n**Exact change**\n\n```diff\n--- a/src/main/java/com/example/profile/ProfileService.java\n+++ b/src/main/java/com/example/profile/ProfileService.java\n@@\n     public void changeStatus(long profileId, String newStatus) {\n-        try {\n-            Profile profile = profileRepository.require(profileId);\n-            profile.setStatus(newStatus);\n-            profileRepository.save(profile);\n-        } finally {\n-            auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n-        }\n+        try {\n+            Profile profile = profileRepository.require(profileId);\n+            profile.setStatus(newStatus);\n+            profileRepository.save(profile);\n+            // Audit only after the profile change succeeded\n+            auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n+        } catch (Exception e) {\n+            // Optionally log the failure; do not record a success audit\n+            // logger.error(\"Failed to change profile status\", e);\n+            throw e; // re‑throw to preserve existing semantics\n+        }\n```\n\n*Why this is safe*  \n\n* No new public API is introduced.  \n* Existing method signature and behavior on success remain unchanged.  \n* Failure paths now **do not** record a success audit, fixing the consistency bug.  \n* The `catch` re‑throws the exception, preserving the original call‑stack semantics (any caller that expects an exception will still receive it).\n\n**Regression checks**\n\n1. **Success path** – `profileRepository.save` completes without exception → audit entry is recorded exactly once.  \n2. **Failure path** – `profileRepository.save` throws → `auditRepository.recordSuccess` is **not** called, and the exception propagates.  \n3. **Idempotence** – If the method is called repeatedly with the same `profileId` and a valid `newStatus`, exactly one audit record is written per successful change.  \n\nNo other files need modification. The change is minimal, confined to `ProfileService`, and directly addresses the audit‑on‑failure inconsistency."
+        }
+      }
+    ],
+    "created": 1774496006,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 599,
+      "prompt_tokens": 359,
+      "total_tokens": 958
+    },
+    "id": "chatcmpl-8BcmjG9kxWU1ZVZBcy40FTOl1Sz4s415",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 359,
+      "prompt_ms": 56.627,
+      "prompt_per_token_ms": 0.15773537604456825,
+      "prompt_per_second": 6339.731929998058,
+      "predicted_n": 599,
+      "predicted_ms": 2800.951,
+      "predicted_per_token_ms": 4.6760450751252085,
+      "predicted_per_second": 213.85593678718405
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 35277.370875002816,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script. It uses only the Python standard library to minimize dependency risks in production environments.\n\n### Matching Strategy\n1.  **Normalization**: Strips BOMs, ignores blank lines, and deduplicates rows based on the primary key (`merchant_order_id`). If `merchant_order_id` is missing or blank, it falls back to `provider_txn_id`.\n2.  **Primary Key**: `merchant_order_id`.\n3.  **Fallback Key**: `provider_txn_id` (used if `merchant_order_id` is empty/missing).\n4.  **Comparison**:\n    *   **Exact Match**: IDs match AND `amount_cents` match.\n    *   **Amount Mismatch**: IDs match but `amount_cents` differ.\n    *   **Status Drift**: IDs match, amounts match, but `status` differs (e.g., SETTLED vs REFUNDED).\n    *   **Missing in Statement**: Present in Finance Export but not in Merchant Statement.\n    *   **Missing in Finance**: Present in Merchant Statement but not in Finance Export.\n\n### Edge-Case Guards\n*   **BOM Handling**: Explicitly strips UTF-8 BOM from the first line.\n*   **Blank Lines**: Skips rows where all fields are empty or whitespace.\n*   **Duplicate Headers**: Detects if a data row matches the header schema and skips it.\n*   **Duplicate Data**: Aggregates duplicates by keeping the last occurrence (or flagging them if strict uniqueness is required; here we deduplicate for reconciliation clarity, logging the count).\n*   **Type Safety**: Converts `amount_cents` to integers for comparison, handling potential string formatting issues.\n\n### Output Files\n1.  `reconciliation_details.csv`: Machine-readable CSV with columns: `type`, `merchant_order_id`, `provider_txn_id`, `finance_amount`, `statement_amount`, `finance_status`, `statement_status`, `message`.\n2.  `reconciliation_summary.txt`: Human-readable summary of counts.\n\n### Script: `reconcile.py`\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nProduction-safe CSV Reconciliation Script.\nReconciles finance_export.csv against merchant_statement.csv.\n\"\"\"\n\nimport csv\nimport sys\nimport os\nfrom collections import defaultdict\nfrom datetime import datetime\n\n# Configuration\nFINANCE_FILE = \"samples/finance_export.csv\"\nSTATEMENT_FILE = \"samples/merchant_statement.csv\"\nOUTPUT_DETAILS = \"reconciliation_details.csv\"\nOUTPUT_SUMMARY = \"reconciliation_summary.txt\"\n\ndef clean_header(header_line):\n    \"\"\"Remove BOM and strip whitespace from header.\"\"\"\n    if header_line.startswith('\\ufeff'):\n        header_line = header_line[1:]\n    return [h.strip() for h in header_line.split(',')]\n\ndef is_blank_row(row):\n    \"\"\"Check if a row is effectively blank.\"\"\"\n    return all(cell.strip() == '' for cell in row)\n\ndef is_duplicate_header(row, header):\n    \"\"\"Check if a data row is actually a repeated header.\"\"\"\n    if len(row) != len(header):\n        return False\n    # Case-insensitive comparison for header detection\n    return all(r.lower().strip() == h.lower().strip() for r, h in zip(row, header))\n\ndef parse_csv(filepath):\n    \"\"\"\n    Parse CSV with robust error handling for BOM, blank lines, and duplicate headers.\n    Returns a list of dictionaries.\n    \"\"\"\n    records = []\n    if not os.path.exists(filepath):\n        print(f\"Warning: File {filepath} not found.\")\n        return records\n\n    with open(filepath, 'r', encoding='utf-8-sig') as f:\n        reader = csv.reader(f)\n        \n        # Read header\n        try:\n            raw_header = next(reader)\n            header = clean_header(','.join(raw_header))\n        except StopIteration:\n            return records\n\n        for row in reader:\n            # Skip blank lines\n            if is_blank_row(row):\n                continue\n            \n            # Skip duplicate headers\n            if is_duplicate_header(row, header):\n                continue\n            \n            # Ensure row length matches header\n            if len(row) != len(header):\n                # Log warning but continue? Or skip? \n                # For production safety, we skip malformed rows to prevent index errors\n                print(f\"Warning: Skipping malformed row in {filepath}: {row}\")\n                continue\n\n            record = dict(zip(header, row))\n            records.append(record)\n            \n    return records\n\ndef deduplicate_records(records, primary_key='merchant_order_id', fallback_key='provider_txn_id'):\n    \"\"\"\n    Deduplicate records based on primary key.\n    If primary key is missing/empty, use fallback key.\n    Keeps the last occurrence of a duplicate.\n    \"\"\"\n    unique_records = {}\n    duplicates_found = 0\n    \n    for record in records:\n        key = record.get(primary_key, '').strip()\n        if not key:\n            key = record.get(fallback_key, '').strip()\n        \n        if not key:\n            # Skip records with no identifiable key\n            continue\n            \n        if key in unique_records:\n            duplicates_found += 1\n            # Update with latest record (assuming chronological order in file)\n            unique_records[key] = record\n        else:\n            unique_records[key] = record\n            \n    return list(unique_records.values()), duplicates_found\n\ndef reconcile(finance_records, statement_records):\n    \"\"\"\n    Compare finance and statement records.\n    Returns a list of discrepancy dicts.\n    \"\"\"\n    discrepancies = []\n    \n    # Index statements by key for O(1) lookup\n    statement_index = {}\n    for rec in statement_records:\n        key = rec.get('merchant_order_id', '').strip()\n        if not key:\n            key = rec.get('provider_txn_id', '').strip()\n        if key:\n            statement_index[key] = rec\n\n    # Check Finance against Statement\n    for fin_rec in finance_records:\n        key = fin_rec.get('merchant_order_id', '').strip()\n        if"
+        }
+      }
+    ],
+    "created": 1776911532,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-oVTNzkUbLhohUuBMlAmYITn4Y3K0bbAB",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 354.311,
+      "prompt_per_token_ms": 0.5944815436241611,
+      "prompt_per_second": 1682.1380086985728,
+      "predicted_n": 1300,
+      "predicted_ms": 33528.598,
+      "predicted_per_token_ms": 25.79122923076923,
+      "predicted_per_second": 38.77287084893917
+    }
+  }
+}

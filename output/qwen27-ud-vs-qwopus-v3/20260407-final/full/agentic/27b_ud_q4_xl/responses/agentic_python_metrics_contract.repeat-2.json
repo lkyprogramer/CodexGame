@@ -1,0 +1,53 @@
+{
+  "task_id": "agentic_python_metrics_contract",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 7744.447525590658,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Move metrics from world_snapshot payload into session_state runtime payload, and ensure client reduces them correctly.\",\n  \"files\": [\n    {\n      \"path\": \"runtime/server.py\",\n      \"content\": \"from __future__ import annotations\\n\\nfrom protocol.messages import make_session_state, make_world_snapshot\\n\\n\\ndef emit_state(phase: str, metrics_snapshot: dict) -> tuple[dict, dict]:\\n    session_state = make_session_state(\\n        phase,\\n        {\\n            \\\"model\\\": \\\"local-qwen\\\",\\n            \\\"tick_ms\\\": 200,\\n            \\\"metrics\\\": metrics_snapshot,\\n        },\\n    )\\n    world_snapshot = make_world_snapshot(10, {\\\"tiles\\\": []})\\n    return session_state, world_snapshot\\n\"\n    },\n    {\n      \"path\": \"client/state.py\",\n      \"content\": \"from __future__ import annotations\\n\\n\\ndef reduce_client_state(message: dict, state: dict) -> dict:\\n    if message[\\\"type\\\"] == \\\"session.state\\\":\\n        payload = message[\\\"payload\\\"]\\n        state[\\\"phase\\\"] = payload[\\\"phase\\\"]\\n        state[\\\"runtime\\\"] = payload[\\\"runtime\\\"]\\n    if message[\\\"type\\\"] == \\\"world.snapshot\\\":\\n        state[\\\"world\\\"] = message[\\\"payload\\\"][\\\"world\\\"]\\n    return state\\n\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1775549601,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 320,
+      "prompt_tokens": 917,
+      "total_tokens": 1237
+    },
+    "id": "chatcmpl-islFQvsGVNWOJFBs57QuWzlMaPGpns51",
+    "timings": {
+      "cache_n": 405,
+      "prompt_n": 512,
+      "prompt_ms": 233.012,
+      "prompt_per_token_ms": 0.4551015625,
+      "prompt_per_second": 2197.31172643469,
+      "predicted_n": 320,
+      "predicted_ms": 7464.961,
+      "predicted_per_token_ms": 23.328003125000002,
+      "predicted_per_second": 42.8669352726692
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/server.py",
+    "client/state.py"
+  ],
+  "json_error": ""
+}

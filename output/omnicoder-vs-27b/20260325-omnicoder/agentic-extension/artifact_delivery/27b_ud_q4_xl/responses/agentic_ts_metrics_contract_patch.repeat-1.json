@@ -1,0 +1,55 @@
+{
+  "task_id": "agentic_ts_metrics_contract_patch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 42336.63070900366,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Moved runtime metrics from world.snapshot to session.state/runtime. Updated protocol type to include metrics field, updated buildMessages to include metrics in sessionState, and updated client reducer to read metrics from sessionState.\",\n  \"files\": [\n    {\n      \"path\": \"packages/protocol/src/messages.ts\",\n      \"content\": \"export type RuntimeState = {\\n  model: string | null;\\n  tickMs: number;\\n  metrics?: Record<string, unknown>;\\n};\\n\\nexport type SessionStateMessage = {\\n  type: \\\"session.state\\\";\\n  payload: {\\n    phase: \\\"idle\\\" | \\\"running\\\" | \\\"paused\\\";\\n    runtime: RuntimeState;\\n  };\\n};\\n\\nexport type WorldSnapshotMessage = {\\n  type: \\\"world.snapshot\\\";\\n  payload: {\\n    tick: number;\\n    world: Record<string, unknown>;\\n  };\\n};\"\n    },\n    {\n      \"path\": \"apps/game-runtime/src/runtime/sessionState.ts\",\n      \"content\": \"import type { SessionStateMessage, WorldSnapshotMessage } from \\\"@codexgame/protocol\\\";\\nimport type { RuntimeMetrics } from \\\"./metrics\\\";\\n\\nexport function buildMessages(metrics: RuntimeMetrics): {\\n  sessionState: SessionStateMessage;\\n  worldSnapshot: WorldSnapshotMessage;\\n} {\\n  return {\\n    sessionState: {\\n      type: \\\"session.state\\\",\\n      payload: {\\n        phase: \\\"running\\\",\\n        runtime: {\\n          model: \\\"local-qwen\\\",\\n          tickMs: 200,\\n          metrics,\\n        },\\n      },\\n    },\\n    worldSnapshot: {\\n      type: \\\"world.snapshot\\\",\\n      payload: {\\n        tick: 42,\\n        world: {},\\n      },\\n    },\\n  };\\n}\"\n    },\n    {\n      \"path\": \"apps/game-client/src/state.ts\",\n      \"content\": \"export type ClientState = {\\n  phase?: string;\\n  runtime?: Record<string, unknown>;\\n  world?: Record<string, unknown>;\\n};\\n\\nexport function reduceClientState(state: ClientState, message: any): ClientState {\\n  if (message.type === \\\"session.state\\\") {\\n    return {\\n      ...state,\\n      phase: message.payload.phase,\\n      runtime: message.payload.runtime,\\n    };\\n  }\\n  if (message.type === \\\"world.snapshot\\\") {\\n    return {\\n      ...state,\\n      world: message.payload.world,\\n    };\\n  }\\n  return state;\\n}\"\n    }\n  ]\n}",
+          "reasoning_content": "Looking at the task, I need to fix the TypeScript code so that:\n1. Runtime metrics live in `session.state/runtime` (not in `world.snapshot`)\n2. The client reads metrics from `session.state`\n\nLet me analyze the current state:\n\n**Current Protocol (`packages/protocol/src/messages.ts`):**\n- `SessionStateMessage.payload.runtime` has `model` and `tickMs` only\n- No metrics field in the runtime state\n\n**Current Runtime (`apps/game-runtime/src/runtime/sessionState.ts`):**\n- `buildMessages` puts metrics in `worldSnapshot.payload.metrics` (incorrect)\n- `sessionState.payload.runtime` only has `model` and `tickMs`\n\n**Current Client (`apps/game-client/src/state.ts`):**\n- `reduceClientState` reads metrics from `world.snapshot` payload (incorrect)\n\n**Test expectations (`tests/test_metrics_contract.mjs`):**\n1. `worldSnapshot.payload.metrics` should be `undefined`\n2. `sessionState.payload.runtime.metrics.turnsTotal` should equal the metrics value\n3. Client should read metrics from `sessionState` via `next.runtime.metrics.queuedActions`\n\n**Fixes needed:**\n\n1. **`packages/protocol/src/messages.ts`**: Add `metrics` field to `RuntimeState` type\n2. **`apps/game-runtime/src/runtime/sessionState.ts`**: Move metrics from `worldSnapshot` to `sessionState.payload.runtime.metrics`\n3. **`apps/game-client/src/state.ts`**: Update to read metrics from `session.state` instead of `world.snapshot`\n\nLet me write the minimal changes:\n\n### 1. packages/protocol/src/messages.ts\nAdd `metrics?: RuntimeMetrics` to `RuntimeState` type. But wait, `RuntimeMetrics` is not defined in the protocol package. I need to either:\n\n\n- Define it in the protocol package\n- Or use a more generic type\n\nLooking at the structure, I should add `metrics` to `RuntimeState`. Since `RuntimeMetrics` is defined in the runtime package, I can use `Record<string, unknown>` or import it. The simplest fix is to add `metrics` as `Record<string, unknown>` to keep it decoupled.\n\n### 2. apps/game-runtime/src/runtime/sessionState.ts\n- Remove metrics from `worldSnapshot.payload`\n- Add metrics to `sessionState.payload.runtime.metrics`\n\n### 3. apps/game-client/src/state.ts\n- Remove metrics handling from `world.snapshot` case\n- Add metrics to `session.state` case\n\nI need to check the imports - the protocol package doesn't have `RuntimeMetrics` defined, so I'll need to use a generic type or import it from the runtime package.\n\nLooking at the test expectations, metrics should flow through `sessionState.payload.runtime.metrics` rather than `worldSnapshot.payload.metrics`. The client then reads from `sessionState` to populate `runtime.metrics`.\n\nThe fix involves updating the protocol's `RuntimeState` to include a metrics field, moving the metrics into the runtime object in `buildMessages`, and ensuring the client reducer extracts metrics from the session state payload.\n\nFor the client state reducer, when handling a \"session.state\" message, I should merge the runtime object while preserving any existing runtime data. This ensures metrics from the session state get properly integrated into the client's runtime tracking.\n\nThe key insight is that `session.state` should carry the complete runtime information including metrics, so the reducer needs to update both the phase and runtime fields when this message type arrives. The world snapshot case can remain separate since it's a different message type.\n\nI should verify the protocol type definitions support this structure - specifically checking if `RuntimeState` includes a metrics field. If it doesn't, I'll need to update the protocol definition to include metrics as part of the runtime state.\n\nLooking at the imports, the protocol package defines `RuntimeState` with only `model` and `tickMs`, so adding `metrics` there would be the cleanest approach. The client can then safely access `message.payload.runtime.metrics` since it will be typed correctly. I'll update the protocol type definition to include the metrics field, then ensure both the runtime and client implementations handle it consistently. I need to verify the protocol type definition aligns with what the client expects. The `RuntimeState` type in the protocol package should include a `metrics` field to match how it's being accessed in the client code.\n\nFor the protocol file, I'll add `metrics` as an optional field in `RuntimeState`. The client's `reduceClientState` function spreads the runtime object and adds metrics, which means it expects metrics to be part of the runtime payload. Since the runtime is typed as `Record<string, unknown>`, it should accept the metrics object without type errors, though adding it to the protocol definition would make the contract explicit.\n\nIn the runtime file, I need to ensure `buildMessages` includes the metrics in the runtime object and removes them from the world snapshot payload. The client reducer should then extract metrics from the session state message and merge them into the runtime object.\n\nFor the protocol definition, I should add the `metrics` field to `RuntimeState` to properly type the runtime object that gets passed through the message system.\n"
+        }
+      }
+    ],
+    "created": 1774451154,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1692,
+      "prompt_tokens": 1076,
+      "total_tokens": 2768
+    },
+    "id": "chatcmpl-yqPKF5iCPgd72pupGHpkggyyIDwFCiIE",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 1076,
+      "prompt_ms": 623.784,
+      "prompt_per_token_ms": 0.579724907063197,
+      "prompt_per_second": 1724.9560745386223,
+      "predicted_n": 1692,
+      "predicted_ms": 39588.011,
+      "predicted_per_token_ms": 23.39716962174941,
+      "predicted_per_second": 42.74021243451711
+    }
+  },
+  "validation_results": [
+    {
+      "command": "node --experimental-strip-types --test tests/test_metrics_contract.mjs",
+      "returncode": 0,
+      "stdout": "TAP version 13\n# (node:98385) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time\n# (Use `node --trace-warnings ...` to show where the warning was created)\n# Subtest: metrics live in session.state runtime\nok 1 - metrics live in session.state runtime\n  ---\n  duration_ms: 0.744958\n  type: 'test'\n  ...\n# Subtest: client reads metrics from session.state\nok 2 - client reads metrics from session.state\n  ---\n  duration_ms: 0.0855\n  type: 'test'\n  ...\n1..2\n# tests 2\n# suites 0\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 138.24675\n",
+      "stderr": "",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "packages/protocol/src/messages.ts",
+    "apps/game-runtime/src/runtime/sessionState.ts",
+    "apps/game-client/src/state.ts"
+  ],
+  "json_error": ""
+}

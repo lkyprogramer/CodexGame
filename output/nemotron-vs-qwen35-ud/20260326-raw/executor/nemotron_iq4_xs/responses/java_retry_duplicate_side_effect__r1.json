@@ -1,0 +1,39 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 4732.599042006768,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**  \n`InvoiceNotificationService.send()` calls `invoiceGateway.markSent(invoiceId)` **and** `emailGateway.sendInvoice(invoiceId)` inside a `RetryExecutor.run()` block.  \nIf the remote call fails after the first step (e.g. `markSent` succeeds but `sendInvoice` throws), the retry executor will retry the *whole* lambda. On the next attempt both `markSent` **and** `sendInvoice` will be executed again, producing a **duplicate side‑effect** – the invoice will be marked as sent twice and the email will be sent twice, which is visible to the user.\n\n**Root cause**  \nThe retry logic is applied to the *composite* operation instead of to the *idempotent* part only. The side‑effect that must not be retried blindly is the *state‑changing* call `markSent`. The email send is already idempotent (or at least safe to repeat), but the gateway call that records the notification must not be repeated.\n\n**Smallest safe fix**  \nMake the side‑effect that must not be retried explicit and protect it from retries. The fix is to:\n\n1. Call `invoiceGateway.markSent(invoiceId)` **outside** the retry loop (so it is executed only once).  \n2. Retry only the *email* send, which can safely be repeated.\n\n```java\n// src/main/java/com/example/invoice/InvoiceNotificationService.java\npublic void send(long invoiceId) {\n    // 1️⃣ This must happen exactly once\n    invoiceGateway.markSent(invoiceId);\n\n    // 2️⃣ Retry only the email send (idempotent)\n    retryExecutor.run(() -> emailGateway.sendInvoice(invoiceId));\n}\n```\n\n*Why this is safe*  \n- `markSent` is executed a single time; even if the subsequent email send fails, the invoice remains correctly marked as sent.  \n- If the email send fails, the retry will attempt it again, but because the invoice is already marked, the retry does **not** cause a second `markSent`.  \n- The email operation is assumed to be idempotent (or at least harmless to repeat), so retrying it does not create duplicate side‑effects.\n\n**Files that must change**  \n- `src/main/java/com/example/invoice/InvoiceNotificationService.java` – replace the lambda body with the two‑step logic shown above.\n\n**Regression checks** (run after the change)\n\n1. **Happy path** – `send` succeeds on first attempt: `markSent` called once, `emailGateway.sendInvoice` called once.  \n2. **Email transient failure** – `emailGateway.sendInvoice` throws on the first try, succeeds on the second. Verify: `markSent` called exactly once, `emailGateway.sendInvoice` called twice.  \n3. **Invoice gateway failure** – `invoiceGateway.markSent` throws. Verify: `emailGateway.sendInvoice` is never called and `markSent` is called exactly once (no retry).  \n4. **Both fail** – `markSent` succeeds, `emailGateway.sendInvoice` fails repeatedly. Verify that after the configured retries the method eventually either succeeds or propagates the exception, but `markSent` is still called only once.\n\nThese checks confirm that the duplicate side‑effect bug is eliminated while preserving the intended retry behaviour for the email send."
+        }
+      }
+    ],
+    "created": 1774496073,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 738,
+      "prompt_tokens": 404,
+      "total_tokens": 1142
+    },
+    "id": "chatcmpl-oKIXDatq0HxRgmt0EP0oU1vjyHm01znv",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 404,
+      "prompt_ms": 56.692,
+      "prompt_per_token_ms": 0.14032673267326734,
+      "prompt_per_second": 7126.225922528752,
+      "predicted_n": 738,
+      "predicted_ms": 3463.54,
+      "predicted_per_token_ms": 4.693143631436314,
+      "predicted_per_second": 213.07679426251755
+    }
+  }
+}

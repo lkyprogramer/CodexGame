@@ -1,0 +1,40 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 29316.19595794473,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "# Atomic Deploy Script with Health Check and Rollback\n\n## Design Decisions\n\n1. **Atomic swap**: Use symlink to switch releases instantly\n2. **Rollback safety**: Keep previous release until health check passes\n3. **Idempotency**: Safe to re-run, validates state before proceeding\n4. **Observability**: Clear logging at each step with timestamps\n\n## Implementation\n\n```bash\n#!/usr/bin/env bash\n#\n# deploy.sh - Atomic release swap with health check and rollback\n#\n# Usage: ./deploy.sh <release_timestamp>\n# Example: ./deploy.sh 20240115-123456-v1.2.3\n#\n\nset -euo pipefail\n\n# === Configuration ===\nRELEASES_DIR=\"/srv/myapp/releases\"\nCURRENT_SYMLINK=\"/srv/myapp/current\"\nHEALTH_ENDPOINT=\"http://127.0.0.1:8080/healthz\"\nLOG_FILE=\"/srv/myapp/deploy.log\"\nHEALTH_CHECK_RETRIES=10\nHEALTH_CHECK_INTERVAL=2\n\n# === Helper Functions ===\n\nlog() {\n    local level=\"$1\"\n    shift\n    local message=\"$*\"\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] [${level}] ${message}\" | tee -a \"${LOG_FILE}\"\n}\n\nerror_exit() {\n    log \"ERROR\" \"$*\"\n    exit 1\n}\n\n# === Validation Functions ===\n\nvalidate_release_exists() {\n    local release_path=\"${RELEASES_DIR}/${RELEASE_TIMESTAMP}\"\n    if [[ ! -d \"${release_path}\" ]]; then\n        error_exit \"Release directory does not exist: ${release_path}\"\n    fi\n    log \"INFO\" \"Release directory validated: ${release_path}\"\n}\n\nvalidate_current_symlink() {\n    if [[ ! -L \"${CURRENT_SYMLINK}\" ]]; then\n        error_exit \"Current symlink is missing or not a symlink: ${CURRENT_SYMLINK}\"\n    fi\n    \n    local target\n    target=$(readlink -f \"${CURRENT_SYMLINK}\")\n    \n    if [[ ! -d \"${target}\" ]]; then\n        error_exit \"Current symlink target does not exist: ${target}\"\n    fi\n    \n    log \"INFO\" \"Current symlink validated: ${CURRENT_SYMLINK} -> ${target}\"\n}\n\n# === Deployment Functions ===\n\nget_previous_release() {\n    local current_target\n    current_target=$(readlink -f \"${CURRENT_SYMLINK}\")\n    \n    # Verify it's actually under releases directory\n    if [[ \"${current_target}\" == \"${RELEASES_DIR}\"/* ]]; then\n        echo \"${current_target}\"\n    else\n        echo \"\"\n    fi\n}\n\nperform_atomic_swap() {\n    local new_release_path=\"${RELEASES_DIR}/${RELEASE_TIMESTAMP}\"\n    \n    log \"INFO\" \"Performing atomic symlink swap...\"\n    log \"INFO\" \"  From: $(readlink -f ${CURRENT_SYMLINK})\"\n    log \"INFO\" \"  To:   ${new_release_path}\"\n    \n    # Atomic symlink replacement\n    ln -sfn \"${new_release_path}\" \"${CURRENT_SYMLINK}\"\n    \n    log \"INFO\" \"Symlink updated successfully\"\n}\n\nhealth_check() {\n    log \"INFO\" \"Performing health check (${HEALTH_CHECK_RETRIES} retries, ${HEALTH_CHECK_INTERVAL}s interval)...\"\n    \n    local attempt=1\n    while [[ ${attempt} -le ${HEALTH_CHECK_RETRIES} ]]; do\n        log \"INFO\" \"Health check attempt ${attempt}/${HEALTH_CHECK_RETRIES}...\"\n        \n        if curl -sf --max-time 5 \"${HEALTH_ENDPOINT}\" >/dev/null 2>&1; then\n            log \"INFO\" \"Health check PASSED\"\n            return 0\n        fi\n        \n        log \"WARN\" \"Health check FAILED (attempt ${attempt}/${HEALTH_CHECK_RETRIES})\"\n        ((attempt++))\n        sleep \"${HEALTH_CHECK_INTERVAL}\"\n    done\n    \n    log \"ERROR\" \"Health check FAILED after ${HEALTH_CHECK_RETRIES} attempts\"\n    return 1\n}\n\nrollback() {\n    local previous_release=\"${1}\"\n    \n    log \"WARN\" \"========================================\"\n    log \"WARN\" \"ROLLBACK INITIATED\"\n    log \"WARN\" \"========================================\"\n    log \"WARN\" \"Restoring symlink to: ${previous_release}\"\n    \n    ln -sfn \"${previous_release}\" \"${CURRENT_SYMLINK}\"\n    \n    log \"WARN\" \"Rollback completed. Symlink restored to: ${previous_release}\"\n    log \"ERROR\" \"Deployment FAILED. Please investigate logs at ${LOG_FILE}\"\n    \n    exit 1\n}\n\ncleanup_failed_release() {\n    local new_release_path=\"${RELEASES_DIR}/${RELEASE_TIMESTAMP}\"\n    \n    log \"INFO\" \"Cleaning up failed release: ${new_release_path}\"\n    \n    # Only remove if it's the one we just deployed (and health check failed)\n    if [[ -d \"${new_release_path}\" ]]; then\n        rm -rf \"${new_release_path}\"\n        log \"INFO\" \"Failed release removed\"\n    fi\n}\n\n# === Main Execution ===\n\nmain() {\n    # Require release timestamp argument\n    if [[ $# -ne 1 ]]; then\n        error_exit \"Usage: $0 <release_timestamp>\"\n    fi\n    \n    RELEASE_TIMESTAMP=\"$1\"\n    \n    log \"INFO\" \"========================================\"\n    log \"INFO\" \"Starting deployment: ${RELEASE_TIMESTAMP}\"\n    log \"INFO\" \"========================================\"\n    \n   ",
+          "reasoning_content": "Let me think about how to approach this coding problem.\n\nApproach 1: Write a deploy script that performs atomic release swap with health check and rollback.\n\nLet me implement these solutions.\n"
+        }
+      }
+    ],
+    "created": 1772947334,
+    "model": "jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Q4_K_M",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 291,
+      "total_tokens": 1541
+    },
+    "id": "chatcmpl-9dHjzkN18otLAojumOKeQ9W5TpKAess7",
+    "timings": {
+      "cache_n": 83,
+      "prompt_n": 208,
+      "prompt_ms": 132.373,
+      "prompt_per_token_ms": 0.6364086538461537,
+      "prompt_per_second": 1571.3174136719726,
+      "predicted_n": 1250,
+      "predicted_ms": 27901.881,
+      "predicted_per_token_ms": 22.3215048,
+      "predicted_per_second": 44.799847006730474
+    }
+  }
+}

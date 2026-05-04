@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 35581.419292022474,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'll implement a production-safe Python analyzer that processes replay JSONL files with malformed-line tolerance, computing per-session statistics and a global footer.\n\nLet me analyze the requirements:\n1. Process JSONL files line-by-line (streaming, memory-efficient)\n2. Count turns per session (type=\"agent.turn\")\n3. Count invalid outputs per session (type=\"error\" with code=\"invalid_output\")\n4. Track malformed lines globally\n5. Output per-session summaries and a global footer\n\nHere's the implementation:\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReplay JSONL Analyzer\n\nAnalyzes replay JSONL files to compute per-session statistics:\n- Turn counts (agent.turn events)\n- Invalid output counts (error events with code=invalid_output)\n- Malformed line tracking\n\nUsage:\n    python replay_analyzer.py <input.jsonl> [output.json]\n\nIf no output file is specified, results are printed to stdout.\n\"\"\"\n\nimport json\nimport sys\nfrom collections import defaultdict\nfrom typing import Dict, Any, Optional\n\n\ndef analyze_replay(input_path: str) -> Dict[str, Any]:\n    \"\"\"\n    Analyze a replay JSONL file and return statistics.\n    \n    Args:\n        input_path: Path to the JSONL file\n        \n    Returns:\n        Dictionary containing per-session stats and global footer\n    \"\"\"\n    # Per-session counters\n    session_turns: Dict[str, int] = defaultdict(int)\n    session_invalid_outputs: Dict[str, int] = defaultdict(int)\n    \n    # Global counters\n    total_lines = 0\n    malformed_lines = 0\n    valid_lines = 0\n    \n    # Track all sessions seen (in order of first appearance)\n    sessions_order: list[str] = []\n    sessions_seen: set[str] = set()\n    \n    with open(input_path, 'r', encoding='utf-8') as f:\n        for line in f:\n            total_lines += 1\n            line = line.strip()\n            \n            # Skip empty lines\n            if not line:\n                malformed_lines += 1\n                continue\n            \n            # Try to parse JSON\n            try:\n                event = json.loads(line)\n            except (json.JSONDecodeError, ValueError):\n                malformed_lines += 1\n                continue\n            \n            # Validate required fields\n            if not isinstance(event, dict):\n                malformed_lines += 1\n                continue\n            \n            session_id = event.get(\"sessionId\")\n            event_type = event.get(\"type\")\n            \n            if not session_id or not event_type:\n                malformed_lines += 1\n                continue\n            \n            valid_lines += 1\n            \n            # Track session order\n            if session_id not in sessions_seen:\n                sessions_order.append(session_id)\n                sessions_seen.add(session_id)\n            \n            # Count turns\n            if event_type == \"agent.turn\":\n                session_turns[session_id] += 1\n            \n            # Count invalid outputs\n            if event_type == \"error\" and event.get(\"code\") == \"invalid_output\":\n                session_invalid_outputs[session_id] += 1\n    \n    # Build per-session summaries\n    session_summaries = []\n    for session_id in sessions_order:\n        session_summaries.append({\n            \"sessionId\": session_id,\n            \"turnCount\": session_turns.get(session_id, 0),\n            \"invalidOutputCount\": session_invalid_outputs.get(session_id, 0)\n        })\n    \n    # Build result\n    result = {\n        \"sessions\": session_summaries,\n        \"global\": {\n            \"totalLines\": total_lines,\n            \"validLines\": valid_lines,\n            \"malformedLines\": malformed_lines,\n            \"sessionCount\": len(sessions_order)\n        }\n    }\n    \n    return result\n\n\ndef format_output(result: Dict[str, Any]) -> str:\n    \"\"\"\n    Format the analysis result as a human-readable string.\n    \n    Args:\n        result: The analysis result dictionary\n        \n    Returns:\n        Formatted string output\n    \"\"\"\n    lines = []\n    \n    # Per-session summaries\n    lines.append(\"=== Per-Session Summary ===\")\n    for session in result[\"sessions\"]:\n        lines.append(\n            f\"Session {session['sessionId']}: \"\n            f\"turns={session['turnCount']}, \"\n            f\"invalid_outputs={session['invalidOutputCount']}\"\n        )\n    \n    # Global footer\n    lines.append(\"\\n=== Global Footer ===\")\n    global_stats = result[\"global\"]\n    lines.append(f\"Total lines: {global_stats['totalLines']}\")\n    lines.append(f\"Valid lines: {global_stats['validLines']}\")\n    lines.append(f\"Malformed lines: {global_stats['malformedLines']}\")\n    lines.append(f\"Sessions: {global_stats['sessionCount']}\")\n    \n    return \"\\n\".join(lines)\n\n\ndef main():\n    \"\"\"Main entry point for the analyzer.\"\"\"\n    if len(sys.argv) < 2:\n        print(\"Usage: python replay_analyzer.py <input.jsonl> [output.json]\", file=sys.stderr)\n        sys.exit(1)\n    \n    input_path = sys.argv[1]\n    output_path = sys.argv[2] if len(sys.argv) > 2 else None\n    \n    try:\n        result = analyze_replay(input_path)\n    except FileNotFoundError:\n        print(f\"Error: File not found: {input_path}\", file=sys.stderr)\n        sys.exit(1)\n    except Exception as e:\n        print(f\"Error analyzing file: {e}\", file=sys.stderr)\n        sys.exit(1)\n    \n    # Output results\n    if output_path:\n        with open(output_path, 'w', encoding='utf-8') as f:\n            json.dump(result, f, indent=2)\n            f.write(\"\\n\")\n        print(f\"Results written to {output_path}\")\n    else:\n        print(format_output(result))\n\n\nif __name__ == \"__main__\":\n   "
+        }
+      }
+    ],
+    "created": 1776911599,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 518,
+      "total_tokens": 1818
+    },
+    "id": "chatcmpl-Fti0NKyP8FeBhpMsQbMDY1OjKWI8BNEg",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 434,
+      "prompt_ms": 218.634,
+      "prompt_per_token_ms": 0.5037649769585253,
+      "prompt_per_second": 1985.0526450597806,
+      "predicted_n": 1300,
+      "predicted_ms": 33510.267,
+      "predicted_per_token_ms": 25.77712846153846,
+      "predicted_per_second": 38.7940806320642
+    }
+  }
+}

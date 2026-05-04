@@ -1,0 +1,81 @@
+{
+  "artifact_paths": {
+    "target_q4_k_m": "/data/models/qwen/Qwen3.6-27B-Q4_K_M.gguf",
+    "draft": "/data/models/qwen/dflash-draft/model.safetensors",
+    "baseline_q5": "/data/models/qwen/Qwen3.6-27B-UD-Q5_K_XL.gguf"
+  },
+  "checksums": [
+    {
+      "path": "Qwen3.6-27B-Q4_K_M.gguf",
+      "target": "/data/models/qwen/Qwen3.6-27B-Q4_K_M.gguf",
+      "status": "downloaded",
+      "size": 16817244384,
+      "sha256": "5ed60d0af4650a854b1755bd392f9aef4872643dc25a254bc68043fa638392a0"
+    },
+    {
+      "path": "draft/model.safetensors",
+      "target": "/data/models/qwen/dflash-draft/model.safetensors",
+      "status": "downloaded",
+      "size": 3460432504,
+      "sha256": "1e44cae31ebda1940da56318c129509df468a1a6508a8f816a03e0c5c8661b77"
+    }
+  ],
+  "build": {
+    "status": "success",
+    "cuda_arch": "89",
+    "targets": [
+      "smoke_load_target",
+      "smoke_load_draft",
+      "test_generate",
+      "test_dflash"
+    ]
+  },
+  "smoke": {
+    "generated_tokens": 64,
+    "elapsed_s": 1.283,
+    "tok_s": 49.9
+  },
+  "dflash_humaneval": {
+    "mean_commit_per_step": 5.22,
+    "mean_accept_pct": 32.6,
+    "mean_tok_s": 72.95
+  },
+  "llama_q5_humaneval": {
+    "mean_tok_s": 30.49532343101857,
+    "think_polluted_count": 0
+  },
+  "speedup_vs_q5": 2.392170070437696,
+  "api": {
+    "models_ok": true,
+    "nonstream_content_len": 0,
+    "stream_chunk_count": 0,
+    "server_error": true,
+    "scope": "scripts/server.py OpenAI-compatible HTTP/SSE wrapper only",
+    "note": "API smoke failure does not apply to README 4a scripts/run.py CLI streaming generate."
+  },
+  "gcp_cleanup": {
+    "deleted": [
+      {
+        "path": "/home/luo/hf-ms-transfer/qwen36-dflash/Qwen3.6-27B-Q4_K_M.gguf",
+        "size": 16817244384
+      },
+      {
+        "path": "/home/luo/hf-ms-transfer/qwen36-dflash/model.safetensors",
+        "size": 3460432504
+      },
+      {
+        "path": "/home/luo/hf-ms-transfer/qwen36-dflash/parts_tmp",
+        "size": 0
+      }
+    ],
+    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        40G   27G   11G  71% /\n"
+  },
+  "cli_streaming": {
+    "script": "scripts/run.py",
+    "readme_section": "4a one-shot streaming generate",
+    "status": "success",
+    "generated_tokens": 64,
+    "tok_s": 49.9,
+    "note": "This is stdout token streaming from the one-shot CLI path, distinct from OpenAI-compatible SSE streaming in scripts/server.py."
+  }
+}

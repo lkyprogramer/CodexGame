@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_restore_bootstrap",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7198.1909169699065,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Fixed the race condition where state.phase was set to 'running' before threads were created. Now phase is only set to 'running' after all threads have been successfully bootstrapped, ensuring running state is not exposed before threads exist.\",\n  \"files\": [\n    {\n      \"path\": \"runtime/restore.py\",\n      \"content\": \"from __future__ import annotations\\n\\nfrom .session import Snapshot\\nfrom .threads import ThreadBootstrapper\\nfrom .types import RuntimeState\\n\\n\\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\\n    state.thread_ids = {}\\n    for agent_id in snapshot.agent_ids:\\n        if agent_id not in state.thread_ids:\\n            state.thread_ids[agent_id] = bootstrapper.ensure_thread(agent_id)\\n    state.connected = True\\n    state.phase = \\\"running\\\"\\n    return state\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1776913807,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 210,
+      "prompt_tokens": 748,
+      "total_tokens": 958
+    },
+    "id": "chatcmpl-gykENW2HsQrvw207PtinXmXgNnsVwlgn",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 748,
+      "prompt_ms": 355.678,
+      "prompt_per_token_ms": 0.47550534759358287,
+      "prompt_per_second": 2103.025770500284,
+      "predicted_n": 210,
+      "predicted_ms": 5391.072,
+      "predicted_per_token_ms": 25.67177142857143,
+      "predicted_per_second": 38.95329166444076
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/restore.py"
+  ],
+  "json_error": ""
+}

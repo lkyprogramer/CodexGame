@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_replay_analyzer_patch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7661.910802125931,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\":\"Implement the analyze function to stream JSONL, count malformed lines, and aggregate per-session turns and invalid_output counts.\",\n  \"files\":[{\n    \"path\":\"scripts/replay_analyzer.py\",\n    \"content\":\"import json\\n\\n\\ndef analyze(path: str) -> dict:\\n    malformed_lines = 0\\n    sessions: dict = {}\\n\\n    with open(path, \\\"r\\\", encoding=\\\"utf-8\\\") as f:\\n        for line in f:\\n            line = line.strip()\\n            if not line:\\n                continue\\n            try:\\n                obj = json.loads(line)\\n            except json.JSONDecodeError:\\n                malformed_lines += 1\\n                continue\\n\\n            session_id = obj.get(\\\"sessionId\\\")\\n            if session_id is None:\\n                malformed_lines += 1\\n                continue\\n\\n            if session_id not in sessions:\\n                sessions[session_id] = {\\\"turns\\\": 0, \\\"invalid_output\\\": 0}\\n\\n            obj_type = obj.get(\\\"type\\\")\\n            if obj_type == \\\"agent.turn\\\":\\n                sessions[session_id][\\\"turns\\\"] += 1\\n            elif obj_type == \\\"error\\\" and obj.get(\\\"code\\\") == \\\"invalid_output\\\":\\n                sessions[session_id][\\\"invalid_output\\\"] += 1\\n\\n    return {\\\"malformed_lines\\\": malformed_lines, \\\"sessions\\\": sessions}\\n\"\n  }]\n}"
+        }
+      }
+    ],
+    "created": 1775549681,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 313,
+      "prompt_tokens": 487,
+      "total_tokens": 800
+    },
+    "id": "chatcmpl-PaDN0Q63KaPNTZdhezfaYK81ynTnUdxP",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 487,
+      "prompt_ms": 203.94,
+      "prompt_per_token_ms": 0.41876796714579057,
+      "prompt_per_second": 2387.9572423261743,
+      "predicted_n": 313,
+      "predicted_ms": 7309.652,
+      "predicted_per_token_ms": 23.353520766773162,
+      "predicted_per_second": 42.82009594984823
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "scripts/replay_analyzer.py"
+  ],
+  "json_error": ""
+}

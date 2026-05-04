@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 46679.418832995,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Looking at this codebase, I need to identify the highest-risk restore consistency bug related to boot-time restore exposing an inconsistent running state before threads are restored.\n\nLet me trace through the `restoreSession()` method in `GameRuntimeServer.ts`:\n\n1. `restoreSession()` loads the saved session from `stateStore.load()`\n2. It restores the simulation state and agent configs\n3. It sets `this.phase = \"running\"` immediately\n4. It clears `this.threadIds = { gameplayByAgentId: {} }` and `this.threadToAgentId.clear()`\n5. It does NOT restore or create the codex threads\n\nThe critical issue: After `restoreSession()` completes:\n- `this.phase = \"running\"` is set\n- `this.threadIds` is empty (cleared)\n- But the simulation is restored with agents\n\nThen in `start()`, after `restoreSession()` is called, there's a call to `primeCodexModelCatalog()` which may call `startThreadsForExistingSession()` if there are no threads. However, this happens asynchronously (`void this.primeCodexModelCatalog()`).\n\nThe problem is:\n1. Between `restoreSession()` completing and `startThreadsForExistingSession()` completing, the runtime is in `phase: \"running\"` state\n2. Clients connecting during this window will see `phase: \"running\"` but `threadIds` will be empty\n3. The scheduler (`runScheduler()`) will check `if (!this.connected)` and `if (this.activeTurn || this.autoplayLocked)` but it also calls `nextSchedulableAgentId()` which checks `this.threadIds.gameplayByAgentId[agent.id]` - this should be safe\n\nWait, let me look more carefully at the restore flow:\n\nIn `restoreSession()`:\n```typescript\nthis.threadIds = { gameplayByAgentId: {} };\n\n\nthis.threadToAgentId.clear();\n```\n\nThis clears the thread IDs! But the saved session has thread IDs in `saved.threadIds`. These are not being restored.\n\nThen in `primeCodexModelCatalog()`:\n```typescript\nif (this.simulation && Object.keys(this.threadIds.gameplayByAgentId).length === 0 && !this.threadIds.builder) {\n  await this.startThreadsForExistingSession();\n}\n```\n\nThis should trigger thread creation, but it's async and happens after `restoreSession()` returns.\n\nThe bug is that `restoreSession()` sets `phase = \"running\"` while clearing thread IDs, creating a window where the runtime appears active but has no threads to execute against. Clients see a running phase with empty thread mappings, and the scheduler can't find the threads it needs to schedule work.\n\nThe fix should either delay setting the phase until threads are restored, or restore the saved thread IDs during session restoration. Since thread IDs are ephemeral and tied to the codex process, I need to verify whether they can survive a restart or if they must be recreated.\n\nLooking at `startThreadsForExistingSession()`, it creates fresh threads for each agent, which means the saved thread IDs become stale. The real issue is that `restoreSession()` sets `phase = \"running\"` before the threads are actually created, leaving the system in an inconsistent state where the simulation is restored but the threads aren't ready yet.\n\nThe fix should delay setting the phase until after `startThreadsForExistingSession()` completes, or mark the phase as something like \"restoring\" during the thread initialization window.\n\nLooking at the flow: `restoreSession()` restores the simulation state and sets `phase = \"running\"`, then `startThreadsForExistingSession()` creates the threads asynchronously. The problem is that the phase gets set to running before the threads are actually ready, which could cause scheduling issues or inconsistent state.\n\nThe fix is to defer setting `phase = \"running\"` until after the threads are initialized. I can either move this assignment into `startThreadsForExistingSession()` after thread creation completes, or add a temporary \"restoring\" phase that transitions to \"running\" once threads are ready. Since the code already handles async thread creation with `void this.primeCodexModelCatalog()`, the second approach seems cleaner—keep the phase as \"idle\" during restore and only transition to \"running\" when threads are actually available. The issue is that `restoreSession()` sets `phase = \"running\"` before threads are initialized, creating a window where the scheduler could attempt to run with incomplete state. Moving the phase assignment to after thread initialization in `startThreadsForExistingSession()` closes this gap.\n\nHowever, this creates a problem: if thread creation fails, the phase gets stuck in \"running\" without threads. The safer approach is to restore the saved thread IDs during `restoreSession()` so the scheduler has valid references from the start, then handle any thread recreation separately if needed.\n\nLooking at `startThreadsForExistingSession()`, it always creates fresh threads regardless of what was saved, which means the saved thread IDs become stale anyway. The real fix is to defer setting `phase = \"running\"` until after threads are successfully created, and handle failure cases by transitioning to \"error\" instead.\n\nThe cleanest approach is to move the phase assignment into `startThreadsForExistingSession()` after thread creation completes, and add error handling to catch failures during thread initialization. This prevents the race condition where the scheduler runs before threads exist.\n\nHowever, there's a complication: `primeCodexModelCatalog()` calls `startThreadsForExistingSession()` only when the simulation exists but threads don't. If the session was saved with thread IDs, those get cleared in `restoreSession()` and new threads need to be created. The issue is that `restoreSession()` sets `phase = \"running\"` immediately, but the async thread creation in `primeCodexModelCatalog()` hasn't finished yet, creating a window where the scheduler could run with incomplete state.\n\nThe fix is to defer setting `phase = \"running\"` until after threads are successfully created in"
+        }
+      }
+    ],
+    "created": 1774445477,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21366,
+      "total_tokens": 22616
+    },
+    "id": "chatcmpl-6EnFbbj5C8z47rHwPxZlp52yid4tSQBR",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21366,
+      "prompt_ms": 9233.279,
+      "prompt_per_token_ms": 0.4321482261537022,
+      "prompt_per_second": 2314.0208370179216,
+      "predicted_n": 1250,
+      "predicted_ms": 31322.646,
+      "predicted_per_token_ms": 25.0581168,
+      "predicted_per_second": 39.90722878265137
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 18114.949040987995,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Review\n\n**Highest-Risk Correctness Bug:**\n`ProfileService.updateDisplayName` writes to the database but **never invalidates or updates the cache**. This causes stale reads: any subsequent call to `get(profileId)` will return the cached `ProfileView` with the old display name, ignoring the DB write.\n\n**Root Cause:**\nThe write path (`updateDisplayName`) and read path (`get`) are not coordinated. The cache is only populated on cache misses in `get()`, but never invalidated on updates.\n\n**Smallest Safe Fix:**\nEvict the cache entry after a successful DB save in `updateDisplayName`. This is safer than writing the new value to the cache because:\n1. It avoids potential inconsistency if the DB save fails after a cache write (though here the DB save is after the cache eviction, so we should evict *after* the save succeeds).\n2. It avoids the complexity of constructing a new `ProfileView` in the write path.\n3. It ensures the next read will fetch fresh data from the DB.\n\n**File to Change:**\n`src/main/java/com/example/profile/ProfileService.java`\n\n**Proposed Fix:**\n\n```java\n// In ProfileService.java, modify updateDisplayName:\n\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    profileCache.evict(profileId); // <-- Add this line\n}\n```\n\n**Why evict after save?**\n- If we evict *before* the save and the save fails, the cache is empty but the DB is unchanged. The next read will correctly fetch from DB. This is acceptable.\n- If we evict *after* the save and the save fails, the cache still holds the old value. The next read will return stale data until the cache expires or is manually cleared. However, since `save()` is expected to succeed or throw, and we don't have a transactional guarantee between cache and DB, evicting after is slightly safer for consistency: if the save succeeds, the cache is invalidated; if it fails, the cache remains consistent with the DB (both have old data).\n\nActually, let's reconsider: if `save()` throws, we don't want to evict. So evicting *after* `save()` is correct. If `save()` succeeds, we evict. If `save()` fails, we don't evict, and the cache remains consistent with the DB.\n\n**Regression Checks:**\n1. Update a profile's display name and immediately read it back. Verify the new name is returned.\n2. Update a profile's display name, then read it back multiple times. Verify all reads return the new name.\n3. Update a profile's display name, then read a different profile. Verify the other profile's cache is unaffected.\n4. If `save()` throws an exception, verify the cache is not evicted (i.e., the old value is still cached)."
+        }
+      }
+    ],
+    "created": 1776917170,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 638,
+      "prompt_tokens": 464,
+      "total_tokens": 1102
+    },
+    "id": "chatcmpl-o2UzQ1Z2jbkKU6XZ6HvI376RtyxEjy1M",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 464,
+      "prompt_ms": 206.325,
+      "prompt_per_token_ms": 0.44466594827586203,
+      "prompt_per_second": 2248.879195444081,
+      "predicted_n": 638,
+      "predicted_ms": 16440.622,
+      "predicted_per_token_ms": 25.769,
+      "predicted_per_second": 38.806317668516435
+    }
+  }
+}

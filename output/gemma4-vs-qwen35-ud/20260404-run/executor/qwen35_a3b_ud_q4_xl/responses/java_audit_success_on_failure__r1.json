@@ -1,0 +1,42 @@
+{
+  "task_id": "java_audit_success_on_failure",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7455.564167001285,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "<think>\n\n</think>\n\n### Root Cause Analysis\nThe bug is in `ProfileService.changeStatus`. The `auditRepository.recordSuccess` call is placed inside a `finally` block.\n- **Logic Flaw**: A `finally` block executes regardless of whether the `try` block completes normally or throws an exception.\n- **Consequence**: If `profileRepository.save(profile)` throws an exception (e.g., database constraint violation, connection timeout), the code still proceeds to record a \"success\" audit log entry. This violates data integrity by marking a failed operation as successful.\n\n### Patch Plan\n**File to Change**: `src/main/java/com/example/profile/ProfileService.java`\n\n**Strategy**: Move the audit recording logic *after* the `try` block. If an exception occurs, it will propagate up, and the audit log will not be recorded (or a failure audit could be recorded, but the immediate requirement is to stop recording success on failure).\n\n**Minimal Safe Patch**:\n1.  Remove the `try-finally` structure.\n2.  Perform the business logic.\n3.  Call `auditRepository.recordSuccess` immediately after the logic succeeds.\n\n### Code Diff\n\n```java\n// File: src/main/java/com/example/profile/ProfileService.java\n\npublic void changeStatus(long profileId, String newStatus) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setStatus(newStatus);\n    profileRepository.save(profile);\n    \n    // Moved outside of try/finally to ensure it only runs on success\n    auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n}\n```\n\n### Regression Checks\n1.  **Success Path**: Verify that a valid status change updates the database and creates an audit log entry with status \"success\".\n2.  **Failure Path**: Verify that if `profileRepository.save` throws an exception (e.g., via a mock throwing `RuntimeException`), **no** audit log entry is created.\n3.  **Exception Propagation**: Verify that the exception from the save operation is still propagated to the caller (transaction rollback behavior should remain intact)."
+        }
+      }
+    ],
+    "created": 1775317998,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b50-9c69907",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 436,
+      "prompt_tokens": 384,
+      "total_tokens": 820,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-ZU2Fm4M8XeTJQMfELtSLuSkO5FCCotHm",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 384,
+      "prompt_ms": 113.229,
+      "prompt_per_token_ms": 0.2948671875,
+      "prompt_per_second": 3391.35733778449,
+      "predicted_n": 436,
+      "predicted_ms": 3224.648,
+      "predicted_per_token_ms": 7.395981651376147,
+      "predicted_per_second": 135.20855609666543
+    }
+  }
+}

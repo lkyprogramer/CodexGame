@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 17003.89591700514,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Review Summary\n\n**Root Cause:**\nThe `RuntimeMetrics` type exists in `types.ts` and is tracked by `MetricsTracker` in `metrics.ts`, but there is no protocol definition for exposing this data to the client. The `ServerMessage` union in `packages/protocol/src/messages.ts` lacks a message type for metrics, and the client (`App.tsx`) has no state or UI to display them.\n\n**Fix Strategy:**\n1.  **Protocol Contract:** Add a new `runtime.metrics` message type to `ServerMessage` in `packages/protocol/src/messages.ts`.\n2.  **Server Emission:** Update `GameRuntimeServer` to emit this message whenever metrics change (e.g., on turn completion, action applied/rejected, or queue depth update).\n3.  **Client State:** Update `App.tsx` to store and display the metrics in the HUD.\n4.  **Tests:** Add contract tests to verify the new message type parses and encodes correctly.\n\n### Changes Required\n\n#### 1. File: `packages/protocol/src/messages.ts`\n**Change:** Add `runtime.metrics` to the `ServerMessage` union type.\n\n```typescript\n// ... existing imports ...\n\nexport type ServerMessage =\n  // ... existing types ...\n  | {\n      version: Version;\n      type: \"runtime.metrics\";\n      payload: {\n        turnsTotal: number;\n        invalidOutputCount: number;\n        actionAppliedCount: number;\n        actionRejectedCount: number;\n        queuedActions: number;\n      };\n    }\n  | {\n      version: Version;\n      type: \"error\";\n      payload: {\n        code: string;\n        message: string;\n        recoverable: boolean;\n      };\n    };\n\n// ... existing schemas ...\n```\n\n#### 2. File: `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n**Change:** Emit `runtime.metrics` whenever the metrics state changes.\n\n*   **Import:** Ensure `RuntimeMetrics` is imported from `./types` (already done via `SessionSnapshot` import, but explicit import is clearer).\n*   **Emission:** Add `this.emitMessage(...)` calls in the following methods:\n    *   `onTurnCompleted` (inside `requestGameplayTurn`)\n    *   `onActionApplied` / `onActionRejected` (inside `tick`)\n    *   `setQueueDepth` (inside `tick` and `requestGameplayTurn`)\n\n*Specific Code Insertion:*\n\nIn `requestGameplayTurn` (after `this.metrics.onTurnCompleted()`):\n```typescript\n    this.metrics.onTurnCompleted();\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: this.metrics.snapshot()\n    });\n```\n\nIn `tick` (after `this.metrics.setQueueDepth(...)`):\n```typescript\n    this.metrics.setQueueDepth(this.totalQueuedActions());\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: this.metrics.snapshot()\n    });\n```\n\nIn `requestGameplayTurn` (after `this.metrics.setQueueDepth(...)`):\n```typescript\n    this.metrics.setQueueDepth(this.totalQueuedActions());\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: this.metrics.snapshot()\n    });\n```\n\n*Note: The `snapshot()` method already returns a shallow copy, so it is safe to emit directly.*\n\n#### 3. File: `apps/game-client/src/App.tsx`\n**Change:** Add state for metrics and render them in the HUD.\n\n*   **State:** Add `const [metrics, setMetrics] = useState<RuntimeMetrics | null>(null);`\n*   **Import:** Add `type RuntimeMetrics` from `@codexgame/protocol` (if not already exported, ensure it is exported from `messages.ts` or a dedicated types file). *Correction:* The type is defined in `types.ts` in the runtime, but for the client, we should define the shape in the protocol package or reuse the server's type if shared. Since the protocol package is `@codexgame/protocol`, we must define the shape there or import it from a shared location.\n    *   *Correction on Protocol:* The `RuntimeMetrics` type is currently in `apps/game-runtime/src/runtime/types.ts`. To make this protocol-first, the type definition should ideally be in `packages/protocol/src/types.ts` or `messages.ts`. However, to keep changes minimal as requested, we will define the shape inline in the `ServerMessage` payload in `messages.ts` (as done in step 1) and import the type from there if possible, or just use the literal type in the client.\n    *   *Refinement:* The `ServerMessage` payload in `messages.ts` now has the shape. We can import `RuntimeMetrics` from `@codexgame/protocol` if we export it from `messages.ts` or `index.ts`. Let's assume we export it from `messages.ts` or define it there.\n    *   *Actually*, looking at `messages.ts`, it defines the payload structure. We should export the type `RuntimeMetrics` from `packages/protocol/src/messages.ts` (or a new `types.ts` in protocol) to be used by the client.\n    *   *Minimal Change:* Add `export type RuntimeMetrics = { ... }` to `packages/protocol/src/messages.ts` alongside the `ServerMessage` definition.\n\n*   **Client Logic:**\n    *   In `ws.onmessage` switch case for `\"runtime.metrics\"`: `setMetrics(message.payload);`\n    *   In `session.state` case: Reset metrics if phase changes to idle?"
+        }
+      }
+    ],
+    "created": 1774496620,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-nC9nLmQRfAxM1ONuugyc3uTFko8YlEeY",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 5004.139,
+      "prompt_per_token_ms": 0.20592317188593062,
+      "prompt_per_second": 4856.180054151174,
+      "predicted_n": 1250,
+      "predicted_ms": 9922.503,
+      "predicted_per_token_ms": 7.9380024,
+      "predicted_per_second": 125.9762783644409
+    }
+  }
+}

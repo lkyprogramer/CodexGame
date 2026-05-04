@@ -1,0 +1,40 @@
+{
+  "task_id": "extreme_runtime_metrics_longctx",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 258666.61308298353,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Code Review: Runtime Metrics Exposure\n\n### Root Cause\n\nThe runtime tracks metrics internally (`MetricsTracker`) but there's **no protocol message type** to expose them to the UI. Metrics are only persisted to disk via `persistSession()`, not streamed to clients.\n\n### Smallest Protocol-First Fix\n\nAdd a dedicated `runtime.metrics` server message type and emit it from the runtime tick loop.\n\n---\n\n### Changes Required\n\n#### 1. `packages/protocol/src/messages.ts`\n\nAdd the new message type and schema:\n\n```typescript\n// Add to exports\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// Add to ServerMessage union (before closing brace)\n| {\n    version: Version;\n    type: \"runtime.metrics\";\n    payload: RuntimeMetrics;\n  }\n\n// Add to clientMessageSchema (for completeness, though client doesn't send this)\n```\n\nNote: The `RuntimeMetrics` type should be defined here (not in runtime) to keep protocol authoritative.\n\n---\n\n#### 2. `apps/game-runtime/src/runtime/metrics.ts`\n\nExport the type (for potential reuse) and ensure `snapshot()` returns the protocol-compatible shape:\n\n```typescript\n// Add export\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// snapshot() already returns this shape ✓\n```\n\n---\n\n#### 3. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nEmit metrics in the tick loop (after updating queue depth):\n\n```typescript\n// In tick() method, after this.metrics.setQueueDepth(this.totalQueuedActions());\nthis.emitMessage({\n  version: PROTOCOL_VERSION,\n  type: \"runtime.metrics\",\n  payload: this.metrics.snapshot()\n});\n```\n\nAlso emit on session state changes for initial state:\n\n```typescript\n// In sendSessionState(), add metrics payload\npayload: {\n  // ... existing fields\n  metrics: this.metrics.snapshot()\n}\n```\n\n---\n\n#### 4. `apps/game-client/src/App.tsx`\n\nConsume the new message type:\n\n```typescript\n// Add state\nconst [runtimeMetrics, setRuntimeMetrics] = useState<RuntimeMetrics | null>(null);\n\n// In ws.onmessage switch, add:\ncase \"runtime.metrics\":\n  setRuntimeMetrics(message.payload);\n  return;\n```\n\nDisplay in topbar if desired:\n\n```tsx\n<span className=\"pill\">Metrics: {runtimeMetrics?.turnsTotal ?? 0} turns</span>\n```\n\n---\n\n### Regression Checks\n\n1. **Protocol validation**: Ensure `encodeServerMessage` handles the new type without error\n2. **Existing tests**: `ui_runtime_contract` test should still pass\n3. **Session persistence**: `persistSession()` still saves metrics correctly\n4. **Session restore**: `restoreSession()` loads metrics from saved state\n5. **Client resilience**: Client handles missing `runtime.metrics` messages gracefully (state starts as `null`)\n\n---\n\n### Why This Is Minimal\n\n- **Protocol-first**: New message type defined in protocol package\n- **Runtime authoritative**: Runtime pushes metrics; no polling\n- **No state duplication**: Metrics remain in `MetricsTracker`; protocol just exposes them\n- **Backward compatible**: Old clients ignore unknown message types\n- **Single emit point**: Added to `tick()` which already runs periodically",
+          "reasoning_content": "Looking at this task, I need to analyze the oversized runtime metrics snapshot and propose the smallest protocol-first change to expose metrics cleanly.\n\nKey observations from the snapshot:\n\n1. **Current State**: The `MetricsTracker` class in `apps/game-runtime/src/runtime/metrics.ts` tracks metrics internally but doesn't expose them via the protocol.\n\n2. **Protocol Gap**: The `ServerMessage` type in `packages/protocol/src/messages.ts` doesn't have a dedicated metrics message type. Metrics are currently only persisted in `persistSession()` but not streamed to clients.\n\n3. **Log Evidence**: The `logs/runtime-metrics.jsonl` shows metrics being logged with fields like:\n   - `tick`\n   - `queuedActions`\n   - `invalidOutputCount`\n   - `actionAppliedCount`\n   - `actionRejectedCount`\n   - `turnsTotal`\n\n4. **Client State**: The client (`apps/game-client/src/App.tsx`) has state variables like `runtimeQueueAhead` but no dedicated metrics state.\n\n5. **Requirements**: \n   - \"Protocol-first\" - changes should start from the protocol layer\n   - \"Runtime authoritative\" - runtime should push metrics, not UI poll\n   - \"Smallest safe fix\" - minimal changes\n\n**Root Cause**: There's no protocol message type for runtime metrics, so metrics cannot be cleanly exposed to the UI.\n\n**Solution**: Add a new `runtime.metrics` server message type to the protocol, then have the runtime emit it periodically.\n\n**Files to Change**:\n1. `packages/protocol/src/messages.ts` - Add new server message type\n2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts` - Emit metrics message\n3. `apps/game-runtime/src/runtime/metrics.ts` - Export metrics type for protocol use\n\n**Smallest Change Set**:\n\n1. Add `RuntimeMetrics` type to protocol (export from metrics.ts or define in protocol)\n\n\n2. Add `runtime.metrics` to `ServerMessage` union\n3. Add zod schema for validation\n4. Emit metrics in runtime's tick or scheduler\n5. Client consumes the message\n\nLet me draft the minimal changes.\n"
+        }
+      }
+    ],
+    "created": 1774447273,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1233,
+      "prompt_tokens": 194010,
+      "total_tokens": 195243
+    },
+    "id": "chatcmpl-M6X7WBFUgmW5eaRSC2juxJH86X29gdcH",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 194010,
+      "prompt_ms": 145973.395,
+      "prompt_per_token_ms": 0.7524013968352147,
+      "prompt_per_second": 1329.0778090075935,
+      "predicted_n": 1233,
+      "predicted_ms": 46608.578,
+      "predicted_per_token_ms": 37.800955393349554,
+      "predicted_per_second": 26.45435782228756
+    }
+  }
+}

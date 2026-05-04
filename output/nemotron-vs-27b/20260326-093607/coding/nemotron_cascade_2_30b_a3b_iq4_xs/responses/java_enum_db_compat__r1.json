@@ -1,0 +1,39 @@
+{
+  "task_id": "java_enum_db_compat",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 3761.9943330064416,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Root cause**\n\nThe migration `V42__payment_state_lowercase.sql` lower‑cases every `state` column:\n\n```sql\nupdate payment_record set state = lower(state);\n```\n\nAfter the migration the column contains values like `pending`, `processing`, `completed`.  \n`PaymentMapper.toDomain()` calls `PaymentState.valueOf(record.getState())`, which expects the **exact enum constant names** (`PENDING`, `PROCESSING`, `COMPLETED`).  \nBecause the stored strings are now lower‑cased, `valueOf` throws an `IllegalArgumentException` for every existing row.\n\n**Fix**\n\nMake the mapper tolerant to the lower‑cased values while keeping the enum unchanged (so existing code that uses the enum still works). The smallest safe change is to normalise the string before the `valueOf` call.\n\n**Exact change**\n\n*File: `src/main/java/com/example/payment/PaymentMapper.java`*\n\n```java\npublic PaymentState toDomain(PaymentRecordDO record) {\n    // Normalise the stored value to match enum constants (case‑insensitive)\n    String normalized = record.getState() != null\n            ? record.getState().toUpperCase()\n            : null;\n    return normalized == null\n            ? null\n            : PaymentState.valueOf(normalized);\n}\n```\n\n*Why this is the smallest safe fix*\n\n* **No schema change** – we keep the migrated lower‑cased column as‑is; production data stays valid.\n* **No enum change** – existing code that uses `PaymentState` continues to compile and behaves the same.\n* **Minimal code impact** – only the mapper method is altered, and the change is isolated to the conversion logic.\n* **Handles nulls gracefully** – avoids NPE if a record somehow has a null state.\n\n**Regression checks**\n\n1. **Unit test** – Verify `toDomain` returns the correct enum for each migrated value:  \n   ```java\n   assertEquals(PaymentState.PENDING, mapper.toDomain(record(\"pending\")));\n   assertEquals(PaymentState.PROCESSING, mapper.toDomain(record(\"processing\")));\n   assertEquals(PaymentState.COMPLETED, mapper.toDomain(record(\"completed\")));\n   ```\n2. **Integration test** – Load a `PaymentRecordDO` with a lower‑cased state from the DB, map it, and assert the resulting `PaymentState` matches the expected enum.\n3. **Existing enum usage** – Run the current code paths that rely on `PaymentState` (e.g., service layer) to ensure no compilation or runtime errors appear.\n\nThese checks confirm that the migration‑induced incompatibility is resolved without breaking existing functionality."
+        }
+      }
+    ],
+    "created": 1774490872,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 564,
+      "prompt_tokens": 330,
+      "total_tokens": 894
+    },
+    "id": "chatcmpl-ZiXMVC1ptL2hr3A0c1tP9vz10dyO4x08",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 330,
+      "prompt_ms": 52.053,
+      "prompt_per_token_ms": 0.15773636363636362,
+      "prompt_per_second": 6339.6922367586885,
+      "predicted_n": 564,
+      "predicted_ms": 2647.219,
+      "predicted_per_token_ms": 4.693650709219858,
+      "predicted_per_second": 213.05377454604246
+    }
+  }
+}

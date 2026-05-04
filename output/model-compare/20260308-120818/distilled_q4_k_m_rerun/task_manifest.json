@@ -1,0 +1,70 @@
+[
+  {
+    "task_id": "java_audit_success_on_failure",
+    "family": "java",
+    "description": "Audit log currently records a successful change even when the write fails.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the flow and identify the most serious audit consistency bug. Give the smallest safe patch plan.",
+    "context_files": [
+      "src/main/java/com/example/profile/ProfileService.java",
+      "src/main/java/com/example/profile/ProfileRepository.java",
+      "src/main/java/com/example/profile/AuditRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify that finally always records success even if save throws.",
+      "Move success audit after successful persistence or separate success/failure events.",
+      "Preserve minimal change rather than redesigning audit subsystem.",
+      "Mention regression test for repository save failure."
+    ]
+  },
+  {
+    "task_id": "ts_boot_restore_consistency",
+    "family": "ts",
+    "description": "Boot-time restore can expose an inconsistent running state before threads are restored.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the real project files below, identify the highest-risk restore consistency bug and propose the smallest maintainable fix. Preserve atomic persistence and avoid duplicate thread creation.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Identify restore path sets a running-visible state before thread restoration is complete.",
+      "Mention threadIds restore/bootstrap ordering and idempotent thread recreation.",
+      "Respect protocol/client contract instead of patching runtime only.",
+      "Preserve stateStore atomic tmp+rename behavior.",
+      "Include contract/integration test updates."
+    ]
+  },
+  {
+    "task_id": "ts_runtime_metrics_protocol",
+    "family": "ts",
+    "description": "Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, propose the smallest protocol-first change set to expose runtime metrics to the client HUD. Keep simulation authority in runtime and add the right contract tests.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/metrics.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-client/src/components/GodConsoleSidebar.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Start from protocol messages rather than ad-hoc runtime/client fields.",
+      "Use MetricsTracker.snapshot() as the source of truth.",
+      "Expose metrics through session-state-like runtime state, not world snapshot.",
+      "Keep client presentation-only and add contract test coverage."
+    ]
+  }
+]

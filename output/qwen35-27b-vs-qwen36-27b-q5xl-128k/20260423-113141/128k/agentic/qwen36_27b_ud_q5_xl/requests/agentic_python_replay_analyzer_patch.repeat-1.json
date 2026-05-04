@@ -1,0 +1,15 @@
+{
+  "model": "bench/qwen36-27b-ud-q5_xl",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a senior software engineer completing an autonomous coding task.\n\nUse only the provided workspace snapshot.\nReturn JSON only.\nWrite the smallest safe set of file edits needed to make the task pass.\nDo not describe changes without also returning the file contents to apply.\nDo not invent files or APIs unless they are clearly required by the task."
+    },
+    {
+      "role": "user",
+      "content": "Task ID: agentic_python_replay_analyzer_patch\nScenario: Produce a working Python replay analyzer that streams JSONL, counts malformed lines, and aggregates per-session turns and invalid outputs.\n\nInstructions:\nApply the smallest safe fix.\nReturn JSON in this shape:\n{\"summary\":\"...\",\"files\":[{\"path\":\"relative/path\",\"content\":\"full file content\"}]}\nOnly include files that must change.\n\nWorkspace snapshot:\n\n=== File: data/replay.jsonl ===\n{\"sessionId\":\"s1\",\"type\":\"agent.turn\"}\n{\"sessionId\":\"s1\",\"type\":\"error\",\"code\":\"invalid_output\"}\n{\"sessionId\":\"s2\",\"type\":\"agent.turn\"}\nnot-json\n{\"sessionId\":\"s1\",\"type\":\"agent.turn\"}\n{\"sessionId\":\"s2\",\"type\":\"agent.turn\"}\n{\"sessionId\":\"s2\",\"type\":\"error\",\"code\":\"invalid_output\"}\n\n=== File: scripts/replay_analyzer.py ===\nimport json\n\n\ndef analyze(path: str) -> dict:\n    return {\"malformed_lines\": 0, \"sessions\": {}}\n\n=== File: tests/test_replay_analyzer.py ===\nimport unittest\nfrom pathlib import Path\n\nfrom scripts.replay_analyzer import analyze\n\n\nclass ReplayAnalyzerTests(unittest.TestCase):\n    def test_streaming_analysis(self) -> None:\n        repo_root = Path(__file__).resolve().parents[1]\n        result = analyze(str(repo_root / \"data\" / \"replay.jsonl\"))\n        self.assertEqual(result[\"malformed_lines\"], 1)\n        self.assertEqual(result[\"sessions\"][\"s1\"][\"turns\"], 2)\n        self.assertEqual(result[\"sessions\"][\"s1\"][\"invalid_output\"], 1)\n        self.assertEqual(result[\"sessions\"][\"s2\"][\"turns\"], 2)\n        self.assertEqual(result[\"sessions\"][\"s2\"][\"invalid_output\"], 1)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+    }
+  ],
+  "max_tokens": 1900,
+  "stream": false
+}

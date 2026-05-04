@@ -1,0 +1,42 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 57321.17924999693,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "<think>\n\n</think>\n\nHere is the protocol-first change set to expose runtime metrics to the client HUD.\n\n### Summary of Changes\n1.  **Protocol Definition (`packages/protocol/src/messages.ts`)**: Added a new `ServerMessage` type `runtime.metrics` and its corresponding Zod schema. This defines the contract for the metrics payload.\n2.  **Runtime Emission (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`)**: Modified `sendWorldSnapshot` to include the current `RuntimeMetrics` snapshot in the `world.snapshot` payload. This keeps the authority in the runtime and ensures the client receives the data alongside the world state.\n3.  **Client Consumption (`apps/game-client/src/App.tsx`)**: Added state to hold metrics and updated the `onmessage` handler to parse the new `world.snapshot` payload.\n4.  **Client HUD (`apps/game-client/src/components/GodConsoleSidebar.tsx`)**: Added a new HUD card to display the metrics (Turns, Invalid Outputs, Action Stats, Queue Depth).\n5.  **Contract Tests (`apps/game-runtime/test/ui-contract.integration.test.ts`)**: Added a test to verify the `world.snapshot` message includes the `metrics` field and validates the schema.\n\n### Files Changed\n\n#### 1. `packages/protocol/src/messages.ts`\n**Change**: Extend `ServerMessage` union and Zod schema to include `runtime.metrics`.\n\n```typescript\n// ... existing imports ...\n\nexport type ServerMessage =\n  // ... existing types ...\n  | {\n      version: Version;\n      type: \"world.snapshot\";\n      payload: {\n        tick: number;\n        world: {\n          width: number;\n          height: number;\n          seed: number;\n          tiles: string[][];\n          entities: Array<WorldResourceEntityMessage | WorldCreatureEntityMessage>;\n          placements: Array<{ id: string; prefabId: string; x: number; y: number }>;\n        };\n        agents: Array<{ /* ... */ }>;\n        catalog: { /* ... */ };\n        metrics: {\n          turnsTotal: number;\n          invalidOutputCount: number;\n          actionAppliedCount: number;\n          actionRejectedCount: number;\n          queuedActions: number;\n        };\n      };\n    }\n  | {\n      // ... existing error type ...\n    };\n\n// ... existing schemas ...\n\nconst worldSnapshotSchema = z.object({\n  tick: z.number(),\n  world: z.object({\n    width: z.number(),\n    height: z.number(),\n    seed: z.number(),\n    tiles: z.array(z.array(z.string())),\n    entities: z.array(z.union([\n      z.object({ type: z.literal(\"resource\"), subtype: z.string(), x: z.number(), y: z.number(), quantity: z.number() }),\n      z.object({ type: z.literal(\"creature\"), subtype: z.string(), x: z.number(), y: z.number(), quantity: z.number(), hp: z.number(), maxHp: z.number(), attack: z.number(), defense: z.number(), aggroRange: z.number(), attackRange: z.number(), cooldownTicks: z.number(), maxCooldownTicks: z.number(), hostile: z.boolean(), behaviorState: z.enum([\"idle\", \"chase\", \"attack\"]) })\n    ])),\n    placements: z.array(z.object({ id: z.string(), prefabId: z.string(), x: z.number(), y: z.number() }))\n  }),\n  agents: z.array(z.object({\n    id: z.string(), name: z.string(), x: z.number(), y: z.number(), facing: z.string(), stamina: z.number(), hp: z.number(), maxHp: z.number(), attack: z.number(), defense: z.number(), attackRange: z.number(), cooldownTicks: z.number(), alive: z.boolean(), inventory: z.record(z.number()), score: z.object({ survival: z.number(), progression: z.number(), social: z.number(), total: z.number() }), scoreTrack: z.object({ creatureKills: z.number(), enemyAgentKills: z.number(), successfulLoots: z.number(), crafts: z.number(), structuresPlaced: z.number(), cooperativeTalks: z.number(), tacticalInspects: z.number(), idleStreak: z.number() }), knownPeerInventories: z.record(z.object({ inventory: z.record(z.number()), tick: z.number() })).optional(), nearbyEntities: z.array(z.object({ id: z.string(), type: z.string(), x: z.number(), y: z.number(), distance: z.number(), hp: z.number().optional(), maxHp: z.number().optional(), hostile: z.boolean().optional() })), relations: z.object({ allies: z.array(z.string()), enemies: z.array(z.string()), neutral: z.array(z.string()) }), inbox: z.array(z.object({ fromAgentId: z.string(), message: z.string(), tick: z.number() })), model: z.string().nullable(), effort: z.string() }),\n  catalog: z.object({\n    prefabs: z.array(z.object({ id: z.string(), name: z.string(), kind: z.string() })),\n    recipes: z.array(z.object({ id: z.string(), input: z.array(z.object({ item: z.string(), count: z.number() })), output: z.object({ item: z.string(), count: z.number() }) }))\n  }),\n  metrics: z.object({\n    turnsTotal: z.number(),\n    invalidOutputCount: z.number(),\n    actionAppliedCount: z.number(),\n    actionRejectedCount: z.number(),\n    queuedActions: z.number()\n  })\n});\n\n// ... update the discriminatedUnion for ServerMessage to include the new worldSnapshotSchema ...\n```\n*(Note: The `worldSnapshotSchema` definition in the file needs to be updated to"
+        }
+      }
+    ],
+    "created": 1775318158,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b50-9c69907",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551,
+      "prompt_tokens_details": {
+        "cached_tokens": 2
+      }
+    },
+    "id": "chatcmpl-UX40BZxGWwOhA6eDJV5jppq4G1KDxFoI",
+    "timings": {
+      "cache_n": 2,
+      "prompt_n": 24299,
+      "prompt_ms": 4188.933,
+      "prompt_per_token_ms": 0.1723911683608379,
+      "prompt_per_second": 5800.761196228253,
+      "predicted_n": 1250,
+      "predicted_ms": 10050.134,
+      "predicted_per_token_ms": 8.0401072,
+      "predicted_per_second": 124.37645110005498
+    }
+  }
+}

@@ -1,0 +1,135 @@
+[
+  {
+    "task_id": "ts_boot_restore_consistency",
+    "family": "ts",
+    "description": "Boot-time restore can expose an inconsistent running state before threads are restored.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the real project files below, identify the highest-risk restore consistency bug and propose the smallest maintainable fix. Preserve atomic persistence and avoid duplicate thread creation.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Identify restore path sets a running-visible state before thread restoration is complete.",
+      "Mention threadIds restore/bootstrap ordering and idempotent thread recreation.",
+      "Respect protocol/client contract instead of patching runtime only.",
+      "Preserve stateStore atomic tmp+rename behavior.",
+      "Include contract/integration test updates."
+    ]
+  },
+  {
+    "task_id": "ts_runtime_metrics_protocol",
+    "family": "ts",
+    "description": "Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, propose the smallest protocol-first change set to expose runtime metrics to the client HUD. Keep simulation authority in runtime and add the right contract tests.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/metrics.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-client/src/components/GodConsoleSidebar.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Start from protocol messages rather than ad-hoc runtime/client fields.",
+      "Use MetricsTracker.snapshot() as the source of truth.",
+      "Expose metrics through session-state-like runtime state, not world snapshot.",
+      "Keep client presentation-only and add contract test coverage."
+    ]
+  },
+  {
+    "task_id": "java_outbox_publish_before_commit",
+    "family": "java",
+    "description": "Domain event is published inline before the database write is durably committed.",
+    "max_tokens": 1050,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Identify the highest-risk consistency bug and propose the smallest safe fix. Do not redesign the whole eventing stack unless absolutely necessary.",
+    "context_files": [
+      "src/main/java/com/example/invoice/InvoiceService.java",
+      "src/main/java/com/example/invoice/DomainEventPublisher.java",
+      "src/main/java/com/example/invoice/InvoiceRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify publish-before-commit inconsistency as the core bug.",
+      "Prefer moving event creation to an outbox or after-commit boundary, not an async sleep/retry hack.",
+      "Keep the proposed change minimal and localized.",
+      "Mention regression where publish succeeds but save fails."
+    ]
+  },
+  {
+    "task_id": "java_retry_duplicate_side_effect",
+    "family": "java",
+    "description": "Retry wrapper around a remote call duplicates the user-visible side effect.",
+    "max_tokens": 1050,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the flow and identify the highest-risk bug. Propose the smallest safe fix and call out what must not be retried blindly.",
+    "context_files": [
+      "src/main/java/com/example/invoice/InvoiceNotificationService.java",
+      "src/main/java/com/example/invoice/RetryExecutor.java",
+      "src/main/java/com/example/invoice/InvoiceGateway.java",
+      "src/main/java/com/example/invoice/EmailGateway.java"
+    ],
+    "hidden_checklist": [
+      "Identify duplicate side effect under retry as the core bug.",
+      "Call out that email sending must not be retried blindly with state mutation in the same block.",
+      "Prefer moving the retry boundary or making one side idempotent.",
+      "Mention regression for gateway timeout after markSent but before email send completes."
+    ]
+  },
+  {
+    "task_id": "ts_reconnect_circuit_breaker",
+    "family": "ts",
+    "description": "Reconnect handling risks bypassing the circuit breaker that protects the runtime loop.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, identify the highest-risk reconnect safety bug and propose the smallest maintainable fix. Preserve the hard reconnect guard.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Respect maxReconnectAttempts as a hard safety guard.",
+      "Keep reconnect authority in runtime, not client.",
+      "Call out the exact reconnect state machine bug rather than generic retry advice.",
+      "Mention integration or fault-injection coverage."
+    ]
+  },
+  {
+    "task_id": "ts_build_atomic_write_guard",
+    "family": "ts",
+    "description": "Builder flow must preserve atomic writes and schema-first validation under partial failure.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, identify the highest-risk build-flow consistency bug and propose the smallest safe fix. Preserve atomic content writes.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/build.ts",
+      "apps/game-runtime/test/contentStore.test.ts",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Preserve tmp + rename atomic write behavior.",
+      "Validate build operations against protocol schema before mutating content.",
+      "Keep builder flow content-only and avoid runtime/client side mutations.",
+      "Mention contentStore and integration test coverage."
+    ]
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "task_id": "java_permission_scope_trust_bug",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_permission_scope_trust_bug\nScenario: Service trusts orgId from request payload instead of the authenticated operator context.\n\nInstructions:\nIdentify the highest-risk security bug and give the smallest maintainable fix. Prefer a clear trust-boundary correction over broad auth refactors.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/report/ReportController.java ===\npackage com.example.report;\n\npublic class ReportController {\n    private final ReportService reportService;\n\n    public ReportController(ReportService reportService) {\n        this.reportService = reportService;\n    }\n\n    public ReportDto generate(UserSession session, GenerateReportRequest request) {\n        return reportService.generate(request.getOrgId(), session.getUserId(), request.getRange());\n    }\n}\n\n=== File: src/main/java/com/example/report/GenerateReportRequest.java ===\npackage com.example.report;\n\npublic class GenerateReportRequest {\n    private long orgId;\n    private String range;\n\n    public long getOrgId() {\n        return orgId;\n    }\n\n    public String getRange() {\n        return range;\n    }\n}\n\n=== File: src/main/java/com/example/report/UserSession.java ===\npackage com.example.report;\n\npublic class UserSession {\n    private long userId;\n    private long orgId;\n\n    public long getUserId() {\n        return userId;\n    }\n\n    public long getOrgId() {\n        return orgId;\n    }\n}\n"
+      }
+    ],
+    "max_tokens": 1000,
+    "stream": false
+  }
+}

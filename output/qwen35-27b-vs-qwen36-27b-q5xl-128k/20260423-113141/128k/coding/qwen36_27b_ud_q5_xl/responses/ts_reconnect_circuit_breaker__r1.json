@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_reconnect_circuit_breaker",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 39297.97812498873,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Reconnect Circuit Breaker Bypass\n\n**Highest-Risk Bug:**\nThe `reconnect` method in `GameRuntimeServer.ts` resets `this.connected = true` immediately upon successful reconnection, but it **fails to reset `this.reconnectAttempts`**.\n\nConsequently, if the connection drops and reconnects successfully, the `reconnectAttempts` counter remains elevated. If the connection drops again shortly after, the server may incorrectly trigger the circuit breaker (`phase = \"error\"`) because the cumulative attempts exceed `maxReconnectAttempts`, even though the previous reconnection was successful. This effectively turns the \"circuit breaker\" into a \"total lifetime disconnect counter,\" making the system fragile against transient network issues.\n\nAdditionally, while not a logic bug, the `reconnect` method does not explicitly clear `this.pendingTurns` or `this.activeTurn` before attempting to resume threads. If a turn was in-flight during the disconnect, the `pendingTurns` promise will likely timeout or hang, potentially blocking the scheduler or leaving the runtime in an inconsistent state where `activeTurn` is set but the underlying thread is dead. However, the circuit breaker bypass is the critical safety violation requested.\n\n**Smallest Maintainable Fix:**\n1.  Reset `this.reconnectAttempts = 0` inside the `try` block of `reconnect()` after successful reconnection.\n2.  (Recommended Safety) Clear pending turns and active turn state at the start of `reconnect()` to ensure a clean slate before resuming threads.\n\n**File to Change:**\n`apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Proposed Diff:**\n\n```typescript\n  private async reconnect(): Promise<void> {\n    // SAFETY: Clear any in-flight turns that are now invalid due to disconnect.\n    // This prevents hanging promises and ensures the scheduler can pick up new turns.\n    this.cancelPendingTurns(\"reconnect\");\n    this.activeTurn = null;\n\n    try {\n      await this.codexClient.restart({ codexBin: runtimeConfig.codexBin, cwd: runtimeConfig.codexCwd });\n      \n      // Resume threads\n      for (const threadId of Object.values(this.threadIds.gameplayByAgentId)) {\n        await this.codexClient.request(\"thread/resume\", { threadId });\n      }\n      if (this.threadIds.builder) {\n        await this.codexClient.request(\"thread/resume\", { threadId: this.threadIds.builder });\n      }\n      \n      await this.refreshModelCatalog();\n      \n      // FIX: Reset connection state and attempt counter on success.\n      // Previously, reconnectAttempts was not reset, causing the circuit breaker \n      // to trip on subsequent transient disconnects even if previous reconnects succeeded.\n      this.connected = true;\n      this.reconnectAttempts = 0;\n      \n      this.sendSessionState();\n      this.emitMessage({\n        version: PROTOCOL_VERSION,\n        type: \"agent.feed\",\n        payload: {\n          role: \"system\",\n          text: \"Codex reconnect complete.\"\n        }\n      });\n    } catch (error) {\n      this.connected = false;\n      this.sendSessionState();\n      this.emitError(\"reconnect_failed\", (error as Error).message, true);\n      await this.handleDisconnect();\n    }\n  }\n```\n\n### Regression Checks\n\n1.  **Transient Disconnect Recovery:**\n    *   Start a session.\n    *   Simulate a disconnect (e.g., kill the codex process or network drop).\n    *   Verify the server logs \"reconnecting\".\n    *   Simulate reconnection.\n    *   Verify `reconnectAttempts` is reset to 0 (check internal state or log).\n    *   Simulate another disconnect/reconnect cycle.\n    *   Verify the server does **not** enter the `error` phase (circuit breaker) despite multiple transient failures.\n\n2.  **Persistent Failure Circuit Breaker:**\n    *   Start a session.\n    *   Simulate a disconnect.\n    *   Ensure reconnection fails (e.g., codex process stays down).\n    *   Repeat until `maxReconnectAttempts` (5) is exceeded.\n    *   Verify the server enters the `error` phase and emits the \"circuit_breaker\" error.\n\n3.  **In-Flight Turn Handling:**\n    *   Start a session and trigger a gameplay turn.\n    *   Disconnect immediately while the turn is pending.\n    *   Reconnect.\n    *   Verify the server does not hang waiting for the old turn to complete.\n    *   Verify the scheduler can schedule a new turn for the agent after reconnection."
+        }
+      }
+    ],
+    "created": 1776917405,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1005,
+      "prompt_tokens": 20967,
+      "total_tokens": 21972
+    },
+    "id": "chatcmpl-SKrmbL2067emxLIC2tSqZqVkqpKtaB4L",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 20967,
+      "prompt_ms": 9316.436,
+      "prompt_per_token_ms": 0.4443380550388706,
+      "prompt_per_second": 2250.538725323718,
+      "predicted_n": 1005,
+      "predicted_ms": 27486.89,
+      "predicted_per_token_ms": 27.350139303482585,
+      "predicted_per_second": 36.562885069936975
+    }
+  }
+}

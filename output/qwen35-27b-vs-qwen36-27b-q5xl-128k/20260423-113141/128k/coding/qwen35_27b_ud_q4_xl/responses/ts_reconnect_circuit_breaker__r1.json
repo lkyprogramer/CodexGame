@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_reconnect_circuit_breaker",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 37416.47816600744,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Reconnect Circuit Breaker Bypass\n\n**Risk Level:** High\n**Root Cause:** The `reconnect()` method in `GameRuntimeServer` unconditionally sets `this.connected = true` upon a successful `codexClient.restart()`, regardless of the current `this.phase`.\n\nIf the runtime is in the `error` phase (triggered by the circuit breaker after `maxReconnectAttempts`), a subsequent successful reconnect (e.g., if the underlying service recovers) will flip `connected` back to `true` and emit a \"reconnect complete\" message. However, because `this.phase` remains `error`, the scheduler (`runScheduler`) and tick loop (`tick`) will continue to be blocked by the phase check.\n\nWhile the loop is blocked, the state is inconsistent: the UI sees `connected: true` (via `sendSessionState`), but the runtime is effectively dead (`phase: error`). More critically, if the `reconnect()` logic were to be extended or if `phase` logic changes, this unconditional state flip creates a path where the \"hard reconnect guard\" (the circuit breaker count) is effectively bypassed because the system claims to be connected again without resetting the error state or the attempt counter properly in all code paths.\n\nThe specific bug is that `reconnect()` assumes it is safe to mark the system as connected without verifying that the session is actually in a `running` state.\n\n**Fix:**\nAdd a guard in `reconnect()` to only update the `connected` flag and send the success message if the session phase is `running`. If the phase is `error`, the reconnect attempt should be treated as a failure to maintain the circuit breaker state.\n\n### File Changes\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change:** Modify the `reconnect` method to check `this.phase` before marking the connection as successful.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n  private async reconnect(): Promise<void> {\n    try {\n      await this.codexClient.restart({ codexBin: runtimeConfig.codexBin, cwd: runtimeConfig.codexCwd });\n      for (const threadId of Object.values(this.threadIds.gameplayByAgentId)) {\n        await this.codexClient.request(\"thread/resume\", { threadId });\n      }\n      if (this.threadIds.builder) {\n        await this.codexClient.request(\"thread/resume\", { threadId: this.threadIds.builder });\n      }\n      await this.refreshModelCatalog();\n\n      // FIX: Only mark as connected if the session is in a valid running state.\n      // If phase is 'error' (circuit breaker tripped), we must not bypass the guard.\n      if (this.phase === \"running\") {\n        this.connected = true;\n        this.sendSessionState();\n        this.emitMessage({\n          version: PROTOCOL_VERSION,\n          type: \"agent.feed\",\n          payload: {\n            role: \"system\",\n            text: \"Codex reconnect complete.\"\n          }\n        });\n      } else {\n        // If not running (e.g., error state), treat this as a failure to maintain circuit breaker integrity.\n        this.connected = false;\n        this.sendSessionState();\n        this.emitError(\"reconnect_failed\", \"Reconnect attempted but session is not in running phase.\", true);\n        await this.handleDisconnect();\n      }\n    } catch (error) {\n      this.connected = false;\n      this.sendSessionState();\n      this.emitError(\"reconnect_failed\", (error as Error).message, true);\n      await this.handleDisconnect();\n    }\n  }\n```\n\n### Regression Checks\n\n1.  **Circuit Breaker Integrity:**\n    *   Simulate `maxReconnectAttempts` (5) failures. Verify `phase` becomes `error` and `connected` becomes `false`.\n    *   Simulate a successful `codexClient.restart` immediately after the circuit breaker trips.\n    *   **Expected:** `phase` remains `error`, `connected` remains `false`, and the \"reconnect complete\" message is **not** sent. The system should continue to retry or stay in error state depending on `handleDisconnect` logic (which should eventually stop or keep failing).\n\n2.  **Normal Reconnect Flow:**\n    *   Start a session (`phase: running`).\n    *   Simulate a disconnect (e.g., kill `codex` process).\n    *   Simulate a successful reconnect.\n    *   **Expected:** `phase` remains `running`, `connected` becomes `true`, \"Codex reconnect complete\" is sent, and the game loop resumes.\n\n3.  **State Consistency:**\n    *   Verify that `sendSessionState()` is called in all branches of `reconnect()` to ensure the UI reflects the correct `connected` status."
+        }
+      }
+    ],
+    "created": 1776916595,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1047,
+      "prompt_tokens": 20967,
+      "total_tokens": 22014
+    },
+    "id": "chatcmpl-qi0PrWBGeKMwFtySZlavuPffji7T4Y9s",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 20967,
+      "prompt_ms": 9057.667,
+      "prompt_per_token_ms": 0.4319963275623599,
+      "prompt_per_second": 2314.834493253064,
+      "predicted_n": 1047,
+      "predicted_ms": 26139.812,
+      "predicted_per_token_ms": 24.966391595033432,
+      "predicted_per_second": 40.05384583485145
+    }
+  }
+}

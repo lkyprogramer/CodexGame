@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 46849.49570801109,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To expose runtime metrics to the client HUD in a protocol-first way while maintaining simulation authority in the runtime, we need to:\n\n1.  **Extend the Protocol**: Add a new `runtime.metrics` server message type to `packages/protocol/src/messages.ts`.\n2.  **Update Runtime**: Modify `apps/game-runtime/src/runtime/GameRuntimeServer.ts` to emit these metrics whenever the state changes (specifically in `tick()` and `sendSessionState()`).\n3.  **Update Client**: Modify `apps/game-client/src/App.tsx` to consume the new message and display the metrics in the HUD.\n4.  **Add Contract Tests**: Update `apps/game-runtime/test/ui-contract.integration.test.ts` to verify the new message structure.\n\nHere is the minimal change set:\n\n### 1. Protocol Definition\n**File**: `packages/protocol/src/messages.ts`\n\nAdd the `RuntimeMetrics` type and the `runtime.metrics` message variant to `ServerMessage`.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports ...\n\n// Add this type definition near the top with other types\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      // ... existing payload ...\n    }\n  // ... other existing message types ...\n  | {\n      version: Version;\n      type: \"runtime.metrics\";\n      payload: RuntimeMetrics;\n    };\n\n// ... existing schemas ...\n\n// Add the schema for the new message type to the discriminated union\nconst clientMessageSchema = z.discriminatedUnion(\"type\", [\n  // ... existing client message schemas ...\n]);\n\n// Note: Server messages are not validated by a schema in this file currently, \n// but the type definition above ensures TypeScript safety for the client.\n```\n\n### 2. Runtime Server Implementation\n**File**: `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nUpdate `sendSessionState` to include metrics and add a new `sendMetrics` method called during the tick loop.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports ...\nimport type { RuntimeMetrics } from \"./types\"; // Ensure this import exists or use the protocol type if moved\n\n// ... inside GameRuntimeServer class ...\n\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: this.phase,\n        paused: this.paused,\n        preparedSeed: this.preparedSeed,\n        threadIds: this.threadIds,\n        connected: this.connected,\n        runtime: {\n          model: this.turnModel,\n          effort: this.turnEffort,\n          tickMs: runtimeConfig.tickMs,\n          schedulerMs: runtimeConfig.schedulerMs,\n          maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n          availableModels: this.availableModels\n        }\n      }\n    });\n    // Emit current metrics immediately when state is sent\n    this.sendMetrics();\n  }\n\n  private sendMetrics(): void {\n    const metrics = this.metrics.snapshot();\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: metrics\n    });\n  }\n\n  private tick(): void {\n    if (!this.simulation || this.phase !== \"running\") {\n      return;\n    }\n\n    if (this.paused) {\n      this.metrics.setQueueDepth(this.totalQueuedActions());\n      this.sendMetrics(); // Send metrics even when paused to update queue depth\n      return;\n    }\n\n    this.simulation.tick();\n\n    const agents = this.simulation.getState().agents.map((agent) => agent.id).sort();\n    for (const agentId of agents) {\n      const queue = this.actionQueueByAgent.get(agentId);\n      const nextAction = queue?.shift();\n      if (!nextAction) {\n        continue;\n      }\n      const result = this.simulation.applyAction(agentId, nextAction);\n      if (result.result === \"applied\") {\n        this.metrics.onActionApplied();\n      } else {\n        this.metrics.onActionRejected();\n      }\n      this.emitMessage({\n        version: PROTOCOL_VERSION,\n        type: \"agent.action\",\n        payload: {\n          agentId,\n          action: result.action,\n          result: result.result,\n          ...(result.reason ? { reason: result.reason } : {})\n        }\n      });\n      void this.logReplay(\"action.applied\", {\n        agentId,\n        action: result.action,\n        result: result.result,\n        reason: result.reason ?? null\n      });\n    }\n\n    this.metrics.setQueueDepth(this.totalQueuedActions());\n    this.sendWorldSnapshot();\n    this.sendMetrics(); // Send metrics after tick updates\n  }\n\n// ... rest of the class ...\n```\n\n### 3. Client HUD Update\n**File**: `apps/game-client/src/App.tsx`\n\nAdd state for metrics, handle the new message type, and display the data in the HUD.\n\n```typescript\n// apps/game-client/src/App.tsx\n\n// ... existing imports ...\nimport type { RuntimeMetrics } from \"@codexgame/protocol\"; // Import the new type\n\n// ... inside App component ...\n\n  const [runtimeMetrics, setRuntimeMetrics] = useState<RuntimeMetrics>({\n    turnsTotal: 0,\n    invalidOutputCount: 0,\n    actionAppliedCount: 0,\n   "
+        }
+      }
+    ],
+    "created": 1776910552,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-rfuTzHhUZMvxfP8NkrsoPHaz3evkJqLy",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 10630.77,
+      "prompt_per_token_ms": 0.4374622443520843,
+      "prompt_per_second": 2285.911556735777,
+      "predicted_n": 1250,
+      "predicted_ms": 31552.275,
+      "predicted_per_token_ms": 25.24182,
+      "predicted_per_second": 39.61679466853024
+    }
+  }
+}

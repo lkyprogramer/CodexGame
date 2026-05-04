@@ -1,0 +1,40 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 23601.69945799862,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Code Review: Retry Duplicate Side Effect Bug\n\n### Highest-Risk Bug\n\n**Location:** `InvoiceNotificationService.send()` method\n\n**Problem:** The retry wrapper encapsulates both `markSent()` and `sendInvoice()` in the same retryable block. If `sendInvoice()` fails but `markSent()` succeeds, the retry will:\n1. Call `markSent()` again (likely idempotent, but wasteful)\n2. **Call `sendInvoice()` again → DUPLICATE EMAIL sent to customer**\n\nThis is a critical user-facing bug. Customers may receive the same invoice multiple times.\n\n---\n\n### What Must Not Be Retried Blindly\n\n| Operation | Why |\n|-----------|-----|\n| `emailGateway.sendInvoice(invoiceId)` | **User-visible side effect**. Non-idempotent. Sending twice = duplicate emails. |\n| `invoiceGateway.markSent(invoiceId)` | State mutation. Should only happen once per successful email delivery. |\n\n---\n\n### Smallest Safe Fix\n\n**File to change:** `src/main/java/com/example/invoice/InvoiceNotificationService.java`\n\n**Fix:** Only retry the email sending. Mark as sent **after** successful email delivery.\n\n```java\npublic void send(long invoiceId) {\n    // Retry only the user-visible side effect\n    retryExecutor.run(() -> {\n        emailGateway.sendInvoice(invoiceId);\n    });\n    // Mark as sent only after email is confirmed sent\n    invoiceGateway.markSent(invoiceId);\n}\n```\n\n---\n\n### Why This Fix Is Safe\n\n1. **Retry scope minimized** — Only the potentially transient email failure is retried.\n2. **No duplicate emails** — `sendInvoice` is called at most once per retry attempt, and `markSent` happens exactly once after success.\n3. **Correct ordering** — Invoice is marked sent only after we know the email went through.\n\n---\n\n### Regression Checks\n\n- [ ] Verify no duplicate emails are sent when `emailGateway.sendInvoice()` throws transient exceptions.\n- [ ] Verify `markSent()` is called exactly once per successful email delivery.\n- [ ] Verify `markSent()` is NOT called if `sendInvoice()` permanently fails (e.g., invalid email, after max retries).\n- [ ] Add integration test simulating transient email failures with retry.",
+          "reasoning_content": "Let me analyze this code to identify the bug related to retry logic and duplicate side effects.\n\n**Understanding the flow:**\n1. `InvoiceNotificationService.send()` is called with an invoice ID\n2. It wraps the entire notification logic in `retryExecutor.run()`\n3. The wrapped action does two things:\n   - `invoiceGateway.markSent(invoiceId)` - marks the invoice as sent in the database\n   - `emailGateway.sendInvoice(invoiceId)` - sends an email to the customer\n\n**The Bug:**\nThe retry wrapper wraps BOTH side effects together. If the email sending fails (e.g., network issue, SMTP timeout) but `markSent()` succeeds, on retry:\n- `markSent()` runs again - potentially idempotent but could cause issues\n- `emailGateway.sendInvoice()` runs again - **DUPLICATE EMAIL SENT TO CUSTOMER**\n\nThis is the classic \"retry duplicates user-visible side effect\" problem.\n\n**What should NOT be retried blindly:**\n- `emailGateway.sendInvoice(invoiceId)` - This is the user-visible side effect. Sending the same invoice twice to a customer is a serious issue.\n- `invoiceGateway.markSent(invoiceId)` - While likely idempotent, it shouldn't be retried if the email already went through.\n\n**Smallest Safe Fix:**\nThe minimal change is to separate the idempotent state update from the user-visible side effect:\n1. Only retry the email sending part\n2. Mark as sent AFTER the email is successfully sent\n\nThis way, if email sending fails and retries, we don't mark it as sent until we know the email actually went through.\n\n**Alternative (if markSent must be retried):**\nIf `markSent` is truly idempotent and must be retried, then at minimum `sendInvoice` should be made idempotent (e.g., check if email already sent before sending).\n\nBut the simplest and safest fix is to restructure so the user-visible side effect is what gets retried, not wrapped with state changes.\n"
+        }
+      }
+    ],
+    "created": 1774359174,
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 924,
+      "prompt_tokens": 430,
+      "total_tokens": 1354
+    },
+    "id": "chatcmpl-WRHg3tmF1d0OH1HUpmyNNtQ6s9AV0QCH",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 430,
+      "prompt_ms": 191.457,
+      "prompt_per_token_ms": 0.4452488372093023,
+      "prompt_per_second": 2245.9351185905975,
+      "predicted_n": 924,
+      "predicted_ms": 20649.191,
+      "predicted_per_token_ms": 22.347609307359306,
+      "predicted_per_second": 44.7475157743468
+    }
+  }
+}

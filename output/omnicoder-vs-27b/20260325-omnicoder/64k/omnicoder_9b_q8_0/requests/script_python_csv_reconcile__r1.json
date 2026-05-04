@@ -1,0 +1,19 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/omnicoder-9b-q8_0",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: script_python_csv_reconcile\nScenario: Write a Python reconciliation script for two daily business CSV exports with duplicate and blank-row edge cases.\n\nInstructions:\nWrite the smallest production-safe Python script or script skeleton to reconcile two CSV exports. State the exact matching strategy, the output files, and the key edge-case guards.\n\nProject snapshot:\n\n=== File: samples/finance_export.csv ===\nmerchant_order_id,provider_txn_id,amount_cents,status,updated_at\nO-1001,P-9001,12800,SETTLED,2026-03-08T10:00:01Z\nO-1002,P-9002,12800,REFUNDED,2026-03-08T10:05:01Z\nO-1003,P-9003,6500,SETTLED,2026-03-08T10:06:01Z\nO-1003,P-9003,6500,SETTLED,2026-03-08T10:06:01Z\n\n=== File: samples/merchant_statement.csv ===\nmerchant_order_id,provider_txn_id,amount_cents,status,updated_at\nO-1001,P-9001,12800,SETTLED,2026-03-08T10:00:02Z\nO-1002,P-9002,12800,REFUNDED,2026-03-08T10:04:59Z\nO-1004,P-9004,9900,SETTLED,2026-03-08T10:07:01Z\n\n=== File: docs/reconcile_rules.md ===\n- Match by merchant_order_id first, then provider_txn_id as fallback.\n- Flag duplicates, missing rows, stale refunds, and amount mismatches.\n- Emit one machine-readable CSV and one human-readable summary.\n- Tolerate BOM headers, duplicate header rows, and blank lines.\n"
+      }
+    ],
+    "max_tokens": 1300,
+    "stream": false
+  }
+}

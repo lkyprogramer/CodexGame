@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 42853.73855009675,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To expose runtime metrics to the client HUD in a protocol-first manner while maintaining simulation authority in the runtime, we need to:\n\n1.  **Extend the Protocol**: Add a new `runtime.metrics` server message type to `packages/protocol/src/messages.ts`.\n2.  **Update Runtime**: Modify `apps/game-runtime/src/runtime/GameRuntimeServer.ts` to emit these metrics whenever the state changes (specifically in `sendSessionState` or a new dedicated method).\n3.  **Update Client**: Modify `apps/game-client/src/App.tsx` to consume the new message and display the metrics in the HUD.\n4.  **Add Contract Tests**: Update `apps/game-runtime/test/ui-contract.integration.test.ts` to verify the new message structure.\n\nHere is the minimal change set:\n\n### 1. Extend Protocol (`packages/protocol/src/messages.ts`)\n\nAdd the `RuntimeMetrics` type and the `runtime.metrics` server message variant.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports ...\n\n// Add this type definition near other types\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      // ... existing payload ...\n    }\n  // ... other existing variants ...\n  | {\n      version: Version;\n      type: \"runtime.metrics\";\n      payload: RuntimeMetrics;\n    };\n\n// ... existing schemas ...\n```\n\n### 2. Update Runtime (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`)\n\nModify `sendSessionState` to include metrics, or better yet, emit a dedicated `runtime.metrics` message whenever metrics change. To keep it minimal and ensure the HUD always has the latest data, we will emit the metrics in `sendSessionState` (which is called on state changes) and also explicitly in the `tick` loop where metrics are updated.\n\n*Correction*: The `tick` loop updates metrics. We should emit the metrics message there. We also need to ensure the initial state includes metrics.\n\n**Change 1: Emit metrics in `tick`**\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// Inside the tick() method, after updating metrics:\nprivate tick(): void {\n  // ... existing logic ...\n\n  this.metrics.setQueueDepth(this.totalQueuedActions());\n  this.sendWorldSnapshot();\n  \n  // Add this line to emit metrics\n  this.emitMetrics();\n}\n\n// Add this new method\nprivate emitMetrics(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"runtime.metrics\",\n    payload: this.metrics.snapshot()\n  });\n}\n```\n\n**Change 2: Emit metrics in `sendSessionState`**\nTo ensure the client gets the metrics immediately upon connection or state change:\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\nprivate sendSessionState(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"session.state\",\n    payload: {\n      // ... existing payload ...\n    }\n  });\n  \n  // Add this line\n  this.emitMetrics();\n}\n```\n\n### 3. Update Client (`apps/game-client/src/App.tsx`)\n\nAdd state for metrics and handle the new message type. Update the HUD to display them.\n\n```typescript\n// apps/game-client/src/App.tsx\n\n// Add this type near other types\ntype RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// Add state\nconst [runtimeMetrics, setRuntimeMetrics] = useState<RuntimeMetrics>({\n  turnsTotal: 0,\n  invalidOutputCount: 0,\n  actionAppliedCount: 0,\n  actionRejectedCount: 0,\n  queuedActions: 0\n});\n\n// In the ws.onmessage handler:\ncase \"runtime.metrics\":\n  setRuntimeMetrics(message.payload);\n  return;\n\n// Update the HUD to display metrics. \n// We'll add a new HUD section or integrate into existing. \n// Let's add a \"Metrics\" section in the HUD.\n\n// Inside the return JSX, add a new hud-card for metrics:\n<div className=\"hud-card\">\n  <button\n    type=\"button\"\n    className=\"hud-card-toggle\"\n    onClick={() => toggleHudSection(\"metrics\")}\n    aria-expanded={!collapsedHudSections.metrics}\n  >\n    <span>Metrics</span>\n    <span className=\"hud-card-toggle-icon\">{collapsedHudSections.metrics ? \"+\" : \"-\"}</span>\n  </button>\n  {!collapsedHudSections.metrics ? (\n    <div className=\"hud-grid\">\n      <p>Turns</p>\n      <p>{runtimeMetrics.turnsTotal}</p>\n      <p>Invalid Outputs</p>\n      <p>{runtimeMetrics.invalidOutputCount}</p>\n      <p>Actions Applied</p>\n      <p>{runtimeMetrics.actionAppliedCount}</p>\n      <p>Actions Rejected</p>\n      <p>{runtimeMetrics.actionRejectedCount}</p>\n      <p>Queued Actions</p>\n      <p>{runtimeMetrics.queuedActions}</p>\n    </div>\n  ) : null}\n</div>\n\n// Update collapsedHudSections state initialization to include \"metrics\"\nconst [collapsedHudSections, setCollapsedHudSections] = useState<Record<HudSectionKey, boolean>>({\n"
+        }
+      }
+    ],
+    "created": 1775547340,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-nuNLFAUIKYTw0GirwFE4DwQAd6SaVN12",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 10619.062,
+      "prompt_per_token_ms": 0.43698045347928066,
+      "prompt_per_second": 2288.4318784465145,
+      "predicted_n": 1250,
+      "predicted_ms": 31553.451,
+      "predicted_per_token_ms": 25.2427608,
+      "predicted_per_second": 39.615318146975426
+    }
+  }
+}

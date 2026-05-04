@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 41008.6870000232,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Build Flow Atomicity & Validation\n\n**Highest-Risk Bug:**\nIn `apps/game-runtime/src/runtime/contentStore.ts`, the `applyOperations` method performs **schema validation** on the input operations, then **mutates in-memory state**, and **only then** attempts to write the files atomically.\n\nIf the atomic write fails (e.g., disk full, permission error, or race condition during `fs.rename`), the in-memory `this.content` has already been updated to the new state (`this.content = next`), but the disk files remain in the old state. This creates a **split-brain** scenario where the runtime believes the content has changed, but the persistent store (and any subsequent restarts) reflects the old content. Furthermore, if the validation passes but the write fails, the system is left in an inconsistent state where the in-memory cache is \"ahead\" of the disk.\n\n**Root Cause:**\nThe order of operations in `applyOperations` is:\n1. Validate input.\n2. Compute `next` state.\n3. **Write files** (Atomic).\n4. **Update in-memory cache** (`this.content = next`).\n\nWait, looking closer at the code:\n```typescript\n    // ... compute next ...\n\n    await Promise.all([\n      writeJsonAtomic(prefabsPath, next.prefabs),\n      writeJsonAtomic(recipesPath, next.recipes),\n      writeJsonAtomic(worldRulesPath, {\n        biomeRules: next.biomeRules,\n        spawnRules: next.spawnRules\n      })\n    ]);\n\n    this.content = next; // <--- This line is AFTER the writes\n```\nActually, the code updates `this.content` *after* the writes. So if the write fails, `this.content` remains the old state. That is good.\n\n**However**, there is a more subtle and critical issue: **Partial Failure of Multiple Files**.\nThe code uses `Promise.all` to write three files (`prefabs.json`, `recipes.json`, `world_rules.json`) concurrently.\n1. If `prefabs.json` writes successfully.\n2. If `recipes.json` writes successfully.\n3. If `world_rules.json` **fails** (e.g., disk full).\n\nThe `Promise.all` rejects. The `applyOperations` method throws.\n**Result:** `prefabs.json` and `recipes.json` are updated on disk. `world_rules.json` is NOT.\nThe in-memory `this.content` is NOT updated (because the assignment is after the `await`).\n**State:** Disk is inconsistent (2 files new, 1 file old). In-memory is old.\nIf the server crashes now, the next `load()` will read the mixed state (new prefabs, old rules), likely causing schema mismatches or logic errors in the simulation.\n\n**The Fix:**\nWe must ensure that **all** files are written successfully before **any** file is committed to the final path. The current `writeJsonAtomic` writes to a `.tmp` file and renames. If we write 2 files to `.tmp` and rename them, and the 3rd fails, we have a partial commit.\n\nWe need to:\n1. Write all files to their `.tmp` locations.\n2. Validate that all writes succeeded.\n3. Rename all `.tmp` files to their final names atomically (or in a tight sequence where failure triggers a cleanup).\n4. Only then update the in-memory cache.\n\n**Smallest Safe Fix:**\nRefactor `applyOperations` to separate the \"write to temp\" phase from the \"rename to final\" phase. If any write to temp fails, or if any rename fails, we must clean up the temp files and ensure no partial state is committed.\n\n### Proposed Changes\n\n**File:** `apps/game-runtime/src/runtime/contentStore.ts`\n\n**Change 1:** Modify `applyOperations` to handle the multi-file atomicity correctly.\n\n```typescript\n  public async applyOperations(operations: ContentOperation[]): Promise<BuildApplyResult> {\n    if (!this.content) {\n      throw new Error(\"content not loaded\");\n    }\n\n    // 1. Validate all operations first\n    operations.forEach((operation) => contentOperationSchema.parse(operation));\n    \n    // 2. Compute next state\n    const next: ContentSet = {\n      prefabs: [...this.content.prefabs],\n      recipes: [...this.content.recipes],\n      biomeRules: [...this.content.biomeRules],\n      spawnRules: [...this.content.spawnRules]\n    };\n\n    for (const operation of operations) {\n      switch (operation.type) {\n        case \"upsert_prefab\":\n          next.prefabs = upsertById(next.prefabs, operation.value);\n          break;\n        case \"upsert_recipe\":\n          next.recipes = upsertById(next.recipes, operation.value);\n          break;\n        case \"upsert_biome_rule\":\n          next.biomeRules = upsertById(next.biomeRules, operation.value);\n          break;\n        case \"upsert_spawn_rule\":\n          next.spawnRules = upsertById(next.spawnRules, operation.value);\n          break;\n        case \"remove_by_id\":\n          if (operation.target === \"prefab\") {\n            next.prefabs = removeById(next.prefabs, operation.id);\n          } else if (operation.target === \"recipe\") {\n            next.recipes = removeById(next.recipes, operation.id);\n          } else if (operation.target === \"biome_rule\") {\n            next.biomeRules = removeById(next.biomeRules, operation.id);\n          } else {\n            next.spawnRules = removeById(next.spawnRules, operation.id);\n          }\n          break;\n      }\n    }\n\n    const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n   "
+        }
+      }
+    ],
+    "created": 1773052245,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14464,
+      "total_tokens": 15714
+    },
+    "id": "chatcmpl-OZdGDrrrckkeYORdgng6M52x8XNrZwnF",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6034.532,
+      "prompt_per_token_ms": 0.417210453539823,
+      "prompt_per_second": 2396.8718700969685,
+      "predicted_n": 1250,
+      "predicted_ms": 30560.962,
+      "predicted_per_token_ms": 24.4487696,
+      "predicted_per_second": 40.90185380944487
+    }
+  }
+}

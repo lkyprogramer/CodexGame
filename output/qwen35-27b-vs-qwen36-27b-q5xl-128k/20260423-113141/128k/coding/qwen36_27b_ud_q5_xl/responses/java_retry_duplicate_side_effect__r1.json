@@ -1,0 +1,39 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 19896.001041983254,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: `InvoiceNotificationService`\n\n**Verdict:** Critical Bug (Data Integrity / Duplicate Side Effects)\n\n#### 1. The Bug\nThe `send` method wraps **both** `invoiceGateway.markSent(invoiceId)` and `emailGateway.sendInvoice(invoiceId)` inside the retryable lambda.\n\nIf `emailGateway.sendInvoice(invoiceId)` throws a transient exception (e.g., network timeout, SMTP server busy), the `RetryExecutor` will retry the entire lambda. This causes `invoiceGateway.markSent(invoiceId)` to be called **again**.\n\n**Consequences:**\n*   **Double Billing/Status Corruption:** If `markSent` updates a database status from `PENDING` to `SENT`, a retry might fail due to a constraint violation or, worse, if the logic is idempotent but has side effects (like incrementing a counter or logging a \"sent\" event), it creates duplicate records.\n*   **Idempotency Violation:** Most \"mark as sent\" operations are not designed to be called multiple times for the same invoice ID in a short window.\n\n#### 2. What Must Not Be Retried Blindly\n**`invoiceGateway.markSent(invoiceId)`** is a state-changing operation on the local/primary system. It should generally be considered **non-retryable** in this context unless it is strictly idempotent and safe to duplicate (which is rare for status flags).\n\n**`emailGateway.sendInvoice(invoiceId)`** is an external call. It is **retryable** because external systems often have transient failures.\n\n#### 3. Smallest Safe Fix\nSeparate the state change (`markSent`) from the external call (`sendInvoice`). Only retry the external call.\n\n**File:** `src/main/java/com/example/invoice/InvoiceNotificationService.java`\n\n**Before:**\n```java\npublic void send(long invoiceId) {\n    retryExecutor.run(() -> {\n        invoiceGateway.markSent(invoiceId);\n        emailGateway.sendInvoice(invoiceId);\n    });\n}\n```\n\n**After:**\n```java\npublic void send(long invoiceId) {\n    // 1. Mark as sent immediately. \n    // If this fails, the whole operation fails (no retry).\n    // If it succeeds, we proceed to send the email.\n    invoiceGateway.markSent(invoiceId);\n    \n    // 2. Retry only the external email call.\n    retryExecutor.run(() -> {\n        emailGateway.sendInvoice(invoiceId);\n    });\n}\n```\n\n#### 4. Regression Checks\n1.  **Transient Email Failure:** Simulate a timeout in `emailGateway.sendInvoice`. Verify that `invoiceGateway.markSent` is called **exactly once**, and `emailGateway.sendInvoice` is retried until success or max retries.\n2.  **Permanent Email Failure:** Simulate a permanent error in `emailGateway.sendInvoice`. Verify that `invoiceGateway.markSent` is called **exactly once**.\n3.  **Immediate Email Success:** Verify that `invoiceGateway.markSent` is called **exactly once** and `emailGateway.sendInvoice` is called **exactly once**.\n4.  **`markSent` Failure:** Simulate an exception in `invoiceGateway.markSent`. Verify that `emailGateway.sendInvoice` is **never** called."
+        }
+      }
+    ],
+    "created": 1776917211,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 709,
+      "prompt_tokens": 431,
+      "total_tokens": 1140
+    },
+    "id": "chatcmpl-kTTDbYIvp32FZGF70ZNLffzWuUaDNm8D",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 431,
+      "prompt_ms": 189.329,
+      "prompt_per_token_ms": 0.43927842227378194,
+      "prompt_per_second": 2276.4605527943418,
+      "predicted_n": 709,
+      "predicted_ms": 18261.188,
+      "predicted_per_token_ms": 25.756259520451337,
+      "predicted_per_second": 38.82551343318956
+    }
+  }
+}

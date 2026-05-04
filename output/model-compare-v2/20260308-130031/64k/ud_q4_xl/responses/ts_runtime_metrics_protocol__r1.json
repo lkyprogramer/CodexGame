@@ -1,0 +1,40 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 45953.997874981724,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Looking at the project snapshot, I need to expose runtime metrics to the client in a protocol-first way. The metrics exist server-side in `MetricsTracker` but aren't exposed via the protocol.\n\n## Analysis\n\n**Current state:**\n- Server tracks metrics (`turnsTotal`, `invalidOutputCount`, `actionAppliedCount`, `actionRejectedCount`, `queuedActions`)\n- No protocol message type for metrics\n- Client HUD doesn't display metrics\n\n**Root cause:** Missing protocol contract for metrics exposure\n\n## Changes Required\n\n### 1. Protocol - Add metrics message type\n\n**File: `packages/protocol/src/messages.ts`**\n\n```diff\n export type ServerMessage =\n   | {\n       version: Version;\n       type: \"session.state\";\n       payload: {\n         phase: SessionPhase;\n         paused: boolean;\n         preparedSeed: number | null;\n         threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n         connected: boolean;\n         runtime: {\n           model: string | null;\n           effort: TurnEffort;\n           tickMs: number;\n           schedulerMs: number;\n           maxQueuedActionsBeforeTurn: number;\n           availableModels: RuntimeModelOption[];\n         };\n       };\n     }\n+  | {\n+      version: Version;\n+      type: \"runtime.metrics\";\n+      payload: {\n+        turnsTotal: number;\n+        invalidOutputCount: number;\n+        actionAppliedCount: number;\n+        actionRejectedCount: number;\n+        queuedActions: number;\n+      };\n+    }\n```\n\n### 2. Runtime - Broadcast metrics periodically\n\n**File: `apps/game-runtime/src/runtime/GameRuntimeServer.ts`**\n\n```diff\n   private tick(): void",
+          "reasoning_content": "Looking at this task, I need to expose runtime metrics to the client HUD in a protocol-first way. Let me analyze what exists:\n\n1. **Server-side metrics** (`apps/game-runtime/src/runtime/metrics.ts`):\n   - `MetricsTracker` class tracks: `turnsTotal`, `invalidOutputCount`, `actionAppliedCount`, `actionRejectedCount`, `queuedActions`\n   - These are used internally in `GameRuntimeServer.ts` (see `tick()`, `requestGameplayTurn()`, etc.)\n\n2. **Protocol** (`packages/protocol/src/messages.ts`):\n   - Current `ServerMessage` types don't include a metrics message type\n   - `SessionSnapshot` in runtime types includes `metrics: RuntimeMetrics` but this is only for persistence\n\n3. **Client** (`apps/game-client/src/App.tsx`):\n   - HUD displays various agent stats but no runtime metrics\n   - No state for metrics in the client\n\n**What needs to be done:**\n\n1. Add a new server message type for metrics (or include in existing message)\n2. Update the runtime to broadcast metrics\n3. Update the client to receive and display metrics\n4. Add contract tests for the new protocol\n\n**Smallest safe fix approach:**\n\nThe cleanest protocol-first approach is to:\n1. Add a new `runtime.metrics` server message type to the protocol\n2. Have the runtime broadcast metrics periodically (e.g., in the tick loop or persist loop)\n3. Update the client to consume and display these metrics\n4. Add contract tests\n\nLet me trace through the code:\n\n**Protocol changes** (`packages/protocol/src/messages.ts`):\n- Add a new `ServerMessage` variant: `runtime.metrics`\n- Add a Zod schema for it\n\n**Runtime changes** (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`):\n- Broadcast metrics in the tick loop or persist loop\n- Use `this.metrics.snapshot()` to get current metrics\n\n\n- Emit a `runtime.metrics` message to clients\n\n**Client changes** (`apps/game-client/src/App.tsx`):\n- Add state for metrics\n- Handle `runtime.metrics` message type\n- Display metrics in the HUD (perhaps in the topbar or a new section)\n\n**Tests** (`apps/game-runtime/test/ui-contract.integration.test.ts`):\n- Add tests for the new message type\n\nLet me write the exact changes:\n\n1. **Protocol file** - Add the new message type\n2. **Runtime server** - Add metrics broadcasting\n3. **Client** - Add metrics state and display\n4. **Tests** - Add contract tests\n\nI'll need to be careful about where metrics are broadcast - probably in the tick loop since that's already running periodically. I need to add a metrics message type to the protocol, then broadcast metrics from the runtime server, and finally display them in the client HUD.\n\nFirst, I'll define the `RuntimeMetrics` type in the protocol's messages.ts file with fields for turn counts, action outcomes, and queue depth. Then I'll add a new server message variant for `runtime.metrics` that carries this payload.\n\nNext, the runtime server needs to emit these metrics periodically by calling `emitMessage` with the metrics snapshot. Finally, the client app will subscribe to this message type and render the metrics in the HUD, likely in a dedicated metrics section or as part of the existing status display. I need to finish the partial thought about what's missing and then complete the analysis.\n\nThe protocol snapshot is missing the `RuntimeMetrics` type definition, which is needed to properly expose metrics to the client. Looking at the existing files, I can see the protocol has `ServerMessage` types but lacks the metrics-specific message type that would allow the runtime to send metrics data to the client HUD.\n\nThe runtime already tracks metrics internally through `MetricsTracker`, and the client has state management infrastructure, but there's no bridge between them. I need to define the `runtime.metrics` message type in the protocol, then wire up the runtime to broadcast metrics and the client to consume and display them.\n"
+        }
+      }
+    ],
+    "created": 1772946381,
+    "model": "unsloth/Qwen3.5-27B-UD-Q4_K_XL",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24299,
+      "total_tokens": 25549
+    },
+    "id": "chatcmpl-jkkb7EBzhAFcYqrhMICYRJ87cK0G9RbS",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24299,
+      "prompt_ms": 10461.76,
+      "prompt_per_token_ms": 0.43054282069220956,
+      "prompt_per_second": 2322.6493438962466,
+      "predicted_n": 1250,
+      "predicted_ms": 31522.851,
+      "predicted_per_token_ms": 25.2182808,
+      "predicted_per_second": 39.6537737021312
+    }
+  }
+}

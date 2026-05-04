@@ -1,0 +1,39 @@
+{
+  "task_id": "java_optimistic_lock_missing",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7682.784584001638,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\nThe concurrency bug is in **`OrderService.java`**.\n\nThe `approve` method performs a **Read-Modify-Write** sequence without verifying the version number between the read and the write:\n1.  **Read**: `orderRepository.require(orderId)` fetches the current state (including the current `version`).\n2.  **Modify**: `order.setStatus(\"APPROVED\")` updates the in-memory object.\n3.  **Write**: `orderRepository.updateStatus(..., order.getVersion() + 1)` calculates the *next* version based on the *stale* version read in step 1.\n\n**The Race Condition:**\nIf two admin consoles call `approve` concurrently for the same order:\n1.  Thread A reads `version = 1`.\n2.  Thread B reads `version = 1`.\n3.  Thread A sets status to \"APPROVED\" and calls update with `nextVersion = 2`.\n4.  Thread B sets status to \"APPROVED\" and calls update with `nextVersion = 2`.\n\nIf the database update logic (in `JdbcOrderRepository`) does not include a `WHERE version = ?` clause (which is implied by the method signature `updateStatus(id, status, nextVersion)` lacking a `currentVersion` argument), both updates will succeed, overwriting each other's changes or corrupting the version history. Even if the repository *did* check the version, the service is passing the *target* version, not the *expected* version, making it impossible for the repository to detect the conflict.\n\n### Proposed Fix\nThe fix requires passing the **expected current version** to the repository so it can enforce the optimistic lock via a `WHERE` clause (e.g., `WHERE id = ? AND version = ?`).\n\n**Changes required:**\n1.  Update `OrderRepository.updateStatus` signature to accept `currentVersion`.\n2.  Update `OrderService.approve` to pass the version read from the database.\n3.  Update `JdbcOrderRepository` implementation to use the version in the SQL `WHERE` clause.\n\n### Code Changes\n\n#### 1. File: `src/main/java/com/example/order/OrderRepository.java`\nChange the method signature to include `currentVersion`.\n\n```java\npublic interface OrderRepository {\n    Order require(long id);\n    // Added currentVersion parameter to enforce optimistic locking\n    void updateStatus(long id, String status, int currentVersion, int nextVersion);\n}\n```\n\n#### 2. File: `src/main/java/com/example/order/OrderService.java`\nPass the version read from the database to the repository.\n\n```java\npublic void approve(long orderId) {\n    Order order = orderRepository.require(orderId);\n    order.setStatus(\"APPROVED\");\n    // Pass the current version read from the DB to ensure it hasn't changed\n    orderRepository.updateStatus(order.getId(), order.getStatus(), order.getVersion(), order.getVersion() + 1);\n}\n```\n\n#### 3. File: `src/main/java/com/example/order/JdbcOrderRepository.java`\nImplement the SQL logic to check the version.\n\n```java\npublic void updateStatus(long id, String status, int currentVersion, int nextVersion) {\n    // Corrected SQL to enforce optimistic locking:\n    // UPDATE orders SET status = ?, version = ? WHERE id = ? AND version = ?\n    // If currentVersion != DB version, 0 rows are affected (concurrency exception).\n    // update orders set status = ?, version = ? where id = ? and version = ?\n}\n```\n\n### Regression Checks\n1.  **Single Thread**: Verify that a single `approve` call successfully updates the status and increments the version.\n2.  **Concurrency**: Simulate two concurrent `approve` calls. Verify that one succeeds and the other fails (throws an exception or returns 0 rows updated).\n3.  **Version Integrity**: Ensure the final version number is exactly `initial_version + 1` (not `initial_version + 2` or unchanged).\n4.  **Data Consistency**: Ensure the status is not \"APPROVED\" twice if the second update was supposed to be rejected."
+        }
+      }
+    ],
+    "created": 1774496574,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 897,
+      "prompt_tokens": 518,
+      "total_tokens": 1415
+    },
+    "id": "chatcmpl-ILfL8EWLNahwdEYOZ7kR4tYWPdD2A9ic",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 518,
+      "prompt_ms": 132.773,
+      "prompt_per_token_ms": 0.2563185328185328,
+      "prompt_per_second": 3901.3956150723416,
+      "predicted_n": 897,
+      "predicted_ms": 6461.623,
+      "predicted_per_token_ms": 7.203593088071348,
+      "predicted_per_second": 138.81961234816703
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 41821.72432541847,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The user wants me to propose the smallest protocol-first change set to expose runtime metrics to the client HUD. Let me analyze the current state:\n\n1. **Current State**:\n   - `apps/game-runtime/src/runtime/metrics.ts` has a `MetricsTracker` class that tracks:\n     - `turnsTotal`\n     - `invalidOutputCount`\n     - `actionAppliedCount`\n     - `actionRejectedCount`\n     - `queuedActions`\n   - These metrics are stored in `RuntimeMetrics` type in `apps/game-runtime/src/runtime/types.ts`\n   - The metrics are persisted in `SessionSnapshot` but NOT exposed to the client via WebSocket messages\n   - The client HUD (`apps/game-client/src/App.tsx`) displays various stats but doesn't show these runtime metrics\n\n2. **What needs to change**:\n   - Add a new server message type to expose metrics to the client\n   - Update the protocol in `packages/protocol/src/messages.ts` to include the new message type\n   - Update the runtime server to emit metrics (either as part of existing messages or a new message type)\n   - Update the client to receive and display these metrics\n\n3. **Protocol-first approach**:\n   - First, define the message type in the protocol package\n   - Then update the runtime to emit it\n   - Then update the client to consume it\n\n4. **Smallest change set**:\n   - Option A: Add metrics to `session.state` payload (minimal protocol change, but session.state is sent infrequently)\n   - Option B: Add metrics to `world.snapshot` payload (sent every tick, good for real-time updates)\n   - Option C: Create a new message type `runtime.metrics` (clean separation, but adds another message type)\n\n   Looking at the code:\n   - `session.state` is sent on connection, phase changes, etc.\n   - `world.snapshot` is sent every tick (via `tick()` method)\n   - The metrics change frequently (queuedActions changes every tick, others change on events)\n\n   Option B seems best - add metrics to `world.snapshot` since it's already sent every tick and the HUD updates on every tick.\n\n   Wait, looking more carefully at `world.snapshot`:\n   - It contains `tick`, `world`, `agents`, `catalog`\n   - It's sent in `sendWorldSnapshot()` which is called from `tick()` and other places\n\n   Actually, looking at the `tick()` method:\n   ```typescript\n   this.metrics.setQueueDepth(this.totalQueuedActions());\n   this.sendWorldSnapshot();\n   ```\n   So `world.snapshot` is already sent every tick. Adding metrics there makes sense.\n\n   But wait, `world.snapshot` is a large message. Adding metrics there might be fine, but let's check if there's a better place.\n\n   Actually, looking at the client code, `world.snapshot` is used to update the game state. The metrics are runtime statistics, not world state.\n\n   Option C (new message type) might be cleaner, but Option B is simpler.\n\n   Let me reconsider: The task says \"protocol-first\". This means I should define the contract first.\n\n   Looking at the existing messages:\n   - `session.state` - sent on connection and state changes\n   - `world.snapshot` - sent every tick\n   - `agent.turn` - sent when turns start/complete\n   - `agent.action` - sent when actions happen\n   - `agent.feed` - sent for chat/reasoning\n   - `build.result` - sent when build completes\n   - `error` - sent on errors\n\n   The metrics are runtime statistics. They could be:\n   1. Part of `session.state` (but that's sent infrequently)\n   2. Part of `world.snapshot` (sent every tick, but it's already large)\n   3. A new message type `runtime.metrics` (sent periodically or on changes)\n\n   Given that `queuedActions` changes every tick, and other metrics change on events, I think adding to `world.snapshot` is the most efficient since it's already sent every tick.\n\n   However, looking at the client code, `world.snapshot` is used to update the game state. The metrics are not part of the game state, they're runtime stats.\n\n   Actually, looking at the `tick()` method again:\n   ```typescript\n   this.metrics.setQueueDepth(this.totalQueuedActions());\n   this.sendWorldSnapshot();\n   ```\n   So `sendWorldSnapshot()` is called every tick. If I add metrics to `world.snapshot`, they'll be sent every tick.\n\n   But `world.snapshot` is a large message. Adding 5 numbers to it is fine.\n\n   Alternative: Add a new message type `runtime.metrics` that is sent periodically (e.g., every second) or on significant changes.\n\n   Given the task says \"smallest protocol-first change set\", I think adding to `world.snapshot` is the smallest change because:\n   1. No new message type to define\n   2. No new message handler in client\n   3. Just extend the existing payload\n\n   But wait, `world.snapshot` is already quite large. Let me check if there's a better place.\n\n   Actually, looking at the `session.state` message:\n   ```typescript\n   | {\n       version: Version;\n       type: \"session.state\";\n       payload: {\n         phase: SessionPhase;\n         paused: boolean;\n         preparedSeed: number | null;\n         threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n         connected: boolean;\n         runtime: {\n           model: string | null;\n           effort: TurnEffort;\n           tickMs: number;\n           schedulerMs: number;\n           max"
+        }
+      }
+    ],
+    "created": 1775547913,
+    "model": "bench/qwopus35-27b-v3-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24300,
+      "total_tokens": 25550
+    },
+    "id": "chatcmpl-v2mKvxNJQWupvGHU0GTSRLzYnjC6Ok5k",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24300,
+      "prompt_ms": 10878.606,
+      "prompt_per_token_ms": 0.4476792592592593,
+      "prompt_per_second": 2233.7420805570127,
+      "predicted_n": 1250,
+      "predicted_ms": 30292.972,
+      "predicted_per_token_ms": 24.234377600000002,
+      "predicted_per_second": 41.26369641116758
+    }
+  }
+}

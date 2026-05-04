@@ -1,0 +1,39 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 18666.83816537261,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: `java_retry_duplicate_side_effect`\n\n#### 1. Highest-Risk Bug\n**Non-Idempotent Side Effects within a Retry Block.**\n\nIn `InvoiceNotificationService.java`, the `send` method wraps **both** `invoiceGateway.markSent(invoiceId)` and `emailGateway.sendInvoice(invoiceId)` inside the `retryExecutor.run()` lambda.\n\nIf the remote call (likely `sendInvoice`) fails transiently (e.g., network timeout) and the retry logic triggers:\n1.  **First Attempt:** `markSent` executes (DB state changes). `sendInvoice` fails.\n2.  **Retry:** The entire lambda re-executes.\n    *   `markSent` executes **again** (potentially causing duplicate records, constraint violations, or incorrect state if not idempotent).\n    *   `sendInvoice` executes **again** (sending a duplicate email to the user).\n\n**Result:** The user receives duplicate emails, and the database state may be corrupted or inconsistent.\n\n#### 2. What Must Not Be Retried Blindly\n*   **State Mutations:** Operations that change persistent state (like `markSent`) must not be inside the retry block unless they are strictly idempotent (e.g., \"set status to X\" where repeating the set is harmless).\n*   **User-Visible Actions:** Operations that trigger external side effects (like sending emails, charging cards, or SMS) must never be retried blindly.\n\n#### 3. Smallest Safe Fix\nRefactor `InvoiceNotificationService` to separate the **idempotent state update** from the **non-idempotent action**. Only the action that might fail transiently (the network call) should be wrapped in the retry logic. The state update should happen *after* the action succeeds.\n\n**File to Change:** `src/main/java/com/example/invoice/InvoiceNotificationService.java`\n\n**Proposed Code:**\n\n```java\npackage com.example.invoice;\n\npublic class InvoiceNotificationService {\n    private final RetryExecutor retryExecutor;\n    private final InvoiceGateway invoiceGateway;\n    private final EmailGateway emailGateway;\n\n    public InvoiceNotificationService(\n            RetryExecutor retryExecutor,\n            InvoiceGateway invoiceGateway,\n            EmailGateway emailGateway) {\n        this.retryExecutor = retryExecutor;\n        this.invoiceGateway = invoiceGateway;\n        this.emailGateway = emailGateway;\n    }\n\n    public void send(long invoiceId) {\n        // 1. Only retry the volatile network call.\n        // If this fails and retries, we do NOT mark as sent yet.\n        retryExecutor.run(() -> {\n            emailGateway.sendInvoice(invoiceId);\n        });\n\n        // 2. Mark as sent ONLY after the email is confirmed sent.\n        // This ensures we never mark as sent if the email failed permanently,\n        // and we never mark as sent twice for a single successful send.\n        invoiceGateway.markSent(invoiceId);\n    }\n}\n```\n\n#### 4. Regression Checks\n1.  **Transient Failure Simulation:** Simulate a network timeout on `emailGateway.sendInvoice`. Verify that:\n    *   The email is eventually sent (after retry).\n    *   `invoiceGateway.markSent` is called **exactly once**.\n    *   No duplicate emails are sent.\n2.  **Permanent Failure Simulation:** Simulate a permanent failure on `emailGateway.sendInvoice` (e.g., invalid address). Verify that:\n    *   `invoiceGateway.markSent` is **never** called.\n3.  **Success Path:** Verify that on the first attempt, the email is sent and the invoice is marked as sent exactly once."
+        }
+      }
+    ],
+    "created": 1775547440,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 784,
+      "prompt_tokens": 431,
+      "total_tokens": 1215
+    },
+    "id": "chatcmpl-xvpwaKoWlbUdC7O9JOVtOvJ6p6QppxTY",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 431,
+      "prompt_ms": 183.059,
+      "prompt_per_token_ms": 0.4247308584686775,
+      "prompt_per_second": 2354.432177603942,
+      "predicted_n": 784,
+      "predicted_ms": 18314.911,
+      "predicted_per_token_ms": 23.360855867346938,
+      "predicted_per_second": 42.80665082128982
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7049.692542001139,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**File: /usr/local/bin/atomic_deploy.sh**  \n*(executable, owned by root, placed on the target host)*  \n\n```bash\n#!/usr/bin/env bash\n# ----------------------------------------------------------------------\n# Atomic deploy for /srv/myapp\n#   - unpacks a new release under /srv/myapp/releases/<timestamp>\n#   - swaps the /srv/myapp/current symlink atomically\n#   - runs a health check against http://127.0.0.1:8080/healthz\n#   - rolls back automatically on failure\n#   - logs every step to /srv/myapp/deploy.log\n# ----------------------------------------------------------------------\n\nset -euo pipefail\n\n# ---------- configuration ----------\nAPP_ROOT=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_ROOT}/releases\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\n# -----------------------------------\n\n# Helper: write a timestamped line to the log and also to stdout\nlog() {\n    local msg=\"$*\"\n    local ts\n    ts=\"$(date '+%Y-%m-%d %H:%M:%S')\"\n    printf '[%s] %s\\n' \"$ts\" \"$msg\" | tee -a \"$LOG_FILE\"\n}\n\n# ----------------------------------------------------------------------\n# 1. Sanity checks\n# ----------------------------------------------------------------------\nlog \"=== STARTING DEPLOY for $(basename \"$APP_ROOT\") ===\"\n\n# Ensure the current symlink exists and points to a valid release\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    log \"ERROR: current symlink $CURRENT_LINK is missing or not a symlink – aborting.\"\n    exit 1\nfi\nif [[ ! -d \"$(readlink -f \"$CURRENT_LINK\")\" ]]; then\n    log \"ERROR: current symlink target does not exist – aborting.\"\n    exit 1\nfi\n\n# Verify we have a release tarball (or whatever you use) in /tmp or similar\n# This is just an example – adapt to your source of the new release.\nNEW_RELEASE_TAR=\"${APP_ROOT}/../new_release.tar.gz\"\nif [[ ! -f \"$NEW_RELEASE_TAR\" ]]; then\n    log \"ERROR: release archive $NEW_RELEASE_TAR not found – aborting.\"\n    exit 1\nfi\n\n# ----------------------------------------------------------------------\n# 2. Unpack the new release into a timestamped directory\n# ----------------------------------------------------------------------\nTIMESTAMP=\"$(date +%Y%m%d%H%M%S)\"\nNEW_RELEASE_DIR=\"${RELEASES_DIR}/${TIMESTAMP}\"\nlog \"Creating new release directory ${NEW_RELEASE_DIR}\"\nmkdir -p \"$NEW_RELEASE_DIR\"\n\n# Extract – you may replace this with your own deployment method (e.g. rsync)\nlog \"Extracting release archive\"\ntar -xzf \"$NEW_RELEASE_TAR\" -C \"$NEW_RELEASE_DIR\"\n\n# Verify that the release looks sane (optional but cheap)\nif [[ ! -f \"${NEW_RELEASE_DIR}/bin/start.sh\" ]]; then\n    log \"ERROR: release directory missing expected start script – aborting.\"\n    rm -rf \"$NEW_RELEASE_DIR\"\n    exit 1\nfi\n\n# ----------------------------------------------------------------------\n# 3. Switch the symlink atomically\n# ----------------------------------------------------------------------\n# Keep a reference to the previous target for rollback\nPREV_TARGET=\"$(readlink -f \"$CURRENT_LINK\")\"\n\nlog \"Switching symlink $CURRENT_LINK -> ${NEW_RELEASE_DIR}\"\n# Use mv to rename the old symlink out of the way (kept for rollback)\nmv \"$CURRENT_LINK\" \"${CURRENT_LINK}.old_$(date +%s)\" || {\n    log \"ERROR: could not rename old symlink – aborting.\"\n    exit 1\n}\nln -sfn \"$NEW_RELEASE_DIR\" \"$CURRENT_LINK\"\n\nlog \"Symlink now points to ${NEW_RELEASE_DIR}\"\n\n# ----------------------------------------------------------------------\n# 4. Run health check – do NOT delete old release yet\n# ----------------------------------------------------------------------\nlog \"Running health check against $HEALTH_URL\"\nif ! curl -fsS \"$HEALTH_URL\" >/dev/null; then\n    log \"ERROR: health check failed – rolling back.\"\n\n    # Restore previous symlink\n    log \"Restoring previous symlink target ${PREV_TARGET}\"\n    ln -sfn \"$PREV_TARGET\" \"$CURRENT_LINK\"\n    log \"Rollback complete.\"\n\n    # Optionally keep the failed release for debugging\n    log \"Keeping failed release at ${NEW_RELEASE_DIR} for inspection.\"\n\n    log \"=== DEPLOY FAILED ===\"\n    exit 1\nfi\n\nlog \"Health check succeeded.\"\n\n# ----------------------------------------------------------------------\n# 5. Cleanup – remove the previous release (the one we renamed)\n# ----------------------------------------------------------------------\nif [[ -e \"${CURRENT_LINK}.old_$(date +%s)\" ]]; then\n    # The old symlink file name is unique because we added a timestamp.\n    # Find it safely:\n    OLD_LINK=$(find \"$(dirname \"$CURRENT_LINK\")\" -maxdepth 1 -name \"$(basename \"$CURRENT_LINK\").old_*\" -print -quit)\n    if [[ -n \"$OLD_LINK\" ]]; then\n        log \"Removing old release directory ${OLD_LINK}\"\n        rm -rf \"${OLD_LINK}\"\n    fi\nfi\n\nlog \"=== DEPLOY SUCCESSFUL ===\"\nexit 0\n```\n\n---\n\n### How to use\n\n```bash\nchmod +x /usr/local/bin/atomic_deploy.sh\n# Place the new release archive (new_release.tar.gz) where the script expects it,\n# or modify NEW_RELEASE_TAR above to point at"
+        }
+      }
+    ],
+    "created": 1774490958,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 288,
+      "total_tokens": 1538
+    },
+    "id": "chatcmpl-Pc2bCN7FY7cLcl7M7S5E0aUr2EbjJS3Q",
+    "timings": {
+      "cache_n": 81,
+      "prompt_n": 207,
+      "prompt_ms": 55.932,
+      "prompt_per_token_ms": 0.27020289855072466,
+      "prompt_per_second": 3700.9225488092684,
+      "predicted_n": 1250,
+      "predicted_ms": 5886.065,
+      "predicted_per_token_ms": 4.708851999999999,
+      "predicted_per_second": 212.36598644425436
+    }
+  }
+}

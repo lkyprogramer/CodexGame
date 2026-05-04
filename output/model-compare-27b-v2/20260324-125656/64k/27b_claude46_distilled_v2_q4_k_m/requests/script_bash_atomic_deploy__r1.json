@@ -1,0 +1,19 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: script_bash_atomic_deploy\nScenario: Write a deploy script that performs atomic release swap with health check and rollback.\n\nInstructions:\nWrite a small Bash deployment script or script skeleton for an atomic release rollout. It must be safe to review and safe to abort.\n\nProject snapshot:\n\n=== File: docs/deploy_requirements.md ===\n- New release is unpacked under /srv/myapp/releases/<timestamp>.\n- Current live symlink is /srv/myapp/current.\n- Health check endpoint is http://127.0.0.1:8080/healthz.\n- On failure, restore previous symlink target.\n- Keep logs under /srv/myapp/deploy.log.\n\n=== File: docs/ops_constraints.md ===\n- Use set -euo pipefail.\n- Refuse to run if current symlink is missing.\n- Do not delete previous release before health check succeeds.\n- Print clear rollback messages.\n"
+      }
+    ],
+    "max_tokens": 1250,
+    "stream": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 4193.453625019174,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**\n\n`updateDisplayName` updates the `Profile` entity in the database but **does not invalidate the cached `ProfileView`**.  \nWhen `get(profileId)` is called after the update, the service will return the stale `ProfileView` that still contains the old display name, because the cache entry is never evicted.\n\n**Root cause**\n\nThe write path (`updateDisplayName`) updates the DB but does not call `profileCache.evict(profileId)`. The read path (`get`) only looks at the cache; it never knows that the underlying data has changed.\n\n**Smallest safe fix**\n\nAdd a cache‑eviction call to `updateDisplayName`. This keeps the existing read‑through logic (`get`) unchanged and guarantees that the next read fetches the fresh `Profile` from the repository, repopulating the cache with the correct `displayName`.\n\n```java\n// src/main/java/com/example/profile/ProfileService.java\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    // Invalidate the cached view so the next get() sees the new data\n    profileCache.evict(profileId);\n}\n```\n\n*Why this is the minimal safe change*\n\n* **No behavioural change for callers** – `updateDisplayName` still returns `void` and performs the same DB write.\n* **Cache consistency is restored** – after the update the key is removed from the cache, forcing a fresh load on the next `get`.\n* **No new public API** – we only use the existing `ProfileCache.evict` method; no interface changes are required.\n* **Thread‑safety unchanged** – the cache implementation is still responsible for any concurrency handling; we just trigger the eviction at the right moment.\n\n**Exact files to change**\n\n* `src/main/java/com/example/profile/ProfileService.java` – add the single line `profileCache.evict(profileId);` at the end of `updateDisplayName`.\n\n**Regression checks**\n\n1. **Unit test – write‑then‑read**  \n   * Arrange: create a profile with displayName “Alice”.  \n   * Act: call `updateDisplayName(id, \"Bob\")`.  \n   * Assert: `profileService.get(id).getDisplayName()` returns `\"Bob\"` (i.e., the cache was refreshed).  \n\n2. **Unit test – concurrent reads** (optional)  \n   * Ensure that after `updateDisplayName`, any concurrent `get` calls do not return the old `displayName`.  \n\n3. **Integration test – cache miss after update**  \n   * Evict the key manually, call `updateDisplayName`, then call `get`. The returned `ProfileView` must have the new display name and the cache must contain the new entry.  \n\nAll other existing functionality (e.g., `get` without a prior update) remains unchanged. This fix eliminates the stale‑cache bug with the smallest possible code change."
+        }
+      }
+    ],
+    "created": 1774490914,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 650,
+      "prompt_tokens": 431,
+      "total_tokens": 1081
+    },
+    "id": "chatcmpl-fRMn6P6t8V6bSsOtHizktOlrfm6R4SCh",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 431,
+      "prompt_ms": 58.264,
+      "prompt_per_token_ms": 0.1351832946635731,
+      "prompt_per_second": 7397.363723740216,
+      "predicted_n": 650,
+      "predicted_ms": 3056.264,
+      "predicted_per_token_ms": 4.701944615384615,
+      "predicted_per_second": 212.67796237497808
+    }
+  }
+}

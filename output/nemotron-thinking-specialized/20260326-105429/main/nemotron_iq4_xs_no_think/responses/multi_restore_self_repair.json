@@ -1,0 +1,122 @@
+{
+  "task_id": "multi_restore_self_repair",
+  "model": "bench/nemotron-iq4-xs-no-think",
+  "responses": [
+    {
+      "round_index": 1,
+      "http_status": 200,
+      "elapsed_ms": 10194.479792000493,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "## Round 1 – Highest‑risk bug & smallest safe patch\n\n### 1️⃣ What the bug is\n**`restoreSession()` can restore a session that has **no agents** and **no seed**.**  \nWhen the persisted `StateStore` contains a snapshot that only has `simulation` (i.e. an existing world) but **does not contain any agents**, the code falls back to the *else* branch:\n\n```ts\nelse if (typeof saved.seed === \"number\") {\n  this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n    { id: \"agent-1\", name: \"Agent 1\" }\n  ]);\n  this.seed = saved.seed;\n  this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n  this.resetAgentLoopState([\"agent-1\"]);\n}\n```\n\nIf the saved snapshot **does not contain a `seed`** (e.g. the file was created before the seed field was added, or the file is corrupted), the `else` clause is entered:\n\n```ts\nelse {\n  return;   // <‑‑ silently aborts restore\n}\n```\n\nBecause the function returns early **without initializing `threadIds`, `threadToAgentId`, `agentConfigs`, `actionQueueByAgent`, etc.**, the runtime stays in an inconsistent state:\n\n* `threadIds.gameplayByAgentId` is empty → no gameplay threads are ever created.\n* `agentConfigs` is empty → any later `requestGameplayTurn` will try to look up a model/effort for an agent that does not exist.\n* `simulation` is created with a **single placeholder agent** (`agent-1`) but the **seed is still `0`** (the default), so the world is not reproducible.\n* The UI will later try to render an agent that never got a thread, leading to uncaught `undefined` errors.\n\n**Why it is the highest‑risk bug for Round 1**\n\n* It can happen **automatically on startup** when a persisted session exists (common after a crash or a normal shutdown).  \n* The bug is **silent** – the server does not emit an error, it just proceeds with a half‑initialized world.  \n* Down‑stream code (scheduler, turn handling, UI) assumes that every agent in the simulation has a corresponding gameplay thread and a valid `agentId → threadId` mapping. When those are missing, the next tick will throw `TypeError: Cannot read property 'threadId' of undefined` or similar, crashing the runtime.\n\n### 2️⃣ Smallest safe patch (Round 1)\n\nWe will **make `restoreSession()` robust** by:\n\n1. **Ensuring a seed is always present** – if the saved snapshot lacks a seed, generate a fresh one (the same way `resetSession` does).  \n2. **Always creating at least one gameplay agent** – even when the snapshot has no agents, we create a minimal agent list that matches the saved seed.  \n3. **Keeping the existing logic for the happy‑path** – we only add the missing branches; we do not change the successful restore path.\n\n#### Patch – `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n```diff\n@@\n   private async restoreSession(): Promise<void> {\n     const saved = await this.stateStore.load();\n     if (!saved) {\n       return;\n     }\n\n     const content = this.contentStore.getContent();\n     if (saved.simulation) {\n       this.simulation = Simulation.fromState(saved.simulation, content);\n       this.seed = saved.simulation.seed;\n       for (const agent of saved.simulation.agents ?? []) {\n         this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n       }\n       this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n     } else if (typeof saved.seed === \"number\") {\n       this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n         { id: \"agent-1\", name: \"Agent 1\" }\n       ]);\n       this.seed = saved.seed;\n       this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n       this.resetAgentLoopState([\"agent-1\"]);\n     } else {\n-      return;\n+      // -----------------------------------------------------------------\n+      // No usable snapshot – fall back to a fresh session.\n+      // We keep the same behaviour as `resetSession` so that the\n+      // runtime is always in a consistent state"
+            }
+          }
+        ],
+        "created": 1774493840,
+        "model": "bench/nemotron-iq4-xs-no-think",
+        "system_fingerprint": "b1-c5a7788",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1000,
+          "prompt_tokens": 19907,
+          "total_tokens": 20907
+        },
+        "id": "chatcmpl-Be1tn0pSwgEsjQB80zwdnKL4ZRvfFXRo",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 19907,
+          "prompt_ms": 2629.887,
+          "prompt_per_token_ms": 0.13210865524689808,
+          "prompt_per_second": 7569.526751529628,
+          "predicted_n": 1000,
+          "predicted_ms": 5161.016,
+          "predicted_per_token_ms": 5.161016,
+          "predicted_per_second": 193.76029835985784
+        }
+      }
+    },
+    {
+      "round_index": 2,
+      "http_status": 200,
+      "elapsed_ms": 11064.556625002297,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "## Round 2 – Refine the patch (same root‑cause, no public contract changes)\n\n### 2️⃣ What the extra constraint means\n* **Public message contracts must stay exactly the same.**  \n  We cannot add new fields to any `ServerMessage` or `ClientMessage` type, nor can we change the shape of any existing payload.  \n* The fix therefore has to be **internal only** – we can add new private fields or change the logic inside `GameRuntimeServer`, but the JSON that goes over the wire must remain untouched.\n\n### 2️⃣ Why the original fix is still insufficient\nThe previous “else { return; }” in `restoreSession()` left the server in a half‑initialized state:\n\n* `threadIds.gameplayByAgentId` stayed empty → the scheduler never sees any agent that has a thread.  \n* `agentConfigs` stayed empty → later `requestGameplayTurn` would look up a model/effort for an agent that does not exist.  \n* The simulation was created with a **seed of 0** (the default) even when the saved snapshot contained a different seed, breaking reproducibility.\n\nAll of those problems are **logic errors**, not protocol violations, so they can be fixed without touching any message schema.\n\n### 2️⃣ Smallest safe internal fix\n\nWe will:\n\n1. **Always guarantee a seed** – if the saved snapshot has no `seed` (or the seed is missing), generate a fresh one (exactly the same way `resetSession` does).  \n2. **Always create at least one gameplay agent** – even when the snapshot contains no agents, we create a minimal agent (`agent-1`) with the (possibly newly‑generated) seed.  \n3. **Reuse the existing `resetAgentLoopState` path** – after we have a seed and at least one agent we call the same helper that `resetSession` uses, so all internal maps (`actionQueueByAgent`, `godQueueByAgent`, …) are correctly primed.  \n4. **Do not change any public type or message shape** – we only add a private helper and a few lines inside `restoreSession()`.\n\n#### New private helper (added near the top of the class – does not affect the public API)\n\n```ts\n/** Create a minimal simulation + agent set when the saved snapshot is incomplete.\n *  This mirrors the logic in `resetSession` but keeps the existing seed (or creates a new one)\n *  and always returns a fully‑initialized state. */\nprivate initFromScratch(seed: number): void {\n  // Use the same world size as the rest of the codebase\n  const content = this.contentStore.getContent();\n\n  // Create a single placeholder agent – the same as `resetSession` does.\n  this.simulation = new Simulation(\n    seed,\n    DEFAULT_WORLD_SIZE,\n    DEFAULT_WORLD_SIZE,\n    content,\n    [{ id: \"agent-1\", name: \"Agent 1\" }]\n  );\n\n  this.seed = seed;\n  this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n  this.resetAgentLoopState([\"agent-1\"]);\n\n  // No threads are restored – they will be (re)created by the normal start‑up flow.\n  this.threadIds = { gameplayByAgentId: {} };\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  this.interruptedTurnIds.clear();\n  this.pendingTurns.clear();\n  this.reasoningBuffers.clear();\n}\n```\n\n#### Updated `restoreSession()` (only the changed part)\n\n```diff\n@@\n   private async restoreSession(): Promise<void> {\n     const saved = await this.stateStore.load();\n     if (!saved) {\n       return;\n     }\n\n     const content = this.contentStore.getContent();\n     if (saved.simulation) {\n       this.simulation = Simulation.fromState(saved.simulation, content);\n       this.seed = saved.simulation.seed;\n       for (const agent of saved.simulation.agents ?? []) {\n         this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n       }\n       this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n     } else if (typeof saved.seed === \"number\") {\n       this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n         { id: \"agent-1\", name: \"Agent 1\" }\n       ]);\n       this.seed = saved.seed;\n       this.agentConfigs.set(\"agent-1\","
+            }
+          }
+        ],
+        "created": 1774493851,
+        "model": "bench/nemotron-iq4-xs-no-think",
+        "system_fingerprint": "b1-c5a7788",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1000,
+          "prompt_tokens": 40780,
+          "total_tokens": 41780
+        },
+        "id": "chatcmpl-P8Q2KahdJX7eJyokq1ISnRJg5HwxguUE",
+        "timings": {
+          "cache_n": 20906,
+          "prompt_n": 19874,
+          "prompt_ms": 3041.091,
+          "prompt_per_token_ms": 0.15301856697192312,
+          "prompt_per_second": 6535.15465337933,
+          "predicted_n": 1000,
+          "predicted_ms": 5679.963,
+          "predicted_per_token_ms": 5.679963,
+          "predicted_per_second": 176.05748488150363
+        }
+      }
+    },
+    {
+      "round_index": 3,
+      "http_status": 200,
+      "elapsed_ms": 12013.278375001391,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "## Round 3 – Final patch plan (no new public contracts)\n\n### 1️⃣ Goal\nMake the **restore path** robust so that a persisted session is always usable, **without** changing any public message contract (`ServerMessage` / `ClientMessage`).  \nThe only allowed changes are internal – new private fields, helper methods, or refactored logic inside `GameRuntimeServer`.\n\n### 2️⃣ Root cause (already identified)\n`restoreSession()` can return early (`return;`) when the saved snapshot contains neither a `simulation` nor a numeric `seed`.  \nWhen that happens the server stays in a half‑initialized state:\n\n* `threadIds.gameplayByAgentId` is empty → scheduler never finds a runnable agent.  \n* `agentConfigs` is empty → later `requestGameplayTurn` cannot resolve a model/effort.  \n* The simulation may be created with the wrong seed (or with seed 0) and with no agents.\n\n### 3️⃣ Minimal internal fix (no contract change)\n\n#### 3.1 Add a private helper – `initFromScratch(seed: number)`\n\n*Creates a minimal, fully‑initialized world when the saved snapshot is incomplete.*  \nIt mirrors the logic used in `resetSession` but keeps the supplied `seed` (or generates a fresh one) and always calls `resetAgentLoopState` so every internal map is populated.\n\n```ts\n/** Internal – initialise a fresh world when the saved snapshot is unusable.\n *  Guarantees:\n *   - a non‑null simulation,\n *   - a valid seed,\n *   - at least one gameplay agent (agent‑1),\n *   - all internal queues/maps cleared and primed.\n */\nprivate initFromScratch(seed: number): void {\n  const content = this.contentStore.getContent();\n\n  // Create a single placeholder agent – same shape as resetSession does.\n  this.simulation = new Simulation(\n    seed,\n    DEFAULT_WORLD_SIZE,\n    DEFAULT_WORLD_SIZE,\n    content,\n    [{ id: \"agent-1\", name: \"Agent 1\" }]\n  );\n\n  this.seed = seed;\n  this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n  this.resetAgentLoopState([\"agent-1\"]);\n\n  // No threads are restored here – the normal start‑up flow will create them.\n  this.threadIds = { gameplayByAgentId: {} };\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  this.interruptedTurnIds.clear();\n  this.pendingTurns.clear();\n  this.reasoningBuffers.clear();\n}\n```\n\n*No new fields are added to the public state; everything is private to the class.*\n\n#### 3.2 Refactor `restoreSession()`\n\nReplace the final `else { return; }` with a call to `initFromScratch`.  \nAlso guarantee that a numeric seed is always present (the saved snapshot may have a non‑numeric `seed` or none at all).\n\n```diff\n@@\n   private async restoreSession(): Promise<void> {\n     const saved = await this.stateStore.load();\n     if (!saved) {\n       return;\n     }\n\n     const content = this.contentStore.getContent();\n     if (saved.simulation) {\n       this.simulation = Simulation.fromState(saved.simulation, content);\n       this.seed = saved.simulation.seed;\n       for (const agent of saved.simulation.agents ?? []) {\n         this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n       }\n       this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n     } else if (typeof saved.seed === \"number\") {\n       this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n         { id: \"agent-1\", name: \"Agent 1\" }\n       ]);\n       this.seed = saved.seed;\n       this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n       this.resetAgentLoopState([\"agent-1\"]);\n     } else {\n-      return;\n+      // -----------------------------------------------------------------\n+      // The saved snapshot is incomplete (no simulation, no numeric seed).\n+      // We fall back to a minimal, deterministic world so the runtime\n+      // stays fully initialised.  The seed is generated the same way as\n+      // `resetSession` does – a fresh random number.\n+      const freshSeed = randomSeed();\n+      this.initFromSc"
+            }
+          }
+        ],
+        "created": 1774493863,
+        "model": "bench/nemotron-iq4-xs-no-think",
+        "system_fingerprint": "b1-c5a7788",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1000,
+          "prompt_tokens": 61650,
+          "total_tokens": 62650
+        },
+        "id": "chatcmpl-D05GEl7MIXC2Z7yGPEEijxrLD517eGD8",
+        "timings": {
+          "cache_n": 41779,
+          "prompt_n": 19871,
+          "prompt_ms": 3504.336,
+          "prompt_per_token_ms": 0.1763542851391475,
+          "prompt_per_second": 5670.403751238467,
+          "predicted_n": 1000,
+          "predicted_ms": 6187.671,
+          "predicted_per_token_ms": 6.187671,
+          "predicted_per_second": 161.6116952565836
+        }
+      }
+    }
+  ],
+  "final_content": "## Round 3 – Final patch plan (no new public contracts)\n\n### 1️⃣ Goal\nMake the **restore path** robust so that a persisted session is always usable, **without** changing any public message contract (`ServerMessage` / `ClientMessage`).  \nThe only allowed changes are internal – new private fields, helper methods, or refactored logic inside `GameRuntimeServer`.\n\n### 2️⃣ Root cause (already identified)\n`restoreSession()` can return early (`return;`) when the saved snapshot contains neither a `simulation` nor a numeric `seed`.  \nWhen that happens the server stays in a half‑initialized state:\n\n* `threadIds.gameplayByAgentId` is empty → scheduler never finds a runnable agent.  \n* `agentConfigs` is empty → later `requestGameplayTurn` cannot resolve a model/effort.  \n* The simulation may be created with the wrong seed (or with seed 0) and with no agents.\n\n### 3️⃣ Minimal internal fix (no contract change)\n\n#### 3.1 Add a private helper – `initFromScratch(seed: number)`\n\n*Creates a minimal, fully‑initialized world when the saved snapshot is incomplete.*  \nIt mirrors the logic used in `resetSession` but keeps the supplied `seed` (or generates a fresh one) and always calls `resetAgentLoopState` so every internal map is populated.\n\n```ts\n/** Internal – initialise a fresh world when the saved snapshot is unusable.\n *  Guarantees:\n *   - a non‑null simulation,\n *   - a valid seed,\n *   - at least one gameplay agent (agent‑1),\n *   - all internal queues/maps cleared and primed.\n */\nprivate initFromScratch(seed: number): void {\n  const content = this.contentStore.getContent();\n\n  // Create a single placeholder agent – same shape as resetSession does.\n  this.simulation = new Simulation(\n    seed,\n    DEFAULT_WORLD_SIZE,\n    DEFAULT_WORLD_SIZE,\n    content,\n    [{ id: \"agent-1\", name: \"Agent 1\" }]\n  );\n\n  this.seed = seed;\n  this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n  this.resetAgentLoopState([\"agent-1\"]);\n\n  // No threads are restored here – the normal start‑up flow will create them.\n  this.threadIds = { gameplayByAgentId: {} };\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  this.interruptedTurnIds.clear();\n  this.pendingTurns.clear();\n  this.reasoningBuffers.clear();\n}\n```\n\n*No new fields are added to the public state; everything is private to the class.*\n\n#### 3.2 Refactor `restoreSession()`\n\nReplace the final `else { return; }` with a call to `initFromScratch`.  \nAlso guarantee that a numeric seed is always present (the saved snapshot may have a non‑numeric `seed` or none at all).\n\n```diff\n@@\n   private async restoreSession(): Promise<void> {\n     const saved = await this.stateStore.load();\n     if (!saved) {\n       return;\n     }\n\n     const content = this.contentStore.getContent();\n     if (saved.simulation) {\n       this.simulation = Simulation.fromState(saved.simulation, content);\n       this.seed = saved.simulation.seed;\n       for (const agent of saved.simulation.agents ?? []) {\n         this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n       }\n       this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n     } else if (typeof saved.seed === \"number\") {\n       this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n         { id: \"agent-1\", name: \"Agent 1\" }\n       ]);\n       this.seed = saved.seed;\n       this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n       this.resetAgentLoopState([\"agent-1\"]);\n     } else {\n-      return;\n+      // -----------------------------------------------------------------\n+      // The saved snapshot is incomplete (no simulation, no numeric seed).\n+      // We fall back to a minimal, deterministic world so the runtime\n+      // stays fully initialised.  The seed is generated the same way as\n+      // `resetSession` does – a fresh random number.\n+      const freshSeed = randomSeed();\n+      this.initFromSc",
+  "final_reasoning": ""
+}

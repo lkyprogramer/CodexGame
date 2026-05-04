@@ -1,0 +1,181 @@
+[
+  {
+    "task_id": "longctx_restore_bootstrap",
+    "family": "longctx",
+    "description": "Long-context restore/bootstrap analysis with repeated incident logs and real runtime files.",
+    "max_tokens": 1400,
+    "multi_round": false,
+    "context_files": [
+      "generated/longctx_restore_context.txt"
+    ],
+    "round_prompts": [
+      "Read the oversized runtime snapshot and identify the highest-risk correctness bug. Explain the root cause, the smallest safe fix, and the exact files that should change. End with regression checks."
+    ],
+    "hidden_focus": [
+      "Must identify running state exposed before thread restoration completes.",
+      "Must mention ordering between thread bootstrap and visible session state."
+    ]
+  },
+  {
+    "task_id": "longctx_metrics_contract",
+    "family": "longctx",
+    "description": "Long-context protocol/runtime/client metrics analysis under repeated snapshots.",
+    "max_tokens": 1400,
+    "multi_round": false,
+    "context_files": [
+      "generated/longctx_metrics_context.txt"
+    ],
+    "round_prompts": [
+      "Analyze the long-context metrics snapshot and identify the single most important contract bug or architectural gap. Give a bounded patch plan with exact files and risk checks."
+    ],
+    "hidden_focus": [
+      "Should mention metrics contract ownership between runtime, protocol, and client.",
+      "Should stay concrete and not drift into generic observability advice."
+    ]
+  },
+  {
+    "task_id": "longctx_java_change_impact",
+    "family": "longctx",
+    "description": "Long-context Java change-impact reasoning with repeated service implementations and failure logs.",
+    "max_tokens": 1400,
+    "multi_round": false,
+    "context_files": [
+      "generated/longctx_java_change_impact.txt"
+    ],
+    "round_prompts": [
+      "Given the oversized Java snapshot, identify the most dangerous correctness risk and propose the smallest safe remediation plan. Explicitly call out rollback and regression checks."
+    ],
+    "hidden_focus": [
+      "Should identify duplicate side effects / notification before durable commit risk.",
+      "Should keep remediation bounded instead of redesigning the system."
+    ]
+  },
+  {
+    "task_id": "multi_restore_self_repair",
+    "family": "multi_round",
+    "description": "Three-round repair refinement on restore consistency.",
+    "max_tokens": 1000,
+    "multi_round": true,
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "round_prompts": [
+      "Round 1: identify the highest-risk bug and give the smallest safe patch plan.",
+      "Round 2: keep the same root cause, but refine the patch plan under this extra constraint: public message contracts must not change in this patch.",
+      "Round 3: produce the final file-level minimal patch plan, ordered implementation steps, and regression checks. Do not restate background."
+    ],
+    "hidden_focus": [
+      "Should converge on restore/order-of-operations, not drift to unrelated refactors.",
+      "Final round should be more concrete than round 1."
+    ]
+  },
+  {
+    "task_id": "multi_outbox_self_repair",
+    "family": "multi_round",
+    "description": "Three-round repair refinement on publish-before-commit risk.",
+    "max_tokens": 1000,
+    "multi_round": true,
+    "context_files": [
+      "src/main/java/com/example/invoice/InvoiceService.java",
+      "src/main/java/com/example/invoice/DomainEventPublisher.java",
+      "src/main/java/com/example/invoice/InvoiceRepository.java"
+    ],
+    "round_prompts": [
+      "Round 1: identify the highest-risk correctness bug and give the smallest safe patch plan.",
+      "Round 2: refine the answer under this extra constraint: message shape and repository interfaces should stay stable if possible.",
+      "Round 3: produce the final minimal patch plan with exact files, order of change, and rollback/regression checks."
+    ],
+    "hidden_focus": [
+      "Should stay focused on publish-before-commit / outbox ordering.",
+      "Final answer should remain minimal and implementation-oriented."
+    ]
+  },
+  {
+    "task_id": "multi_reconnect_self_repair",
+    "family": "multi_round",
+    "description": "Three-round repair refinement on reconnect circuit breaker behavior.",
+    "max_tokens": 1000,
+    "multi_round": true,
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "round_prompts": [
+      "Round 1: identify the highest-risk reconnect correctness bug and give the smallest safe patch plan.",
+      "Round 2: refine the answer under this extra constraint: do not relax the hard safety guard maxReconnectAttempts.",
+      "Round 3: produce the final minimal patch plan and the exact regression checks needed."
+    ],
+    "hidden_focus": [
+      "Must preserve reconnect safety guard.",
+      "Should converge toward a bounded reconnect fix, not a broad retry redesign."
+    ]
+  },
+  {
+    "task_id": "plan_boot_restore_gap",
+    "family": "planning",
+    "description": "Complex planning task for boot-time restore implementation.",
+    "max_tokens": 1400,
+    "multi_round": false,
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "round_prompts": [
+      "Produce a decision-complete implementation plan for boot-time restore from persisted session state. The plan should be concrete enough for another engineer to implement directly, including failure handling and tests."
+    ],
+    "hidden_focus": [
+      "Should break the work into restore sequencing, thread recreation, and tests.",
+      "Should keep client protocol compatibility explicit."
+    ]
+  },
+  {
+    "task_id": "plan_metrics_exposure",
+    "family": "planning",
+    "description": "Complex planning task for exposing runtime metrics to client cleanly.",
+    "max_tokens": 1400,
+    "multi_round": false,
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "round_prompts": [
+      "Produce a decision-complete implementation plan for exposing runtime metrics snapshots to the client without breaking current protocol guarantees. Include type/interface changes, runtime wiring, client wiring, and tests."
+    ],
+    "hidden_focus": [
+      "Should start from protocol contract, then runtime emit, then client consume.",
+      "Should mention tests, not only code changes."
+    ]
+  },
+  {
+    "task_id": "plan_reconnect_fault_injection",
+    "family": "planning",
+    "description": "Complex planning task for reconnect fault-injection integration tests.",
+    "max_tokens": 1400,
+    "multi_round": false,
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/test/ui-contract.integration.test.ts",
+      "docs/testing-goal.md"
+    ],
+    "round_prompts": [
+      "Produce a decision-complete implementation plan for reconnect fault-injection integration tests. Include harness shape, failure injection points, assertions, and rollout of new tests into the existing suite."
+    ],
+    "hidden_focus": [
+      "Should define explicit failure injection points and assertions.",
+      "Should preserve current runtime safety semantics."
+    ]
+  }
+]

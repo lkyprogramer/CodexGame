@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_reconnect_circuit_breaker",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 40703.14471051097,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Reconnect Safety Bug\n\n**Verdict:** Critical Logic Flaw in Reconnect Flow\n**Risk:** High. The runtime loop can bypass the circuit breaker and resume execution immediately after a disconnect, potentially causing race conditions, duplicate turns, or state corruption if the underlying `codex` process is not fully ready.\n\n#### Root Cause\nIn `apps/game-runtime/src/runtime/GameRuntimeServer.ts`, the `reconnect()` method (lines 633–655) performs the following sequence:\n1.  Restarts the `codexClient`.\n2.  Resumes threads.\n3.  Refreshes the model catalog.\n4.  **Sets `this.connected = true` immediately.**\n5.  Sends session state.\n\nThe `runScheduler()` method (lines 433–452) checks `if (!this.connected) { return; }` to prevent scheduling turns while disconnected. However, because `reconnect()` sets `this.connected = true` **before** verifying that the runtime is actually stable or that the `schedulerTimer` (which runs every `runtimeConfig.schedulerMs`) has been re-armed or is safe to run, the scheduler can fire immediately on the next tick.\n\nMore critically, the `schedulerTimer` is started in `startTimers()` and **never stopped** during a disconnect/reconnect cycle. If a disconnect happens, `runScheduler` returns early due to `!this.connected`. When `reconnect()` sets `this.connected = true`, the `schedulerTimer` (which is still running) will fire `runScheduler` almost immediately. If the `codexClient` restart hasn't fully stabilized or if the thread resume operations are still pending, the scheduler might attempt to start a turn on a thread that isn't ready, or worse, if the `codexClient` restart fails silently in a specific edge case, the loop continues.\n\nHowever, the **highest risk** is actually simpler: The `reconnect()` method does not reset `this.reconnectAttempts` to 0 until the `connected` event fires (line 222). But `reconnect()` sets `this.connected = true` manually (line 645). If `reconnect()` succeeds in setting the flag but the `codexClient`'s internal state is not fully \"connected\" (e.g., the `connected` event hasn't fired yet), the scheduler runs. If the `codexClient` then fails to actually connect or throws an error during the first scheduled turn, the `handleDisconnect` logic might trigger again, but the `reconnectAttempts` counter logic is fragile here.\n\n**The specific bypass:**\nThe `handleDisconnect` method (lines 617–631) increments `reconnectAttempts`. If `reconnectAttempts > maxReconnectAttempts`, it sets `phase = \"error\"` and stops.\nHowever, inside `reconnect()` (lines 633–655), if the `codexClient.restart()` succeeds, it sets `this.connected = true`.\nThe `schedulerTimer` is **always running** (started in `startTimers`, never cleared).\nIf `reconnect()` sets `this.connected = true`, the next tick of `schedulerTimer` calls `runScheduler()`.\n`runScheduler()` checks `if (!this.connected) return;`. Since it is now true, it proceeds to `requestGameplayTurn`.\nIf the `codexClient` is not actually ready to handle a turn (e.g., the `connected` event hasn't fired, or the thread resume is still pending), this request might fail or hang.\n\nBut the **real circuit breaker bypass** is this:\nIf `reconnect()` fails (throws an error), it catches the error, sets `this.connected = false`, and calls `handleDisconnect()`.\n`handleDisconnect()` increments `reconnectAttempts`.\nIf `reconnectAttempts` is now > `maxReconnectAttempts`, it sets `phase = \"error\"`.\n**BUT**, `reconnect()` is called via `setTimeout` inside `handleDisconnect`.\nIf `reconnect()` throws, it calls `handleDisconnect` recursively.\nThe `schedulerTimer` is still running.\nIf `reconnect()` sets `this.connected = true` (line 645) **before** the `codexClient` is truly ready, the scheduler runs.\nIf the `codexClient` then disconnects again immediately, `handleDisconnect` runs.\nThe `reconnectAttempts` counter is incremented.\nIf the counter exceeds the limit, `phase` becomes \"error\".\n**However**, the `schedulerTimer` is **not stopped** when `phase` becomes \"error\".\n`runScheduler` checks `if (this.phase !== \"running\") return;`.\nSo if `phase` is \"error\", the scheduler stops. This part is safe.\n\n**Wait, let's look closer at `reconnect()` logic.**\n```typescript\nprivate async reconnect(): Promise<void> {\n  try {\n    await this.codexClient.restart(...);\n    // ... resume threads ...\n    await this.refreshModelCatalog();\n    this.connected = true; // <--- Sets connected to true\n    this.sendSessionState();\n    // ...\n  } catch (error) {\n    this.connected = false;\n    this.sendSessionState();\n    this.emitError(\"reconnect_failed\", ...);\n    await this.handleDisconnect(); // <--- Recursively calls handleDisconnect\n  }\n}\n```\nIf `reconnect()` succeeds, `this.connected` is true. The `schedulerTimer` (which is running) will call `runScheduler`.\n`runScheduler` checks `if (!this.connected) return;`. It passes.\nIt checks `if (this.activeTurn || this.autoplayLocked) return;`.\nIt calls `requestGameplayTurn`.\nIf `codexClient`"
+        }
+      }
+    ],
+    "created": 1775547607,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 20967,
+      "total_tokens": 22217
+    },
+    "id": "chatcmpl-PmwxchpXs5etNvndwajh9oYLrHbtI5a9",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 20967,
+      "prompt_ms": 9093.317,
+      "prompt_per_token_ms": 0.4336966184957313,
+      "prompt_per_second": 2305.759273541217,
+      "predicted_n": 1250,
+      "predicted_ms": 31267.559,
+      "predicted_per_token_ms": 25.0140472,
+      "predicted_per_second": 39.97753710163304
+    }
+  }
+}

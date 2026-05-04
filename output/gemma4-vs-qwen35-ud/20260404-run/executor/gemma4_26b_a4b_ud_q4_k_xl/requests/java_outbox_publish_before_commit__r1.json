@@ -1,0 +1,19 @@
+{
+  "task_id": "java_outbox_publish_before_commit",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/gemma4-26b-a4b-it-ud-q4_k_xl",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_outbox_publish_before_commit\nScenario: Domain event is published inline before the database write is durably committed.\n\nInstructions:\nIdentify the highest-risk consistency bug and propose the smallest safe fix. Do not redesign the whole eventing stack unless absolutely necessary.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/invoice/InvoiceService.java ===\npackage com.example.invoice;\n\nimport java.time.Instant;\n\npublic class InvoiceService {\n    private final InvoiceRepository invoiceRepository;\n    private final DomainEventPublisher domainEventPublisher;\n\n    public InvoiceService(\n            InvoiceRepository invoiceRepository,\n            DomainEventPublisher domainEventPublisher) {\n        this.invoiceRepository = invoiceRepository;\n        this.domainEventPublisher = domainEventPublisher;\n    }\n\n    public void approve(long invoiceId, String approver) {\n        Invoice invoice = invoiceRepository.require(invoiceId);\n        invoice.approve(approver, Instant.now());\n        domainEventPublisher.publish(\"invoice.approved\", invoiceId);\n        invoiceRepository.save(invoice);\n    }\n}\n\n=== File: src/main/java/com/example/invoice/DomainEventPublisher.java ===\npackage com.example.invoice;\n\npublic interface DomainEventPublisher {\n    void publish(String eventType, long aggregateId);\n}\n\n=== File: src/main/java/com/example/invoice/InvoiceRepository.java ===\npackage com.example.invoice;\n\npublic interface InvoiceRepository {\n    Invoice require(long id);\n    void save(Invoice invoice);\n}\n"
+      }
+    ],
+    "max_tokens": 1050,
+    "stream": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "java_optimistic_lock_missing",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 6041.061875002924,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Bug identification**\n\n`OrderService.approve()` reads the current `Order` (including its `version`) and then calls `orderRepository.updateStatus(..., order.getVersion() + 1)`.  \nThe repository’s `updateStatus` method is supposed to perform an *optimistic‑lock* update – i.e. it must update **both** `status` **and** `version` in a single `UPDATE … WHERE id = ? AND version = ?` statement.  \n\nThe current implementation in `JdbcOrderRepository` only contains a comment:\n\n```java\n// update orders set status = ?, version = ? where id = ?\n```\n\nand the method does **nothing** (it does not execute the SQL, does not check the row count, and does not return the new version). Consequently, two concurrent calls to `approve` can both succeed, leaving the `Order` in an inconsistent state – the classic optimistic‑locking bug.\n\n**Root cause**\n\nThe `updateStatus` contract in `OrderRepository` expects the caller to pass the *next* version (`currentVersion + 1`). The repository must verify that the row it updates still has the expected version; if the row has been changed by another thread, the update must fail (e.g. throw an exception). This verification is missing.\n\n**Smallest production‑safe fix**\n\n1. **Add a proper SQL statement** to `JdbcOrderRepository.updateStatus` that updates `status` **and** `version` while checking the version.\n2. **Execute the statement** and verify that exactly one row was affected; otherwise throw an exception (e.g. `OptimisticLockException`).\n3. **Return the new version** (or let the caller recompute it) – the service only needs to know that the update succeeded; it does not need the new version for its own logic.\n\nThe change is limited to the repository implementation; the service interface stays unchanged.\n\n**Exact files to change**\n\n| File | Change |\n|------|--------|\n| `src/main/java/com/example/order/JdbcOrderRepository.java` | Replace the stub with a real implementation that (a) runs an `UPDATE orders SET status = ?, version = ? WHERE id = ? AND version = ?`, (b) checks the update count, (c) throws an exception if the count ≠ 1. |\n| (Optional) `src/main/java/com/example/order/OrderService.java` – **no change** needed; the service already passes the correct `nextVersion`. |\n\n**Proposed code for `JdbcOrderRepository`**\n\n```java\npackage com.example.order;\n\nimport java.sql.*;\n\npublic class JdbcOrderRepository implements OrderRepository {\n\n    private final DataSource dataSource;   // injected in real code\n\n    public JdbcOrderRepository(DataSource dataSource) {\n        this.dataSource = dataSource;\n    }\n\n    @Override\n    public Order require(long id) {\n        // existing implementation (not shown) – returns the Order with current version\n        // For the purpose of this fix we assume it works correctly.\n        return null; // placeholder – real code would query the row\n    }\n\n    @Override\n    public void updateStatus(long id, String status, int nextVersion) {\n        String sql = \"UPDATE orders SET status = ?, version = ? WHERE id = ? AND version = ?\";\n\n        try (Connection conn = dataSource.getConnection();\n             PreparedStatement ps = conn.prepareStatement(sql)) {\n\n            ps.setString(1, status);\n            ps.setInt(2, nextVersion);\n            ps.setLong(3, id);\n            ps.setInt(4, nextVersion - 1);   // expected current version\n\n            int rowsAffected = ps.executeUpdate();\n\n            if (rowsAffected != 1) {\n                // Another thread has updated the row – optimistic lock failure\n                throw new OptimisticLockException(\n                    \"Failed to update order \" + id + \", possible concurrent modification\");\n            }\n        } catch (SQLException e) {\n            throw new RuntimeException(\"Database error while updating order status\", e);\n        }\n    }\n}\n```\n\n*Notes*  \n\n* `OptimisticLockException` can be a custom unchecked exception (or a checked one) – its exact type is not important for the fix, only that the caller is notified when the version check fails.  \n* The repository still returns `null` from `require` in the snapshot; in a real code base it would fetch the row, but that does not affect the locking logic.\n\n**Regression checks**\n\n1. **Single‑thread sanity** – Call `approve` on an order with version 0. The repository updates the row, `rowsAffected == 1`, and the order status becomes `APPROVED`.  \n2. **Concurrent scenario** – Two threads call `approve` simultaneously on the same order (version 0).  \n   * Thread A reads version 0, passes `nextVersion = 1`.  \n   * Thread B reads version 0, passes `nextVersion = 1"
+        }
+      }
+    ],
+    "created": 1774490868,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1050,
+      "prompt_tokens": 481,
+      "total_tokens": 1531
+    },
+    "id": "chatcmpl-U2QySMsYv1kXTmiLK5dcayvvhvWX6UkW",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 481,
+      "prompt_ms": 63.432,
+      "prompt_per_token_ms": 0.1318752598752599,
+      "prompt_per_second": 7582.923445579518,
+      "predicted_n": 1050,
+      "predicted_ms": 4941.727,
+      "predicted_per_token_ms": 4.706406666666666,
+      "predicted_per_second": 212.4763265959451
+    }
+  }
+}

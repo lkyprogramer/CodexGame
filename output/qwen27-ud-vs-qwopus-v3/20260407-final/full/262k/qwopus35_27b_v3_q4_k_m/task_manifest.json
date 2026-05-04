@@ -1,0 +1,74 @@
+[
+  {
+    "task_id": "extreme_restore_bootstrap_longctx",
+    "family": "extreme",
+    "description": "262K extreme restore/bootstrap reasoning with real runtime files plus repeated incident logs.",
+    "max_tokens": 1800,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the oversized restore incident snapshot below, identify the highest-risk correctness bug, propose the smallest safe fix, and explain which exact files should change. Do not rewrite the subsystem.",
+    "context_files": [
+      "generated/extreme_restore_context.txt"
+    ],
+    "hidden_checklist": [
+      "Identify phase/thread bootstrap ordering as the real bug.",
+      "Keep fix maintainable under large-context noise.",
+      "Avoid proposing a broad subsystem rewrite.",
+      "Mention test coverage for boot-time restore and thread recreation."
+    ]
+  },
+  {
+    "task_id": "extreme_runtime_metrics_longctx",
+    "family": "extreme",
+    "description": "262K extreme protocol/runtime metrics task with repeated snapshots and real files.",
+    "max_tokens": 1800,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the oversized runtime metrics snapshot below, propose the smallest protocol-first change set to expose metrics cleanly. Keep runtime authoritative and avoid UI-driven state.",
+    "context_files": [
+      "generated/extreme_metrics_context.txt"
+    ],
+    "hidden_checklist": [
+      "Stay protocol-first despite the large context volume.",
+      "Use runtime metrics snapshot as the source of truth.",
+      "Prefer session-state-like exposure over world snapshot.",
+      "Keep the answer concrete and bounded under long context."
+    ]
+  },
+  {
+    "task_id": "extreme_java_change_impact_longctx",
+    "family": "extreme",
+    "description": "262K extreme Java incident with repeated service implementations and duplicate side-effect logs.",
+    "max_tokens": 1700,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the oversized Java approval incident below, identify the smallest safe change set that prevents duplicate user-visible side effects without redesigning the whole service layer.",
+    "context_files": [
+      "generated/extreme_java_change_impact.txt"
+    ],
+    "hidden_checklist": [
+      "Identify duplicate side effect under retry or repeated execution.",
+      "Keep the fix minimal under noisy repeated context.",
+      "Avoid overfitting to one log line only.",
+      "Mention regression for repeated notifications."
+    ]
+  },
+  {
+    "task_id": "extreme_reconcile_script_longctx",
+    "family": "extreme",
+    "description": "262K extreme script-writing task with repeated reconciliation rules and sample exports.",
+    "max_tokens": 1900,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks.",
+    "user_request": "Given the oversized reconciliation specification below, write the smallest production-safe Python script or script skeleton to reconcile the feeds. Keep it stream-friendly and operationally realistic.",
+    "context_files": [
+      "generated/extreme_reconcile_script.txt"
+    ],
+    "hidden_checklist": [
+      "Prefer streaming processing even under huge context.",
+      "Use the documented primary/fallback match keys.",
+      "Emit both machine-readable and human-readable outputs.",
+      "Handle duplicate rows and malformed headers."
+    ]
+  }
+]

@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 38411.026458023116,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Build Flow Atomicity & Validation\n\n**Highest-Risk Bug:**\nIn `apps/game-runtime/src/runtime/contentStore.ts`, the `applyOperations` method performs **schema validation on the input operations** but **fails to validate the resulting state** before writing to disk.\n\nSpecifically:\n1.  It validates the *operations* (`contentOperationSchema.parse`).\n2.  It applies the operations to an in-memory `next` state.\n3.  It immediately writes `next` to disk using `writeJsonAtomic`.\n4.  **The Risk:** If the `next` state contains data that violates the schema (e.g., due to a logic error in `upsertById` or `removeById` that produces invalid types, or if the input validation was insufficient for edge cases), the system writes **corrupt/invalid JSON** to the persistent store.\n5.  **The Consequence:** On the next `load()`, the system will crash because `load()` strictly parses the files using `prefabSchema`, `recipeSchema`, etc. If the file contains invalid data (e.g., a `walkable` field that is a string instead of a boolean, or a missing required field), the runtime becomes unrecoverable without manual file deletion.\n\nWhile the test `rejects invalid operations without partial writes` checks that *invalid input* doesn't cause a write, it does not check that *valid input producing invalid state* (or state that fails strict schema re-validation) is prevented. The `writeJsonAtomic` function guarantees atomicity of the *write* (no half-written files), but it does not guarantee the *content* is valid.\n\n**Root Cause:**\nThe `applyOperations` method assumes that if the input operations are valid, the resulting state is automatically valid. It lacks a final \"sanity check\" (schema validation) on the `next` state before committing it to disk.\n\n**Smallest Safe Fix:**\nAdd a schema validation step for the `next` state immediately before the `Promise.all` write block in `applyOperations`. If the resulting state is invalid, throw an error to prevent the write. This ensures that the persistent store always contains data that `load()` can successfully parse.\n\n### Proposed Fix\n\n**File:** `apps/game-runtime/src/runtime/contentStore.ts`\n\n**Change:**\nInsert validation of the `next` state before writing.\n\n```typescript\n// Inside ContentStore.applyOperations method, BEFORE the Promise.all block\n\n    // ... existing operation application logic ...\n\n    // NEW: Validate the resulting state before writing to ensure load() will succeed\n    // This prevents corrupting the persistent store with state that violates schemas\n    try {\n      prefabSchema.array().parse(next.prefabs);\n      recipeSchema.array().parse(next.recipes);\n      biomeRuleSchema.array().parse(next.biomeRules);\n      spawnRuleSchema.array().parse(next.spawnRules);\n    } catch (error) {\n      throw new Error(`Resulting content state is invalid: ${error instanceof Error ? error.message : String(error)}`);\n    }\n\n    const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n    const recipesPath = path.join(this.contentDir, RECIPES_FILE);\n    const worldRulesPath = path.join(this.contentDir, WORLD_RULES_FILE);\n\n    await Promise.all([\n      writeJsonAtomic(prefabsPath, next.prefabs),\n      writeJsonAtomic(recipesPath, next.recipes),\n      writeJsonAtomic(worldRulesPath, {\n        biomeRules: next.biomeRules,\n        spawnRules: next.spawnRules\n      })\n    ]);\n```\n\n### Regression Checks\n\n1.  **Existing Test:** Run `apps/game-runtime/test/contentStore.test.ts`.\n    *   Ensure `rejects invalid operations without partial writes` still passes.\n    *   *Reasoning:* The new validation happens after operations are applied. If the input is invalid, the existing `contentOperationSchema.parse` at the start of the method should still catch it first. If the input is valid but produces invalid state (e.g., removing the last item from a list that requires `min(1)` items if the schema had such a constraint, though current schemas don't enforce list min-lengths on the *array* itself, only the objects), the new check will catch it.\n\n2.  **New Test Case (Recommended):** Add a test to `contentStore.test.ts` that verifies the store rejects a valid operation sequence that results in an invalid state (if such a sequence is possible with current schemas, e.g., if we add a schema constraint later).\n    *   *Current State:* The current schemas (`prefabSchema`, etc.) are per-object. The arrays themselves don't have `min(1)` constraints in `build.ts` (only `buildOutputSchema` has `min(1)` for operations). So, technically, you can have an empty array of prefabs. The main risk is type corruption.\n    *   *Verification:* Manually verify that if `upsertById` or `removeById` were to return a malformed object (e.g., if `value` was `null`), the new check catches it.\n\n3.  **Load/Write Cycle:**\n    *   Start the runtime.\n    *   Trigger a build request (via `build.request` message).\n    *   Verify the files are written.\n    *   Restart the runtime.\n    *   Verify `load()` succeeds and the content is correct.\n\n4.  **Error Handling:**\n    *   Simulate a scenario where the `next` state is corrupted (e.g., by temporarily modifying `upsertById` to return a non-conforming object).\n    *   Verify that `applyOperations` throws an error and the files on disk remain unchanged (atomicity preserved)."
+        }
+      }
+    ],
+    "created": 1774490381,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1232,
+      "prompt_tokens": 14464,
+      "total_tokens": 15696
+    },
+    "id": "chatcmpl-k4YWDoxUQOt0YWdTN15GnRQOhq0BupBd",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6092.485,
+      "prompt_per_token_ms": 0.4212171598451327,
+      "prompt_per_second": 2374.0723202437102,
+      "predicted_n": 1232,
+      "predicted_ms": 30104.037,
+      "predicted_per_token_ms": 24.435094967532468,
+      "predicted_per_second": 40.92474374782359
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 35359.408291988075,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script. It uses only the Python standard library to minimize dependency overhead and security surface area.\n\n### Matching Strategy\n1.  **Primary Key**: `merchant_order_id`.\n2.  **Fallback Key**: `provider_txn_id` (used only if `merchant_order_id` is missing/blank in both records).\n3.  **Deduplication**: Input files are deduplicated based on the primary key before matching. If duplicates exist in the source, the script flags them in the output but uses the first occurrence for reconciliation to prevent false positives in the \"Missing\" reports.\n4.  **Comparison Fields**: `amount_cents`, `status`, `updated_at`.\n\n### Edge-Case Guards\n*   **BOM Handling**: Strips UTF-8 Byte Order Marks from file headers.\n*   **Blank Lines**: Ignores rows that are empty or contain only whitespace.\n*   **Duplicate Headers**: Detects and skips rows that match the header schema exactly.\n*   **Type Safety**: Converts `amount_cents` to integers for comparison; handles missing values gracefully.\n\n### Output Files\n1.  `reconciliation_details.csv`: Machine-readable CSV containing every row from both files, their match status, and specific discrepancy flags.\n2.  `reconciliation_summary.txt`: Human-readable summary of counts (Matched, Mismatched, Only in Finance, Only in Merchant, Duplicates found).\n\n### Script: `reconcile.py`\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nProduction-safe CSV Reconciliation Script.\nReconciles finance_export.csv and merchant_statement.csv based on defined rules.\n\"\"\"\n\nimport csv\nimport sys\nimport os\nfrom datetime import datetime\nfrom collections import OrderedDict\n\n# Configuration\nFINANCE_FILE = \"samples/finance_export.csv\"\nMERCHANT_FILE = \"samples/merchant_statement.csv\"\nOUTPUT_DETAILS = \"reconciliation_details.csv\"\nOUTPUT_SUMMARY = \"reconciliation_summary.txt\"\n\n# Fields to compare for mismatches\nCOMPARE_FIELDS = [\"amount_cents\", \"status\", \"updated_at\"]\nID_FIELDS = [\"merchant_order_id\", \"provider_txn_id\"]\n\ndef clean_row(row):\n    \"\"\"Strip whitespace from all values in a row.\"\"\"\n    return {k: v.strip() for k, v in row.items()}\n\ndef is_blank_row(row):\n    \"\"\"Check if a row is effectively empty.\"\"\"\n    return all(v.strip() == \"\" for v in row.values())\n\ndef is_duplicate_header(row, headers):\n    \"\"\"Check if a row matches the header structure exactly.\"\"\"\n    # Convert row values to list to compare with headers\n    row_vals = [row.get(h, \"\").strip().lower() for h in headers]\n    header_vals = [h.lower() for h in headers]\n    return row_vals == header_vals\n\ndef load_csv(filepath):\n    \"\"\"\n    Load CSV with BOM handling, blank line skipping, and duplicate header skipping.\n    Returns a list of OrderedDicts.\n    \"\"\"\n    records = []\n    headers = None\n    \n    if not os.path.exists(filepath):\n        print(f\"Error: File {filepath} not found.\")\n        sys.exit(1)\n\n    with open(filepath, 'r', encoding='utf-8-sig') as f:\n        reader = csv.DictReader(f)\n        headers = reader.fieldnames\n        \n        if not headers:\n            return []\n\n        for row in reader:\n            # Guard: Skip blank lines\n            if is_blank_row(row):\n                continue\n            \n            # Guard: Skip duplicate headers\n            if is_duplicate_header(row, headers):\n                continue\n                \n            records.append(clean_row(row))\n            \n    return records\n\ndef deduplicate_records(records, source_name):\n    \"\"\"\n    Deduplicate records based on merchant_order_id, then provider_txn_id.\n    Returns (unique_records, duplicate_count).\n    \"\"\"\n    seen = {}\n    unique = []\n    dup_count = 0\n    \n    for row in records:\n        # Primary Key\n        mid = row.get(\"merchant_order_id\", \"\").strip()\n        # Fallback Key\n        pid = row.get(\"provider_txn_id\", \"\").strip()\n        \n        key = mid if mid else pid\n        \n        if not key:\n            # If no ID at all, treat as unique but flag later if needed\n            unique.append(row)\n            continue\n            \n        if key in seen:\n            dup_count += 1\n            # In production, you might want to log which duplicate was dropped\n            continue\n        else:\n            seen[key] = row\n            unique.append(row)\n            \n    return unique, dup_count\n\ndef get_key(row):\n    \"\"\"Generate the matching key for a row.\"\"\"\n    mid = row.get(\"merchant_order_id\", \"\").strip()\n    pid = row.get(\"provider_txn_id\", \"\").strip()\n    return mid if mid else pid\n\ndef compare_rows(f_row, m_row):\n    \"\"\"\n    Compare two rows. Returns a list of mismatched fields.\n    \"\"\"\n    mismatches = []\n    \n    for field in COMPARE_FIELDS:\n        f_val = f_row.get(field, \"\").strip()\n        m_val = m_row.get(field, \"\").strip()\n        \n        # Special handling for amount_cents (numeric comparison)\n        if field == \"amount_cents\":\n            try:\n                f_int = int(f_val) if f_val else 0\n                m_int = int(m_val) if m_val else 0\n                if f_int != m_int:\n                    mismatches.append(field)\n            except ValueError:\n                # If not numeric, treat as string mismatch\n                if f_val != m_val:\n                    mismatches.append(field)\n        else:\n            if f_val != m_val:\n                mismatches.append(field)\n                \n    return mismatches\n\ndef reconcile(finance_records, merchant_records):\n    \"\"\"\n    Perform the reconciliation logic.\n    Returns a list of result dicts for the output CSV.\n    \"\"\"\n    results = []\n    \n    # Index merchant records by key for O(1) lookup"
+        }
+      }
+    ],
+    "created": 1776917266,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-JW4hg5n1EW5UsViOpZp6ERp7eaaw1YSd",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 347.833,
+      "prompt_per_token_ms": 0.5836124161073826,
+      "prompt_per_second": 1713.4659448643456,
+      "predicted_n": 1300,
+      "predicted_ms": 33534.462,
+      "predicted_per_token_ms": 25.79574,
+      "predicted_per_second": 38.7660908351534
+    }
+  }
+}

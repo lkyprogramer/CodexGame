@@ -1,0 +1,532 @@
+[
+  {
+    "task_id": "java_null_nested_config",
+    "family": "java",
+    "description": "Optional nested config causes startup-time null handling bug.",
+    "max_tokens": 900,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the highest-risk correctness bug. Explain the root cause and give the smallest production-safe patch plan. Keep the fix minimal and localized.",
+    "context_files": [
+      "src/main/java/com/example/config/AppConfig.java",
+      "src/main/java/com/example/config/DatabaseConfig.java",
+      "src/main/java/com/example/config/DataSourceFactory.java",
+      "src/main/java/com/example/bootstrap/StartupListener.java"
+    ],
+    "hidden_checklist": [
+      "Identify null handling risk in config.getDatabase() / getJdbcUrl().",
+      "Keep the fix in DataSourceFactory or immediate caller instead of broad rewrites.",
+      "Mention trim safety and missing optional config path.",
+      "Include startup regression checks for missing database config."
+    ]
+  },
+  {
+    "task_id": "java_transaction_partial_commit",
+    "family": "java",
+    "description": "Order update spans multiple repositories without a transaction boundary.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the update flow and identify the highest-risk data consistency bug. Propose the smallest safe fix and explain why it is enough.",
+    "context_files": [
+      "src/main/java/com/example/order/OrderService.java",
+      "src/main/java/com/example/order/InventoryRepository.java",
+      "src/main/java/com/example/order/OrderRepository.java",
+      "src/main/java/com/example/order/AuditRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify missing transaction boundary across inventory/order/audit DB writes.",
+      "Explain partial commit risk if markConfirmed fails after reserve/audit.",
+      "Prefer the minimal fix such as adding a transactional boundary to the service flow.",
+      "Mention regression checks for mid-flow failure rollback."
+    ]
+  },
+  {
+    "task_id": "java_path_body_id_mismatch",
+    "family": "java",
+    "description": "Controller trusts request body identifier over path identifier.",
+    "max_tokens": 900,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the most dangerous API contract bug and give the minimal fix. Assume this endpoint is public and used by multiple clients.",
+    "context_files": [
+      "src/main/java/com/example/account/UpdateAccountRequest.java",
+      "src/main/java/com/example/account/AccountController.java",
+      "src/main/java/com/example/account/AccountService.java"
+    ],
+    "hidden_checklist": [
+      "Identify path-vs-body identifier trust bug.",
+      "Recommend path variable as source of truth and mismatch validation/removal of body accountId.",
+      "Keep fix minimal in controller/request contract instead of wide service rewrite.",
+      "Mention regression test for mismatched IDs."
+    ]
+  },
+  {
+    "task_id": "java_audit_success_on_failure",
+    "family": "java",
+    "description": "Audit log currently records a successful change even when the write fails.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the flow and identify the most serious audit consistency bug. Give the smallest safe patch plan.",
+    "context_files": [
+      "src/main/java/com/example/profile/ProfileService.java",
+      "src/main/java/com/example/profile/ProfileRepository.java",
+      "src/main/java/com/example/profile/AuditRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify that finally always records success even if save throws.",
+      "Move success audit after successful persistence or separate success/failure events.",
+      "Preserve minimal change rather than redesigning audit subsystem.",
+      "Mention regression test for repository save failure."
+    ]
+  },
+  {
+    "task_id": "java_pagination_boundary",
+    "family": "java",
+    "description": "Pagination code has an index boundary bug and unstable empty-page behavior.",
+    "max_tokens": 900,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the concrete correctness bug in this pagination flow and propose the smallest patch. Be explicit about what happens on the last page and on out-of-range requests.",
+    "context_files": [
+      "src/main/java/com/example/user/UserQueryService.java",
+      "src/main/java/com/example/user/UserRepository.java",
+      "src/main/java/com/example/user/InMemoryUserRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify subList end index is exclusive and may throw when end exceeds size.",
+      "Handle offset >= size by returning empty list.",
+      "Use minimal boundary clamp such as min(offset + size, users.size()).",
+      "Mention tests for last page and out-of-range page."
+    ]
+  },
+  {
+    "task_id": "java_optimistic_lock_missing",
+    "family": "java",
+    "description": "Version field exists but update flow does not actually enforce optimistic locking.",
+    "max_tokens": 1050,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the concurrency bug and propose the smallest production-safe fix. Assume this method is hit concurrently from two admin consoles.",
+    "context_files": [
+      "src/main/java/com/example/order/Order.java",
+      "src/main/java/com/example/order/OrderRepository.java",
+      "src/main/java/com/example/order/OrderService.java",
+      "src/main/java/com/example/order/JdbcOrderRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify version field is ignored in the update predicate.",
+      "Recommend update where id and version match, then detect stale update failure.",
+      "Keep fix minimal in repository SQL/return contract rather than redesigning service.",
+      "Mention concurrent update regression test."
+    ]
+  },
+  {
+    "task_id": "java_enum_db_compat",
+    "family": "java",
+    "description": "Database enum values no longer match Java enum names after a migration.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the compatibility bug introduced by this migration and suggest the smallest safe patch. Assume existing production rows already use the migrated values.",
+    "context_files": [
+      "src/main/resources/db/migration/V42__payment_state_lowercase.sql",
+      "src/main/java/com/example/payment/PaymentState.java",
+      "src/main/java/com/example/payment/PaymentRecordDO.java",
+      "src/main/java/com/example/payment/PaymentMapper.java"
+    ],
+    "hidden_checklist": [
+      "Identify migration changed DB values to lowercase while valueOf expects enum constant names.",
+      "Recommend explicit fromDb mapping or stable code-based mapping.",
+      "Keep fix localized to mapper/enum instead of rewriting migration history.",
+      "Mention regression coverage for old and new DB values."
+    ]
+  },
+  {
+    "task_id": "java_soft_delete_unique_email",
+    "family": "java",
+    "description": "Soft-deleted rows still participate in uniqueness checks and block re-registration.",
+    "max_tokens": 950,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the highest-risk bug in this registration flow and propose the smallest safe fix. Assume soft-deleted accounts should not block a new registration.",
+    "context_files": [
+      "src/main/java/com/example/user/UserService.java",
+      "src/main/java/com/example/user/UserRepository.java",
+      "src/main/java/com/example/user/JdbcUserRepository.java",
+      "src/main/resources/db/migration/V18__add_user_soft_delete.sql"
+    ],
+    "hidden_checklist": [
+      "Identify existsByEmail ignores soft delete state.",
+      "Recommend filtering active rows only, not a service-layer workaround.",
+      "Mention partial unique index or data-level follow-up as optional longer-term hardening.",
+      "Include regression for re-registering after soft delete."
+    ]
+  },
+  {
+    "task_id": "ts_boot_restore_consistency",
+    "family": "ts",
+    "description": "Boot-time restore can expose an inconsistent running state before threads are restored.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the real project files below, identify the highest-risk restore consistency bug and propose the smallest maintainable fix. Preserve atomic persistence and avoid duplicate thread creation.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Identify restore path sets a running-visible state before thread restoration is complete.",
+      "Mention threadIds restore/bootstrap ordering and idempotent thread recreation.",
+      "Respect protocol/client contract instead of patching runtime only.",
+      "Preserve stateStore atomic tmp+rename behavior.",
+      "Include contract/integration test updates."
+    ]
+  },
+  {
+    "task_id": "ts_runtime_metrics_protocol",
+    "family": "ts",
+    "description": "Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, propose the smallest protocol-first change set to expose runtime metrics to the client HUD. Keep simulation authority in runtime and add the right contract tests.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/metrics.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-client/src/components/GodConsoleSidebar.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Start from protocol messages rather than ad-hoc runtime/client fields.",
+      "Use MetricsTracker.snapshot() as the source of truth.",
+      "Expose metrics through session-state-like runtime state, not world snapshot.",
+      "Keep client presentation-only and add contract test coverage."
+    ]
+  },
+  {
+    "task_id": "java_idempotency_payment_callback",
+    "family": "java",
+    "description": "Payment callback handler applies duplicate provider events more than once.",
+    "max_tokens": 1050,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the highest-risk business correctness bug and give the smallest safe fix. Prefer an idempotency fix over a broad architecture rewrite.",
+    "context_files": [
+      "src/main/java/com/example/payment/PaymentCallbackService.java",
+      "src/main/java/com/example/payment/PaymentCallback.java",
+      "src/main/java/com/example/payment/Payment.java",
+      "src/main/java/com/example/payment/PaymentRepository.java",
+      "src/main/java/com/example/payment/OutboxRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify duplicate callback / duplicate providerTxnId replays as the core bug.",
+      "Prefer idempotency guard on providerTxnId or payment state before save/outbox.",
+      "Keep the fix localized to callback flow or repository contract.",
+      "Mention regression for replayed callbacks and outbox duplication."
+    ]
+  },
+  {
+    "task_id": "java_outbox_publish_before_commit",
+    "family": "java",
+    "description": "Domain event is published inline before the database write is durably committed.",
+    "max_tokens": 1050,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Identify the highest-risk consistency bug and propose the smallest safe fix. Do not redesign the whole eventing stack unless absolutely necessary.",
+    "context_files": [
+      "src/main/java/com/example/invoice/InvoiceService.java",
+      "src/main/java/com/example/invoice/DomainEventPublisher.java",
+      "src/main/java/com/example/invoice/InvoiceRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify publish-before-commit inconsistency as the core bug.",
+      "Prefer moving event creation to an outbox or after-commit boundary, not an async sleep/retry hack.",
+      "Keep the proposed change minimal and localized.",
+      "Mention regression where publish succeeds but save fails."
+    ]
+  },
+  {
+    "task_id": "java_cache_stale_after_write",
+    "family": "java",
+    "description": "Profile update writes to DB but leaves the cache stale on the read path.",
+    "max_tokens": 950,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the write path and identify the highest-risk correctness bug. Propose the smallest safe fix with the right cache consistency behavior.",
+    "context_files": [
+      "src/main/java/com/example/profile/ProfileService.java",
+      "src/main/java/com/example/profile/ProfileCache.java",
+      "src/main/java/com/example/profile/ProfileRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify stale cache after write as the bug.",
+      "Prefer evict or write-through in the update path, not a TTL-only workaround.",
+      "Keep the change minimal in ProfileService/cache contract.",
+      "Mention regression for immediate read-after-write."
+    ]
+  },
+  {
+    "task_id": "java_csv_import_partial_batch",
+    "family": "java",
+    "description": "CSV batch import persists rows incrementally before the full batch is validated.",
+    "max_tokens": 1100,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the highest-risk data consistency bug and propose the smallest safe fix. Avoid a full importer rewrite unless the snapshot forces it.",
+    "context_files": [
+      "src/main/java/com/example/importer/UserImportService.java",
+      "src/main/java/com/example/importer/CsvParser.java",
+      "src/main/java/com/example/importer/UserRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify partial batch writes when a later row fails validation.",
+      "Prefer upfront validation or transaction boundary over silent continue.",
+      "Keep the fix localized to import flow.",
+      "Mention regression for invalid row in the middle of the batch."
+    ]
+  },
+  {
+    "task_id": "java_retry_duplicate_side_effect",
+    "family": "java",
+    "description": "Retry wrapper around a remote call duplicates the user-visible side effect.",
+    "max_tokens": 1050,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the flow and identify the highest-risk bug. Propose the smallest safe fix and call out what must not be retried blindly.",
+    "context_files": [
+      "src/main/java/com/example/invoice/InvoiceNotificationService.java",
+      "src/main/java/com/example/invoice/RetryExecutor.java",
+      "src/main/java/com/example/invoice/InvoiceGateway.java",
+      "src/main/java/com/example/invoice/EmailGateway.java"
+    ],
+    "hidden_checklist": [
+      "Identify duplicate side effect under retry as the core bug.",
+      "Call out that email sending must not be retried blindly with state mutation in the same block.",
+      "Prefer moving the retry boundary or making one side idempotent.",
+      "Mention regression for gateway timeout after markSent but before email send completes."
+    ]
+  },
+  {
+    "task_id": "java_permission_scope_trust_bug",
+    "family": "java",
+    "description": "Service trusts orgId from request payload instead of the authenticated operator context.",
+    "max_tokens": 1000,
+    "repeat_group": "java-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Identify the highest-risk security bug and give the smallest maintainable fix. Prefer a clear trust-boundary correction over broad auth refactors.",
+    "context_files": [
+      "src/main/java/com/example/report/ReportController.java",
+      "src/main/java/com/example/report/GenerateReportRequest.java",
+      "src/main/java/com/example/report/UserSession.java"
+    ],
+    "hidden_checklist": [
+      "Identify trust-boundary bug: request orgId is untrusted compared with session orgId.",
+      "Recommend session/context org as source of truth or explicit mismatch validation.",
+      "Keep fix at controller/service boundary instead of auth subsystem rewrite.",
+      "Mention regression for cross-org forged request payloads."
+    ]
+  },
+  {
+    "task_id": "script_python_csv_reconcile",
+    "family": "script",
+    "description": "Write a Python reconciliation script for two daily business CSV exports with duplicate and blank-row edge cases.",
+    "max_tokens": 1300,
+    "repeat_group": "script-core",
+    "developer_message": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks.",
+    "user_request": "Write the smallest production-safe Python script or script skeleton to reconcile two CSV exports. State the exact matching strategy, the output files, and the key edge-case guards.",
+    "context_files": [
+      "samples/finance_export.csv",
+      "samples/merchant_statement.csv",
+      "docs/reconcile_rules.md"
+    ],
+    "hidden_checklist": [
+      "Use streaming/row-wise parsing instead of assuming tiny files.",
+      "State primary and fallback match keys correctly.",
+      "Handle BOM, blank lines, duplicate headers, and duplicate rows.",
+      "Emit both machine-readable discrepancy output and human summary."
+    ]
+  },
+  {
+    "task_id": "script_bash_log_triage",
+    "family": "script",
+    "description": "Write a shell script to summarize recurring production errors from mixed application logs.",
+    "max_tokens": 1150,
+    "repeat_group": "script-core",
+    "developer_message": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks.",
+    "user_request": "Write a production-safe Bash script or shell pipeline to summarize the top recurring error signatures. Ignore health checks and keep the script reviewable.",
+    "context_files": [
+      "logs/app.log",
+      "docs/ops_requirement.md"
+    ],
+    "hidden_checklist": [
+      "Use grep/awk/sed/sort or equivalent safely and explicitly.",
+      "Normalize volatile ids before counting signatures.",
+      "Ignore health check noise.",
+      "Mention or implement .gz handling and deterministic descending sort."
+    ]
+  },
+  {
+    "task_id": "script_python_jsonl_replay_analyzer",
+    "family": "script",
+    "description": "Write a small Python analyzer for replay JSONL files with malformed-line tolerance.",
+    "max_tokens": 1300,
+    "repeat_group": "script-core",
+    "developer_message": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks.",
+    "user_request": "Write the smallest production-safe Python script or skeleton to analyze replay JSONL files. Compute per-session turn counts, invalid-output counts, and malformed-line stats.",
+    "context_files": [
+      "samples/replay.jsonl",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "docs/analyzer_requirements.md"
+    ],
+    "hidden_checklist": [
+      "Prefer streaming file iteration, not full-file load.",
+      "Count malformed lines explicitly.",
+      "Aggregate per-session turn and invalid-output counts.",
+      "Keep the script simple and dependency-light."
+    ]
+  },
+  {
+    "task_id": "script_bash_atomic_deploy",
+    "family": "script",
+    "description": "Write a deploy script that performs atomic release swap with health check and rollback.",
+    "max_tokens": 1250,
+    "repeat_group": "script-core",
+    "developer_message": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks.",
+    "user_request": "Write a small Bash deployment script or script skeleton for an atomic release rollout. It must be safe to review and safe to abort.",
+    "context_files": [
+      "docs/deploy_requirements.md",
+      "docs/ops_constraints.md"
+    ],
+    "hidden_checklist": [
+      "Use set -euo pipefail and explicit variables.",
+      "Preserve previous symlink target for rollback.",
+      "Perform health check before deleting or finalizing.",
+      "Keep the rollout atomic with symlink swap or equivalent."
+    ]
+  },
+  {
+    "task_id": "ts_reconnect_circuit_breaker",
+    "family": "ts",
+    "description": "Reconnect handling risks bypassing the circuit breaker that protects the runtime loop.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, identify the highest-risk reconnect safety bug and propose the smallest maintainable fix. Preserve the hard reconnect guard.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Respect maxReconnectAttempts as a hard safety guard.",
+      "Keep reconnect authority in runtime, not client.",
+      "Call out the exact reconnect state machine bug rather than generic retry advice.",
+      "Mention integration or fault-injection coverage."
+    ]
+  },
+  {
+    "task_id": "ts_build_atomic_write_guard",
+    "family": "ts",
+    "description": "Builder flow must preserve atomic writes and schema-first validation under partial failure.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-extended",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, identify the highest-risk build-flow consistency bug and propose the smallest safe fix. Preserve atomic content writes.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/build.ts",
+      "apps/game-runtime/test/contentStore.test.ts",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Preserve tmp + rename atomic write behavior.",
+      "Validate build operations against protocol schema before mutating content.",
+      "Keep builder flow content-only and avoid runtime/client side mutations.",
+      "Mention contentStore and integration test coverage."
+    ]
+  },
+  {
+    "task_id": "extreme_restore_bootstrap_longctx",
+    "family": "extreme",
+    "description": "262K extreme restore/bootstrap reasoning with real runtime files plus repeated incident logs.",
+    "max_tokens": 1800,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the oversized restore incident snapshot below, identify the highest-risk correctness bug, propose the smallest safe fix, and explain which exact files should change. Do not rewrite the subsystem.",
+    "context_files": [
+      "generated/extreme_restore_context.txt"
+    ],
+    "hidden_checklist": [
+      "Identify phase/thread bootstrap ordering as the real bug.",
+      "Keep fix maintainable under large-context noise.",
+      "Avoid proposing a broad subsystem rewrite.",
+      "Mention test coverage for boot-time restore and thread recreation."
+    ]
+  },
+  {
+    "task_id": "extreme_runtime_metrics_longctx",
+    "family": "extreme",
+    "description": "262K extreme protocol/runtime metrics task with repeated snapshots and real files.",
+    "max_tokens": 1800,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the oversized runtime metrics snapshot below, propose the smallest protocol-first change set to expose metrics cleanly. Keep runtime authoritative and avoid UI-driven state.",
+    "context_files": [
+      "generated/extreme_metrics_context.txt"
+    ],
+    "hidden_checklist": [
+      "Stay protocol-first despite the large context volume.",
+      "Use runtime metrics snapshot as the source of truth.",
+      "Prefer session-state-like exposure over world snapshot.",
+      "Keep the answer concrete and bounded under long context."
+    ]
+  },
+  {
+    "task_id": "extreme_java_change_impact_longctx",
+    "family": "extreme",
+    "description": "262K extreme Java incident with repeated service implementations and duplicate side-effect logs.",
+    "max_tokens": 1700,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the oversized Java approval incident below, identify the smallest safe change set that prevents duplicate user-visible side effects without redesigning the whole service layer.",
+    "context_files": [
+      "generated/extreme_java_change_impact.txt"
+    ],
+    "hidden_checklist": [
+      "Identify duplicate side effect under retry or repeated execution.",
+      "Keep the fix minimal under noisy repeated context.",
+      "Avoid overfitting to one log line only.",
+      "Mention regression for repeated notifications."
+    ]
+  },
+  {
+    "task_id": "extreme_reconcile_script_longctx",
+    "family": "extreme",
+    "description": "262K extreme script-writing task with repeated reconciliation rules and sample exports.",
+    "max_tokens": 1900,
+    "repeat_group": "extreme-core",
+    "developer_message": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks.",
+    "user_request": "Given the oversized reconciliation specification below, write the smallest production-safe Python script or script skeleton to reconcile the feeds. Keep it stream-friendly and operationally realistic.",
+    "context_files": [
+      "generated/extreme_reconcile_script.txt"
+    ],
+    "hidden_checklist": [
+      "Prefer streaming processing even under huge context.",
+      "Use the documented primary/fallback match keys.",
+      "Emit both machine-readable and human-readable outputs.",
+      "Handle duplicate rows and malformed headers."
+    ]
+  }
+]

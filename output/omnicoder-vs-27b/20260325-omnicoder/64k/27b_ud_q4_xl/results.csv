@@ -1,0 +1,284 @@
+timestamp_utc,task_id,family,description,repeat_index,http_status,success,max_tokens,prompt_chars,context_file_count,prompt_tokens,completion_tokens,total_tokens,finish_reason,elapsed_ms,network_retry_count,prompt_ms,predicted_ms,predicted_per_second,reasoning_content_length,content_length,reasoning_preview,content_preview,error_message
+2026-03-25T13:27:40.546708+00:00,java_null_nested_config,java,Optional nested config causes startup-time null handling bug.,1,200,True,900,2152,4,457,900,1357,length,23561.758,0,321.545,21065.401,42.7240858125606,3529,0,The user wants me to identify a bug in the provided Java code snippet and propose a fix.\n\n**1. Analyze the Code:**\n\n*   `AppConfig.java`: Holds a `DatabaseConfig` object. `database` can be `null` if not set.\n*   `DatabaseConfig.java`: Holds a `String jdbcUrl`. `jdbcUrl` can be `null` if not set.\n*   `DataSourceFactory.java`: Method `buildJdbcUrl(AppConfig config)`.\n    *   Line: `return config.get,,
+2026-03-25T13:28:07.766152+00:00,java_transaction_partial_commit,java,Order update spans multiple repositories without a transaction boundary.,1,200,True,1000,2332,4,456,1000,1456,length,27218.232,0,205.082,23360.617,42.80708852852645,4536,0,"The user wants me to review a Java code snippet for a transaction consistency bug.\nThis looks like a classic ""Partial Commit"" or ""Scatter-Gather"" pattern problem where multiple database operations are performed without a transactional boundary.\n\n**Analysis of the Code:**\n\n1.  **`OrderService.java`**:\n    *   The `confirm` method performs three distinct repository calls:\n        1.  `inventoryRepos",,
+2026-03-25T13:28:31.049508+00:00,java_path_body_id_mismatch,java,Controller trusts request body identifier over path identifier.,1,200,True,900,2399,3,471,890,1361,stop,23281.775,0,214.723,20811.118,42.76560250150905,2240,1862,The user is asking me to review code and find the most dangerous API contract bug in this scenario. Let me analyze the code:\n\n1. **UpdateAccountRequest.java** - Contains `accountId` and `displayName` fields\n2. **AccountController.java** - Has an `update` method that takes `pathAccountId` (from URL path) and `UpdateAccountRequest` (from request body)\n3. **AccountService.java** - Updates an account ,# Code Review: API Contract Security Bug\n\n## Critical Issue Found\n\n**File:** `src/main/java/com/example/account/AccountController.java`\n\n**Problem:** The controller ignores the path parameter `pathAccountId` and uses the request body's `accountId` instead. This allows clients to bypass resource identification via the URL path.\n\n**Security Impact:** A malicious client could:\n- Request `/accounts/12,
+2026-03-25T13:28:59.562199+00:00,java_audit_success_on_failure,java,Audit log currently records a successful change even when the write fails.,1,503,False,1000,1956,3,,,,,28510.892,0,,,,0,0,,,"<!doctype html>
+<html>
+  <head>
+    <meta charset=""utf-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1, maximum-scale=1"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge,chrome=1"">
+    <title>Connection Closed</title>
+    <style>
+      * { margin: 0; -webkit-font-smoothing: antialiased; }
+      body { font-family: Helvetica, sans-serif; font-size: 14px; }
+      .header {
+        background: #f7f7f7;
+        height: 100px;
+      }
+      .header-bottom {
+        margin-top: -95px;
+        background-image: url(data:image/png;base64,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);
+        background-size: 100% 112px;
+        height: 112px;
+      }
+      h2 { padding-left: 40px; font-weight: lighter; margin: 0; line-height: 100px; font-size: 32px; color: #a6a6a6; text-transform: uppercase; }
+      .error-code { margin-right: 10px; color: #7b7b7b; }
+      .surge { background-image: url(data:image/png;base64,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); }
+      .header .logo { float: right; margin-right: 40px; margin-top: 30px; background-size: 40px 40px; width: 40px; height: 40px; }
+      .wrapper { max-width: 666px; margin: 60px auto 60px; padding: 0 20px; }
+      h1 { color: #5c5c5c; font-size: 24px; text-align: center; }
+      .error-detail { margin-top: 60px; font-family: Verdana, sans-serif; color: #5c5c5c; word-break: break-all; }
+      p { margin-bottom: 10px; }
+      a { color: #5c5c5c; }
+      .footer { text-align: center; color: #e3e3e3; margin-bottom: 40px; }
+      .footer .logo { margin: 0 auto 10px; opacity: 0.2; background-size: 32px 32px; width: 32px; height: 32px; -webkit-filter: grayscale(100%); filter: gray; filter: grayscale(100%); }
+
+      /* Dark Mode Styles */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212; /* Dark background */
+          color: #e0e0e0; /* Light text */
+        }
+        .header {
+          background: #1e1e1e; /* Darker header background */
+          /* Optional: Add a subtle border if removing the gradient makes it look too flat */
+          /* border-bottom: 1px solid #333; */
+        }
+         h2 {
+           color: #bdbdbd; /* Lighter gray for header text */
+         }
+        /* --- CHANGE HERE --- */
+        .header-bottom {
+           background-image: none; /* Remove the light gradient background image in dark mode */
+        }
+        /* --- END CHANGE --- */
+        h1 {
+          color: #e0e0e0; /* Light text for main title */
+        }
+        .error-detail {
+           color: #e0e0e0; /* Light text for details */
+        }
+        a {
+          color: #90caf9; /* Light blue for links */
+        }
+        .footer {
+           color: #757575; /* Muted gray for footer text */
+        }
+        .footer .logo {
+          opacity: 0.6; /* Make footer logo slightly more visible */
+          -webkit-filter: none; /* Remove grayscale filter */
+          filter: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class=""header"">
+      <div class=""logo surge""></div>
+      <h2>Error</h2>
+    </div>
+    <div class=""header-bottom""></div>
+    <div class=""wrapper"">
+      <h1>Connection Closed</h1>
+      <div class=""error-detail""><p>访问的 URL 不可用: <br /><b>http://34.123.73.240/v1/chat/completions</b></p><p><br /></p><p>Policy: 🇯🇵日本专线03|BGP|流媒体</p><p><br /></p><p>错误描述：</p><li>Stream closed</li></div>
+    </div>
+    <div class=""footer"">
+      <div class=""logo surge""></div>
+      SGErrorDomain - 0<br />Generated 3/25/26 21:28 by Surge Mac/6.4.4
+    </div>
+  </body>
+</html>
+"
+2026-03-25T13:29:22.730099+00:00,java_pagination_boundary,java,Pagination code has an index boundary bug and unstable empty-page behavior.,1,503,False,900,1933,3,,,,,23165.586,0,,,,0,0,,,"<!doctype html>
+<html>
+  <head>
+    <meta charset=""utf-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1, maximum-scale=1"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge,chrome=1"">
+    <title>Connection Closed</title>
+    <style>
+      * { margin: 0; -webkit-font-smoothing: antialiased; }
+      body { font-family: Helvetica, sans-serif; font-size: 14px; }
+      .header {
+        background: #f7f7f7;
+        height: 100px;
+      }
+      .header-bottom {
+        margin-top: -95px;
+        background-image: url(data:image/png;base64,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);
+        background-size: 100% 112px;
+        height: 112px;
+      }
+      h2 { padding-left: 40px; font-weight: lighter; margin: 0; line-height: 100px; font-size: 32px; color: #a6a6a6; text-transform: uppercase; }
+      .error-code { margin-right: 10px; color: #7b7b7b; }
+      .surge { background-image: url(data:image/png;base64,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); }
+      .header .logo { float: right; margin-right: 40px; margin-top: 30px; background-size: 40px 40px; width: 40px; height: 40px; }
+      .wrapper { max-width: 666px; margin: 60px auto 60px; padding: 0 20px; }
+      h1 { color: #5c5c5c; font-size: 24px; text-align: center; }
+      .error-detail { margin-top: 60px; font-family: Verdana, sans-serif; color: #5c5c5c; word-break: break-all; }
+      p { margin-bottom: 10px; }
+      a { color: #5c5c5c; }
+      .footer { text-align: center; color: #e3e3e3; margin-bottom: 40px; }
+      .footer .logo { margin: 0 auto 10px; opacity: 0.2; background-size: 32px 32px; width: 32px; height: 32px; -webkit-filter: grayscale(100%); filter: gray; filter: grayscale(100%); }
+
+      /* Dark Mode Styles */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212; /* Dark background */
+          color: #e0e0e0; /* Light text */
+        }
+        .header {
+          background: #1e1e1e; /* Darker header background */
+          /* Optional: Add a subtle border if removing the gradient makes it look too flat */
+          /* border-bottom: 1px solid #333; */
+        }
+         h2 {
+           color: #bdbdbd; /* Lighter gray for header text */
+         }
+        /* --- CHANGE HERE --- */
+        .header-bottom {
+           background-image: none; /* Remove the light gradient background image in dark mode */
+        }
+        /* --- END CHANGE --- */
+        h1 {
+          color: #e0e0e0; /* Light text for main title */
+        }
+        .error-detail {
+           color: #e0e0e0; /* Light text for details */
+        }
+        a {
+          color: #90caf9; /* Light blue for links */
+        }
+        .footer {
+           color: #757575; /* Muted gray for footer text */
+        }
+        .footer .logo {
+          opacity: 0.6; /* Make footer logo slightly more visible */
+          -webkit-filter: none; /* Remove grayscale filter */
+          filter: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class=""header"">
+      <div class=""logo surge""></div>
+      <h2>Error</h2>
+    </div>
+    <div class=""header-bottom""></div>
+    <div class=""wrapper"">
+      <h1>Connection Closed</h1>
+      <div class=""error-detail""><p>访问的 URL 不可用: <br /><b>http://34.123.73.240/v1/chat/completions</b></p><p><br /></p><p>Policy: 🇯🇵日本专线03|BGP|流媒体</p><p><br /></p><p>错误描述：</p><li>Stream closed</li></div>
+    </div>
+    <div class=""footer"">
+      <div class=""logo surge""></div>
+      SGErrorDomain - 0<br />Generated 3/25/26 21:29 by Surge Mac/6.4.4
+    </div>
+  </body>
+</html>
+"
+2026-03-25T13:29:49.167658+00:00,java_optimistic_lock_missing,java,Version field exists but update flow does not actually enforce optimistic locking.,1,200,True,1050,2414,4,516,1050,1566,length,26434.51,0,252.188,24580.158,42.71738204449296,4285,0,"The user wants me to identify a concurrency bug related to optimistic locking in the provided Java code and propose a fix.\n\n**Analysis of the provided code:**\n\n1.  **`Order.java`**: Has `id`, `version`, and `status`. Standard optimistic locking pattern requires checking the `version` before updating.\n2.  **`OrderRepository.java`**: Interface defines `require` (get) and `updateStatus` (update with ",,
+2026-03-25T13:30:11.923367+00:00,java_enum_db_compat,java,Database enum values no longer match Java enum names after a migration.,1,200,True,1000,1635,4,346,812,1158,stop,22754.43,0,171.15,18997.793,42.74180690357032,1873,1866,The user is asking me to review a code snapshot and identify a compatibility bug related to database enum values no longer matching Java enum names after a migration.\n\nLet me analyze the situation:\n\n1. **Migration (V42__payment_state_lowercase.sql)**: This migration converts all `state` values in the database to lowercase using `lower(state)`.\n\n2. **Java Enum (PaymentState.java)**: The enum has va,"## Compatibility Bug Analysis\n\n**Root Cause**: The migration `V42__payment_state_lowercase.sql` converts all `state` values to lowercase in the database (`pending`, `processing`, `completed`), but `PaymentState.valueOf()` requires exact case-matching with the enum constants (`PENDING`, `PROCESSING`, `COMPLETED`). This causes `IllegalArgumentException` when loading existing records.\n\n**Impact**: Al",
+2026-03-25T13:30:30.921850+00:00,java_soft_delete_unique_email,java,Soft-deleted rows still participate in uniqueness checks and block re-registration.,1,200,True,950,2018,4,408,744,1152,stop,18993.346,0,195.978,17405.213,42.74581414200447,1900,1432,The user wants me to identify the highest-risk bug in a registration flow where soft-deleted rows are blocking re-registration.\n\nLet me analyze the project snapshot:\n\n1. **UserService.java** - The registration logic checks `existsByEmail(email)` before allowing registration\n2. **UserRepository.java** - Interface defining the repository methods\n3. **JdbcUserRepository.java** - Implementation (curre,"## Bug Analysis\n\n**Root Cause:** The `existsByEmail()` query doesn't exclude soft-deleted users. When a user is soft-deleted (their `deleted_at` column is set), the uniqueness check still finds their record and blocks re-registration with the same email.\n\n**Highest Risk:** Data loss/registration failure - legitimate users cannot re-register after account deletion.\n\n## Minimal Fix\n\n**File:** `src/m",
+2026-03-25T13:31:17.605812+00:00,ts_boot_restore_consistency,ts,Boot-time restore can expose an inconsistent running state before threads are restored.,1,200,True,1250,86231,6,21366,1250,22616,length,46679.419,0,9233.279,31322.646,39.90722878265137,0,5874,,"Looking at this codebase, I need to identify the highest-risk restore consistency bug related to boot-time restore exposing an inconsistent running state before threads are restored.\n\nLet me trace through the `restoreSession()` method in `GameRuntimeServer.ts`:\n\n1. `restoreSession()` loads the saved session from `stateStore.load()`\n2. It restores the simulation state and agent configs\n3. It sets `",
+2026-03-25T13:32:10.479367+00:00,ts_runtime_metrics_protocol,ts,Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.,1,200,True,1250,98189,7,24299,1250,25549,length,52863.329,0,10557.459,31578.621,39.583742431311364,2883,2379,Let me analyze the task:\n\n1. **Goal**: Expose runtime metrics to the client HUD in a protocol-first way\n2. **Constraint**: Keep simulation authority in runtime (the runtime already has MetricsTracker)\n3. **Requirement**: Add contract tests\n\n**Current State:**\n- `apps/game-runtime/src/runtime/metrics.ts` has `MetricsTracker` with `snapshot()` method returning `RuntimeMetrics`\n- `apps/game-runtime/s,"## Code Review: Runtime Metrics Protocol Exposure\n\n### Root Cause\nRuntime metrics are tracked server-side (`MetricsTracker`) but never exposed to the client. The `session.state` message lacks a `metrics` field, and there's no protocol contract for metrics transmission.\n\n### Smallest Protocol-First Fix\n\n#### 1. Protocol Contract (`packages/protocol/src/messages.ts`)\n\nAdd `metrics` field to `session",
+2026-03-25T13:32:39.541006+00:00,java_idempotency_payment_callback,java,Payment callback handler applies duplicate provider events more than once.,1,200,True,1050,3025,5,648,1050,1698,length,29051.553,0,357.661,24603.092,42.677562641313536,4186,658,The user is asking me to review a code snippet and identify the highest-risk business correctness bug related to idempotency in a payment callback handler.\n\nLet me analyze the code:\n\n1. **PaymentCallbackService.onCallback()** - This method handles payment callbacks from a provider\n2. **Payment.markPaid()** - This method marks a payment as paid\n3. **OutboxRepository.insert()** - This publishes an e,"## Bug Analysis\n\n**Highest-Risk Bug:** No idempotency check in `PaymentCallbackService.onCallback()` causes duplicate processing when payment providers retry callbacks (common due to network issues).\n\n**Root Cause:** The handler unconditionally:\n1. Marks payment as paid (overwrites state)\n2. Inserts duplicate outbox events → downstream systems receive multiple ""PAYMENT_PAID"" events\n\n**Impact:** Du",
+2026-03-25T13:33:08.139197+00:00,java_outbox_publish_before_commit,java,Domain event is published inline before the database write is durably committed.,1,200,True,1050,2028,3,407,1050,1457,length,28595.687,0,194.645,24593.089,42.694921325255244,2465,2292,"The user is asking me to review code and identify a consistency bug related to domain events being published before database commits.\n\nLooking at the code:\n\n1. `InvoiceService.approve()` method:\n   - Gets invoice from repository\n   - Approves the invoice (modifies state)\n   - **Publishes domain event** `domainEventPublisher.publish(""invoice.approved"", invoiceId);`\n   - **THEN saves the invoice** `","## Code Review: Transaction Consistency Bug\n\n### 🔴 Critical Issue Identified\n\n**File:** `src/main/java/com/example/invoice/InvoiceService.java`  \n**Line:** 20-22\n\n```java\ndomainEventPublisher.publish(""invoice.approved"", invoiceId);  // ❌ Published BEFORE commit\ninvoiceRepository.save(invoice);                              // ✅ Save AFTER publish\n```\n\n**Problem:** The domain event is published befo",
+2026-03-25T13:33:33.456606+00:00,java_cache_stale_after_write,java,Profile update writes to DB but leaves the cache stale on the read path.,1,200,True,950,2268,3,462,950,1412,length,25315.191,0,207.857,22250.36,42.69593840279438,4115,0,"Thinking Process:\n\n1.  **Analyze the Request:**\n    *   **Task:** Review code for a specific bug scenario: ""Profile update writes to DB but leaves the cache stale on the read path.""\n    *   **Goal:** Identify the highest-risk correctness bug, propose the smallest safe fix with the right cache consistency behavior.\n    *   **Constraints:** Use only the provided project snapshot. Focus on correctnes",,
+2026-03-25T13:33:53.294096+00:00,java_csv_import_partial_batch,java,CSV batch import persists rows incrementally before the full batch is validated.,1,200,True,1100,1981,3,409,736,1145,stop,19835.111,0,194.617,17242.402,42.68546806877604,1543,1693,"The user wants me to identify the highest-risk data consistency bug in a CSV import service and propose the smallest safe fix.\n\nLooking at the code:\n\n1. `UserImportService.importCsv()` - This method:\n   - Parses CSV into rows\n   - For each row, validates email exists\n   - Immediately inserts into repository\n   - If a later row fails validation, earlier rows are already persisted\n\n2. The scenario d","## Critical Bug: Partial Batch Persistence\n\n**Location:** `src/main/java/com/example/importer/UserImportService.java`\n\n**Root Cause:** The service validates and inserts each row immediately in the loop. If any row fails validation after some rows have already been inserted, the database contains a partial batch. This violates atomicity - the batch should either fully succeed or fully fail.\n\n**Exam",
+2026-03-25T13:34:21.862819+00:00,java_retry_duplicate_side_effect,java,Retry wrapper around a remote call duplicates the user-visible side effect.,1,503,False,1050,2081,4,,,,,28565.816,0,,,,0,0,,,"<!doctype html>
+<html>
+  <head>
+    <meta charset=""utf-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1, maximum-scale=1"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge,chrome=1"">
+    <title>Connection Closed</title>
+    <style>
+      * { margin: 0; -webkit-font-smoothing: antialiased; }
+      body { font-family: Helvetica, sans-serif; font-size: 14px; }
+      .header {
+        background: #f7f7f7;
+        height: 100px;
+      }
+      .header-bottom {
+        margin-top: -95px;
+        background-image: url(data:image/png;base64,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);
+        background-size: 100% 112px;
+        height: 112px;
+      }
+      h2 { padding-left: 40px; font-weight: lighter; margin: 0; line-height: 100px; font-size: 32px; color: #a6a6a6; text-transform: uppercase; }
+      .error-code { margin-right: 10px; color: #7b7b7b; }
+      .surge { background-image: url(data:image/png;base64,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); }
+      .header .logo { float: right; margin-right: 40px; margin-top: 30px; background-size: 40px 40px; width: 40px; height: 40px; }
+      .wrapper { max-width: 666px; margin: 60px auto 60px; padding: 0 20px; }
+      h1 { color: #5c5c5c; font-size: 24px; text-align: center; }
+      .error-detail { margin-top: 60px; font-family: Verdana, sans-serif; color: #5c5c5c; word-break: break-all; }
+      p { margin-bottom: 10px; }
+      a { color: #5c5c5c; }
+      .footer { text-align: center; color: #e3e3e3; margin-bottom: 40px; }
+      .footer .logo { margin: 0 auto 10px; opacity: 0.2; background-size: 32px 32px; width: 32px; height: 32px; -webkit-filter: grayscale(100%); filter: gray; filter: grayscale(100%); }
+
+      /* Dark Mode Styles */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212; /* Dark background */
+          color: #e0e0e0; /* Light text */
+        }
+        .header {
+          background: #1e1e1e; /* Darker header background */
+          /* Optional: Add a subtle border if removing the gradient makes it look too flat */
+          /* border-bottom: 1px solid #333; */
+        }
+         h2 {
+           color: #bdbdbd; /* Lighter gray for header text */
+         }
+        /* --- CHANGE HERE --- */
+        .header-bottom {
+           background-image: none; /* Remove the light gradient background image in dark mode */
+        }
+        /* --- END CHANGE --- */
+        h1 {
+          color: #e0e0e0; /* Light text for main title */
+        }
+        .error-detail {
+           color: #e0e0e0; /* Light text for details */
+        }
+        a {
+          color: #90caf9; /* Light blue for links */
+        }
+        .footer {
+           color: #757575; /* Muted gray for footer text */
+        }
+        .footer .logo {
+          opacity: 0.6; /* Make footer logo slightly more visible */
+          -webkit-filter: none; /* Remove grayscale filter */
+          filter: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class=""header"">
+      <div class=""logo surge""></div>
+      <h2>Error</h2>
+    </div>
+    <div class=""header-bottom""></div>
+    <div class=""wrapper"">
+      <h1>Connection Closed</h1>
+      <div class=""error-detail""><p>访问的 URL 不可用: <br /><b>http://34.123.73.240/v1/chat/completions</b></p><p><br /></p><p>Policy: 🇯🇵日本专线03|BGP|流媒体</p><p><br /></p><p>错误描述：</p><li>Stream closed</li></div>
+    </div>
+    <div class=""footer"">
+      <div class=""logo surge""></div>
+      SGErrorDomain - 0<br />Generated 3/25/26 21:34 by Surge Mac/6.4.4
+    </div>
+  </body>
+</html>
+"
+2026-03-25T13:34:36.266886+00:00,java_permission_scope_trust_bug,java,Service trusts orgId from request payload instead of the authenticated operator context.,1,200,True,1000,1904,3,405,549,954,stop,14401.539,0,194.301,12841.023,42.75360304237443,1033,1482,The user is asking me to identify a security bug in this Java code and provide the smallest safe fix.\n\nLooking at the code:\n\n1. `ReportController.generate()` receives a `UserSession` (which contains authenticated user info including `orgId`) and a `GenerateReportRequest` (which also contains an `orgId` from the request payload)\n\n2. The bug is clear: The controller passes `request.getOrgId()` to th,"## Security Bug: Trust Boundary Violation\n\n**File:** `src/main/java/com/example/report/ReportController.java`\n\n**Issue:** Line 14 passes `request.getOrgId()` to the service, trusting the client-supplied `orgId` instead of the authenticated `UserSession.orgId`. This allows an attacker to request reports from any organization by manipulating the request payload.\n\n**Root Cause:** The controller treat",
+2026-03-25T13:35:08.281323+00:00,script_python_csv_reconcile,script,Write a Python reconciliation script for two daily business CSV exports with duplicate and blank-row edge cases.,1,200,True,1300,1722,3,594,1300,1894,length,32012.843,0,340.144,30480.812,42.64978242705608,1086,4151,"The user wants a Python reconciliation script for two CSV files with specific edge cases. Let me analyze the requirements:\n\n1. **Matching strategy**: Match by `merchant_order_id` first, then `provider_txn_id` as fallback\n2. **Edge cases to handle**:\n   - Duplicate rows (seen in finance_export.csv - O-1003 appears twice)\n   - Blank lines\n   - BOM headers\n   - Duplicate header rows\n3. **Output**: \n ","# CSV Reconciliation Script\n\n## Matching Strategy\n1. **Primary key**: `merchant_order_id`\n2. **Fallback key**: `provider_txn_id` (when primary key is missing/empty)\n3. **Comparison fields**: `amount_cents`, `status`\n\n## Output Files\n- `reconciliation_report.csv` — Machine-readable detailed results\n- `reconciliation_summary.txt` — Human-readable summary\n\n## Key Edge-Case Guards\n- BOM stripping (`ut",
+2026-03-25T13:35:40.556371+00:00,script_bash_log_triage,script,Write a shell script to summarize recurring production errors from mixed application logs.,1,200,True,1150,1627,2,469,1150,1619,length,32270.241,0,226.186,26928.281,42.706030882550586,3130,666,"The user wants a production-safe Bash script to summarize recurring production errors from log files. Let me analyze the requirements:\n\n1. **Input**: Accept both plain text *.log and gzipped *.log.gz files\n2. **Filter**: Ignore INFO/WARN healthcheck noise\n3. **Group**: Strip variable parts (ids, emails, timestamps, txn values) to create error signatures\n4. **Output**: Print top signatures sorted b","# Production-Ready Log Triage Script\n\n## Script: `scripts/log_triage.sh`\n\n```bash\n#!/bin/bash\n# log_triage.sh - Summarize recurring production errors from application logs\n#\n# Usage: ./log_triage.sh [log_file.log [log_file.log.gz ...]]\n#        ./log_triage.sh  # Defaults to logs/*.log*\n#\n# Output: Top recurring error signatures, sorted by frequency (descending)\n\nset -euo pipefail\n\n# Default to al",
+2026-03-25T13:36:14.380429+00:00,script_python_jsonl_replay_analyzer,script,Write a small Python analyzer for replay JSONL files with malformed-line tolerance.,1,200,True,1300,2243,3,516,1300,1816,length,33814.852,0,216.443,30450.966,42.69158489093581,4649,631,"The user wants a Python script to analyze replay JSONL files. Let me understand the requirements:\n\n1. Parse JSONL files with malformed-line tolerance (skip bad lines but count them)\n2. Compute per-session statistics:\n   - Turn counts (lines with type ""agent.turn"")\n   - Invalid-output counts (lines with type ""error"" and code ""invalid_output"")\n   - Malformed-line stats\n3. Output one summary per sess","# Replay JSONL Analyzer\n\nI'll create a minimal, production-safe Python script that streams through JSONL files line-by-line for memory efficiency.\n\n## New File: `apps/analyzer/replay_analyzer.py`\n\n```python\n#!/usr/bin/env python3\n""""""Replay JSONL Analyzer - Stream-based with malformed-line tolerance.""""""\n\nimport json\nimport sys\nfrom collections import defaultdict\n\n\ndef analyze(filepath: str):\n    """"",
+2026-03-25T13:36:46.243443+00:00,script_bash_atomic_deploy,script,Write a deploy script that performs atomic release swap with health check and rollback.,1,200,True,1250,1279,2,290,1250,1540,length,31860.625,0,137.107,29280.346,42.690752356546604,2726,2426,"The user wants a Bash deployment script that performs an atomic release swap with health check and rollback capability. Let me analyze the requirements:\n\n**Requirements from docs/deploy_requirements.md:**\n1. New release unpacked under `/srv/myapp/releases/<timestamp>`\n2. Current live symlink is `/srv/myapp/current`\n3. Health check endpoint: `http://127.0.0.1:8080/healthz`\n4. On failure, restore pr","# Atomic Deploy Script\n\n## File: `/srv/myapp/deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# =============================================================================\n# Configuration\n# =============================================================================\nDEPLOY_DIR=""/srv/myapp""\nCURRENT_LINK=""${DEPLOY_DIR}/current""\nRELEASES_DIR=""${DEPLOY_DIR}/releases""\nHEALTH_URL=""http://12",
+2026-03-25T13:37:38.614265+00:00,ts_reconnect_circuit_breaker,ts,Reconnect handling risks bypassing the circuit breaker that protects the runtime loop.,1,200,True,1250,84625,5,20965,1250,22215,length,52374.204,0,9007.16,31227.784,40.02845671021677,0,5793,,"The user is asking me to identify a reconnect safety bug in the circuit breaker logic that protects the runtime loop. Let me analyze the code carefully.\n\nLooking at the `GameRuntimeServer.ts` file, I need to find where the reconnect logic interacts with the circuit breaker.\n\nKey areas to examine:\n1. `handleDisconnect()` - This is where the circuit breaker is supposed to trigger\n2. `reconnect()` - ",
+2026-03-25T13:38:19.729849+00:00,ts_build_atomic_write_guard,ts,Builder flow must preserve atomic writes and schema-first validation under partial failure.,1,200,True,1250,58201,5,14462,1250,15712,length,41108.621,0,6060.347,30577.777,40.879361504925626,0,6073,,Let me analyze the project snapshot to identify the highest-risk build-flow consistency bug related to atomic writes and schema-first validation under partial failure.\n\nLooking at the key files:\n\n1. **contentStore.ts** - This is the core file handling content operations\n2. **GameRuntimeServer.ts** - Uses ContentStore for build operations\n3. **build.ts** - Contains the schemas\n4. **contentStore.tes,

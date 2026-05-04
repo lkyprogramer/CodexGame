@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 23110.17837500549,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script adhering to your constraints.\n\n### File: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Configuration\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_ROOT}/releases\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly HEALTH_TIMEOUT=5\nreadonly HEALTH_RETRIES=3\n\n# Arguments\nif [[ $# -lt 1 ]]; then\n    echo \"Usage: $0 <release_timestamp>\"\n    exit 1\nfi\n\nNEW_RELEASE_DIR=\"${RELEASES_DIR}/$1\"\n\n# Helper: Log with timestamp\nlog() {\n    local msg=\"$1\"\n    echo \"[$(date '+%Y-%m-%d %H:%M:%S')] $msg\" | tee -a \"${LOG_FILE}\"\n}\n\n# Helper: Check health\ncheck_health() {\n    local retries=0\n    while [[ $retries -lt $HEALTH_RETRIES ]]; do\n        if curl -sf --max-time \"${HEALTH_TIMEOUT}\" \"${HEALTH_URL}\" > /dev/null 2>&1; then\n            return 0\n        fi\n        retries=$((retries + 1))\n        log \"Health check failed (attempt $((retries + 1))/$HEALTH_RETRIES), retrying...\"\n        sleep 2\n    done\n    return 1\n}\n\n# 1. Validation\nlog \"Starting deployment for release: $1\"\n\n# Constraint: Refuse to run if current symlink is missing\nif [[ ! -L \"${CURRENT_LINK}\" ]]; then\n    log \"FATAL: Current symlink '${CURRENT_LINK}' is missing. Aborting.\"\n    exit 1\nfi\n\n# Validate new release directory exists\nif [[ ! -d \"${NEW_RELEASE_DIR}\" ]]; then\n    log \"FATAL: Release directory '${NEW_RELEASE_DIR}' does not exist.\"\n    exit 1\nfi\n\n# Capture previous target for rollback\nPREVIOUS_TARGET=$(readlink -f \"${CURRENT_LINK}\")\nlog \"Current live target: ${PREVIOUS_TARGET}\"\n\n# 2. Atomic Swap\nlog \"Swapping symlink to new release: ${NEW_RELEASE_DIR}\"\nln -sfn \"${NEW_RELEASE_DIR}\" \"${CURRENT_LINK}\"\n\n# 3. Health Check\nlog \"Performing health check...\"\nif ! check_health; then\n    log \"FATAL: Health check failed after ${HEALTH_RETRIES} attempts.\"\n    log \"ROLLBACK: Restoring symlink to previous target: ${PREVIOUS_TARGET}\"\n    \n    # Rollback\n    ln -sfn \"${PREVIOUS_TARGET}\" \"${CURRENT_LINK}\"\n    \n    log \"ROLLBACK: Completed. Service restored to ${PREVIOUS_TARGET}.\"\n    exit 1\nfi\n\n# 4. Success\nlog \"Deployment successful. New live target: ${NEW_RELEASE_DIR}\"\nlog \"Note: Previous release at ${PREVIOUS_TARGET} is preserved for manual cleanup.\"\n```\n\n### Verification Checks\n\n1.  **Safety Constraints**:\n    *   Verify `set -euo pipefail` is present at the top.\n    *   Verify the script exits immediately if `CURRENT_LINK` is not a symlink.\n    *   Verify the script does **not** `rm` the previous release directory.\n\n2.  **Atomic Swap Logic**:\n    *   Confirm `ln -sfn` is used to swap the symlink atomically.\n    *   Confirm the `PREVIOUS_TARGET` is captured *before* the swap.\n\n3.  **Rollback Logic**:\n    *   Simulate a failure (e.g., by killing the service or blocking port 8080).\n    *   Run the script.\n    *   Verify the log contains \"ROLLBACK\" messages.\n    *   Verify `readlink -f /srv/myapp/current` points back to the original `PREVIOUS_TARGET`.\n\n4.  **Logging**:\n    *   Check `/srv/myapp/deploy.log` for timestamped entries corresponding to the run.\n\n### Usage\n```bash\nchmod +x deploy.sh\n./deploy.sh 20231027-143000\n```"
+        }
+      }
+    ],
+    "created": 1774490304,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 931,
+      "prompt_tokens": 292,
+      "total_tokens": 1223
+    },
+    "id": "chatcmpl-xLytWOxl1uuIAdwsDsRdUPeYlCGh9fW9",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 131.036,
+      "prompt_per_token_ms": 0.6299807692307693,
+      "prompt_per_second": 1587.350041210049,
+      "predicted_n": 931,
+      "predicted_ms": 21765.728,
+      "predicted_per_token_ms": 23.378870032223414,
+      "predicted_per_second": 42.77366693179295
+    }
+  }
+}

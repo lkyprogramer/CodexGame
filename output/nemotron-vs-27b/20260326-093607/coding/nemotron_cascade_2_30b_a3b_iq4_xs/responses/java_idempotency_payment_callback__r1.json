@@ -1,0 +1,39 @@
+{
+  "task_id": "java_idempotency_payment_callback",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 5138.662792014657,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Bug identified**  \n`PaymentCallbackService.onCallback` does **not** check whether a payment for the given `orderId` has already been processed. If the same `PaymentCallback` (or a duplicate event with the same `providerTxnId`) is delivered again, the service will:\n\n1. Load the existing `Payment` (or create a new one if `requireByOrderId` returns a new instance).  \n2. Call `payment.markPaid(...)` – which overwrites the existing `providerTxnId` and `paidAt` with the same values.  \n3. Persist the (now “updated”) payment again.  \n\nBecause the outbox insert is executed unconditionally, the same `PAYMENT_PAID` event can be written to the outbox multiple times. Down‑stream consumers therefore see duplicate provider events and may apply the same business action (e.g., granting a service, crediting an account) more than once.\n\n**Root cause** – missing idempotency guard before marking a payment as paid.\n\n**Smallest safe fix** – add a guard that skips the `markPaid`/`save` step when the payment is already in the `PAID` state for the same `providerTxnId`. This prevents duplicate outbox writes while keeping the existing API unchanged.\n\n**Exact change (one file)**  \n\n```diff\n--- a/src/main/java/com/example/payment/PaymentCallbackService.java\n+++ b/src/main/java/com/example/payment/PaymentCallbackService.java\n@@ -16,6 +16,9 @@ public class PaymentCallbackService {\n         Payment payment = paymentRepository.requireByOrderId(payload.getOrderId());\n+        // Idempotency guard – ignore duplicate callbacks for the same provider transaction\n+        if (\"PAID\".equals(payment.getStatus()) && providerTxnId.equals(payment.getProviderTxnId())) {\n+            return; // already processed, nothing else to do\n+        }\n+\n         payment.markPaid(payload.getProviderTxnId(), Instant.parse(payload.getPaidAt()));\n         paymentRepository.save(payment);\n         outboxRepository.insert(\"PAYMENT_PAID\", payload.getOrderId(), payload.getProviderTxnId());\n```\n\n**Why this is the highest‑risk, highest‑correctness fix**  \n\n* The duplicate‑callback bug can cause financial double‑spending or double‑crediting – a direct correctness failure.  \n* The fix is a **single, localized guard** that does not alter the database schema, does not introduce new dependencies, and does not change the overall flow.  \n* It preserves the original semantics for the first (or unique) callback and safely short‑circuits subsequent identical callbacks.\n\n**Regression checks (concise)**  \n\n1. **Happy path** – a single, unique `PaymentCallback` for an order:  \n   * `onCallback` loads the payment, sees status ≠ `PAID` (or providerTxnId differs), calls `markPaid`, saves, and inserts one outbox record.  \n2. **Duplicate callback** – same `orderId` and identical `providerTxnId` arrives a second time:  \n   * Service returns early, no `save` or outbox insert occurs → exactly one outbox entry.  \n3. **Duplicate callback with different `providerTxnId`** (e.g., a retry after a genuine state change):  \n   * Guard fails because `providerTxnId` differs, so `markPaid` updates the payment and a new outbox entry is written – expected behavior.  \n4. **Out‑of‑order callback** – a later callback arrives before an earlier one is persisted:  \n   * The later callback will still be processed because the earlier one has not yet set `PAID`; the guard does not fire incorrectly.  \n\nRunning the existing unit tests plus the new guard should keep all current behaviours while eliminating the duplicate‑event double‑apply problem."
+        }
+      }
+    ],
+    "created": 1774490905,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 833,
+      "prompt_tokens": 604,
+      "total_tokens": 1437
+    },
+    "id": "chatcmpl-quiioA9XBZyYvIq7ueiu5bzEsoc8wOe2",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 604,
+      "prompt_ms": 112.239,
+      "prompt_per_token_ms": 0.18582615894039736,
+      "prompt_per_second": 5381.373675816784,
+      "predicted_n": 833,
+      "predicted_ms": 3921.618,
+      "predicted_per_token_ms": 4.707824729891957,
+      "predicted_per_second": 212.41232572881907
+    }
+  }
+}

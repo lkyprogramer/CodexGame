@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 32153.596375021152,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe, dependency-free Python script designed to analyze the replay JSONL files according to your requirements.\n\n### Solution: `analyze_replay.py`\n\nThis script uses a streaming approach (line-by-line reading) to handle multi-GB files without loading them into memory. It aggregates statistics per session and handles malformed JSON gracefully.\n\n**Location:** `apps/analyzer/analyze_replay.py` (or place in root if preferred)\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReplay JSONL Analyzer\n\nAnalyzes replay JSONL files to compute:\n- Per-session turn counts\n- Per-session invalid-output counts\n- Global malformed-line statistics\n\nUsage:\n    python analyze_replay.py <path_to_replay.jsonl>\n\"\"\"\n\nimport json\nimport sys\nfrom collections import defaultdict\nfrom typing import Dict, Any\n\ndef analyze_replay_file(filepath: str) -> None:\n    session_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {\n        \"turns\": 0,\n        \"invalid_outputs\": 0\n    })\n    \n    malformed_count = 0\n    total_lines = 0\n\n    try:\n        with open(filepath, \"r\", encoding=\"utf-8\") as f:\n            for line in f:\n                total_lines += 1\n                line = line.strip()\n                \n                # Skip empty lines silently\n                if not line:\n                    continue\n\n                try:\n                    event: Dict[str, Any] = json.loads(line)\n                except json.JSONDecodeError:\n                    malformed_count += 1\n                    continue\n\n                # Extract session ID\n                session_id = event.get(\"sessionId\")\n                if not session_id:\n                    # If no session ID, we can't attribute it to a session.\n                    # We count it as malformed for the purpose of session stats,\n                    # or simply skip. Here we skip to keep session stats clean.\n                    continue\n\n                event_type = event.get(\"type\")\n                \n                # Count agent turns\n                if event_type == \"agent.turn\":\n                    session_stats[session_id][\"turns\"] += 1\n                \n                # Count invalid outputs\n                # Based on sample: {\"type\":\"error\", \"code\":\"invalid_output\"}\n                if event_type == \"error\" and event.get(\"code\") == \"invalid_output\":\n                    session_stats[session_id][\"invalid_outputs\"] += 1\n\n    except FileNotFoundError:\n        print(f\"Error: File '{filepath}' not found.\", file=sys.stderr)\n        sys.exit(1)\n    except PermissionError:\n        print(f\"Error: Permission denied reading '{filepath}'.\", file=sys.stderr)\n        sys.exit(1)\n\n    # Output Results\n    print(f\"--- Replay Analysis Summary ---\")\n    print(f\"Total lines processed: {total_lines}\")\n    print(f\"Malformed lines: {malformed_count}\")\n    print(f\"Sessions found: {len(session_stats)}\")\n    print(\"-\" * 30)\n\n    # Sort sessions for deterministic output\n    for sid in sorted(session_stats.keys()):\n        stats = session_stats[sid]\n        print(f\"Session: {sid}\")\n        print(f\"  Turns: {stats['turns']}\")\n        print(f\"  Invalid Outputs: {stats['invalid_outputs']}\")\n    \n    print(\"-\" * 30)\n    print(f\"Global Malformed Rate: {malformed_count / total_lines:.2%}\" if total_lines > 0 else \"N/A\")\n\nif __name__ == \"__main__\":\n    if len(sys.argv) != 2:\n        print(f\"Usage: {sys.argv[0]} <replay_file.jsonl>\", file=sys.stderr)\n        sys.exit(1)\n    \n    analyze_replay_file(sys.argv[1])\n```\n\n### Implementation Details\n\n1.  **Memory Safety**: The script opens the file and iterates line-by-line (`for line in f:`). It never loads the entire file into a list or string, ensuring it works on multi-GB files.\n2.  **Malformed Tolerance**: It wraps `json.loads()` in a `try/except` block. If a line fails to parse, it increments `malformed_count` and continues to the next line immediately.\n3.  **Logic Mapping**:\n    *   **Turns**: Counts events where `type` is `\"agent.turn\"`.\n    *   **Invalid Outputs**: Counts events where `type` is `\"error\"` AND `code` is `\"invalid_output\"` (matching the sample data structure).\n4.  **Dependencies**: Uses only Python standard library (`json`, `sys`, `collections`).\n\n### Verification Checks\n\nRun the following commands to verify the script works against the provided sample data.\n\n**1. Create the sample file (if not already present):**\n```bash\nmkdir -p samples\ncat > samples/replay.jsonl << 'EOF'\n{\"sessionId\":\"s1\",\"type\":\"agent.turn\",\"tick\":10}\n{\"sessionId\":\"s1\",\"type\":\"agent.turn\",\"tick\":11}\n{\"sessionId\":\"s1\",\"type\":\"error\",\"code\":\"invalid_output\"}\n{\"sessionId\":\"s2\",\"type\":\"agent.turn\",\"tick\":3}\nnot-json\n{\"sessionId\":\"s2\",\"type\":\"error\",\"code\":\"runtime_fault\"}\nEOF\n```\n\n**2. Run the analyzer:**\n```bash\npython3 analyze_replay.py samples/replay.jsonl\n```\n\n**3. Expected Output:**\n```text\n--- Replay Analysis Summary ---\nTotal lines processed: 6\nMalformed lines: 1\nSessions found: 2\n------------------------------\nSession: s1\n  Turns: 2\n  Invalid Outputs: 1\nSession: s2\n  Turns: 1\n  Invalid Outputs: 0\n------------------------------\nGlobal Malformed Rate: 16.67%\n```\n\n**4. Verification Logic:**\n*   **s1**: 2 turns (ticks 10, 11) + 1 invalid_output. (Correct)\n*   **s2**: "
+        }
+      }
+    ],
+    "created": 1773052133,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 518,
+      "total_tokens": 1818
+    },
+    "id": "chatcmpl-kFHdlLNYcwFhKf3Ruvc5qhccvd2dqDny",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 434,
+      "prompt_ms": 208.635,
+      "prompt_per_token_ms": 0.4807258064516129,
+      "prompt_per_second": 2080.1878879382657,
+      "predicted_n": 1300,
+      "predicted_ms": 30424.178,
+      "predicted_per_token_ms": 23.403213846153847,
+      "predicted_per_second": 42.72917414564167
+    }
+  }
+}

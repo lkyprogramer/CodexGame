@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_restore_bootstrap",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 4823.976915329695,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Fix the restore flow to ensure state.phase is set to 'running' only after all threads have been created, preventing exposure of running state before threads exist.\",\n  \"files\": [\n    {\n      \"path\": \"runtime/restore.py\",\n      \"content\": \"from __future__ import annotations\\n\\nfrom .session import Snapshot\\nfrom .threads import ThreadBootstrapper\\nfrom .types import RuntimeState\\n\\n\\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\\n    state.thread_ids = {}\\n    for agent_id in snapshot.agent_ids:\\n        if agent_id not in state.thread_ids:\\n            state.thread_ids[agent_id] = bootstrapper.ensure_thread(agent_id)\\n    state.phase = \\\"running\\\"\\n    state.connected = True\\n    return state\\n\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1775549588,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 195,
+      "prompt_tokens": 748,
+      "total_tokens": 943
+    },
+    "id": "chatcmpl-zYjXeaKVBYsb4rh8tBeSiRVNhQhIgdlf",
+    "timings": {
+      "cache_n": 236,
+      "prompt_n": 512,
+      "prompt_ms": 229.68,
+      "prompt_per_token_ms": 0.44859375,
+      "prompt_per_second": 2229.1884360849876,
+      "predicted_n": 195,
+      "predicted_ms": 4546.57,
+      "predicted_per_token_ms": 23.315743589743587,
+      "predicted_per_second": 42.889474922853935
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/restore.py"
+  ],
+  "json_error": ""
+}

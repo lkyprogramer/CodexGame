@@ -25,6 +25,7 @@ export type SessionAgentConfig = {
   name: string;
   model?: string | undefined;
   effort?: TurnEffort | undefined;
+  personaPrompt?: string | undefined;
 };
 
 export type SessionStartPayload = {
@@ -269,7 +270,8 @@ const sessionAgentSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(80),
   model: z.string().min(1).max(120).optional(),
-  effort: z.string().min(1).max(32).optional()
+  effort: z.string().min(1).max(32).optional(),
+  personaPrompt: z.string().trim().min(1).max(500).optional()
 });
 
 const clientMessageSchema = z.discriminatedUnion("type", [

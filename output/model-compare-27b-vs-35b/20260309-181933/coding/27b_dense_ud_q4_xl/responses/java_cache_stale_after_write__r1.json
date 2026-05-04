@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 14138.643624959514,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: `java_cache_stale_after_write`\n\n#### 1. Root Cause Analysis\nThe bug is located in `ProfileService.updateDisplayName`.\n- **Current Behavior**: The method updates the database (`profileRepository.save`) but **never invalidates or updates the cache**.\n- **Consequence**: Any subsequent call to `get(profileId)` will return the stale `ProfileView` from the cache (the old display name) until the cache entry expires or is manually evicted. This violates the consistency requirement where the read path must reflect the latest write.\n\n#### 2. Proposed Fix\nThe smallest safe fix is to invalidate the specific cache entry immediately after a successful database save.\n\n**Why Evict over Update?**\n- **Correctness**: Evicting ensures the next read hits the database and fetches the fresh data. Updating the cache directly in the write path requires constructing a new `ProfileView` from the updated entity, which duplicates logic and risks desynchronization if the `ProfileView` construction logic changes.\n- **Safety**: It avoids potential race conditions where a read might happen between the DB save and the cache update. Evicting guarantees the next read is a \"cache miss\" that forces a DB lookup.\n\n#### 3. Required Changes\n\n**File: `src/main/java/com/example/profile/ProfileService.java`**\n\nModify the `updateDisplayName` method to call `profileCache.evict` after saving.\n\n```java\n// src/main/java/com/example/profile/ProfileService.java\n\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    \n    // FIX: Invalidate the cache entry to prevent stale reads\n    profileCache.evict(profileId);\n}\n```\n\n#### 4. Regression Checks\n1. **Stale Read Test**:\n   - Create a profile and read it (populates cache).\n   - Update the display name.\n   - Read the profile again immediately.\n   - **Assertion**: The returned display name must match the updated value (not the old one).\n\n2. **Cache Miss Test**:\n   - Verify that after an update, the internal cache implementation (if observable) shows the key is missing, forcing a DB hit on the next read.\n\n3. **Non-Existent Profile Test**:\n   - Ensure updating a non-existent profile (if `require` throws) does not trigger a cache eviction (exception should propagate before eviction). *Note: Current code calls `require` first, so this is safe.*"
+        }
+      }
+    ],
+    "created": 1773051978,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 543,
+      "prompt_tokens": 464,
+      "total_tokens": 1007
+    },
+    "id": "chatcmpl-5DvB1WhqDxVzZQaGavU3OMHtr1Trd0rN",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 464,
+      "prompt_ms": 199.616,
+      "prompt_per_token_ms": 0.43020689655172417,
+      "prompt_per_second": 2324.462968900288,
+      "predicted_n": 543,
+      "predicted_ms": 12685.364,
+      "predicted_per_token_ms": 23.361627992633515,
+      "predicted_per_second": 42.805236018454025
+    }
+  }
+}

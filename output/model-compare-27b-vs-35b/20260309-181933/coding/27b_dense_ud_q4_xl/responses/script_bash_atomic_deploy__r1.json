@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 27640.86095802486,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script adhering to your constraints.\n\n### Implementation Details\n\n**File:** `deploy.sh`\n\nThis script implements the atomic swap pattern:\n1.  **Pre-flight:** Validates the environment and the existence of the current symlink.\n2.  **Atomic Swap:** Updates the `current` symlink to point to the new release.\n3.  **Health Check:** Polls the endpoint.\n4.  **Rollback:** If the health check fails, it immediately restores the previous symlink target and exits with an error.\n5.  **Cleanup:** Only deletes the old release *after* the health check succeeds (optional, but recommended for disk management; strictly speaking, the prompt says \"Do not delete previous release *before* health check succeeds\", implying we can delete it *after*).\n\n```bash\n#!/usr/bin/env bash\n#\n# deploy.sh - Atomic release swap with health check and rollback\n#\n# Usage: ./deploy.sh <new_release_path>\n# Example: ./deploy.sh /srv/myapp/releases/20231027-120000\n\nset -euo pipefail\n\n# --- Configuration ---\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_TIMEOUT=30 # seconds\nreadonly HEALTH_INTERVAL=2 # seconds\n\n# --- Logging Helper ---\nlog() {\n    local msg=\"[$(date '+%Y-%m-%d %H:%M:%S')] $*\"\n    echo \"$msg\" | tee -a \"$LOG_FILE\"\n}\n\n# --- Pre-flight Checks ---\nif [[ $# -ne 1 ]]; then\n    log \"ERROR: Usage: $0 <new_release_path>\"\n    exit 1\nfi\n\nNEW_RELEASE=\"$1\"\n\nif [[ ! -d \"$NEW_RELEASE\" ]]; then\n    log \"ERROR: New release directory does not exist: $NEW_RELEASE\"\n    exit 1\nfi\n\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    log \"ERROR: Current symlink is missing or invalid: $CURRENT_LINK\"\n    exit 1\nfi\n\n# Capture the previous target for rollback\nPREVIOUS_TARGET=$(readlink -f \"$CURRENT_LINK\")\nlog \"Current release: $PREVIOUS_TARGET\"\nlog \"New release:    $NEW_RELEASE\"\n\n# --- Atomic Swap ---\nlog \"Performing atomic symlink swap...\"\nln -sfn \"$NEW_RELEASE\" \"$CURRENT_LINK\"\n\n# --- Health Check ---\nlog \"Waiting for health check at $HEALTH_URL (timeout: ${HEALTH_TIMEOUT}s)...\"\n\nHEALTH_START=$(date +%s)\nHEALTH_PASSED=false\n\nwhile true; do\n    HEALTH_NOW=$(date +%s)\n    ELAPSED=$((HEALTH_NOW - HEALTH_START))\n\n    if (( ELAPSED >= HEALTH_TIMEOUT )); then\n        log \"ERROR: Health check timed out after ${ELAPSED}s.\"\n        break\n    fi\n\n    if curl -sf --max-time 5 \"$HEALTH_URL\" > /dev/null 2>&1; then\n        HEALTH_PASSED=true\n        log \"SUCCESS: Health check passed.\"\n        break\n    fi\n\n    log \"Waiting for service to become healthy... (${ELAPSED}s elapsed)\"\n    sleep \"$HEALTH_INTERVAL\"\ndone\n\n# --- Rollback or Finalize ---\nif [[ \"$HEALTH_PASSED\" == \"false\" ]]; then\n    log \"ROLLBACK: Restoring previous release: $PREVIOUS_TARGET\"\n    ln -sfn \"$PREVIOUS_TARGET\" \"$CURRENT_LINK\"\n    log \"ROLLBACK: Symlink restored. Deployment failed.\"\n    exit 1\nfi\n\nlog \"Deployment successful. Old release ($PREVIOUS_TARGET) remains on disk.\"\n# Note: Per constraints, we do not delete the previous release before health check.\n# You may add 'rm -rf \"$PREVIOUS_TARGET\"' here if you wish to clean up after success.\n\nexit 0\n```\n\n### Verification Checks\n\n1.  **Safety Constraints:**\n    *   Does it start with `set -euo pipefail`? **Yes.**\n    *   Does it refuse to run if `/srv/myapp/current` is missing? **Yes** (checks `-L`).\n    *   Does it delete the previous release before the health check? **No** (deletion is commented out/omitted until after success).\n    *   Does it print clear rollback messages? **Yes** (logs \"ROLLBACK: Restoring...\").\n\n2.  **Logic Flow:**\n    *   **Swap:** Uses `ln -sfn` for atomic symlink update.\n    *   **Rollback:** Captures `PREVIOUS_TARGET` *before* the swap and restores it if the loop times out.\n    *   **Logging:** All actions are appended to `/srv/myapp/deploy.log`.\n\n3.  **Usage:**\n    *   Run as: `./deploy.sh /srv/myapp/releases/<timestamp>`\n    *   Ensure the script is executable: `chmod +x deploy.sh`."
+        }
+      }
+    ],
+    "created": 1773052161,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1118,
+      "prompt_tokens": 292,
+      "total_tokens": 1410
+    },
+    "id": "chatcmpl-DKZ1NDEKOnPyE6tIsqfJTC8wywnYc1fT",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 131.315,
+      "prompt_per_token_ms": 0.6313221153846154,
+      "prompt_per_second": 1583.9774587823174,
+      "predicted_n": 1118,
+      "predicted_ms": 26141.173,
+      "predicted_per_token_ms": 23.382086762075133,
+      "predicted_per_second": 42.76778245566869
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 4227.1044999943115,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Root‑cause analysis**\n\nThe write path (`updateDisplayName`) updates the `Profile` entity in the database but **never touches the cache**.  \nThe read path (`get`) first looks in the cache; if a stale entry exists it is returned without ever hitting the DB again.  \nConsequently, after `updateDisplayName` the cache still contains the old `displayName` and the next `get` will serve that stale value – a classic cache‑staleness bug.\n\n**Highest‑risk correctness bug**\n\n`ProfileService.updateDisplayName` does not invalidate or refresh the cached entry for `profileId`.  \nBecause the cache is consulted before the repository, any subsequent read will return the stale cached view.\n\n**Smallest safe fix**\n\nThe fix must guarantee that after a successful `save` the cache no longer holds a stale view.  \nThe minimal, safe change is to **evict** the key from the cache in `updateDisplayName`.  \nEviction forces the next `get` to reload the profile from the DB, guaranteeing the fresh `displayName` is returned.\n\n```java\n// src/main/java/com/example/profile/ProfileService.java\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    // Invalidate the stale cache entry\n    profileCache.evict(profileId);\n}\n```\n\n*Why this is the smallest safe fix*\n\n* **No API changes** – we only use the existing `evict` method that the cache already provides.\n* **No concurrency concerns** – `evict` is a no‑op or a simple map removal; it does not introduce new race conditions.\n* **Preserves existing semantics** – the method still updates the DB exactly as before; the only addition is cache cleanup.\n* **No performance regression** – eviction is O(1) and only occurs on a write, which is the expected cost for cache coherence.\n\n**Alternative (less safe) approaches** – e.g., updating the cache entry directly or using a write‑through strategy – would require deeper knowledge of the cache implementation and could introduce race conditions. Eviction is the safest, implementation‑agnostic solution.\n\n**Regression checks**\n\n1. **Happy path** – `get(profileId)` still returns the cached view when the profile has not been updated.  \n2. **Update path** – after calling `updateDisplayName(profileId, \"new\")` and then `get(profileId)`, the returned `ProfileView.displayName` equals `\"new\"`.  \n3. **Concurrent reads/writes** – multiple threads calling `updateDisplayName` and `get` for the same `profileId` still see a consistent value (the latest DB state) because the cache is evicted on each write.  \n4. **Cache miss** – if the cache is empty, `get` loads from the DB and populates the cache as before.\n\nAll checks confirm that the cache is now consistent with the database after a write, and no existing read behavior is broken."
+        }
+      }
+    ],
+    "created": 1774496063,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 657,
+      "prompt_tokens": 431,
+      "total_tokens": 1088
+    },
+    "id": "chatcmpl-Y1o87tV0Eqkp5y5NMLGa8DqRw1eXIGtd",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 431,
+      "prompt_ms": 57.986,
+      "prompt_per_token_ms": 0.134538283062645,
+      "prompt_per_second": 7432.828613803333,
+      "predicted_n": 657,
+      "predicted_ms": 3088.397,
+      "predicted_per_token_ms": 4.7007564687975645,
+      "predicted_per_second": 212.7317181048939
+    }
+  }
+}

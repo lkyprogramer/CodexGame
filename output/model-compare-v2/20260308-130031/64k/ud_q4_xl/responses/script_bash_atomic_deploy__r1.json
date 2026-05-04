@@ -1,0 +1,40 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 30647.55587489344,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "# Atomic Deploy Script\n\n## New File: `deploy/atomic_deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# =============================================================================\n# Atomic Release Deploy Script\n# Usage: ./atomic_deploy.sh <new_release_path>\n# =============================================================================\n\n# Configuration\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_CHECK_RETRIES=5\nreadonly HEALTH_CHECK_INTERVAL=2\n\n# Logging function\nlog() {\n    local timestamp\n    timestamp=\"$(date '+%Y-%m-%d %H:%M:%S')\"\n    echo \"[${timestamp}] $*\" | tee -a \"${LOG_FILE}\"\n}\n\n# Cleanup function for rollback\nrollback() {\n    local prev_release=\"$1\"\n    log \"ROLLBACK: Restoring symlink to ${prev_release}\"\n    ln -sf \"${prev_release}\" \"${CURRENT_LINK}\"\n    log \"ROLLBACK: Symlink restored to ${prev_release}\"\n}\n\n# Health check with retries\nhealth_check() {\n    local attempt=1\n    while [[ ${attempt} -le ${HEALTH_CHECK_RETRIES} ]]; do\n        log \"Health check attempt ${attempt}/${HEALTH_CHECK_RETRIES}...\"\n        if curl -sf --max-time 5 \"${HEALTH_URL}\" > /dev/null 2>&1; then\n            log \"Health check PASSED\"\n            return 0\n        fi\n        log \"Health check failed, retrying in ${HEALTH_CHECK_INTERVAL}s...\"\n        sleep \"${HEALTH_CHECK_INTERVAL}\"\n        ((attempt++))\n    done\n    log \"Health check FAILED after ${HEALTH_CHECK_RETRIES} attempts\"\n    return 1\n}\n\n# Main deployment logic\nmain() {\n    if [[ $# -ne 1 ]]; then\n        echo \"Usage: $0 <new_release_path>\"\n        exit 1\n    fi\n\n    local new_release=\"$1\"\n\n    log \"==========================================\"\n    log \"Starting atomic deploy: ${new_release}\"\n    log \"==========================================\"\n\n    # Validate new release directory exists\n    if [[ ! -d \"${new_release}\" ]]; then\n        log \"ERROR: New release directory does not exist: ${new_release}\"\n        exit 1\n    fi\n\n    # Validate current symlink exists\n    if [[ ! -L \"${CURRENT_LINK}\" ]]; then\n        log \"ERROR: Current symlink missing: ${CURRENT_LINK}\"\n        exit 1\n    fi\n\n    # Get previous release path for rollback\n    local prev_release\n    prev_release=\"$(readlink -f \"${CURRENT_LINK}\")\"\n    log \"Previous release: ${prev_release}\"\n\n    # Verify previous release still exists (safety check)\n    if [[ ! -d \"${prev_release}\" ]]; then\n        log \"ERROR: Previous release directory missing: ${prev_release}\"\n        log \"Cannot safely rollback. Aborting.\"\n        exit 1\n    fi\n\n    # Perform atomic symlink swap\n    log \"Swapping symlink from ${prev_release} to ${new_release}\"\n    ln -sf \"${new_release}\" \"${CURRENT_LINK}\"\n    log \"Symlink updated to ${new_release}\"\n\n    # Health check\n    if ! health_check; then\n        log \"ERROR: Health check failed\"\n        rollback \"${prev_release}\"\n        log \"ERROR: Deployment failed and rolled back\"\n        exit 1\n    fi\n\n    log \"==========================================\"\n    log \"Deployment SUCCESSFUL: ${new_release}\"\n    log \"==========================================\"\n}\n\nmain \"$@\"\n```\n\n## Verification Checks\n\nAfter creating the script:\n\n```bash\n# 1. Make executable\nchmod +x deploy/atomic_deploy.sh\n\n# 2. Validate syntax\nbash -n deploy/atomic_deploy.sh\n\n# 3. Test prerequisites validation (should fail gracefully)\n./deploy/atomic_deploy.sh\n# Expected: \"Usage: ./atomic_deploy.sh <new_release_path>\"\n\n# 4. Test with non-existent release (should fail)\n./deploy/atomic_deploy.sh /nonexistent/path\n# Expected: ERROR message about directory not existing\n\n# 5. Verify log directory exists\nmkdir -p /srv/myapp\n\n# 6. Dry-run test (with existing symlink)\n# First create test structure:\n# mkdir -p /srv/myapp/releases/20240",
+          "reasoning_content": "The user wants me to write a Bash deployment script for atomic release swap with health check and rollback. This is a production task, so I need to make it:\n\n1. Safe and reviewable\n2. Follow the constraints from the project snapshot\n3. Use `set -euo pipefail` for safety\n4. Handle rollback on failure\n5. Keep logs\n6. Clear messaging\n\nLet me write a production-ready deployment script that follows all the requirements.\n\nKey requirements from the docs:\n- New release unpacked under /srv/myapp/releases/<timestamp>\n- Current live symlink is /srv/myapp/current\n- Health check endpoint: http://127.0.0.1:8080/healthz\n- On failure, restore previous symlink target\n- Logs under /srv/myapp/deploy.log\n- Use set -euo pipefail\n- Refuse to run if current symlink is missing\n- Do not delete previous release before health check succeeds\n- Print clear rollback messages\n\nI'll create a script that:\n1. Validates prerequisites\n2. Takes the new release path as argument\n3. Saves the current symlink target before swapping\n4. Performs the atomic swap (symlink update)\n5. Runs health checks with retry\n6. Rolls back on failure\n7. Logs everything\n\nLet me write this script.\n"
+        }
+      }
+    ],
+    "created": 1772946663,
+    "model": "unsloth/Qwen3.5-27B-UD-Q4_K_XL",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 290,
+      "total_tokens": 1540
+    },
+    "id": "chatcmpl-3AqODkmADlj68auIyJXN01C6GrWfS3Ls",
+    "timings": {
+      "cache_n": 82,
+      "prompt_n": 208,
+      "prompt_ms": 131.806,
+      "prompt_per_token_ms": 0.6336826923076924,
+      "prompt_per_second": 1578.076870552175,
+      "predicted_n": 1250,
+      "predicted_ms": 29214.302,
+      "predicted_per_token_ms": 23.3714416,
+      "predicted_per_second": 42.787262211501755
+    }
+  }
+}

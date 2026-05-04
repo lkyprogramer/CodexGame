@@ -1,0 +1,39 @@
+{
+  "task_id": "java_optimistic_lock_missing",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 6116.087583999615,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Bug identification**\n\n`OrderService.approve()` reads the current `Order` (including its `version`), then calls `orderRepository.updateStatus(..., order.getVersion() + 1)`.  \nThe repository’s `updateStatus` is supposed to *only* succeed when the supplied `nextVersion` matches the row’s current version – i.e. an optimistic‑lock check.  \n\nIn the current implementation (`JdbcOrderRepository.updateStatus`) the method is a stub that never checks the version and never updates the row. Consequently two concurrent calls can both read the same version, both increment it, and both succeed, leaving the order in an inconsistent state.\n\n**Root cause**\n\nThe `updateStatus` method does not contain the version‑check logic (the `WHERE id = ? AND version = ?` clause) and the stub returns `null` for `require`. Because the service relies on the repository to enforce the lock, the missing clause means the service does **not** perform optimistic locking.\n\n**Smallest production‑safe fix**\n\n1. **Add the version check to the repository implementation** – make `updateStatus` return the number of rows affected and require it to be `1`. If `0` rows were updated, throw an `OptimisticLockException` (or any unchecked exception) to signal the conflict.\n2. **Make `require` return a real `Order`** (the stub currently returns `null`). This is required for the service to read the current version; the repository can simply query the row by `id`.\n3. **Leave `OrderService` unchanged** – it already passes the version it read, so the repository will now enforce the lock.\n\nThe fix touches only `JdbcOrderRepository` (and adds a new exception class if desired). No changes to the service or domain model are needed.\n\n**Exact files to change**\n\n| File | Change |\n|------|--------|\n| `src/main/java/com/example/order/JdbcOrderRepository.java` | Implement `require` to fetch the row and implement `updateStatus` with a version check. |\n| (optional) `src/main/java/com/example/order/OptimisticLockException.java` | Add a simple unchecked exception (if not already present). |\n\n**Proposed implementation (minimal, production‑ready)**\n\n```java\n// src/main/java/com/example/order/OptimisticLockException.java\npackage com.example.order;\n\npublic class OptimisticLockException extends RuntimeException {\n    public OptimisticLockException(String msg) { super(msg); }\n}\n```\n\n```java\n// src/main/java/com/example/order/JdbcOrderRepository.java\npackage com.example.order;\n\nimport java.sql.*;\n\npublic class JdbcOrderRepository implements OrderRepository {\n\n    private final DataSource ds;   // injected or obtained via JNDI\n\n    public JdbcOrderRepository(DataSource ds) {\n        this.ds = ds;\n    }\n\n    @Override\n    public Order require(long id) {\n        try (Connection c = ds.getConnection();\n             PreparedStatement ps = c.prepareStatement(\n                     \"SELECT id, version, status FROM orders WHERE id = ?\"));\n        {\n            ps.setLong(1, id);\n            try (ResultSet rs = ps.executeQuery()) {\n                if (rs.next()) {\n                    Order o = new Order();\n                    o.setId(rs.getLong(\"id\"));\n                    o.setVersion(rs.getInt(\"version\"));\n                    o.setStatus(rs.getString(\"status\"));\n                    return o;\n                }\n            }\n            throw new IllegalArgumentException(\"Order not found: \" + id);\n        } catch (SQLException e) {\n            throw new RuntimeException(e);\n        }\n    }\n\n    @Override\n    public void updateStatus(long id, String status, int nextVersion) {\n        int updated;\n        try (Connection c = ds.getConnection();\n             PreparedStatement ps = c.prepareStatement(\n                     \"UPDATE orders SET status = ?, version = version + 1 WHERE id = ? AND version = ?\")) {\n            ps.setString(1, status);\n            ps.setLong(2, id);\n            ps.setInt(3, nextVersion);\n            updated = ps.executeUpdate();\n        } catch (SQLException e) {\n            throw new RuntimeException(e);\n        }\n\n        if (updated == 0) {\n            // No row matched the supplied version → optimistic‑lock failure\n            throw new OptimisticLockException(\n                \"Optimistic lock failed for order id=\" + id + \", version=\" + nextVersion);\n        }\n    }\n}\n```\n\n*Why this is the smallest safe fix*\n\n* **Only the repository implementation is altered** – the service logic stays untouched, preserving its contract.\n* **Version check is performed at the database level**, guaranteeing atomicity even under high concurrency.\n* **`require` now returns a real `Order`**, so the service can read the current version; the stub `null` return is eliminated.\n* **Exception handling** – the service will propagate the `OptimisticLockException` to the caller (e.g., a REST controller) which can then return a 409 Conflict. No new public API"
+        }
+      }
+    ],
+    "created": 1774496017,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1050,
+      "prompt_tokens": 481,
+      "total_tokens": 1531
+    },
+    "id": "chatcmpl-CjgH4L6j61RWB7AeM2ZtTuk9yU3Vbzum",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 481,
+      "prompt_ms": 63.222,
+      "prompt_per_token_ms": 0.13143866943866944,
+      "prompt_per_second": 7608.111100566258,
+      "predicted_n": 1050,
+      "predicted_ms": 4924.541,
+      "predicted_per_token_ms": 4.690039047619048,
+      "predicted_per_second": 213.21784101299997
+    }
+  }
+}

@@ -1,0 +1,289 @@
+{
+  "rubric": {
+    "task_completion": "0-4",
+    "evidence_grounding": "0-4",
+    "constraint_adherence": "0-4",
+    "decision_completeness": "0-4",
+    "penalty": "0 to -3",
+    "max_total": 16
+  },
+  "tasks": [
+    {
+      "task_id": "longctx_restore_bootstrap",
+      "family": "longctx",
+      "hidden_focus": [
+        "Must identify running state exposed before thread restoration completes.",
+        "Must mention ordering between thread bootstrap and visible session state."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 4,
+        "evidence_grounding": 4,
+        "constraint_adherence": 3,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 14,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "命中核心 race，但方案略多做一层推演，最终 patch 边界没有 Qwen 干净。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 4,
+        "evidence_grounding": 4,
+        "constraint_adherence": 4,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 15,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "直接命中 `phase=running` 与 thread restore 顺序问题，表达更短、更收敛。"
+      }
+    },
+    {
+      "task_id": "longctx_metrics_contract",
+      "family": "longctx",
+      "hidden_focus": [
+        "Should mention metrics contract ownership between runtime, protocol, and client.",
+        "Should stay concrete and not drift into generic observability advice."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 1,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 6,
+        "winner": "nemotron_iq4_xs",
+        "notes": "判断仍然是错的，但至少围绕 queue depth / UI contract 打转，没有完全漂到成本分析。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 1,
+        "evidence_grounding": 1,
+        "constraint_adherence": 1,
+        "decision_completeness": 0,
+        "penalty": 0,
+        "total": 3,
+        "winner": "nemotron_iq4_xs",
+        "notes": "把问题漂到 token usage / cost tracking，明显偏离题目要点。"
+      }
+    },
+    {
+      "task_id": "longctx_java_change_impact",
+      "family": "longctx",
+      "hidden_focus": [
+        "Should identify duplicate side effects / notification before durable commit risk.",
+        "Should keep remediation bounded instead of redesigning the system."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 3,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 9,
+        "winner": "nemotron_iq4_xs",
+        "notes": "虽然没抓住 durable commit，但至少稳定围绕 duplicate side effects 收敛，修法也控制在局部。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 7,
+        "winner": "nemotron_iq4_xs",
+        "notes": "推理过程更摇摆，最后仍停在半开放式分析，没有收成一个更好的 bounded plan。"
+      }
+    },
+    {
+      "task_id": "multi_restore_self_repair",
+      "family": "multi_round",
+      "hidden_focus": [
+        "Should converge on restore/order-of-operations, not drift to unrelated refactors.",
+        "Final round should be more concrete than round 1."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 7,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "最终还是漂到 defensive validation / stale snapshot，没沿着 restore ordering 收敛。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 3,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 12,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "最终收敛到恢复 `threadIds` / `threadToAgentId`，明显更贴合 hidden focus。"
+      }
+    },
+    {
+      "task_id": "multi_outbox_self_repair",
+      "family": "multi_round",
+      "hidden_focus": [
+        "Should stay focused on publish-before-commit / outbox ordering.",
+        "Final answer should remain minimal and implementation-oriented."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 3,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 12,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "commit-then-publish 的最小修法成立，但表述比 Qwen 更啰嗦。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 4,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 13,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "同样是 reorder，但更稳地守住了“不改接口”的最小边界。"
+      }
+    },
+    {
+      "task_id": "multi_reconnect_self_repair",
+      "family": "multi_round",
+      "hidden_focus": [
+        "Must preserve reconnect safety guard.",
+        "Should converge toward a bounded reconnect fix, not a broad retry redesign."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 3,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 12,
+        "winner": "nemotron_iq4_xs",
+        "notes": "虽然 patch 面偏大，但核心目标很清楚：保留 guard，同时冻结 world/scheduler，至少没有跑偏。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 1,
+        "evidence_grounding": 1,
+        "constraint_adherence": 1,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 4,
+        "winner": "nemotron_iq4_xs",
+        "notes": "在重复自我修正中打转，没有真正收敛出稳定的 final patch。"
+      }
+    },
+    {
+      "task_id": "plan_boot_restore_gap",
+      "family": "planning",
+      "hidden_focus": [
+        "Should break the work into restore sequencing, thread recreation, and tests.",
+        "Should keep client protocol compatibility explicit."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 2,
+        "evidence_grounding": 1,
+        "constraint_adherence": 1,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 6,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "引入了明显不可靠的前提（missing import、fromState 不存在），计划边界不可信。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 2,
+        "decision_completeness": 4,
+        "penalty": 0,
+        "total": 12,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "虽然仍有想当然，但 restore sequencing、thread recreation、tests、failure handling 都更完整。"
+      }
+    },
+    {
+      "task_id": "plan_metrics_exposure",
+      "family": "planning",
+      "hidden_focus": [
+        "Should start from protocol contract, then runtime emit, then client consume.",
+        "Should mention tests, not only code changes."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 8,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "协议顺序是对的，但引入新 collector / 新文件的倾向太强，偏离现有结构。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 3,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 4,
+        "penalty": 0,
+        "total": 11,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "仍然有过度设计，但 protocol -> runtime -> client -> tests 的主骨架是完整的。"
+      }
+    },
+    {
+      "task_id": "plan_reconnect_fault_injection",
+      "family": "planning",
+      "hidden_focus": [
+        "Should define explicit failure injection points and assertions.",
+        "Should preserve current runtime safety semantics."
+      ],
+      "nemotron_iq4_xs": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 8,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "failure injection 与 assertions 都写了，但过于像直接手搓整份测试文件，很多细节并不可信。"
+      },
+      "qwen35_a3b_ud_q4_xl": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 2,
+        "decision_completeness": 4,
+        "penalty": 0,
+        "total": 12,
+        "winner": "qwen35_a3b_ud_q4_xl",
+        "notes": "mock client、failure points、assertions、integration path 都更像真正可执行的测试计划。"
+      }
+    }
+  ],
+  "summary": {
+    "nemotron_iq4_xs_total": 82,
+    "qwen35_a3b_ud_q4_xl_total": 89,
+    "delta": 7,
+    "task_wins": {
+      "nemotron_iq4_xs": 3,
+      "qwen35_a3b_ud_q4_xl": 6,
+      "tie": 0
+    },
+    "family_totals": {
+      "longctx": {
+        "nemotron_iq4_xs": 29,
+        "qwen35_a3b_ud_q4_xl": 25
+      },
+      "multi_round": {
+        "nemotron_iq4_xs": 31,
+        "qwen35_a3b_ud_q4_xl": 29
+      },
+      "planning": {
+        "nemotron_iq4_xs": 22,
+        "qwen35_a3b_ud_q4_xl": 35
+      }
+    },
+    "conclusion": "Nemotron 在 bounded root-cause / repair 题上更快也更敢收敛，但 Qwen35B-A3B-UD 在复杂规划和整体架构化表达上更稳，最终 analyst 总分略高。"
+  }
+}

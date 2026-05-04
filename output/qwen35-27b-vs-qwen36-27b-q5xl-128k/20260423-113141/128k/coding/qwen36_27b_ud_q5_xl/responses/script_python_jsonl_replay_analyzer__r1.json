@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 35270.42249997612,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'll implement a streaming JSONL analyzer that handles malformed lines, computes per-session statistics, and outputs a summary. The script will be memory-efficient by processing line-by-line.\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReplay JSONL Analyzer\n\nAnalyzes replay JSONL files with malformed-line tolerance.\nComputes per-session turn counts, invalid-output counts, and malformed-line stats.\n\nUsage:\n    python replay_analyzer.py <input.jsonl> [output.json]\n\nOutput:\n    JSON summary with per-session stats and global footer.\n\"\"\"\n\nimport sys\nimport json\nimport argparse\nfrom collections import defaultdict\nfrom typing import Dict, Any, Optional\n\n\nclass SessionStats:\n    \"\"\"Accumulates statistics for a single session.\"\"\"\n    \n    def __init__(self, session_id: str):\n        self.session_id = session_id\n        self.turn_count: int = 0\n        self.invalid_output_count: int = 0\n        self.error_count: int = 0\n        self.first_tick: Optional[int] = None\n        self.last_tick: Optional[int] = None\n    \n    def process_event(self, event: Dict[str, Any]) -> None:\n        \"\"\"Process a single parsed JSON event.\"\"\"\n        event_type = event.get(\"type\", \"\")\n        tick = event.get(\"tick\")\n        \n        # Track tick range\n        if tick is not None:\n            if self.first_tick is None or tick < self.first_tick:\n                self.first_tick = tick\n            if self.last_tick is None or tick > self.last_tick:\n                self.last_tick = tick\n        \n        # Count agent turns\n        if event_type == \"agent.turn\":\n            self.turn_count += 1\n        \n        # Count errors\n        if event_type == \"error\":\n            self.error_count += 1\n            code = event.get(\"code\", \"\")\n            if code == \"invalid_output\":\n                self.invalid_output_count += 1\n    \n    def to_dict(self) -> Dict[str, Any]:\n        \"\"\"Convert stats to dictionary for JSON serialization.\"\"\"\n        return {\n            \"sessionId\": self.session_id,\n            \"turnCount\": self.turn_count,\n            \"invalidOutputCount\": self.invalid_output_count,\n            \"errorCount\": self.error_count,\n            \"firstTick\": self.first_tick,\n            \"lastTick\": self.last_tick,\n        }\n\n\ndef analyze_replay(input_path: str) -> Dict[str, Any]:\n    \"\"\"\n    Analyze a replay JSONL file.\n    \n    Args:\n        input_path: Path to the JSONL file\n        \n    Returns:\n        Dictionary with per-session stats and global summary\n    \"\"\"\n    sessions: Dict[str, SessionStats] = {}\n    total_lines = 0\n    malformed_lines = 0\n    malformed_line_numbers: list[int] = []\n    \n    with open(input_path, \"r\", encoding=\"utf-8\") as f:\n        for line_num, line in enumerate(f, start=1):\n            total_lines += 1\n            line = line.strip()\n            \n            # Skip empty lines\n            if not line:\n                continue\n            \n            # Try to parse JSON\n            try:\n                event = json.loads(line)\n            except json.JSONDecodeError:\n                malformed_lines += 1\n                malformed_line_numbers.append(line_num)\n                continue\n            \n            # Validate that it's a dict with sessionId\n            if not isinstance(event, dict):\n                malformed_lines += 1\n                malformed_line_numbers.append(line_num)\n                continue\n            \n            session_id = event.get(\"sessionId\")\n            if session_id is None:\n                malformed_lines += 1\n                malformed_line_numbers.append(line_num)\n                continue\n            \n            # Get or create session stats\n            if session_id not in sessions:\n                sessions[session_id] = SessionStats(session_id)\n            \n            sessions[session_id].process_event(event)\n    \n    # Build output\n    session_summaries = []\n    for session_id in sorted(sessions.keys()):\n        session_summaries.append(sessions[session_id].to_dict())\n    \n    total_turns = sum(s.turn_count for s in sessions.values())\n    total_invalid_outputs = sum(s.invalid_output_count for s in sessions.values())\n    total_errors = sum(s.error_count for s in sessions.values())\n    \n    result = {\n        \"sessions\": session_summaries,\n        \"global\": {\n            \"totalLines\": total_lines,\n            \"malformedLines\": malformed_lines,\n            \"malformedLineNumbers\": malformed_line_numbers,\n            \"totalSessions\": len(sessions),\n            \"totalTurns\": total_turns,\n            \"totalInvalidOutputs\": total_invalid_outputs,\n            \"totalErrors\": total_errors,\n        },\n    }\n    \n    return result\n\n\ndef main():\n    parser = argparse.ArgumentParser(\n        description=\"Analyze replay JSONL files\"\n    )\n    parser.add_argument(\n        \"input\",\n        help=\"Path to the replay JSONL file\",\n    )\n    parser.add_argument(\n        \"output\",\n        nargs=\"?\",\n        default=None,\n        help=\"Path to write JSON summary (default: stdout)\",\n    )\n    \n    args = parser.parse_args()\n    \n    try:\n        result = analyze_replay(args.input)\n    except FileNotFoundError:\n        print(f\"Error: File not found: {args.input}\", file=sys.stderr)\n        sys.exit(1)\n    except Exception as e:\n        print(f\"Error analyzing file: {e}\", file=sys.stderr)\n        sys.exit(1)\n    \n    output_json = json.dumps(result, indent=2)\n    \n    if args.output:\n        with open(args.output, \"w\", encoding=\"utf-8\") as f:\n            f.write(output_json)\n            f.write(\"\\n\")\n        print(f\"Summary written to {args.output}\")\n    else:\n        print(output_json)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\n## Verification\n\nRun against the sample file"
+        }
+      }
+    ],
+    "created": 1776917332,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 518,
+      "total_tokens": 1818
+    },
+    "id": "chatcmpl-IzT9TBGMHH1tgjKmeE2QCeExhCU7PeRD",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 434,
+      "prompt_ms": 216.203,
+      "prompt_per_token_ms": 0.4981635944700461,
+      "prompt_per_second": 2007.3727006563279,
+      "predicted_n": 1300,
+      "predicted_ms": 33521.556,
+      "predicted_per_token_ms": 25.785812307692304,
+      "predicted_per_second": 38.781016012502526
+    }
+  }
+}

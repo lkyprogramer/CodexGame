@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 44155.30250000302,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Build Flow Consistency & Atomicity\n\n**Highest-Risk Bug:**\nThe `applyOperations` method in `ContentStore` violates atomicity guarantees. It uses `Promise.all` to write three separate files (`prefabs.json`, `recipes.json`, `world_rules.json`) concurrently. If one write succeeds and another fails (e.g., disk full, permission error, or race condition), the content store ends up in an inconsistent state where some files reflect the new state and others reflect the old state. This breaks the \"all-or-nothing\" requirement for build operations.\n\nAdditionally, the current implementation updates `this.content` *after* the file writes. If the process crashes between the file writes and the in-memory update, the in-memory state will be stale relative to disk on next load, or vice-versa if the write fails but memory was updated (though here memory is updated last, so a crash after write but before memory update leaves disk ahead of memory, which is recoverable on reload, but the partial write issue is the critical failure mode).\n\n**Root Cause:**\n`Promise.all` does not provide transactional semantics across multiple file systems operations. It only aggregates results. There is no rollback mechanism if one of the `writeJsonAtomic` calls fails.\n\n**Smallest Safe Fix:**\n1.  **Sequential Writes with Rollback:** Change `applyOperations` to write files sequentially. If any write fails, revert `this.content` to the previous state. Since `writeJsonAtomic` itself is atomic (write to tmp, then rename), individual files won't be corrupted, but the *set* of files will be consistent.\n2.  **Pre-validation:** The code already validates operations via `contentOperationSchema.parse` before applying them to the in-memory state. This is good. However, we must ensure that if the *application* of operations to the in-memory state succeeds, the *persistence* is atomic.\n\n**Proposed Changes:**\n\n**File: `apps/game-runtime/src/runtime/contentStore.ts`**\n\nModify the `applyOperations` method to ensure all file writes succeed before updating the in-memory state, or revert if any fail.\n\n```typescript\n  public async applyOperations(operations: ContentOperation[]): Promise<BuildApplyResult> {\n    if (!this.content) {\n      throw new Error(\"content not loaded\");\n    }\n\n    // 1. Validate all operations first\n    operations.forEach((operation) => contentOperationSchema.parse(operation));\n    \n    // 2. Compute new state in memory\n    const next: ContentSet = {\n      prefabs: [...this.content.prefabs],\n      recipes: [...this.content.recipes],\n      biomeRules: [...this.content.biomeRules],\n      spawnRules: [...this.content.spawnRules]\n    };\n\n    for (const operation of operations) {\n      switch (operation.type) {\n        case \"upsert_prefab\":\n          next.prefabs = upsertById(next.prefabs, operation.value);\n          break;\n        case \"upsert_recipe\":\n          next.recipes = upsertById(next.recipes, operation.value);\n          break;\n        case \"upsert_biome_rule\":\n          next.biomeRules = upsertById(next.biomeRules, operation.value);\n          break;\n        case \"upsert_spawn_rule\":\n          next.spawnRules = upsertById(next.spawnRules, operation.value);\n          break;\n        case \"remove_by_id\":\n          if (operation.target === \"prefab\") {\n            next.prefabs = removeById(next.prefabs, operation.id);\n          } else if (operation.target === \"recipe\") {\n            next.recipes = removeById(next.recipes, operation.id);\n          } else if (operation.target === \"biome_rule\") {\n            next.biomeRules = removeById(next.biomeRules, operation.id);\n          } else {\n            next.spawnRules = removeById(next.spawnRules, operation.id);\n          }\n          break;\n      }\n    }\n\n    // 3. Persist atomically (sequential writes to ensure consistency)\n    const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n    const recipesPath = path.join(this.contentDir, RECIPES_FILE);\n    const worldRulesPath = path.join(this.contentDir, WORLD_RULES_FILE);\n\n    try {\n      // Write sequentially. If any fail, the error propagates and we don't update this.content.\n      // Since writeJsonAtomic is atomic per-file, we don't need to manually rollback files,\n      // but we must ensure we don't commit the in-memory state if persistence fails.\n      await writeJsonAtomic(prefabsPath, next.prefabs);\n      await writeJsonAtomic(recipesPath, next.recipes);\n      await writeJsonAtomic(worldRulesPath, {\n        biomeRules: next.biomeRules,\n        spawnRules: next.spawnRules\n      });\n    } catch (error) {\n      // Persistence failed. The in-memory state 'this.content' remains unchanged.\n      // The files on disk remain in their previous consistent state.\n      throw error;\n    }\n\n    // 4. Update in-memory state only after successful persistence\n    this.content = next;\n\n    return {\n      changedFiles: [prefabsPath, recipesPath, worldRulesPath],\n      content: next,\n      operations\n    };\n  }\n```\n\n**Why this is the smallest safe fix:**\n- It preserves the existing `writeJsonAtomic` helper which correctly handles single-file atomicity.\n- It changes `Promise.all` to sequential `await` calls. This is slightly slower but ensures that if the second or third write fails, the first write has already succeeded, but since we haven't updated `this.content` yet, the system state is consistent (disk and memory match the *previous* state).\n- It moves the `"
+        }
+      }
+    ],
+    "created": 1776911723,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14464,
+      "total_tokens": 15714
+    },
+    "id": "chatcmpl-vkndeinm7HEowLZ4muJubUEpejn4SP0J",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6270.954,
+      "prompt_per_token_ms": 0.4335560011061947,
+      "prompt_per_second": 2306.507111996038,
+      "predicted_n": 1250,
+      "predicted_ms": 33530.372,
+      "predicted_per_token_ms": 26.8242976,
+      "predicted_per_second": 37.279634117987115
+    }
+  }
+}

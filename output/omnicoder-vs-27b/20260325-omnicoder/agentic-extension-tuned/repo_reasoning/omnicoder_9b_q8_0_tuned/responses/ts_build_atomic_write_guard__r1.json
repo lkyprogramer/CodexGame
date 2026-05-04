@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 23172.24787498708,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Root Cause Analysis\n\nThe highest-risk bug is a **partial write race condition** in `apps/game-runtime/src/runtime/contentStore.ts` within the `applyOperations` method.\n\n**The Bug:**\nThe method performs atomic writes for individual files using `writeJsonAtomic`, but it uses `Promise.all` to write all three files (`prefabs.json`, `recipes.json`, `world_rules.json`) simultaneously.\n\nIf a crash or network interruption occurs between the `writeFile` and `rename` steps for one file, the other files will have already been committed to disk. This leaves the content store in an inconsistent state where the simulation logic (which expects all three files to be valid) may fail or behave unpredictably.\n\n**Why it's critical:**\nThe `writeJsonAtomic` function relies on `fs.rename` to make writes atomic. However, `Promise.all` does not guarantee that all promises resolve successfully before the function returns. If one promise rejects (e.g., disk full, permission denied), the other files have already been renamed into place.\n\n## Smallest Safe Fix\n\nModify `applyOperations` to ensure that if *any* file write fails, *no* files are written. This requires:\n1.  Performing the in-memory updates first (already done).\n2.  Attempting to write all files.\n3.  Only updating the internal `this.content` state if *all* writes succeed.\n4.  Rolling back any partial writes if a failure occurs (requires a temporary rollback mechanism or simply ensuring the internal state isn't updated until success).\n\nSince the current implementation updates `this.content` *after* `Promise.all`, the primary risk is that the internal state is updated while the disk state is inconsistent. The fix ensures the internal state is only updated if the disk state is fully consistent.\n\nHowever, the most robust fix for \"atomic content writes\" under partial failure is to ensure that the *disk* state is never partially updated. The current `writeJsonAtomic` is atomic per file, but not atomic across the group.\n\n**Proposed Fix:**\nChange the `applyOperations` method to use a single temporary directory or a single atomic transaction wrapper if the filesystem supports it (e.g., `fs.mkdtemp` + `fs.rename` for the whole directory, or simply ensuring we don't update `this.content` until all writes are confirmed).\n\nGiven the constraints of Node.js `fs` in the snapshot, the safest minimal change is to **sequentially write files** or **write to a temp directory and atomically swap the whole directory**. Since swapping the whole directory is complex, we will use a **single temporary file per content set** approach if possible, but the simplest fix that preserves the existing structure is to **write all files to a temporary location first, then atomically replace the real files**.\n\nActually, the simplest fix that guarantees atomicity across *all* files is to write to a temporary directory and then rename the directory. But that requires more changes.\n\nA simpler, safer approach that fits the existing pattern:\n1.  Write all files to a temporary location (e.g., `content.tmp/`).\n2.  If all writes succeed, rename `content.tmp/` to `content/`.\n3.  If any write fails, the temporary directory remains untouched, and the original files are preserved.\n\nHowever, the snapshot shows files in the root of `contentDir`. To keep changes minimal and safe without introducing new directories, we can **write sequentially** or **write to a single temp file that contains all data** (not feasible here due to different schemas).\n\nThe best minimal fix is to **write all files to a temporary directory, then atomically rename the directory**. This ensures that either all files are updated or none are.\n\n**Implementation Plan:**\n1.  Create a temporary directory inside `contentDir` (e.g., `contentDir/.tmp`).\n2.  Write all JSON files to this temp directory.\n3.  If all writes succeed, rename the temp directory to the original location (or vice versa).\n4.  If any write fails, the temp directory is cleaned up, and the original files remain untouched.\n\nWait, the current code writes to `prefabsPath`, `recipesPath`, etc. directly. To make this atomic across all three, we need to write to a temp location and then swap.\n\n**Revised Minimal Fix:**\nSince we cannot easily rename a directory containing multiple files without extra setup, and the current `writeJsonAtomic` is per-file, the safest fix is to **write all files to a temporary directory, then atomically rename the directory**.\n\nLet's implement this by modifying `applyOperations` to:\n1.  Create a temp directory.\n2.  Write all files to the temp directory.\n3.  If successful, rename the temp directory to the original location.\n4.  If any step fails, clean up the temp directory.\n\nThis ensures that the disk state is either fully updated or unchanged.\n\n### File Changes\n\n**File: `apps/game-runtime/src/runtime/contentStore.ts`**\n\n1.  Import `fs` (already imported).\n2.  Modify `applyOperations` to use a temporary directory for atomic updates.\n3.  Add a helper to clean up the temp directory on failure.\n\n```typescript\n// apps/game-runtime/src/runtime/contentStore.ts\n\nimport { promises as fs } from \"node:fs\";\nimport path from \"node:path\";\nimport {\n  biomeRuleSchema,\n  buildOutputSchema,\n  contentOperationSchema,\n  prefabSchema,\n  recipeSchema,\n  spawnRuleSchema,\n  type ContentOperation\n} from \"@codexgame/protocol\";\nimport type { ContentSet } from \"@codexgame/simulation\";\nimport type { BuildApplyResult } from \"./types\";\n\nconst PREFABS_FILE = \"prefabs.json\";\nconst RECIPES_FILE = \"recipes.json\";\nconst WORLD_RULE"
+        }
+      }
+    ],
+    "created": 1774452031,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14464,
+      "total_tokens": 15714
+    },
+    "id": "chatcmpl-wFJXnHRVYRUcXT8xFADuA92PdPrCxe51",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 2095.724,
+      "prompt_per_token_ms": 0.1448924225663717,
+      "prompt_per_second": 6901.672166754782,
+      "predicted_n": 1250,
+      "predicted_ms": 15219.648,
+      "predicted_per_token_ms": 12.1757184,
+      "predicted_per_second": 82.1306773980581
+    }
+  }
+}

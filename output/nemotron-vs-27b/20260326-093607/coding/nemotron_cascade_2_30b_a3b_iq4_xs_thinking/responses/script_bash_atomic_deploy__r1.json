@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7041.890958003933,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to write a bash script skeleton for atomic deploy with health check and rollback. Must be safe, include set -euo pipefail, check current symlink exists, not delete previous release before health check, clear messages, logs.\n\nWe need to reference files: docs/deploy_requirements.md and ops_constraints.md. Provide script with comments, maybe using timestamp, copy release, symlink swap, health check, rollback.\n\nWe need to output script skeleton, mention exact files and lines to change? There's no existing script file; we can propose creating deploy.sh. Provide verification steps.\n\nLet's craft answer: propose file /usr/local/bin/myapp_deploy.sh (or scripts/deploy.sh). Provide script content.\n\nWill include:\n\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Config\nAPP_ROOT=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_ROOT}/releases\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\n\n# Functions: log, rollback, health_check, etc.\n\nCheck current symlink exists: if [ ! -L \"$CURRENT_LINK\" ] && [ ! -e \"$CURRENT_LINK\" ]; then echo \"Current symlink missing, abort.\" exit 1.\n\nTimestamp=$(date +%Y%m%d%H%M%S)\n\n# Unpack release (assume tarball in /tmp or something). For skeleton, just copy from /tmp/release-$timestamp to $RELEASES_DIR/$timestamp.\n\n# Create new symlink atomically: ln -sfn \"$release_path\" \"$CURRENT_LINK\"\n\n# Health check: loop with timeout.\n\n# If health check fails, rollback: rm \"$CURRENT_LINK\" && ln -sfn \"$previous_release\" \"$CURRENT_LINK\"\n\n# Log everything.\n\nWe'll also include trap to catch errors.\n\nLet's produce final answer with script skeleton, referencing docs files. Provide verification steps: run script with --dry-run, check logs, ensure symlink.\n\nLet's craft.\n</think>\n**Proposed file:** `scripts/deploy.sh` (new – the only file you need to add)\n\n```bash\n#!/usr/bin/env bash\n# ----------------------------------------------------------------------\n# Atomic deploy for myapp\n#\n#   * Unpacks a new release under /srv/myapp/releases/<timestamp>\n#   * Swaps the /srv/myapp/current symlink atomically\n#   * Runs a health‑check against http://127.0.0.1:8080/healthz\n#   * On failure restores the previous symlink target\n#   * All actions are logged to /srv/myapp/deploy.log\n#\n#   The script follows the constraints from:\n#     - docs/deploy_requirements.md\n#     - docs/ops_constraints.md\n# ----------------------------------------------------------------------\n\n# 1️⃣  Safety & strict mode (ops_constraints.md)\nset -euo pipefail\n\n# ----------------------------------------------------------------------\n# 2️⃣  Configuration (derived from docs/deploy_requirements.md)\n# ----------------------------------------------------------------------\nAPP_ROOT=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_ROOT}/releases\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\n\n# ----------------------------------------------------------------------\n# 3️⃣  Helper functions\n# ----------------------------------------------------------------------\nlog() {\n    local msg=\"$1\"\n    echo \"$(date '+%Y-%m-%d %H:%M:%S') ${msg}\" | tee -a \"${LOG_FILE}\"\n}\n\ndie() {\n    log \"ERROR: $*\"\n    exit 1\n}\n\n# ----------------------------------------------------------------------\n# 4️⃣  Preconditions (ops_constraints.md)\n# ----------------------------------------------------------------------\n# a) The current symlink must exist (or be a valid directory)\nif [[ ! -L \"${CURRENT_LINK}\" && ! -d \"${CURRENT_LINK}\" ]]; then\n    die \"Current symlink ${CURRENT_LINK} is missing – aborting.\"\nfi\n\n# b) Verify we have a previous release to roll back to\n#    (the first deploy will have no previous release – that's fine)\nPREV_RELEASE=$(readlink -f \"${CURRENT_LINK}\" 2>/dev/null || true)\n\n# ----------------------------------------------------------------------\n# 5️⃣  Main deployment\n# ----------------------------------------------------------------------\nlog \"=== START DEPLOY ===\"\n\n# 5.1  Build a timestamped release directory\nTIMESTAMP=$(date +%Y%m%d%H%M%S)\nRELEASE_DIR=\"${RELEASES_DIR}/${TIMESTAMP}\"\nlog \"Unpacking new release to ${RELEASE_DIR}\"\n\n# NOTE: Replace the following line with your real unpack command.\n# Example: tar -xzf \"/tmp/myapp-${TIMESTAMP}.tar.gz\" -C \"${RELEASE_DIR}\"\nmkdir -p \"${RELEASE_DIR}\" || die \"Failed to create release directory\"\n\n# 5.2  Atomically switch the symlink\n# We first link to a *new* path, then move it into place with ln -sfn.\n# This guarantees that at any instant the symlink points to either the old\n# or the new release – never a half‑written directory.\nNEW_LINK_PATH=\"${RELEASE_DIR}\"\nln -sfn \"${NEW_LINK_PATH}\" \"${CURRENT_LINK}\"\nlog \"Swapped symlink: ${CURRENT_LINK} -> ${NEW_LINK_PATH}\"\n\n# 5.3  Health check (do NOT delete the old release yet)\nlog \"Running health check against ${HEALTH_URL}\"\nMAX_ATTEMPTS=30\nATTEMPT"
+        }
+      }
+    ],
+    "created": 1774491457,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 288,
+      "total_tokens": 1538
+    },
+    "id": "chatcmpl-98w5yBJp7jwcP2LDbZSqTEivVzDQu5hY",
+    "timings": {
+      "cache_n": 81,
+      "prompt_n": 207,
+      "prompt_ms": 55.733,
+      "prompt_per_token_ms": 0.2692415458937198,
+      "prompt_per_second": 3714.1370462742,
+      "predicted_n": 1250,
+      "predicted_ms": 5883.985,
+      "predicted_per_token_ms": 4.7071879999999995,
+      "predicted_per_second": 212.44105822839455
+    }
+  }
+}

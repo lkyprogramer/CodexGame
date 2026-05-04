@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11647.744625021005,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Proposed change set (protocol‑first, minimal, safe)**  \n\n| File | Change | Why |\n|------|--------|-----|\n| `apps/game-runtime/src/runtime/metrics.ts` | Add `public getMetrics(): RuntimeMetrics` that returns a **copy** of the internal metrics. | Exposes the server‑side metrics through a read‑only method that the protocol can safely serialize. |\n| `apps/game-runtime/src/runtime/types.ts` | Add a new `type RuntimeMetricsEvent = { ts: number; metrics: RuntimeMetrics }` and a new `ServerMessage` case `type: \"runtime.metrics\"` with payload `{ metrics: RuntimeMetrics }`. | Extends the protocol with a dedicated message type for metrics, keeping the contract explicit and versioned. |\n| `apps/game-runtime/src/runtime/GameRuntimeServer.ts` | In `sendSessionState()` (or a new `sendMetrics()` helper) emit a `runtime.metrics` message that contains `this.metrics.snapshot()` and the current timestamp. | Sends the metrics to every connected client as soon as they are available, without breaking existing flows. |\n| `apps/game-runtime/test/ui-contract.integration.test.ts` | Add a test that verifies the new `runtime.metrics` message can be parsed and contains the expected fields. | Guarantees the contract is respected and protects against regressions. |\n\n---\n\n### 1. `apps/game-runtime/src/runtime/metrics.ts`\n\n```diff\n@@\n export type RuntimeMetrics = {\n   turnsTotal: number;\n   invalidOutputCount: number;\n   actionAppliedCount: number;\n   actionRejectedCount: number;\n   queuedActions: number;\n };\n \n export class MetricsTracker {\n   ...\n+  /** Return a shallow copy – callers cannot mutate internal state. */\n+  public getMetrics(): RuntimeMetrics {\n+    return { ...this.metrics };\n+  }\n```\n\n*No other file needs to be edited for this change.*\n\n---\n\n### 2. `apps/game-runtime/src/runtime/types.ts`\n\n```diff\n@@\n export type RuntimeMetrics = {\n   turnsTotal: number;\n   invalidOutputCount: number;\n   actionAppliedCount: number;\n   actionRejectedCount: number;\n   queuedActions: number;\n };\n \n+/** A single snapshot of runtime metrics together with a timestamp. */\n+export type RuntimeMetricsEvent = {\n+  /** Unix epoch ms when the snapshot was taken. */\n+  ts: number;\n+  /** Metrics values. */\n+  metrics: RuntimeMetrics;\n+};\n+\n+/** All messages that can be sent from the server to the client. */\n+export type ServerMessage =\n+  | {\n+      version: Version;\n+      type: \"session.state\";\n+      payload: {\n+        phase: SessionPhase;\n+        paused: boolean;\n+        preparedSeed: number | null;\n+        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n+        connected: boolean;\n+        runtime: {\n+          model: string | null;\n+          effort: TurnEffort;\n+          tickMs: number;\n+          schedulerMs: number;\n+          maxQueuedActionsBeforeTurn: number;\n+          availableModels: RuntimeModelOption[];\n+        };\n+      };\n+    }\n+  | {\n+      version: Version;\n+      type: \"world.snapshot\";\n+      payload: { /* unchanged */ }\n+    }\n+  | {\n+      version: Version;\n+      type: \"agent.turn\";\n+      payload: { /* unchanged */ }\n+    }\n+  | {\n+      version: Version;\n+      type: \"agent.action\";\n+      payload: { /* unchanged */ }\n+    }\n+  | {\n+      version: Version;\n+      type: \"agent.feed\";\n+      payload: { /* unchanged */ }\n+    }\n+  | {\n+      version: Version;\n+      type: \"build.result\";\n+      payload: { /* unchanged */ }\n+    }\n+  | {\n+      version: Version;\n+      type: \"error\";\n+      payload: { /* unchanged */ }\n+    }\n+  /** Metrics snapshot sent to the client. */\n+  | {\n+      version: Version;\n+      type: \"runtime.metrics\";\n+      payload: {\n+        ts: number;\n+        metrics: RuntimeMetrics;\n+      };\n+    };\n```\n\n*Only the new `runtime.metrics` case is added; all existing cases stay untouched.*\n\n---\n\n### 3. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nAdd a small helper that pushes the metrics to every client and call it from `sendSessionState` (or from the tick loop – either works, but the simplest is to piggy‑back on the already‑sent `session.state`).\n\n```diff\n@@\n import { ReplayLogger } from \"./replay\";\n import { StateStore } from \"./stateStore\";\n import { normalizeAgentTurnOutput } from \"./agentOutput\";\n import { BuildRequestResult, CompletedTurn, SessionSnapshot, ThreadIds, TurnUsage } from \"./types\";\n+import { RuntimeMetrics } from \"./types\";\n \n ...\n   private readonly metrics = new MetricsTracker();\n \n   ...\n   private sendMetrics(): void {\n     // Grab a copy of the metrics and broadcast it.\n     const msg: ServerMessage = {\n       version: PROTOCOL_VERSION,\n       type: \"runtime.metrics\",\n       payload: {\n         ts: Date.now(),\n         metrics: this.metrics.getMetrics(),\n       },\n     };\n     this.emitMessage(msg);\n   }\n \n   private sendSessionState(): void {\n     this.emitMessage({\n       version: PROTOCOL_VERSION,\n       type: \"session.state\",\n       payload: {\n         phase: this.phase,\n         paused: this.paused,\n         preparedSeed: this.preparedSeed,\n         threadIds: this.threadIds,\n         connected: this.connected,\n         runtime: {\n"
+        }
+      }
+    ],
+    "created": 1774496048,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 22650,
+      "total_tokens": 23900
+    },
+    "id": "chatcmpl-6GHjWyqK2vUOEKHiYopUgq2xuTW3HPos",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 22650,
+      "prompt_ms": 2990.234,
+      "prompt_per_token_ms": 0.13201916114790285,
+      "prompt_per_second": 7574.658036795783,
+      "predicted_n": 1250,
+      "predicted_ms": 6515.806,
+      "predicted_per_token_ms": 5.2126448,
+      "predicted_per_second": 191.84119355303093
+    }
+  }
+}

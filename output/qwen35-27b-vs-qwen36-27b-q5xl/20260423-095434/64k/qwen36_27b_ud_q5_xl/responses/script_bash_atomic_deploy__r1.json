@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 33828.92279198859,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'll implement an atomic deployment script that follows all the specified requirements. Let me create a production-safe script with proper error handling, health checks, and rollback capabilities.\n\n```bash\n#!/usr/bin/env bash\n# deploy.sh - Atomic release deployment with health check and rollback\n# Usage: ./deploy.sh <release_path>\n#\n# This script performs an atomic swap of the release symlink with:\n# - Pre-flight validation\n# - Atomic symlink update\n# - Health check verification\n# - Automatic rollback on failure\n\nset -euo pipefail\n\n# Configuration\nAPP_DIR=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_DIR}/releases\"\nCURRENT_LINK=\"${APP_DIR}/current\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nLOG_FILE=\"${APP_DIR}/deploy.log\"\nHEALTH_RETRIES=5\nHEALTH_INTERVAL=2\n\n# Logging function\nlog() {\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] $*\" | tee -a \"${LOG_FILE}\"\n}\n\n# Error handler for cleanup on failure\ncleanup_on_error() {\n    local exit_code=$?\n    if [[ ${exit_code} -ne 0 ]]; then\n        log \"ERROR: Deployment failed with exit code ${exit_code}\"\n        exit ${exit_code}\n    fi\n}\n\ntrap cleanup_on_error EXIT\n\n# Validate prerequisites\nvalidate_prerequisites() {\n    # Check if current symlink exists\n    if [[ ! -L \"${CURRENT_LINK}\" ]]; then\n        log \"ERROR: Current symlink ${CURRENT_LINK} does not exist. Cannot deploy.\"\n        exit 1\n    fi\n\n    # Check if releases directory exists\n    if [[ ! -d \"${RELEASES_DIR}\" ]]; then\n        log \"ERROR: Releases directory ${RELEASES_DIR} does not exist.\"\n        exit 1\n    fi\n\n    # Check if log directory exists\n    local log_dir\n    log_dir=$(dirname \"${LOG_FILE}\")\n    if [[ ! -d \"${log_dir}\" ]]; then\n        mkdir -p \"${log_dir}\"\n    fi\n}\n\n# Perform health check\ncheck_health() {\n    local retries=${HEALTH_RETRIES}\n    local interval=${HEALTH_INTERVAL}\n    \n    log \"Starting health check (max retries: ${retries}, interval: ${interval}s)\"\n    \n    while [[ ${retries} -gt 0 ]]; do\n        if curl -sf --max-time 5 \"${HEALTH_URL}\" > /dev/null 2>&1; then\n            log \"Health check passed\"\n            return 0\n        fi\n        \n        retries=$((retries - 1))\n        if [[ ${retries} -gt 0 ]]; then\n            log \"Health check failed, retrying in ${interval}s (${retries} retries left)\"\n            sleep ${interval}\n        fi\n    done\n    \n    log \"Health check failed after ${HEALTH_RETRIES} attempts\"\n    return 1\n}\n\n# Rollback to previous release\nrollback() {\n    local previous_release=\"$1\"\n    \n    log \"ROLLBACK: Restoring previous release ${previous_release}\"\n    \n    if [[ -L \"${CURRENT_LINK}\" ]]; then\n        local current_target\n        current_target=$(readlink -f \"${CURRENT_LINK}\")\n        log \"ROLLBACK: Current symlink points to ${current_target}\"\n    fi\n    \n    # Restore the previous symlink\n    ln -sfn \"${previous_release}\" \"${CURRENT_LINK}\"\n    log \"ROLLBACK: Successfully restored symlink to ${previous_release}\"\n    \n    # Verify the rollback\n    if [[ ! -L \"${CURRENT_LINK}\" ]] || [[ \"$(readlink -f \"${CURRENT_LINK}\")\" != \"${previous_release}\" ]]; then\n        log \"ROLLBACK ERROR: Failed to restore previous release\"\n        exit 1\n    fi\n    \n    log \"ROLLBACK: Deployment rolled back successfully\"\n}\n\n# Main deployment logic\nmain() {\n    if [[ $# -ne 1 ]]; then\n        echo \"Usage: $0 <release_path>\"\n        exit 1\n    fi\n    \n    local new_release=\"$1\"\n    \n    # Validate the release path\n    if [[ ! -d \"${new_release}\" ]]; then\n        log \"ERROR: Release directory ${new_release} does not exist\"\n        exit 1\n    fi\n    \n    # Ensure the release is in the releases directory\n    if [[ \"${new_release}\" != \"${RELEASES_DIR}\"* ]]; then\n        log \"ERROR: Release must be in ${RELEASES_DIR}\"\n        exit 1\n    fi\n    \n    log \"Starting deployment of ${new_release}\"\n    \n    # Validate prerequisites\n    validate_prerequisites\n    \n    # Store the previous release for rollback\n    local previous_release\n    previous_release=$(readlink -f \"${CURRENT_LINK}\")\n    log \"Previous release: ${previous_release}\"\n    \n    # Perform atomic symlink swap\n    log \"Swapping symlink to ${new_release}\"\n    ln -sfn \"${new_release}\" \"${CURRENT_LINK}\"\n    \n    # Verify the symlink was updated correctly\n    if [[ \"$(readlink -f \"${CURRENT_LINK}\")\" != \"${new_release}\" ]]; then\n        log \"ERROR: Failed to update symlink\"\n        rollback \"${previous_release}\"\n        exit 1\n    fi\n    \n    log \"Symlink updated successfully\"\n    \n    # Perform health check\n    if ! check_health; then\n        log \"ERROR: Health check failed, initiating rollback\"\n        rollback \"${previous_release}\"\n        exit 1\n    fi\n    \n    log \"Deployment of ${new_release} completed successfully\"\n}\n\n# Run main function\nmain \"$@\"\n```\n\nThis script implements all the required features:\n\n1. **Atomic release swap**: Uses `ln -sfn` for atomic symlink updates\n"
+        }
+      }
+    ],
+    "created": 1776911633,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 292,
+      "total_tokens": 1542
+    },
+    "id": "chatcmpl-5jBTjqK89YXN3mblEEzPg6fsDT4AfOIy",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 135.942,
+      "prompt_per_token_ms": 0.6535673076923078,
+      "prompt_per_second": 1530.0642921245824,
+      "predicted_n": 1250,
+      "predicted_ms": 32202.375,
+      "predicted_per_token_ms": 25.7619,
+      "predicted_per_second": 38.81701272033507
+    }
+  }
+}

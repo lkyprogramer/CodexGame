@@ -1,0 +1,39 @@
+{
+  "task_id": "java_enum_db_compat",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 4459.549417020753,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Root cause**\n\nThe migration `V42__payment_state_lowercase.sql` lower‑cased every `state` column:\n\n```sql\nupdate payment_record set state = lower(state);\n```\n\nAfter the migration the column contains values like `pending`, `processing`, `completed`.  \n`PaymentMapper.toDomain()` calls `PaymentState.valueOf(record.getState())`, which expects the **exact enum constant name** (`PENDING`, `PROCESSING`, `COMPLETED`).  \nBecause the stored strings are now lower‑cased, `valueOf` throws a `IllegalArgumentException` for every existing row, breaking reads of `PaymentRecordDO`.\n\n**Smallest safe fix**\n\n1. **Make the enum case‑insensitive** – add a `values()` method that normalises the incoming string to upper case before delegating to `valueOf`.  \n   This works for both old rows (still uppercase) and new rows (lowercase) and does not require any schema change.\n\n2. **Keep the existing code unchanged** – `PaymentRecordDO` and `PaymentMapper` stay as they are; only `PaymentState` is modified.\n\n**Exact change**\n\nFile: `src/main/java/com/example/payment/PaymentState.java`\n\n```java\npackage com.example.payment;\n\npublic enum PaymentState {\n    PENDING,\n    PROCESSING,\n    COMPLETED;\n\n    /** Returns the enum constant matching the supplied string, ignoring case. */\n    public static PaymentState valueOfIgnoreCase(String name) {\n        return valueOf(name.toUpperCase());\n    }\n}\n```\n\nThen adjust the mapper to use the new helper:\n\nFile: `src/main/java/com/example/payment/PaymentMapper.java`\n\n```java\npackage com.example.payment;\n\npublic class PaymentMapper {\n    public PaymentState toDomain(PaymentRecordDO record) {\n        // Use case‑insensitive conversion; existing rows are uppercase,\n        // migrated rows are lowercase.\n        return PaymentState.valueOfIgnoreCase(record.getState());\n    }\n}\n```\n\n**Why this is the smallest safe fix**\n\n* **No schema migration needed** – the column already contains the lower‑cased values; we simply adapt the Java side.\n* **Backward compatible** – existing production rows that were not yet migrated still have uppercase values, and `valueOfIgnoreCase` works for both.\n* **Minimal code churn** – only two one‑line additions (a utility method and a single call site) and no changes to the rest of the codebase.\n* **No risk of breaking other callers** – the original `valueOf(String)` remains (used internally by `valueOfIgnoreCase`), so any other code that already passes the exact enum name continues to work.\n\n**Regression checks**\n\n1. **Unit test** – verify that `PaymentState.valueOfIgnoreCase(\"pending\")`, `\"PENDING\"` and `\"processing\"` return the correct enum constants.\n2. **Integration test** – insert a `payment_record` with state `'COMPLETED'`, run the migration, then read the record via `PaymentMapper`. It should map to `PaymentState.COMPLETED` without exception.\n3. **Existing rows** – ensure that a record with state `'PROCESSING'` (uppercase) still maps correctly after the change.\n\nAll checks should pass, confirming that the enum can be read from the database regardless of the case introduced by the migration."
+        }
+      }
+    ],
+    "created": 1774496022,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 706,
+      "prompt_tokens": 330,
+      "total_tokens": 1036
+    },
+    "id": "chatcmpl-SDJWeB3gwCKx7XDq2HfOLiMwHxHngZ28",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 330,
+      "prompt_ms": 52.016,
+      "prompt_per_token_ms": 0.15762424242424242,
+      "prompt_per_second": 6344.201784066441,
+      "predicted_n": 706,
+      "predicted_ms": 3302.849,
+      "predicted_per_token_ms": 4.6782563739376775,
+      "predicted_per_second": 213.75485225028453
+    }
+  }
+}

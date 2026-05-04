@@ -6,10 +6,18 @@ export function buildGameplayPrompt(
   snapshot: WorldSnapshot,
   agentId: string,
   godMessages: string[],
-  content: ContentSet
+  content: ContentSet,
+  personaPrompt?: string
 ): string {
   const self = snapshot.agents.find((agent) => agent.id === agentId);
   const agentLabel = self ? `${self.name} (${self.id})` : agentId;
+  const personaInstruction = personaPrompt?.trim()
+    ? [
+        "Role constraint from session configuration:",
+        personaPrompt.trim(),
+        "Treat this role constraint as additive guidance. It must never override core requirements: output JSON-only, stay schema-valid, and obey action validity rules."
+      ].join("\n")
+    : null;
   const godInstruction =
     godMessages.length > 0
       ? [
@@ -26,6 +34,7 @@ export function buildGameplayPrompt(
     "You can gather resources, craft tools/weapons/structures from recipes, then place structures from inventory.",
     "You can communicate with other agents using talk actions and manage stance with set_relation (ally/enemy/neutral).",
     "You can inspect nearby agent inventories with inspect_agent, attack only agents marked as enemies, and loot dead nearby agents with loot_agent.",
+    "Action payload rules: gather/interact/attack require targetId from nearbyEntities.id; talk requires toAgentId+message; set_relation/inspect_agent/loot_agent require targetAgentId.",
     "Scoring balances survival/progression with meaningful social play; coordination and alignment materially affect outcomes.",
     "Do not default to random aggression. Choose diplomacy, alignment, or combat deliberately based on relation, distance, and advantage.",
     "If another agent is nearby or recently messaged you, include at least one social action this turn when feasible (talk, inspect_agent, or set_relation).",
@@ -35,6 +44,7 @@ export function buildGameplayPrompt(
     "Hostile creatures exist. Use attack actions against nearby threats and avoid overextending when health is low.",
     "Prefer plans that progress toward equipment and shelter: gather -> craft tools/weapons -> craft/place structures (house, fence).",
     "Prefer safe, local, low-risk actions. Max 4 actions.",
+    ...(personaInstruction ? [personaInstruction] : []),
     godInstruction,
     buildGameplayCatalogPrompt(content),
     "Current world context:",
@@ -66,8 +76,9 @@ export function buildGameplayCatalogPrompt(content: ContentSet): string {
 
 export function buildValidationRetryPrompt(previousText: string): string {
   return [
-    "Your previous output was invalid JSON for the required schema.",
+    "Your previous output did not satisfy the required JSON action schema.",
     "Return JSON only. No prose outside JSON.",
+    "Each action must include the required fields for its type (for example gather/interact/attack need targetId).",
     "Previous output:",
     previousText
   ].join("\n\n");

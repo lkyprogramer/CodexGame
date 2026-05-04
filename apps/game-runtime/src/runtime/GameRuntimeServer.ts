@@ -27,6 +27,7 @@ import { buildContentPrompt, buildGameplayPrompt, buildValidationRetryPrompt, su
 import { parseModelListResponse } from "./modelList";
 import { ReplayLogger } from "./replay";
 import { StateStore } from "./stateStore";
+import { normalizeAgentTurnOutput } from "./agentOutput";
 import type { BuildRequestResult, CompletedTurn, SessionSnapshot, ThreadIds, TurnUsage } from "./types";
 
 type PendingTurnCollector = {
@@ -681,10 +682,11 @@ export class GameRuntimeServer {
     const godMessages = [...(this.godQueueByAgent.get(agentId) ?? [])];
     this.godQueueByAgent.set(agentId, []);
     const content = this.contentStore.getContent();
+    const personaPrompt = this.agentConfigs.get(agentId)?.personaPrompt;
 
     const prompt = isRetry
       ? buildValidationRetryPrompt(previousText)
-      : buildGameplayPrompt(snapshot, agentId, godMessages, content);
+      : buildGameplayPrompt(snapshot, agentId, godMessages, content, personaPrompt);
 
     let turn: CompletedTurn;
     try {
@@ -706,7 +708,8 @@ export class GameRuntimeServer {
 
     let parsed;
     try {
-      parsed = agentTurnOutputSchema.parse(JSON.parse(turn.text));
+      const normalizedOutput = normalizeAgentTurnOutput(JSON.parse(turn.text), snapshot, agentId);
+      parsed = agentTurnOutputSchema.parse(normalizedOutput);
     } catch {
       this.metrics.onInvalidOutput();
       this.invalidStreakByAgent.set(agentId, (this.invalidStreakByAgent.get(agentId) ?? 0) + 1);

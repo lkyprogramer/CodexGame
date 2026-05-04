@@ -1,0 +1,19 @@
+{
+  "task_id": "java_transaction_partial_commit",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_transaction_partial_commit\nScenario: Order update spans multiple repositories without a transaction boundary.\n\nInstructions:\nReview the update flow and identify the highest-risk data consistency bug. Propose the smallest safe fix and explain why it is enough.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/order/OrderService.java ===\npackage com.example.order;\n\nimport java.time.Instant;\n\npublic class OrderService {\n    private final InventoryRepository inventoryRepository;\n    private final OrderRepository orderRepository;\n    private final AuditRepository auditRepository;\n\n    public OrderService(\n            InventoryRepository inventoryRepository,\n            OrderRepository orderRepository,\n            AuditRepository auditRepository) {\n        this.inventoryRepository = inventoryRepository;\n        this.orderRepository = orderRepository;\n        this.auditRepository = auditRepository;\n    }\n\n    public void confirm(long orderId, int quantity) {\n        inventoryRepository.reserve(orderId, quantity);\n        auditRepository.record(\"ORDER_RESERVED\", orderId, Instant.now());\n        orderRepository.markConfirmed(orderId, Instant.now());\n    }\n}\n\n=== File: src/main/java/com/example/order/InventoryRepository.java ===\npackage com.example.order;\n\npublic interface InventoryRepository {\n    void reserve(long orderId, int quantity);\n}\n\n=== File: src/main/java/com/example/order/OrderRepository.java ===\npackage com.example.order;\n\nimport java.time.Instant;\n\npublic interface OrderRepository {\n    void markConfirmed(long orderId, Instant confirmedAt);\n}\n\n=== File: src/main/java/com/example/order/AuditRepository.java ===\npackage com.example.order;\n\nimport java.time.Instant;\n\npublic interface AuditRepository {\n    void record(String eventType, long aggregateId, Instant createdAt);\n}\n"
+      }
+    ],
+    "max_tokens": 1000,
+    "stream": false
+  }
+}

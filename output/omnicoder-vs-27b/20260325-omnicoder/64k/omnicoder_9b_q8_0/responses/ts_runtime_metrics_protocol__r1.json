@@ -1,0 +1,40 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 26288.9548750245,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "# Protocol-First Runtime Metrics Exposure\n\n## Analysis\n\nThe server already has `MetricsTracker` with `turnsTotal`, `invalidOutputCount`, `actionAppliedCount`, `actionRejectedCount`, and `queuedActions`. The client HUD needs these values exposed via the protocol.\n\n## Changes Required\n\n### 1. Protocol: Add `runtime.metrics` Message Type\n\n**File:** `packages/protocol/src/messages.ts`\n\nAdd a new message type to `ServerMessage` union and update the Zod schema:\n\n```typescript\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"world.snapshot\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"agent.turn\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"agent.action\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"agent.feed\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"build.result\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"error\";\n      payload: { ... };\n    }\n  | {\n      version: Version;\n      type: \"runtime.metrics\";\n      payload: {\n        turnsTotal: number;\n        invalidOutputCount: number;\n        actionAppliedCount: number;\n        actionRejectedCount: number;\n        queuedActions: number;\n      };\n    };\n```\n\nAdd corresponding Zod schema entry in `clientMessageSchema` (for client-side validation if needed) or create a `serverMessageSchema` for runtime validation.\n\n### 2. Runtime Server: Emit Metrics Snapshot\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nAdd a new helper method and call it periodically:\n\n```typescript\nprivate sendMetricsSnapshot(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"runtime.metrics\",\n    payload: {\n      turnsTotal: this.metrics.metrics.turnsTotal,\n      invalidOutputCount: this.metrics.metrics.invalidOutputCount,\n      actionAppliedCount: this.metrics.metrics.actionAppliedCount,\n      actionRejectedCount: this.metrics.metrics.actionRejectedCount,\n      queuedActions: this.metrics.metrics.queuedActions\n    }\n  });\n}\n```\n\nCall `sendMetricsSnapshot()` from the `tick()` method after queue depth is updated, and also in `sendSessionState()`.\n\n### 3. Client HUD: Display Runtime Metrics\n\n**File:** `apps/game-client/src/App.tsx`\n\nAdd state and HUD section:\n\n```typescript\nconst [metrics, setMetrics] = useState({\n  turnsTotal: 0,\n  invalidOutputCount: 0,\n  actionAppliedCount: 0,\n  actionRejectedCount: 0,\n  queuedActions: 0\n});\n\n// In message handler:\ncase \"runtime.metrics\":\n  setMetrics(payload);\n  return;\n\n// Add new HUD card for metrics\n<div className=\"hud-card\">\n  <button\n    type=\"button\"\n    className=\"hud-card-toggle\"\n    onClick={() => toggleHudSection(\"metrics\")}\n    aria-expanded={!collapsedHudSections.metrics}\n  >\n    <span>Runtime Metrics</span>\n    <span className=\"hud-card-toggle-icon\">{collapsedHudSections.metrics ? \"+\" : \"-\"}</span>\n  </button>\n",
+          "reasoning_content": "The user wants to expose runtime metrics to the client HUD in a protocol-first way. Looking at the project:\n\n1. **Server-side metrics exist** in `apps/game-runtime/src/runtime/metrics.ts` with a `MetricsTracker` class tracking:\n   - `turnsTotal`\n   - `invalidOutputCount`\n   - `actionAppliedCount`\n   - `actionRejectedCount`\n   - `queuedActions`\n\n2. **Protocol already has** `ServerMessage` types defined in `packages/protocol/src/messages.ts`\n\n3. **Client HUD** (`apps/game-client/src/App.tsx`) already receives `session.state` messages and displays some runtime info like `runtimeQueueAhead` (which comes from `maxQueuedActionsBeforeTurn` config, not the actual runtime metrics)\n\nThe smallest protocol-first change would be:\n\n1. Add a new message type `runtime.metrics` to the protocol that exposes the current metrics snapshot\n2. Have the server emit this message periodically or on key events (like after each turn)\n3. Update the client to display these metrics in the HUD\n\nLet me trace through what's needed:\n\n**Protocol changes (`packages/protocol/src/messages.ts`):**\n- Add `runtime.metrics` message type to `ServerMessage` union\n- Update the Zod schema for `serverMessageSchema` (if it exists) or create one\n\n**Runtime server changes (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`):**\n- Periodically emit the metrics snapshot to clients\n- Already has `metrics` instance that can provide `snapshot()`\n\n**Client changes (`apps/game-client/src/App.tsx`):**\n- Add state to store metrics\n- Display metrics in HUD (add a new HUD section or update existing)\n\nLet me check the current protocol structure more carefully:\n\nLooking at `messages.ts`, I see `ServerMessage` is a union type with several message types. I need to add a new type for runtime metrics.\n\n\nNow I'll implement the changes across all three files. I'll add the metrics message type to the protocol, make the server emit it at appropriate intervals, and wire up the client to display the data in the HUD.\n"
+        }
+      }
+    ],
+    "created": 1774446357,
+    "model": "bench/omnicoder-9b-q8_0",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24299,
+      "total_tokens": 25549
+    },
+    "id": "chatcmpl-NkQKjq6AXHUKmdldzo9vZYHlYXk5MfqD",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24299,
+      "prompt_ms": 3512.631,
+      "prompt_per_token_ms": 0.14455866496563644,
+      "prompt_per_second": 6917.606773953769,
+      "predicted_n": 1250,
+      "predicted_ms": 15551.258,
+      "predicted_per_token_ms": 12.4410064,
+      "predicted_per_second": 80.3793493748223
+    }
+  }
+}

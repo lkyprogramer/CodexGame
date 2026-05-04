@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 8416.833625000436,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk consistency bug**\n\nThe `ContentStore.applyOperations` method builds a new `ContentSet` in memory, then **writes the three JSON files (`prefabs.json`, `recipes.json`, `world_rules.json`) with `Promise.all` using the `writeJsonAtomic` helper.  \nIf any one of those writes fails (e.g. the process is killed while the temporary file is being created, the rename fails, or the filesystem is out of space), the other two files may already have been atomically replaced while the third is still the old version. The in‑memory `this.content` is also updated *after* the `await Promise.all`, so a crash after the `await` would leave the on‑disk files inconsistent with the in‑memory state.\n\nBecause the build‑request flow (`GameRuntimeServer.runBuildRequest`) calls `applyOperations` and then returns the result to the client, a partial write would let the client see a successful build result while the persisted files are corrupted. Subsequent loads of the content store would then throw schema‑validation errors or silently load a mismatched state, breaking the “atomic writes and schema‑first validation under partial failure” guarantee.\n\n**Root cause**\n\n`Promise.all` does not guarantee that *all* writes succeed before the function returns. If one write rejects, the remaining writes that already succeeded stay on disk, leaving the three files in an inconsistent state.\n\n**Smallest safe fix**\n\nReplace the `Promise.all` call with a sequential write that only updates `this.content` after **all** three atomic writes have succeeded. This guarantees that either all files are written or none are, preserving the atomic‑write contract.\n\n```ts\n// apps/game-runtime/src/runtime/contentStore.ts\n// -------------------------------------------------------------------\n// Replace the existing write block in applyOperations with the\n// sequential version below (only 4 lines changed).\n// -------------------------------------------------------------------\nawait Promise.all([\n  writeJsonAtomic(prefabsPath, next.prefabs),\n  writeJsonAtomic(recipesPath, next.recipes),\n  writeJsonAtomic(worldRulesPath, {\n    biomeRules: next.biomeRules,\n    spawnRules: next.spawnRules\n  })\n]);\n\n// NEW: write each file one‑by‑one and only then update in‑memory state\nawait writeJsonAtomic(prefabsPath, next.prefabs);\nawait writeJsonAtomic(recipesPath, next.recipes);\nawait writeJsonAtomic(worldRulesPath, {\n  biomeRules: next.biomeRules,\n  spawnRules: next.spawnRules\n]);\n\n// now the in‑memory state is guaranteed to match the persisted files\nthis.content = next;\n```\n\n**Why this is the minimal fix**\n\n* Only the `applyOperations` method is touched – no changes to the public API, no new dependencies.\n* The `writeJsonAtomic` implementation already does an atomic rename, so each file is written safely on its own.\n* By awaiting each write sequentially we ensure that a failure in any one step aborts the whole operation; the `catch` in the caller (`runBuildRequest`) will surface the error and no partial files remain.\n* The rest of the class (loading, parsing, etc.) stays untouched, preserving existing behavior.\n\n**Exact files to change**\n\n* `apps/game-runtime/src/runtime/contentStore.ts` – replace the `Promise.all` block with three sequential `await writeJsonAtomic` calls and move `this.content = next` after them (the `return` can stay after the updates).\n\n**Regression checks**\n\n1. **Unit test** – the existing `contentStore.test.ts` already verifies that an invalid operation does *not* cause a partial write. After the change the test should still pass, confirming that the file set is unchanged when an operation fails.\n2. **Integration test** – run `ui-contract.integration.test.ts` to ensure the message envelope handling still works; the change does not affect the protocol layer.\n3. **Manual sanity** – start the server, issue a `build.request` that succeeds, then kill the process after the first atomic write (e.g., by sending `SIGTERM` from another terminal). On restart, the `load` should either:\n   * throw a schema validation error (if the kill happened mid‑write) – the build request should have returned an error, **or**\n   * load cleanly with the same content as before (if the write completed).  \n   This validates that either all files are present or none are, matching the atomic guarantee.\n\nWith this change the build flow will no longer leave the content directory in an inconsistent state under partial failure, satisfying the requirement for atomic writes and schema‑first validation."
+        }
+      }
+    ],
+    "created": 1774490976,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 976,
+      "prompt_tokens": 13517,
+      "total_tokens": 14493
+    },
+    "id": "chatcmpl-CovLoIzt0ahRxF9c1LAZkp3vZ0Tdcd9M",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 13517,
+      "prompt_ms": 1733.027,
+      "prompt_per_token_ms": 0.12821091958274766,
+      "prompt_per_second": 7799.647668501413,
+      "predicted_n": 976,
+      "predicted_ms": 4898.867,
+      "predicted_per_token_ms": 5.019330942622951,
+      "predicted_per_second": 199.22974026443256
+    }
+  }
+}

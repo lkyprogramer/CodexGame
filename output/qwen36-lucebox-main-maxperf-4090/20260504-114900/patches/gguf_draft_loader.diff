@@ -1,0 +1,53 @@
+--- /Users/luo/Documents/github/lucebox-hub/dflash/src/gguf_draft_loader.cpp	2026-05-04 11:43:49
++++ /Users/luo/Documents/github/CodexGame/output/qwen36-lucebox-main-maxperf-4090/20260504-114900/patches/gguf_draft_loader.cpp	2026-05-04 12:51:23
+@@ -132,16 +132,17 @@
+             return false;
+         }
+         const char * arch = gguf_get_val_str(gctx, arch_id);
+-        if (std::string(arch) != "qwen35-dflash-draft") {
++        const std::string arch_name(arch);
++        if (arch_name != "qwen35-dflash-draft" && arch_name != "dflash-draft") {
+             set_last_error(std::string("unexpected draft arch: ") + arch +
+-                           " (expected qwen35-dflash-draft)");
++                           " (expected qwen35-dflash-draft or dflash-draft)");
+             gguf_free(gctx);
+             return false;
+         }
+     }
+ 
+     // Read dimensions from GGUF metadata
+-    const char * A = "qwen35-dflash-draft";
++    const char * A = gguf_get_val_str(gctx, gguf_find_key(gctx, "general.architecture"));
+     char key[128];
+ 
+     auto read_u32 = [&](const char * suffix, uint32_t fallback) -> uint32_t {
+@@ -156,7 +157,10 @@
+     const uint32_t n_head_kv = read_u32("attention.head_count_kv", 0);
+     const uint32_t head_dim  = read_u32("attention.key_length",    0);
+     const uint32_t block_sz  = read_u32("dflash.block_size",       0);
+-    const uint32_t n_tgt_lay = read_u32("dflash.n_target_layers",  0);
++    uint32_t n_tgt_lay = read_u32("dflash.n_target_layers",  0);
++    if (n_tgt_lay == 0 && std::string(A) == "dflash-draft") {
++        n_tgt_lay = DFLASH27B_DRAFT_N_TARGET_LAYERS;
++    }
+ 
+     if (n_embd == 0 || n_layer == 0 || n_ff == 0 || n_head == 0 ||
+         n_head_kv == 0 || head_dim == 0) {
+@@ -225,7 +229,9 @@
+     };
+ 
+     out.fc          = g("dflash.fc.weight");
++    if (!out.fc) out.fc = g("dflash_fc.weight");
+     out.hidden_norm = g("dflash.hidden_norm.weight");
++    if (!out.hidden_norm) out.hidden_norm = g("dflash_hidden_norm.weight");
+     out.out_norm    = g("output_norm.weight");
+     if (!out.fc || !out.hidden_norm || !out.out_norm) {
+         set_last_error("draft GGUF: missing top-level tensors "
+@@ -243,6 +249,7 @@
+         DraftLayer & L = out.layers[il];
+         L.attn_norm = fnd("attn_norm.weight");
+         L.ffn_norm  = fnd("ffn_norm.weight");
++        if (!L.ffn_norm) L.ffn_norm = fnd("post_attention_norm.weight");
+         L.wq        = fnd("attn_q.weight");
+         L.wk        = fnd("attn_k.weight");
+         L.wv        = fnd("attn_v.weight");

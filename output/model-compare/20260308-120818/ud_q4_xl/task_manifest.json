@@ -1,0 +1,215 @@
+[
+  {
+    "task_id": "java_null_nested_config",
+    "family": "java",
+    "description": "Optional nested config causes startup-time null handling bug.",
+    "max_tokens": 900,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the highest-risk correctness bug. Explain the root cause and give the smallest production-safe patch plan. Keep the fix minimal and localized.",
+    "context_files": [
+      "src/main/java/com/example/config/AppConfig.java",
+      "src/main/java/com/example/config/DatabaseConfig.java",
+      "src/main/java/com/example/config/DataSourceFactory.java",
+      "src/main/java/com/example/bootstrap/StartupListener.java"
+    ],
+    "hidden_checklist": [
+      "Identify null handling risk in config.getDatabase() / getJdbcUrl().",
+      "Keep the fix in DataSourceFactory or immediate caller instead of broad rewrites.",
+      "Mention trim safety and missing optional config path.",
+      "Include startup regression checks for missing database config."
+    ]
+  },
+  {
+    "task_id": "java_transaction_partial_commit",
+    "family": "java",
+    "description": "Order update spans multiple repositories without a transaction boundary.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the update flow and identify the highest-risk data consistency bug. Propose the smallest safe fix and explain why it is enough.",
+    "context_files": [
+      "src/main/java/com/example/order/OrderService.java",
+      "src/main/java/com/example/order/InventoryRepository.java",
+      "src/main/java/com/example/order/OrderRepository.java",
+      "src/main/java/com/example/order/AuditRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify missing transaction boundary across inventory/order/audit DB writes.",
+      "Explain partial commit risk if markConfirmed fails after reserve/audit.",
+      "Prefer the minimal fix such as adding a transactional boundary to the service flow.",
+      "Mention regression checks for mid-flow failure rollback."
+    ]
+  },
+  {
+    "task_id": "java_path_body_id_mismatch",
+    "family": "java",
+    "description": "Controller trusts request body identifier over path identifier.",
+    "max_tokens": 900,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the most dangerous API contract bug and give the minimal fix. Assume this endpoint is public and used by multiple clients.",
+    "context_files": [
+      "src/main/java/com/example/account/UpdateAccountRequest.java",
+      "src/main/java/com/example/account/AccountController.java",
+      "src/main/java/com/example/account/AccountService.java"
+    ],
+    "hidden_checklist": [
+      "Identify path-vs-body identifier trust bug.",
+      "Recommend path variable as source of truth and mismatch validation/removal of body accountId.",
+      "Keep fix minimal in controller/request contract instead of wide service rewrite.",
+      "Mention regression test for mismatched IDs."
+    ]
+  },
+  {
+    "task_id": "java_audit_success_on_failure",
+    "family": "java",
+    "description": "Audit log currently records a successful change even when the write fails.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Review the flow and identify the most serious audit consistency bug. Give the smallest safe patch plan.",
+    "context_files": [
+      "src/main/java/com/example/profile/ProfileService.java",
+      "src/main/java/com/example/profile/ProfileRepository.java",
+      "src/main/java/com/example/profile/AuditRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify that finally always records success even if save throws.",
+      "Move success audit after successful persistence or separate success/failure events.",
+      "Preserve minimal change rather than redesigning audit subsystem.",
+      "Mention regression test for repository save failure."
+    ]
+  },
+  {
+    "task_id": "java_pagination_boundary",
+    "family": "java",
+    "description": "Pagination code has an index boundary bug and unstable empty-page behavior.",
+    "max_tokens": 900,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the concrete correctness bug in this pagination flow and propose the smallest patch. Be explicit about what happens on the last page and on out-of-range requests.",
+    "context_files": [
+      "src/main/java/com/example/user/UserQueryService.java",
+      "src/main/java/com/example/user/UserRepository.java",
+      "src/main/java/com/example/user/InMemoryUserRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify subList end index is exclusive and may throw when end exceeds size.",
+      "Handle offset >= size by returning empty list.",
+      "Use minimal boundary clamp such as min(offset + size, users.size()).",
+      "Mention tests for last page and out-of-range page."
+    ]
+  },
+  {
+    "task_id": "java_optimistic_lock_missing",
+    "family": "java",
+    "description": "Version field exists but update flow does not actually enforce optimistic locking.",
+    "max_tokens": 1050,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the concurrency bug and propose the smallest production-safe fix. Assume this method is hit concurrently from two admin consoles.",
+    "context_files": [
+      "src/main/java/com/example/order/Order.java",
+      "src/main/java/com/example/order/OrderRepository.java",
+      "src/main/java/com/example/order/OrderService.java",
+      "src/main/java/com/example/order/JdbcOrderRepository.java"
+    ],
+    "hidden_checklist": [
+      "Identify version field is ignored in the update predicate.",
+      "Recommend update where id and version match, then detect stale update failure.",
+      "Keep fix minimal in repository SQL/return contract rather than redesigning service.",
+      "Mention concurrent update regression test."
+    ]
+  },
+  {
+    "task_id": "java_enum_db_compat",
+    "family": "java",
+    "description": "Database enum values no longer match Java enum names after a migration.",
+    "max_tokens": 1000,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the compatibility bug introduced by this migration and suggest the smallest safe patch. Assume existing production rows already use the migrated values.",
+    "context_files": [
+      "src/main/resources/db/migration/V42__payment_state_lowercase.sql",
+      "src/main/java/com/example/payment/PaymentState.java",
+      "src/main/java/com/example/payment/PaymentRecordDO.java",
+      "src/main/java/com/example/payment/PaymentMapper.java"
+    ],
+    "hidden_checklist": [
+      "Identify migration changed DB values to lowercase while valueOf expects enum constant names.",
+      "Recommend explicit fromDb mapping or stable code-based mapping.",
+      "Keep fix localized to mapper/enum instead of rewriting migration history.",
+      "Mention regression coverage for old and new DB values."
+    ]
+  },
+  {
+    "task_id": "java_soft_delete_unique_email",
+    "family": "java",
+    "description": "Soft-deleted rows still participate in uniqueness checks and block re-registration.",
+    "max_tokens": 950,
+    "repeat_group": "java-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Find the highest-risk bug in this registration flow and propose the smallest safe fix. Assume soft-deleted accounts should not block a new registration.",
+    "context_files": [
+      "src/main/java/com/example/user/UserService.java",
+      "src/main/java/com/example/user/UserRepository.java",
+      "src/main/java/com/example/user/JdbcUserRepository.java",
+      "src/main/resources/db/migration/V18__add_user_soft_delete.sql"
+    ],
+    "hidden_checklist": [
+      "Identify existsByEmail ignores soft delete state.",
+      "Recommend filtering active rows only, not a service-layer workaround.",
+      "Mention partial unique index or data-level follow-up as optional longer-term hardening.",
+      "Include regression for re-registering after soft delete."
+    ]
+  },
+  {
+    "task_id": "ts_boot_restore_consistency",
+    "family": "ts",
+    "description": "Boot-time restore can expose an inconsistent running state before threads are restored.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Given the real project files below, identify the highest-risk restore consistency bug and propose the smallest maintainable fix. Preserve atomic persistence and avoid duplicate thread creation.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Identify restore path sets a running-visible state before thread restoration is complete.",
+      "Mention threadIds restore/bootstrap ordering and idempotent thread recreation.",
+      "Respect protocol/client contract instead of patching runtime only.",
+      "Preserve stateStore atomic tmp+rename behavior.",
+      "Include contract/integration test updates."
+    ]
+  },
+  {
+    "task_id": "ts_runtime_metrics_protocol",
+    "family": "ts",
+    "description": "Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.",
+    "max_tokens": 1250,
+    "repeat_group": "ts-core",
+    "developer_message": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs.",
+    "user_request": "Using the real project files below, propose the smallest protocol-first change set to expose runtime metrics to the client HUD. Keep simulation authority in runtime and add the right contract tests.",
+    "context_files": [
+      "apps/game-runtime/src/runtime/metrics.ts",
+      "apps/game-runtime/src/runtime/types.ts",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "packages/protocol/src/messages.ts",
+      "apps/game-client/src/App.tsx",
+      "apps/game-client/src/components/GodConsoleSidebar.tsx",
+      "apps/game-runtime/test/ui-contract.integration.test.ts"
+    ],
+    "hidden_checklist": [
+      "Start from protocol messages rather than ad-hoc runtime/client fields.",
+      "Use MetricsTracker.snapshot() as the source of truth.",
+      "Expose metrics through session-state-like runtime state, not world snapshot.",
+      "Keep client presentation-only and add contract test coverage."
+    ]
+  }
+]

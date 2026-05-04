@@ -1,0 +1,42 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 56282.218541000475,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "<think>\n\n</think>\n\n### Reconciliation Strategy & Edge-Case Guards\n\n**Matching Strategy:**\n1.  **Primary Key:** `merchant_order_id`\n2.  **Secondary Key (Fallback):** `provider_txn_id` (used only if `merchant_order_id` is missing or ambiguous, though in this schema, `merchant_order_id` is the primary business key).\n3.  **Normalization:**\n    *   Strip BOM (Byte Order Mark) from UTF-8 files.\n    *   Skip blank lines and lines containing only whitespace.\n    *   Ignore duplicate header rows (e.g., if a file is appended to).\n    *   Trim whitespace from all cell values.\n\n**Edge-Case Guards:**\n*   **Duplicates:** If a `merchant_order_id` appears multiple times in a single file, flag as `DUPLICATE_IN_SOURCE`.\n*   **Missing Rows:** Rows present in one file but not the other are flagged as `MISSING_IN_SOURCE_A` or `MISSING_IN_SOURCE_B`.\n*   **Stale Refunds:** If status is `REFUNDED` but the `updated_at` timestamp in the Merchant Statement is older than the Finance Export (indicating the refund might be stale or out of sync), flag as `STALE_REFUND`.\n*   **Amount Mismatch:** If `amount_cents` differs between sources for the same order, flag as `AMOUNT_MISMATCH`.\n\n**Output Files:**\n1.  `reconciliation_report.csv`: Machine-readable, one row per unique order with a `status` column indicating the reconciliation result.\n2.  `reconciliation_summary.txt`: Human-readable text summary of counts and critical issues.\n\n---\n\n### Production-Safe Python Script\n\nSave this as `scripts/reconcile_csv.py`.\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReconciliation Script for Finance and Merchant CSV Exports.\nHandles duplicates, blank rows, BOMs, and mismatched statuses.\n\"\"\"\n\nimport csv\nimport sys\nimport os\nfrom collections import defaultdict\nfrom datetime import datetime\nfrom typing import Dict, List, Tuple, Any\n\n# Configuration\nSOURCE_A = \"samples/finance_export.csv\"\nSOURCE_B = \"samples/merchant_statement.csv\"\nOUTPUT_CSV = \"reconciliation_report.csv\"\nOUTPUT_SUMMARY = \"reconciliation_summary.txt\"\n\ndef normalize_row(row: Dict[str, str]) -> Dict[str, str]:\n    \"\"\"Strip whitespace and ensure consistent key casing.\"\"\"\n    return {k.strip(): v.strip() for k, v in row.items() if k.strip()}\n\ndef parse_timestamp(ts: str) -> datetime:\n    \"\"\"Parse ISO 8601 timestamp.\"\"\"\n    try:\n        # Handle potential 'Z' suffix\n        if ts.endswith('Z'):\n            ts = ts[:-1] + '+00:00'\n        return datetime.fromisoformat(ts)\n    except ValueError:\n        return None\n\ndef load_csv(filepath: str) -> Tuple[List[Dict], List[str]]:\n    \"\"\"\n    Load CSV, handling BOM, blank lines, and duplicate headers.\n    Returns (list of normalized rows, list of unique keys found).\n    \"\"\"\n    rows = []\n    seen_keys = set()\n    header_seen = False\n    \n    if not os.path.exists(filepath):\n        raise FileNotFoundError(f\"File not found: {filepath}\")\n\n    with open(filepath, 'r', encoding='utf-8-sig', newline='') as f:\n        # Read all lines to handle potential BOM or weird line endings\n        content = f.read()\n        \n    # Split lines and filter empty ones\n    lines = [line.strip() for line in content.splitlines() if line.strip()]\n    \n    if not lines:\n        return [], []\n\n    # Use csv.reader on the content string to handle quoting correctly\n    reader = csv.reader(lines)\n    \n    for i, row in enumerate(reader):\n        if not row or all(not cell.strip() for cell in row):\n            continue\n            \n        # Detect header row (simple heuristic: contains expected column names)\n        if i == 0 or (row[0].lower() == 'merchant_order_id' and row[1].lower() == 'provider_txn_id'):\n            if not header_seen:\n                header_seen = True\n                # Normalize headers\n                headers = [h.strip() for h in row]\n                continue\n            else:\n                # Duplicate header row detected, skip\n                continue\n        \n        if not header_seen:\n            # Skip non-header rows if header wasn't found yet (malformed file)\n            continue\n\n        normalized = normalize_row(dict(zip(headers, row)))\n        if not normalized:\n            continue\n            \n        rows.append(normalized)\n\n    return rows, []\n\ndef reconcile(source_a_rows: List[Dict], source_b_rows: List[Dict]) -> List[Dict]:\n    \"\"\"\n    Perform reconciliation logic.\n    Returns list of result dictionaries.\n    \"\"\"\n    # Index by merchant_order_id\n    # Value: list of rows (to detect duplicates)\n    idx_a: Dict[str, List[Dict]] = defaultdict(list)\n    idx_b: Dict[str, List[Dict]] = defaultdict(list)\n\n    for row in source_a_rows:\n        key = row.get('merchant_order_id', '').strip()\n        if key:\n            idx_a[key].append(row)\n        else:\n            # Handle rows without ID if necessary, skipping for now\n            pass\n\n    for row in source_b_rows:\n        key = row.get('merchant_order_id', '').strip()\n        if key:\n            idx_b[key].append(row)\n\n    all_keys = set(idx_a.keys()) | set(idx_b.keys())\n    results = []\n\n    for key in sorted(all_keys):\n        rows_a = idx_a.get(key, [])\n        rows_b = idx_b.get(key, [])\n        \n        # Check for duplicates within a single source\n        if len(rows_a) > 1:\n            results.append({\n                'merchant_order_id': key,\n                'provider_txn_id': rows_a[0]."
+        }
+      }
+    ],
+    "created": 1775318335,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b50-9c69907",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896,
+      "prompt_tokens_details": {
+        "cached_tokens": 2
+      }
+    },
+    "id": "chatcmpl-60RT8dB9iL9qwTbmd9Bhku7im4SPdPxK",
+    "timings": {
+      "cache_n": 2,
+      "prompt_n": 594,
+      "prompt_ms": 226.51,
+      "prompt_per_token_ms": 0.3813299663299663,
+      "prompt_per_second": 2622.4007770076378,
+      "predicted_n": 1300,
+      "predicted_ms": 9543.573,
+      "predicted_per_token_ms": 7.34121,
+      "predicted_per_second": 136.21732657150523
+    }
+  }
+}

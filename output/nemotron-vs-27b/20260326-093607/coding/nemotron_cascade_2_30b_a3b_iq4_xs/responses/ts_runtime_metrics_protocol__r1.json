@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11578.842584014637,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Proposed change set (protocol‑first, minimal, safe)**  \n\n| File | Change | Why |\n|------|--------|-----|\n| `apps/game-runtime/src/runtime/metrics.ts` | Add a public `toJson(): string` that serialises the internal `RuntimeMetrics` to a JSON string. | Gives the server a cheap way to expose the metrics without touching the rest of the runtime code. |\n| `apps/game-runtime/src/runtime/types.ts` | Add a new `type RuntimeMetricsMessage = { version: typeof PROTOCOL_VERSION; type: \"runtime.metrics\"; payload: RuntimeMetrics }` and extend `ServerMessage` with this case. | The protocol must carry the metrics in a contract‑first way. |\n| `apps/game-runtime/src/runtime/GameRuntimeServer.ts` | 1. Import the new `RuntimeMetricsMessage` type. 2. In `sendSessionState()` (or a new `sendMetrics()`) emit a `runtime.metrics` message that contains `metrics.toJson()`. 3. In `persistSession()` (optional) keep the existing `metrics.snapshot()` – the new message will be sent on every tick/world‑snapshot as before. | The server now pushes the metrics to every connected client in a well‑defined envelope. |\n| `apps/game-runtime/src/runtime/types.ts` (same file) | Extend `ServerMessage` discriminated union to include the new `runtime.metrics` case. | Guarantees type‑safety for both server and client. |\n| `apps/game-client/src/components/GodConsoleSidebar.tsx` | Add a new `useEffect` that listens for `runtime.metrics` messages and stores them in local state (`runtimeMetrics`). Render a small HUD widget that shows the five counters. | The client can now display the metrics without any further protocol changes. |\n| `apps/game-client/src/App.tsx` | Pass the `runtimeMetrics` state down to `GodConsoleSidebar` and render the counters. | UI surface for the new data. |\n| `apps/game-runtime/test/ui-contract.integration.test.ts` | Add a contract test that verifies a `runtime.metrics` message can be parsed and that its payload matches `RuntimeMetrics`. | Guarantees the contract is respected. |\n\n---\n\n### 1. `apps/game-runtime/src/runtime/metrics.ts`\n\n```ts\nimport type { RuntimeMetrics } from \"./types\";\n\nexport class MetricsTracker {\n  // … existing code unchanged …\n\n  public onTurnCompleted(): void {\n    this.metrics.turnsTotal += 1;\n  }\n  // … other handlers unchanged …\n\n  /** Return a *copy* of the metrics as a plain object. */\n  public toJson(): string {\n    return JSON.stringify(this.snapshot());\n  }\n\n  public snapshot(): RuntimeMetrics {\n    return { ...this.metrics };\n  }\n}\n```\n\n*Only a tiny helper is added – no behavioural change.*\n\n---\n\n### 2. `apps/game-runtime/src/runtime/types.ts`\n\n```ts\nimport { z } from \"zod\";\nimport type { ServerMessage } from \"./GameRuntimeServer\"; // keep existing imports\n\n// ------------------------------------------------------------------\n// 1️⃣  Runtime metrics payload\n// ------------------------------------------------------------------\nexport const RuntimeMetricsSchema = z.object({\n  turnsTotal: z.number().int().nonnegative(),\n  invalidOutputCount: z.number().int().nonnegative(),\n  actionAppliedCount: z.number().int().nonnegative(),\n  actionRejectedCount: z.number().int().nonnegative(),\n  queuedActions: z.number().int().nonnegative(),\n});\n\nexport type RuntimeMetrics = z.infer<typeof RuntimeMetricsSchema>;\n\n// ------------------------------------------------------------------\n// 2️⃣  ServerMessage – add a new case for the client‑side metrics\n// ------------------------------------------------------------------\nexport const ServerMessageSchema = z.discriminatedUnion(\"type\", [\n  // … existing cases …\n  {\n    version: z.literal(PROTOCOL_VERSION),\n    type: z.literal(\"runtime.metrics\"),\n    payload: RuntimeMetricsSchema,\n  },\n]);\n\nexport type ServerMessage = z.infer<typeof ServerMessageSchema>;\n\n// ------------------------------------------------------------------\n// 3️⃣  Existing ServerMessage export (unchanged) – the union now includes the new case.\n// ------------------------------------------------------------------\n```\n\n*Only the new type/message is added; the rest of the file stays the same.*\n\n---\n\n### 3. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n```ts\nimport {\n  // … existing imports …\n  ServerMessage,\n  RuntimeMetrics,\n  // …\n} from \"@codexgame/protocol\";\n\n/* … existing class definition … */\n\nexport class GameRuntimeServer {\n  /* … existing fields … */\n\n  private readonly metrics = new MetricsTracker();\n\n  /* … existing methods … */\n\n  /** Send the current metrics to every connected client. */\n  private sendMetrics(): void {\n    const msg: ServerMessage = {\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: this.metrics.snapshot(),\n    };\n    const encoded = encodeServerMessage(msg);\n    for (const client of this.clients) {\n      if (client.readyState === client.OPEN) {\n        client.send(encoded);\n      }\n    }\n  }\n\n  /* ------------------------------------------------------------------ */\n  /* 1️⃣  In tick() – after metrics are updated, push them.               */\n  /* ------------------------------------------------------------------ */\n  private tick(): void {\n    if (!this.simulation || this.phase !== \"running\") {\n      return;\n    }\n\n    if (this.paused) {\n      this.metrics.setQueueDepth(this.totalQueuedActions());\n      this.sendMetrics();          // <-- NEW\n      return;\n    }\n\n    this.simulation.tick();\n\n    const agents = this.simulation.getState().agents.map((agent) => agent.id).sort();\n    for (const agentId of agents) {\n     "
+        }
+      }
+    ],
+    "created": 1774490900,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 22650,
+      "total_tokens": 23900
+    },
+    "id": "chatcmpl-3hRRFA9jMADaSzEknVhK4jgjnRIzi0Kg",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 22650,
+      "prompt_ms": 2988.74,
+      "prompt_per_token_ms": 0.1319532008830022,
+      "prompt_per_second": 7578.444428086752,
+      "predicted_n": 1250,
+      "predicted_ms": 6534.004,
+      "predicted_per_token_ms": 5.2272032,
+      "predicted_per_second": 191.30689237410934
+    }
+  }
+}

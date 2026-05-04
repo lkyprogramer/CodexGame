@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7382.95037500211,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to produce a Python script that reconciles two CSV exports, handling duplicate rows, blank lines, BOM, etc. Provide matching strategy, output files, edge-case guards. Provide script skeleton. Must be production-safe, small. Provide exact matching strategy: first match on merchant_order_id, then provider_txn_id as fallback. Flag duplicates, missing rows, stale refunds, amount mismatches. Output: machine-readable CSV (maybe reconciliation report) and human-readable summary (maybe printed). Edge cases: duplicate rows in input, blank lines, BOM, duplicate header rows.\n\nWe need to reference exact files: samples/finance_export.csv, samples/merchant_statement.csv, docs/reconcile_rules.md. Provide script that reads both CSVs robustly (using csv module with handling for BOM, skip blank lines, ignore duplicate header rows). Use OrderedDict or dict to store rows keyed by (merchant_order_id, provider_txn_id). For matching: first try to match by merchant_order_id (maybe multiple rows with same order id but different txn id). Actually rule: match by merchant_order_id first, then provider_txn_id as fallback. Means we should try to find a row in other file with same merchant_order_id; if multiple, then match by provider_txn_id. Simpler: use composite key (merchant_order_id, provider_txn_id) as primary; but fallback: if merchant_order_id matches but provider_txn_id differs, consider as match? Might be ambiguous. We can implement: first attempt to match by merchant_order_id (allow any provider_txn_id). If exactly one row with that order id in other file, match; else if multiple, then match by provider_txn_id.\n\nEdge cases: duplicate rows in input (like O-1003 appears twice). Should flag duplicate rows (maybe count duplicates). Missing rows: order present in one but not other. Stale refunds: maybe status REFUNDED vs SETTLED? Not clear. We'll just flag if status differs between files for same order.\n\nImplement script: parse args for file paths, output files.\n\nWe'll produce script skeleton with functions: read_csv(path) -> list of dicts, handling BOM, blank lines, duplicate header rows. Use csv.DictReader with skipinitialspace? Use 'utf-8-sig' to handle BOM.\n\nWe'll store rows in dict keyed by merchant_order_id, each entry contains list of rows (since duplicate order ids). For matching, iterate over finance rows, find matches in statement rows.\n\nWe'll produce machine-readable CSV: columns: merchant_order_id, provider_txn_id, amount_cents, status, source (finance|statement), match_status (matched, missing_in_statement, missing_in_finance, duplicate, amount_mismatch, stale_refund). Write to reconciliation_report.csv.\n\nHuman-readable summary: print counts of each category.\n\nEdge-case guards: skip rows with missing required fields, ignore blank lines, treat duplicate header rows by checking if first row's merchant_order_id == 'merchant_order_id' and skip.\n\nImplement using Python 3.10+.\n\nNow produce answer: description of matching strategy, output files, edge-case guards, then script code with comments indicating exact file changes.\n\nWe need to mention exact files to modify: maybe create new script file: scripts/reconcile.py. Provide skeleton.\n\nLet's craft answer.\n</think>\n**Reconciliation – “finance_export.csv” vs “merchant_statement.csv”**  \n\n*Goal*: Produce a **machine‑readable CSV** that lists every row from the two sources together with a *match‑status* and a **human‑readable summary** that counts the different kinds of problems.\n\n---\n\n## 1. Matching strategy (as required in `docs/reconcile_rules.md`)\n\n| Step | What we look for | How we decide |\n|------|------------------|---------------|\n| **1️⃣ Primary key** | `merchant_order_id` (MO) | All rows that share the same MO are *candidates* for a match. |\n| **2️⃣ Fallback** | `provider_txn_id` (PT) | If a MO has **exactly one** candidate in the other file we accept it. <br>If a MO has **more than one** candidate we require the PT to be identical to break the tie. |\n| **3️⃣ Stale‑refund check** | `status` field | When a row is matched we also compare `status`. A change from `SETTLED` → `REFUNDED` (or vice‑versa) is reported as a *stale‑refund* if the status differs from the “expected” one (the rule set does not define a direction, we simply flag any mismatch). |\n| **4️⃣ Amount check** | `amount_cents` | Any numeric difference between the two files for the same (MO, PT) pair is reported as an *amount‑mismatch*. |\n\n*Result*: each row gets a **single** `match_status` value:\n\n| match_status | Meaning |\n|--------------|---------|\n| `MATCHED` | All fields equal (or only status differs – still a match, but flagged as *stale‑refund* if status differs). |\n| `MISSING_IN_STATEMENT` | Row exists only in *finance_export.csv*. |\n| `MISSING_IN_FINANCE` | Row exists only in *merchant_statement.csv*. |\n| `DUPLICATE_IN_FINANCE` | More than one finance row with the same (MO, PT). |\n| `DUPLICATE_IN_STATEMENT` | More than one statement row with the same (MO, PT). |\n| `AMOUNT_MISMATCH` | Same (MO, PT) in both files but `amount_cents` differs. |\n| `STALE_REFUND` | Same (MO, PT) in both files but `status` differs. |\n| `UNEXPECTED` | Anything that does not fit the above (e.g. malformed row). |\n\n---\n\n## 2. Output"
+        }
+      }
+    ],
+    "created": 1774491436,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 593,
+      "total_tokens": 1893
+    },
+    "id": "chatcmpl-QK7TrFsPrVtQ1LVbVCvhG5CHPPQqKqyq",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 593,
+      "prompt_ms": 106.661,
+      "prompt_per_token_ms": 0.17986677908937607,
+      "prompt_per_second": 5559.670357487742,
+      "predicted_n": 1300,
+      "predicted_ms": 6133.061,
+      "predicted_per_token_ms": 4.71773923076923,
+      "predicted_per_second": 211.96593348737278
+    }
+  }
+}

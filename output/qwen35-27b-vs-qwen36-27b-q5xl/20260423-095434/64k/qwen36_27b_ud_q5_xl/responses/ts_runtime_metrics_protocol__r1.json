@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 49369.723375013564,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Review Summary\n\n**Root Cause:** The `RuntimeMetrics` type and data exist in the runtime (`apps/game-runtime`), but the protocol definition (`packages/protocol`) lacks a type for them, and the `session.state` server message does not include them. Consequently, the client HUD cannot display these metrics.\n\n**Strategy:**\n1.  **Protocol First:** Define `RuntimeMetrics` in `packages/protocol/src/messages.ts` and add it to the `session.state` payload.\n2.  **Runtime:** Update `GameRuntimeServer` to include `this.metrics.snapshot()` in the `session.state` emission.\n3.  **Client:** Update `App.tsx` to consume the new metrics from the `session.state` message and display them in the HUD.\n4.  **Tests:** Add a contract test to verify the metrics are present in the encoded server message.\n\n---\n\n### Change Set\n\n#### 1. `packages/protocol/src/messages.ts`\nAdd the `RuntimeMetrics` type and include it in the `session.state` payload.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports ...\n\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n        metrics: RuntimeMetrics; // <--- ADD THIS\n      };\n    }\n  // ... rest of ServerMessage union ...\n```\n\n#### 2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\nUpdate `sendSessionState` to include the metrics snapshot.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports ...\n\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: this.phase,\n        paused: this.paused,\n        preparedSeed: this.preparedSeed,\n        threadIds: this.threadIds,\n        connected: this.connected,\n        runtime: {\n          model: this.turnModel,\n          effort: this.turnEffort,\n          tickMs: runtimeConfig.tickMs,\n          schedulerMs: runtimeConfig.schedulerMs,\n          maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n          availableModels: this.availableModels\n        },\n        metrics: this.metrics.snapshot() // <--- ADD THIS\n      }\n    });\n  }\n```\n\n#### 3. `apps/game-client/src/App.tsx`\n1. Import `RuntimeMetrics`.\n2. Add state for metrics.\n3. Update `ws.onmessage` handler for `session.state`.\n4. Display metrics in the HUD (e.g., in the top bar or a new HUD card).\n\n```typescript\n// apps/game-client/src/App.tsx\n\nimport type { RuntimeMetrics, RuntimeModelOption, ServerMessage, SessionPhase, WorldNearbyEntity } from \"@codexgame/protocol\";\n// ... other imports ...\n\nexport default function App() {\n  // ... existing state ...\n  const [runtimeMetrics, setRuntimeMetrics] = useState<RuntimeMetrics>({\n    turnsTotal: 0,\n    invalidOutputCount: 0,\n    actionAppliedCount: 0,\n    actionRejectedCount: 0,\n    queuedActions: 0\n  });\n\n  // ... existing effects ...\n\n  useEffect(() => {\n    // ... ws setup ...\n    ws.onmessage = (event) => {\n      const message = JSON.parse(event.data as string) as ServerMessage;\n\n      switch (message.type) {\n        case \"session.state\":\n          setPhase(message.payload.phase);\n          setPaused(message.payload.paused);\n          setPreparedSeed(message.payload.preparedSeed);\n          setThreadIds(message.payload.threadIds);\n          setRuntimeModel(message.payload.runtime.model);\n          setRuntimeEffort(message.payload.runtime.effort);\n          setRuntimeSchedulerMs(message.payload.runtime.schedulerMs);\n          setRuntimeQueueAhead(message.payload.runtime.maxQueuedActionsBeforeTurn);\n          setAvailableModels(message.payload.runtime.availableModels);\n          setRuntimeMetrics(message.payload.metrics); // <--- ADD THIS\n          if (message.payload.phase === \"idle\") {\n            setTick(0);\n            setRuntimeAgents([]);\n            setCatalog({ prefabs: [], recipes: [] });\n            sceneRef.current?.clearSnapshot();\n          }\n          return;\n        // ... rest of switch ...\n      }\n    };\n    // ... cleanup ...\n  }, []);\n\n  // ... rest of component ...\n\n  // Update the HUD to display metrics. \n  // Example: Add to the top bar or a new \"Metrics\" HUD card.\n  // Here is an example addition to the top bar:\n  /*\n  <div className=\"game-topbar\">\n    <span className=\"pill\">Runtime: {connected ? \"connected\" : \"offline\"}</span>\n    <span className=\"pill\">Phase: {phase}</span>\n    <span className=\"pill\">Latency: {latencyMs}ms</span>\n    <span"
+        }
+      }
+    ],
+    "created": 1776911356,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-NAORb4cD8XlmQOrphqqIzrDGfrRe8WqE",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 10817.771,
+      "prompt_per_token_ms": 0.44515744208057284,
+      "prompt_per_second": 2246.3962307946804,
+      "predicted_n": 1250,
+      "predicted_ms": 34549.836,
+      "predicted_per_token_ms": 27.639868800000002,
+      "predicted_per_second": 36.17962180775619
+    }
+  }
+}

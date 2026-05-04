@@ -1,0 +1,15 @@
+{
+  "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a senior software engineer completing an autonomous coding task.\n\nUse only the provided workspace snapshot.\nReturn JSON only.\nWrite the smallest safe set of file edits needed to make the task pass.\nDo not describe changes without also returning the file contents to apply.\nDo not invent files or APIs unless they are clearly required by the task."
+    },
+    {
+      "role": "user",
+      "content": "Task ID: agentic_bash_log_triage\nScenario: Produce a working Bash triage script that groups noisy logs into stable error signatures.\n\nInstructions:\nApply the smallest safe fix.\nReturn JSON in this shape:\n{\"summary\":\"...\",\"files\":[{\"path\":\"relative/path\",\"content\":\"full file content\"}]}\nOnly include files that must change.\n\nWorkspace snapshot:\n\n=== File: logs/app.log ===\n2026-03-08T10:00:01Z INFO healthcheck ok\n2026-03-08T10:00:02Z ERROR OrderService failed to reserve inventory orderId=991 sku=abc code=INV-409\n2026-03-08T10:00:03Z ERROR OrderService failed to reserve inventory orderId=992 sku=abc code=INV-409\n2026-03-08T10:00:04Z ERROR PaymentGateway timeout providerTxnId=P-9001\n2026-03-08T10:00:05Z ERROR PaymentGateway timeout providerTxnId=P-9002\n2026-03-08T10:00:06Z WARN healthcheck latency 81ms\n2026-03-08T10:00:07Z ERROR ProfileService duplicate email email=alice@example.com\n\n=== File: scripts/triage.sh ===\n#!/usr/bin/env bash\nset -euo pipefail\necho \"TODO\"\n\n=== File: tests/test_triage.py ===\nimport subprocess\nimport unittest\nfrom pathlib import Path\n\n\nclass TriageScriptTests(unittest.TestCase):\n    def test_triage_groups_signatures(self) -> None:\n        repo_root = Path(__file__).resolve().parents[1]\n        script = repo_root / \"scripts\" / \"triage.sh\"\n        result = subprocess.run(\n            [\"bash\", str(script), str(repo_root / \"logs\" / \"app.log\")],\n            check=True,\n            capture_output=True,\n            text=True,\n        )\n        output = result.stdout.strip().splitlines()\n        self.assertTrue(any(\"OrderService failed to reserve inventory\" in line and line.startswith(\"2 \") for line in output))\n        self.assertTrue(any(\"PaymentGateway timeout\" in line and line.startswith(\"2 \") for line in output))\n        self.assertTrue(any(\"ProfileService duplicate email\" in line and line.startswith(\"1 \") for line in output))\n        self.assertFalse(any(\"healthcheck\" in line.lower() for line in output))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+    }
+  ],
+  "max_tokens": 1800,
+  "stream": false
+}

@@ -1,0 +1,40 @@
+{
+  "task_id": "extreme_runtime_metrics_longctx",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 259239.0907079971,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Code Review: Runtime Metrics Exposure\n\n### Root Cause\n\nThe `MetricsTracker` class in `apps/game-runtime/src/runtime/metrics.ts` correctly tracks runtime metrics, but **these metrics are never exposed to clients** via the WebSocket protocol. They're only:\n1. Persisted to disk in `persistSession()`\n2. Logged to `logs/runtime-metrics.jsonl`\n\nThe protocol in `packages/protocol/src/messages.ts` has no `metrics` field in any server message type.\n\n---\n\n### Smallest Protocol-First Change Set\n\n#### 1. **`packages/protocol/src/messages.ts`** — Add metrics to `session.state` payload\n\n```typescript\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n        metrics?: {\n          turnsTotal: number;\n          invalidOutputCount: number;\n          actionAppliedCount: number;\n          actionRejectedCount: number;\n          queuedActions: number;\n        };\n      };\n    }\n```\n\n#### 2. **`apps/game-runtime/src/runtime/GameRuntimeServer.ts`** — Include metrics in `sendSessionState()`\n\nFind `sendSessionState()` and update:\n\n```typescript\nprivate sendSessionState(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"session.state\",\n    payload: {\n      phase: this.phase,\n      paused: this.paused,\n      preparedSeed: this.preparedSeed,\n      threadIds: this.threadIds,\n      connected: this.connected,\n      runtime: {\n        model: this.turnModel,\n        effort: this.turnEffort,\n        tickMs: runtimeConfig.tickMs,\n        schedulerMs: runtimeConfig.schedulerMs,\n        maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n        availableModels: this.availableModels\n      },\n      metrics: this.metrics.snapshot()  // ← ADD THIS LINE\n    }\n  });\n}\n```\n\n#### 3. **`apps/game-client/src/App.tsx`** — Store and display metrics\n\nAdd state:\n```typescript\nconst [metrics, setMetrics] = useState<{\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n} | null>(null);\n```\n\nUpdate `session.state` handler:\n```typescript\ncase \"session.state\":\n  setPhase(message.payload.phase);\n  setPaused(message.payload.paused);\n  setPreparedSeed(message.payload.preparedSeed);\n  setThreadIds(message.payload.threadIds);\n  setRuntimeModel(message.payload.runtime.model);\n  setRuntimeEffort(message.payload.runtime.effort);\n  setRuntimeSchedulerMs(message.payload.runtime.schedulerMs);\n  setRuntimeQueueAhead(message.payload.runtime.maxQueuedActionsBeforeTurn);\n  setAvailableModels(message.payload.runtime.availableModels);\n  setMetrics(message.payload.metrics ?? null);  // ← ADD THIS LINE\n  if (message.payload.phase === \"idle\") {\n    setTick(0);\n    setRuntimeAgents([]);\n    setCatalog({ prefabs: [], recipes: [] });\n    sceneRef.current?.clearSnapshot();\n  }\n  return;\n```\n\nAdd to topbar display:\n```tsx\n<span className=\"pill\">Turns: {metrics?.turnsTotal ?? 0}</span>\n<span className=\"pill\">Invalid: {metrics?.invalidOutputCount ?? 0}</span>\n<span className=\"pill\">Applied: {metrics?.actionAppliedCount ?? 0}</span>\n<span className=\"pill\">Rejected: {metrics?.actionRejectedCount ?? 0}</span>\n<span className=\"pill\">Queued: {metrics?.queuedActions ?? 0}</span>\n```\n\n---\n\n### Regression Checks\n\n| Check | Command/Action |\n|-------|---------------|\n| Protocol types compile | `cd packages/protocol && tsc --noEmit` |\n| Runtime compiles | `cd apps/game-runtime && tsc --noEmit` |\n| Client compiles | `cd apps/game-client && tsc --noEmit` |\n| Existing tests pass | `npm test` |\n| Metrics appear in UI | Start runtime, start session, verify topbar shows metrics |\n| Metrics increment correctly | Trigger turns, invalid outputs, actions; verify counters increase |\n| Session restore includes metrics | Check `persistSession()` still saves `metrics.snapshot()` |\n\n---\n\n### Why This Is Minimal\n\n1. **No new message types** — reuses existing `session.state`\n2. **No new endpoints** — metrics piggyback on existing state updates\n3. **No breaking changes** — `metrics` is optional (`metrics?`)\n4. **Runtime remains authoritative** — client only reads, doesn't write metrics\n5. **Existing persistence unchanged** — `persistSession()` already calls `this.metrics.snapshot()`",
+          "reasoning_content": "Let me analyze this codebase to understand the metrics tracking situation.\n\n**Current State:**\n1. `apps/game-runtime/src/runtime/metrics.ts` - `MetricsTracker` class tracks:\n   - `turnsTotal`\n   - `invalidOutputCount`\n   - `actionAppliedCount`\n   - `actionRejectedCount`\n   - `queuedActions`\n\n2. These metrics are stored persistently in `persistSession()` via `this.metrics.snapshot()`\n\n3. **Problem**: The metrics are NOT exposed to clients via the WebSocket protocol. Looking at `packages/protocol/src/messages.ts`, there's no `metrics` field in any server message type.\n\n4. The runtime logs metrics to `logs/runtime-metrics.jsonl` but clients can't access them.\n\n**Goal**: Expose metrics cleanly via protocol-first approach.\n\n**Minimal Fix:**\n1. Add a `metrics` field to the `session.state` server message payload\n2. Include it in `sendSessionState()` calls\n3. Update client to display the metrics\n"
+        }
+      }
+    ],
+    "created": 1774361056,
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1396,
+      "prompt_tokens": 194011,
+      "total_tokens": 195407
+    },
+    "id": "chatcmpl-Paqp2wo5glvdBXcaD8EK6LUgjIx9HyGl",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 194011,
+      "prompt_ms": 147338.154,
+      "prompt_per_token_ms": 0.7594319600435028,
+      "prompt_per_second": 1316.7736579623497,
+      "predicted_n": 1396,
+      "predicted_ms": 51340.502,
+      "predicted_per_token_ms": 36.77686389684814,
+      "predicted_per_second": 27.19100798819614
+    }
+  }
+}

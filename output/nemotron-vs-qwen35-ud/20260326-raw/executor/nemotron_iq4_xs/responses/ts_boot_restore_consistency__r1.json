@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 10983.891082985792,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**\n\n`restoreSession()` (in **GameRuntimeServer.ts**) restores a saved session but it never restores the *thread‑to‑agent* map (`threadToAgentId`) or the `threadIds.gameplayByAgentId` map for the agents that were present in the saved snapshot.  \nWhen the runtime later tries to schedule a turn it looks up the thread id via `this.threadToAgentId.get(threadId)` (e.g. in `handleCodexNotification` or `requestGameplayTurn`). Because the map is empty, the lookup fails and the runtime either:\n\n* treats the turn as belonging to an unknown agent and emits an error, **or**\n* silently skips the turn, leaving the simulation in an inconsistent state (queued actions are lost, the active turn is never started).\n\nThe bug is a *state‑restoration* inconsistency: the persisted snapshot contains the thread ids, but the server does not re‑populate the in‑memory structures that the rest of the code relies on. This can cause duplicate thread creation on reconnect, lost actions, or crashes – all of which break the “atomic persistence” guarantee.\n\n**Root cause**\n\n`restoreSession()` only restores:\n\n```ts\nthis.simulation = Simulation.fromState(...);\nthis.seed = saved.simulation.seed;\nthis.agentConfigs.set(...);\nthis.resetAgentLoopState(...);\n```\n\nIt completely discards `this.threadIds` and `this.threadToAgentId`. The saved snapshot (`saved.threadIds`) is never applied, and the code that later starts new threads (`startSession`, `startThreadsForExistingSession`) will create *new* threads even though the session already had them.\n\n**Fix – smallest, safe change**\n\nAdd the missing restoration of the thread maps and the `threadToAgentId` association right after the simulation is rebuilt. The fix touches only `GameRuntimeServer.restoreSession()` and uses the data already present in `saved.threadIds`.\n\n```ts\n// ---- GameRuntimeServer.ts ----\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n\n  // ---- existing simulation & agent config restoration ----\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n    }\n    this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n  } else if (typeof saved.seed === \"number\") {\n    this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n      { id: \"agent-1\", name: \"Agent 1\" }\n    ]);\n    this.seed = saved.seed;\n    this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n    this.resetAgentLoopState([\"agent-1\"]);\n  } else {\n    return;\n  }\n\n  // ---- NEW: restore thread ids and mapping ----\n  // saved.threadIds has the shape { gameplayByAgentId: Record<string,string>, builder?:string }\n  if (saved.threadIds?.gameplayByAgentId) {\n    const gameplayByAgentId = saved.threadIds.gameplayByAgentId;\n    const threadIds: ThreadIds = { gameplayByAgentId };\n    if (saved.threadIds.builder) {\n      threadIds.builder = saved.threadIds.builder;\n    }\n    this.threadIds = threadIds;\n\n    // Re‑populate threadToAgentId so that turn notifications can be routed.\n    for (const [agentId, threadId] of Object.entries(gameplayByAgentId)) {\n      this.threadToAgentId.set(threadId, agentId);\n    }\n    if (threadIds.builder) {\n      const builderAgentId = this.agentConfigs.get(threadIds.builder)?.id ?? \"builder\";\n      this.threadToAgentId.set(threadIds.builder, builderAgentId);\n    }\n  } else {\n    // If the saved snapshot does not contain threads (e.g. a brand‑new session) we start fresh.\n    this.threadIds = { gameplayByAgentId: {} };\n    this.threadToAgentId.clear();\n  }\n\n  // ---- end of new section ----\n  this.phase = \"running\";\n  this.preparedSeed = null;\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  await this.logReplay(\"session.restored\", {\n    seed: this.seed,\n    tick: this.simulation.getState().tick\n  });\n}\n```\n\n**Why this is the smallest safe fix**\n\n* **Preserves atomic persistence** – the restored `threadIds` and `threadToAgentId` exactly match the persisted snapshot, so no duplicate threads are created.\n* **No behavioural change for fresh sessions** – the `else` branch keeps the original “no‑threads” path.\n* **No API changes** – only internal fields are touched; all callers already use `threadIds` and `threadToAgentId`.\n* **Minimal code churn** – the added block is ~15 lines, placed right after the existing restoration logic, and uses data that is already present in the snapshot.\n\n**Regression checks**\n\n1. **Unit‑test** – add a test that loads a persisted `SessionSnapshot` containing `threadIds` and verifies that after `restoreSession()`:\n   * `server.threadIds.gameplayByAgentId` matches the saved map.\n   * `server.threadToAgentId` maps each thread id to the correct agent id.\n2. **Integration test** – simulate a full start → stop → start cycle with a non"
+        }
+      }
+    ],
+    "created": 1774496037,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 19949,
+      "total_tokens": 21199
+    },
+    "id": "chatcmpl-xNhegGMjW2rwrh8c7Gwmk3sOMnPLNHIX",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 19949,
+      "prompt_ms": 2577.384,
+      "prompt_per_token_ms": 0.12919865657426438,
+      "prompt_per_second": 7740.018561456112,
+      "predicted_n": 1250,
+      "predicted_ms": 6435.797,
+      "predicted_per_token_ms": 5.1486376,
+      "predicted_per_second": 194.22613858081604
+    }
+  }
+}

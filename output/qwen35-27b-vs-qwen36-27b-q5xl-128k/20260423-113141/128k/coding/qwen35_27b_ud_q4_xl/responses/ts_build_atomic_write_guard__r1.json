@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 35729.52379198978,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\n\nThe highest-risk build-flow consistency bug is in `apps/game-runtime/src/runtime/contentStore.ts` within the `applyOperations` method.\n\n**The Bug:**\nThe method performs **schema validation** on the input operations (`contentOperationSchema.parse`) *before* computing the new state, but it performs **atomic file writes** (`writeJsonAtomic`) *after* mutating the in-memory state (`this.content = next`).\n\nIf the `writeJsonAtomic` calls fail (e.g., disk full, permission error, or race condition during `rename`), the in-memory state `this.content` has already been updated to the new version, but the disk files remain in the old version. This creates a **state divergence** where the runtime believes it has applied changes that do not exist on disk. A subsequent crash or restart would load the old data, causing the runtime to \"lose\" the applied build operations, potentially breaking game logic or causing infinite loops if the builder agent retries.\n\n**The Fix:**\nMove the in-memory state update (`this.content = next`) to occur **only after** all atomic file writes have successfully completed. This ensures that if any write fails, the in-memory state remains consistent with the disk state (the previous version), and the error propagates correctly to the caller.\n\n### Proposed Fix\n\n**File:** `apps/game-runtime/src/runtime/contentStore.ts`\n\n**Change:** Move `this.content = next;` to after the `Promise.all` block in `applyOperations`.\n\n```typescript\n// apps/game-runtime/src/runtime/contentStore.ts\n\n// ... existing imports and helper functions ...\n\nexport class ContentStore {\n  // ... existing code ...\n\n  public async applyOperations(operations: ContentOperation[]): Promise<BuildApplyResult> {\n    if (!this.content) {\n      throw new Error(\"content not loaded\");\n    }\n\n    // 1. Validate inputs first (Schema-first validation)\n    operations.forEach((operation) => contentOperationSchema.parse(operation));\n    \n    // 2. Compute new state in memory\n    const next: ContentSet = {\n      prefabs: [...this.content.prefabs],\n      recipes: [...this.content.recipes],\n      biomeRules: [...this.content.biomeRules],\n      spawnRules: [...this.content.spawnRules]\n    };\n\n    for (const operation of operations) {\n      switch (operation.type) {\n        case \"upsert_prefab\":\n          next.prefabs = upsertById(next.prefabs, operation.value);\n          break;\n        case \"upsert_recipe\":\n          next.recipes = upsertById(next.recipes, operation.value);\n          break;\n        case \"upsert_biome_rule\":\n          next.biomeRules = upsertById(next.biomeRules, operation.value);\n          break;\n        case \"upsert_spawn_rule\":\n          next.spawnRules = upsertById(next.spawnRules, operation.value);\n          break;\n        case \"remove_by_id\":\n          if (operation.target === \"prefab\") {\n            next.prefabs = removeById(next.prefabs, operation.id);\n          } else if (operation.target === \"recipe\") {\n            next.recipes = removeById(next.recipes, operation.id);\n          } else if (operation.target === \"biome_rule\") {\n            next.biomeRules = removeById(next.biomeRules, operation.id);\n          } else {\n            next.spawnRules = removeById(next.spawnRules, operation.id);\n          }\n          break;\n      }\n    }\n\n    const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n    const recipesPath = path.join(this.contentDir, RECIPES_FILE);\n    const worldRulesPath = path.join(this.contentDir, WORLD_RULES_FILE);\n\n    // 3. Persist to disk atomically\n    await Promise.all([\n      writeJsonAtomic(prefabsPath, next.prefabs),\n      writeJsonAtomic(recipesPath, next.recipes),\n      writeJsonAtomic(worldRulesPath, {\n        biomeRules: next.biomeRules,\n        spawnRules: next.spawnRules\n      })\n    ]);\n\n    // 4. Update in-memory state ONLY after successful disk writes\n    this.content = next;\n\n    return {\n      changedFiles: [prefabsPath, recipesPath, worldRulesPath],\n      content: next,\n      operations\n    };\n  }\n\n  // ... existing code ...\n}\n```\n\n### Regression Checks\n\n1.  **Partial Failure Test**: Verify that if `writeJsonAtomic` throws an error (e.g., by mocking `fs.rename` to fail), `this.content` remains unchanged and the error is thrown to the caller.\n2.  **Success Path Test**: Verify that on success, `this.content` is updated and matches the written files.\n3.  **Existing Unit Test**: Run `apps/game-runtime/test/contentStore.test.ts`. The existing test `rejects invalid operations without partial writes` validates schema rejection, but the fix ensures *write* failures also preserve consistency.\n4.  **Build Flow Integration**: Verify `GameRuntimeServer.runBuildRequest` correctly handles the error if `applyOperations` fails, ensuring the simulation state is not updated with invalid content."
+        }
+      }
+    ],
+    "created": 1776916631,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1112,
+      "prompt_tokens": 14464,
+      "total_tokens": 15576
+    },
+    "id": "chatcmpl-eaCT2nYLle8Pqt0Ths0Lu71JsISADYVt",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6102.2,
+      "prompt_per_token_ms": 0.4218888274336283,
+      "prompt_per_second": 2370.2926813280455,
+      "predicted_n": 1112,
+      "predicted_ms": 27212.006,
+      "predicted_per_token_ms": 24.47122841726619,
+      "predicted_per_second": 40.86431555248077
+    }
+  }
+}

@@ -23,6 +23,51 @@ describe("message protocol", () => {
     }
   });
 
+  it("parses session.start with trimmed personaPrompt", () => {
+    const parsed = parseClientMessage(
+      JSON.stringify({
+        version: PROTOCOL_VERSION,
+        type: "session.start",
+        payload: {
+          agents: [{ id: "agent-1", name: "Agent 1", personaPrompt: "  Prioritize diplomacy first.  " }]
+        }
+      })
+    );
+
+    expect(parsed.type).toBe("session.start");
+    if (parsed.type === "session.start") {
+      expect(parsed.payload.agents[0]?.personaPrompt).toBe("Prioritize diplomacy first.");
+    }
+  });
+
+  it("rejects blank personaPrompt", () => {
+    expect(() =>
+      parseClientMessage(
+        JSON.stringify({
+          version: PROTOCOL_VERSION,
+          type: "session.start",
+          payload: {
+            agents: [{ id: "agent-1", name: "Agent 1", personaPrompt: "   " }]
+          }
+        })
+      )
+    ).toThrow();
+  });
+
+  it("rejects too long personaPrompt", () => {
+    expect(() =>
+      parseClientMessage(
+        JSON.stringify({
+          version: PROTOCOL_VERSION,
+          type: "session.start",
+          payload: {
+            agents: [{ id: "agent-1", name: "Agent 1", personaPrompt: "a".repeat(501) }]
+          }
+        })
+      )
+    ).toThrow();
+  });
+
   it("parses session.reset with optional seed", () => {
     const parsed = parseClientMessage(
       JSON.stringify({

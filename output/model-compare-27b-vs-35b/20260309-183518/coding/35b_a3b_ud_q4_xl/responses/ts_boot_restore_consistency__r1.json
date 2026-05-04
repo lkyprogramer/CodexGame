@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 16268.176165991463,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Bug Analysis\n\n**Root Cause:**\nIn `GameRuntimeServer.ts`, the `restoreSession` method (lines 1075-1102) reconstructs the `Simulation` state and agent configurations from the persisted snapshot. However, it **fails to restore the `threadIds` mapping** (`this.threadIds`) and the `threadToAgentId` map.\n\nThe method explicitly resets `this.threadIds` to an empty object (`{ gameplayByAgentId: {} }`) and clears `this.threadToAgentId` (line 1096-1097).\n\n**Consequence:**\nWhen the server restores and immediately attempts to resume operation (e.g., via `primeCodexModelCatalog` or the scheduler), it finds no active threads.\n1.  If `primeCodexModelCatalog` triggers `startThreadsForExistingSession` (line 273), it iterates over `this.simulation.getState().agents`.\n2.  It calls `thread/start` for *every* agent, creating **duplicate threads** because the runtime doesn't know the existing threads from the snapshot.\n3.  The `threadToAgentId` map remains empty, breaking the `handleCodexNotification` logic (line 835) which relies on `this.threadToAgentId.get(threadId)` to route messages to the correct agent.\n4.  This leads to a race condition where the runtime state (simulation tick) is restored, but the thread state is inconsistent (new threads vs. old simulation state), causing potential message routing failures or duplicate agent execution.\n\n### Fix\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change:**\nIn `restoreSession`, assign the `threadIds` from the saved snapshot instead of resetting them to empty. Also restore the `threadToAgentId` map.\n\n```typescript\n// File: apps/game-runtime/src/runtime/GameRuntimeServer.ts\n// Locate the restoreSession method (around line 1075)\n\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n    }\n    this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n  } else if (typeof saved.seed === \"number\") {\n    this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n      { id: \"agent-1\", name: \"Agent 1\" }\n    ]);\n    this.seed = saved.seed;\n    this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n    this.resetAgentLoopState([\"agent-1\"]);\n  } else {\n    return;\n  }\n\n  // FIX: Restore threadIds from snapshot instead of resetting to empty\n  // This prevents duplicate thread creation and ensures message routing works\n  this.threadIds = saved.threadIds ?? { gameplayByAgentId: {} };\n  \n  // FIX: Rebuild the threadToAgentId map from the restored threadIds\n  this.threadToAgentId.clear();\n  for (const [agentId, threadId] of Object.entries(this.threadIds.gameplayByAgentId)) {\n    this.threadToAgentId.set(threadId, agentId);\n  }\n  if (this.threadIds.builder) {\n    // Builder thread doesn't have an agent ID in gameplayByAgentId, \n    // but we might need to track it if logic requires it. \n    // Currently threadToAgentId is only used for gameplay agents in handleCodexNotification.\n  }\n\n  this.phase = \"running\";\n  this.preparedSeed = null;\n  // REMOVED: this.threadIds = { gameplayByAgentId: {} }; // Was causing the bug\n  // REMOVED: this.threadToAgentId.clear(); // Was causing the bug\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  await this.logReplay(\"session.restored\", {\n    seed: this.seed,\n    tick: this.simulation.getState().tick\n  });\n}\n```\n\n### Regression Checks\n\n1.  **Boot Consistency:** Start the server, let it run for a few ticks, then stop it. Restart the server. Verify that `threadIds` in the `session.state` message match the previous session's IDs (or at least that no new threads are created for existing agents).\n2.  **Message Routing:** After restore, send a `god.send` message. Verify the `handleCodexNotification` correctly routes the response to the correct agent (check logs or client feed for the correct `agentId`).\n3.  **No Duplicate Threads:** Ensure `startThreadsForExistingSession` is **not** called during `primeCodexModelCatalog` if `threadIds.gameplayByAgentId` is already populated from the restore. (The existing check `Object.keys(this.threadIds.gameplayByAgentId).length === 0` in `primeCodexModelCatalog` will now correctly prevent re-initialization).\n4.  **State Continuity:** Verify the simulation tick continues from the restored value, not resetting to 0."
+        }
+      }
+    ],
+    "created": 1773053788,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1197,
+      "prompt_tokens": 21368,
+      "total_tokens": 22565
+    },
+    "id": "chatcmpl-uT5UZdtgjxLe5BreCTWbgOlNdrmkbIOw",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21368,
+      "prompt_ms": 4434.162,
+      "prompt_per_token_ms": 0.20751413328341448,
+      "prompt_per_second": 4818.948879179425,
+      "predicted_n": 1197,
+      "predicted_ms": 9358.327,
+      "predicted_per_token_ms": 7.818151211361737,
+      "predicted_per_second": 127.907477479682
+    }
+  }
+}

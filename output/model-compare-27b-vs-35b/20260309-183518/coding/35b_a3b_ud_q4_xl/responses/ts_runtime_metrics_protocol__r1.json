@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 17344.643707969226,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Review Summary\n\nThe runtime currently tracks metrics internally (`MetricsTracker`) but does not expose them to the client. The client HUD needs to display these metrics (e.g., `turnsTotal`, `invalidOutputCount`, `queuedActions`) to provide feedback on simulation health and agent behavior.\n\n**Root Cause:**\n1.  **Protocol Gap:** The `ServerMessage` type in `@codexgame/protocol` lacks a definition for a `runtime.metrics` message type.\n2.  **State Propagation:** The `GameRuntimeServer` does not emit the metrics snapshot to connected clients.\n3.  **Client Gap:** The client `App.tsx` does not have state to receive or display these metrics.\n\n**Proposed Fix:**\n1.  **Protocol (`packages/protocol/src/messages.ts`):** Add `RuntimeMetrics` type and a new `runtime.metrics` server message variant.\n2.  **Runtime (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`):** Emit the metrics snapshot periodically (e.g., in `sendWorldSnapshot` or a dedicated `emitMetrics` call) to ensure the HUD stays updated without excessive overhead.\n3.  **Client (`apps/game-client/src/App.tsx`):** Add state to receive `runtime.metrics` messages and display them in the HUD.\n4.  **Tests (`apps/game-runtime/test/ui-contract.integration.test.ts`):** Add a contract test to verify the new message type encodes/decodes correctly.\n\n### Changes\n\n#### 1. `packages/protocol/src/messages.ts`\nAdd the `RuntimeMetrics` type and the new `runtime.metrics` message variant.\n\n```typescript\n// ... existing imports\n\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  // ... existing variants ...\n  | {\n      version: Version;\n      type: \"runtime.metrics\";\n      payload: RuntimeMetrics;\n    }\n  | {\n      version: Version;\n      type: \"error\";\n      payload: {\n        code: string;\n        message: string;\n        recoverable: boolean;\n      };\n    };\n\n// ... existing schemas ...\n\nconst clientMessageSchema = z.discriminatedUnion(\"type\", [\n  // ... existing client schemas ...\n]);\n\n// Note: Server messages are not validated by clientMessageSchema, but the type definition is required for the client to parse them.\n```\n\n#### 2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\nEmit metrics periodically. We will add a dedicated `emitMetrics` call and invoke it in `sendWorldSnapshot` (which is already called frequently) to ensure the HUD updates without adding a separate timer.\n\n```typescript\n// ... existing imports ...\n\nexport class GameRuntimeServer {\n  // ... existing fields ...\n\n  private emitMetrics(): void {\n    const metrics = this.metrics.snapshot();\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: metrics\n    });\n  }\n\n  // ... existing methods ...\n\n  private sendWorldSnapshot(): void {\n    if (!this.simulation) {\n      return;\n    }\n    const snapshot = this.simulation.getSnapshot();\n    const content = this.contentStore.getContent();\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"world.snapshot\",\n      payload: {\n        // ... existing payload ...\n      }\n    });\n    // Emit metrics alongside world snapshot to keep HUD in sync\n    this.emitMetrics();\n  }\n\n  // ... rest of class ...\n}\n```\n\n#### 3. `apps/game-client/src/App.tsx`\nAdd state to hold metrics and display them in the HUD.\n\n```typescript\n// ... existing imports ...\n\nexport default function App() {\n  // ... existing state ...\n\n  const [runtimeMetrics, setRuntimeMetrics] = useState<RuntimeMetrics | null>(null);\n\n  // ... existing effects ...\n\n  ws.onmessage = (event) => {\n    const message = JSON.parse(event.data as string) as ServerMessage;\n\n    switch (message.type) {\n      // ... existing cases ...\n      case \"runtime.metrics\":\n        setRuntimeMetrics(message.payload);\n        return;\n      // ... existing cases ...\n    }\n  };\n\n  // ... existing logic ...\n\n  return (\n    // ... existing JSX ...\n    <div className=\"game-topbar\">\n      <span className=\"pill\">Runtime: {connected ? \"connected\" : \"offline\"}</span>\n      <span className=\"pill\">Phase: {phase}</span>\n      <span className=\"pill\">Latency: {latencyMs}ms</span>\n      <span className=\"pill\">Model: {runtimeModel ?? \"default\"}</span>\n      <span className=\"pill\">\n        Effort: {runtimeEffort} | Scheduler: {runtimeSchedulerMs || \"-\"}ms\n      </span>\n      {/* New Metrics Pill */}\n      {runtimeMetrics && (\n        <span className=\"pill\">\n          Turns: {runtimeMetrics.turnsTotal} | Rejected: {runtimeMetrics.actionRejectedCount} | Queue: {runtimeMetrics.queuedActions}\n        </span>\n      )}\n    </div>\n    // ... rest of JSX ...\n  );\n}\n```\n\n#### 4. `apps/game-runtime/test/ui-contract.integration.test.ts`\nAdd a test for the new message type.\n\n```typescript\n// ... existing imports ...\n\ndescribe(\"ui_runtime_contract\", {\n  // ... existing tests ...\n\n  it(\"encodes runtime metrics message\", () => {"
+        }
+      }
+    ],
+    "created": 1773053806,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-H96xZzXt9i1ZvEgGdrEcReSQsQOU0fzL",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 4987.111,
+      "prompt_per_token_ms": 0.20522245998107072,
+      "prompt_per_second": 4872.761003314344,
+      "predicted_n": 1250,
+      "predicted_ms": 9952.798,
+      "predicted_per_token_ms": 7.9622384,
+      "predicted_per_second": 125.59282324427764
+    }
+  }
+}

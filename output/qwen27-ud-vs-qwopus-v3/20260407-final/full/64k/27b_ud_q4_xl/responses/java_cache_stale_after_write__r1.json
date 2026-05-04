@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 16743.303928524256,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: `java_cache_stale_after_write`\n\n#### 1. Root Cause Analysis\nThe bug is located in `ProfileService.updateDisplayName()`.\n- **Current Behavior**: The method updates the database (`profileRepository.save`) but **never invalidates or updates the cache**.\n- **Consequence**: Any subsequent call to `get(profileId)` will return the stale `ProfileView` from the cache (populated in the `get` method's cache miss path) instead of the updated data from the database. This violates cache consistency.\n\n#### 2. Highest-Risk Correctness Bug\n**Stale Data Exposure**: Users updating their display name will not see the change reflected immediately (or until the cache expires naturally), leading to a broken user experience and potential data integrity issues if the cache is used for authorization or display logic.\n\n#### 3. Proposed Fix\nThe smallest safe fix is to **evict the cache entry** immediately after a successful database save in the `updateDisplayName` method.\n\n**Why Evict vs. Update?**\n- **Evict (`evict`)**: This is safer and simpler. It forces the next read to hit the database, ensuring the latest data is fetched and re-cached. It avoids race conditions where a read might happen between the DB save and a cache update.\n- **Update (`put`)**: Would require constructing a new `ProfileView` inside the write path, duplicating logic from the read path and increasing coupling.\n\n#### 4. Implementation\n\n**File to Change**: `src/main/java/com/example/profile/ProfileService.java`\n\n```java\n// src/main/java/com/example/profile/ProfileService.java\n\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    \n    // FIX: Evict the stale cache entry to ensure next read fetches fresh data\n    profileCache.evict(profileId);\n}\n```\n\n#### 5. Regression Checks\n1.  **Cache Miss after Update**:\n    -   *Action*: Call `updateDisplayName` for a profile that exists in the cache. Immediately call `get` for the same profile.\n    -   *Expected*: `get` should return the new display name (triggering a DB hit and cache repopulation).\n2.  **Cache Hit before Update**:\n    -   *Action*: Call `get` (populates cache), then call `get` again without updating.\n    -   *Expected*: Second call returns cached value (no DB hit).\n3.  **Non-Existent Profile**:\n    -   *Action*: Call `updateDisplayName` for a non-existent ID (assuming `require` throws).\n    -   *Expected*: Exception thrown, cache state remains unchanged (or `evict` is called on a non-existent key, which should be a no-op).\n4.  **Concurrency**:\n    -   *Action*: Simulate concurrent `update` and `get`.\n    -   *Expected*: No stale data returned after the update completes. (Note: If strict consistency is required during the update transaction, the `evict` should ideally happen within the same transaction or use a distributed lock, but for this snapshot, post-save eviction is the standard fix)."
+        }
+      }
+    ],
+    "created": 1775547403,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 701,
+      "prompt_tokens": 464,
+      "total_tokens": 1165
+    },
+    "id": "chatcmpl-okVNctWCY6bn4Zn9R4i7C47sj0Iegxkp",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 464,
+      "prompt_ms": 199.87,
+      "prompt_per_token_ms": 0.4307543103448276,
+      "prompt_per_second": 2321.508980837544,
+      "predicted_n": 701,
+      "predicted_ms": 16377.587,
+      "predicted_per_token_ms": 23.363176890156918,
+      "predicted_per_second": 42.802398179902816
+    }
+  }
+}

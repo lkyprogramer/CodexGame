@@ -1,0 +1,39 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 6181.127332994947,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to identify highest-risk bug: Retry wrapper duplicates side effect. In send method, retryExecutor.run executes both invoiceGateway.markSent and emailGateway.sendInvoice. If retryExecutor retries on exception, both actions may be executed multiple times, causing duplicate side effects (e.g., sending invoice email twice, marking invoice sent multiple times). The fix: separate side effects: markSent should be idempotent or should be done after successful email send, and retry should only retry the email sending, not the markSent. Or we should make retry only around emailGateway.sendInvoice, and markSent should be called after retry succeeds, or use a transaction.\n\nSimplest safe fix: change send to call markSent after retry succeeds, and retry only around emailGateway.sendInvoice. Or make retryExecutor.run accept ThrowingRunnable and retry only on specific exceptions. But we need minimal change.\n\nProposed fix: modify InvoiceNotificationService.send to:\n\npublic void send(long invoiceId) {\n    try {\n        retryExecutor.run(() -> emailGateway.sendInvoice(invoiceId));\n        invoiceGateway.markSent(invoiceId);\n    } catch (Exception e) {\n        // handle or propagate\n    }\n}\n\nBut we need to keep interface RetryExecutor.run(Runnable). Could wrap email send in retry, then after success call markSent. Ensure markSent is not retried.\n\nThus modify InvoiceNotificationService.java.\n\nAlso ensure RetryExecutor.run may still retry on exception from emailGateway; markSent will be called only once after successful email send.\n\nAlternatively, make RetryExecutor.run accept ThrowingRunnable and have retry only for emailGateway.sendInvoice.\n\nBut minimal change: adjust send method.\n\nWe must not retry invoiceGateway.markSent blindly because it writes side effect (mark as sent). So we must not retry that call.\n\nThus answer: modify InvoiceNotificationService.java to separate calls.\n\nAlso maybe add javadoc.\n\nProvide regression checks: ensure that after fix, only emailGateway.send is retried, and markSent called once.\n\nLet's craft final answer.\n</think>\n**Highest‑risk bug**  \n`InvoiceNotificationService.send(..)` executes *both* `invoiceGateway.markSent(..)` **and** `emailGateway.sendInvoice(..)` inside a single `RetryExecutor.run(..)` call.  \nIf the remote call throws an exception, the executor will retry the whole lambda, so both the *mark‑as‑sent* record **and** the *email* can be written multiple times. The email side‑effect is user‑visible (duplicate emails) and the mark‑sent side‑effect is a persistent state change – both must not be duplicated.\n\n**Root cause**  \nThe retry is applied at the wrong granularity: it treats the whole notification as a single atomic action, but the two remote calls are *independent* side‑effects. Only the *email* send is retry‑able; the *mark‑sent* call should be performed **once**, after the email has been successfully sent.\n\n**Smallest safe fix**  \nMove the `markSent` call *outside* the retry block and keep the retry only around the email send. This way the email may be retried (it is the only operation that can safely be repeated), while the mark‑sent is executed exactly once, after a successful email send.\n\n**File to change** – `src/main/java/com/example/invoice/InvoiceNotificationService.java`\n\n```java\npackage com.example.invoice;\n\npublic class InvoiceNotificationService {\n    private final RetryExecutor retryExecutor;\n    private final InvoiceGateway invoiceGateway;\n    private final EmailGateway emailGateway;\n\n    public InvoiceNotificationService(\n            RetryExecutor retryExecutor,\n            InvoiceGateway invoiceGateway,\n            EmailGateway emailGateway) {\n        this.retryExecutor = retryExecutor;\n        this.invoiceGateway = invoiceGateway;\n        this.emailGateway = emailGateway;\n    }\n\n    /**\n     * Sends the invoice by email. The email may be retried, but the\n     * {@code markSent} call is performed exactly once after a successful send.\n     */\n    public void send(long invoiceId) {\n        // Retry only the email send – it is the operation that can safely be repeated.\n        retryExecutor.run(() -> emailGateway.sendInvoice(invoiceId));\n\n        // After the email has been sent (or after the last retry succeeded) we\n        // record that the invoice was sent. This must not be retried.\n        invoiceGateway.markSent(invoiceId);\n    }\n}\n```\n\n*Why this is the minimal safe change*  \n\n* **No API changes** – `RetryExecutor`, `InvoiceGateway`, and `EmailGateway` stay untouched.  \n* **Only one line moved** – the call to `emailGateway.sendInvoice` is now the sole payload of the retry.  \n* **Idempotent side‑effect** – `invoiceGateway.markSent` is called after the retry succeeds, guaranteeing it runs exactly once.  \n* **No new dependencies** – the fix uses the existing interfaces only.\n\n**What must not be retried"
+        }
+      }
+    ],
+    "created": 1774491423,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1050,
+      "prompt_tokens": 404,
+      "total_tokens": 1454
+    },
+    "id": "chatcmpl-kRDdIYlopLbCBImwUfy3qZpX7t48ISbY",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 404,
+      "prompt_ms": 56.818,
+      "prompt_per_token_ms": 0.14063861386138612,
+      "prompt_per_second": 7110.422753352811,
+      "predicted_n": 1050,
+      "predicted_ms": 4941.527,
+      "predicted_per_token_ms": 4.706216190476191,
+      "predicted_per_second": 212.48492621815078
+    }
+  }
+}

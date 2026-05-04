@@ -1,0 +1,19 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "payload": {
+    "model": "jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Q4_K_M",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_cache_stale_after_write\nScenario: Profile update writes to DB but leaves the cache stale on the read path.\n\nInstructions:\nReview the write path and identify the highest-risk correctness bug. Propose the smallest safe fix with the right cache consistency behavior.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/profile/ProfileService.java ===\npackage com.example.profile;\n\npublic class ProfileService {\n    private final ProfileRepository profileRepository;\n    private final ProfileCache profileCache;\n\n    public ProfileService(ProfileRepository profileRepository, ProfileCache profileCache) {\n        this.profileRepository = profileRepository;\n        this.profileCache = profileCache;\n    }\n\n    public ProfileView get(long profileId) {\n        ProfileView cached = profileCache.get(profileId);\n        if (cached != null) {\n            return cached;\n        }\n        Profile profile = profileRepository.require(profileId);\n        ProfileView view = ProfileView.from(profile);\n        profileCache.put(profileId, view);\n        return view;\n    }\n\n    public void updateDisplayName(long profileId, String displayName) {\n        Profile profile = profileRepository.require(profileId);\n        profile.setDisplayName(displayName);\n        profileRepository.save(profile);\n    }\n}\n\n=== File: src/main/java/com/example/profile/ProfileCache.java ===\npackage com.example.profile;\n\npublic interface ProfileCache {\n    ProfileView get(long profileId);\n    void put(long profileId, ProfileView view);\n    void evict(long profileId);\n}\n\n=== File: src/main/java/com/example/profile/ProfileRepository.java ===\npackage com.example.profile;\n\npublic interface ProfileRepository {\n    Profile require(long profileId);\n    void save(Profile profile);\n}\n"
+      }
+    ],
+    "max_tokens": 950,
+    "stream": false
+  }
+}

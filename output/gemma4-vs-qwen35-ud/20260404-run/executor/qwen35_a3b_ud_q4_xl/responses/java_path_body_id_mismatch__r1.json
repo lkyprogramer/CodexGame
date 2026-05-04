@@ -1,0 +1,42 @@
+{
+  "task_id": "java_path_body_id_mismatch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 6287.279583000782,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "<think>\n\n</think>\n\n### Security Analysis\n\n**Bug Identification:**\nThe vulnerability is a **Broken Object Level Authorization (BOLA)** / **IDOR** issue caused by trusting the request body over the URL path.\n\nIn `AccountController.update()`:\n1.  The method receives `pathAccountId` from the URL (e.g., `PUT /accounts/123`).\n2.  The method **ignores** `pathAccountId`.\n3.  The method uses `request.getAccountId()` from the JSON body to perform the update.\n\n**Attack Scenario:**\nAn attacker can send a request to update their own account:\n`PUT /accounts/100`\n`Body: { \"accountId\": 200, \"displayName\": \"Hacked\" }`\n\nThe controller will update account `200` instead of account `100`, allowing an attacker to modify any account for which they know the ID, bypassing the intended path-based access control.\n\n### Minimal Fix\n\n**File to Change:** `src/main/java/com/example/account/AccountController.java`\n\n**Change:**\nReplace `request.getAccountId()` with `pathAccountId` in the service call. The path parameter is the source of truth for the resource being modified.\n\n```java\n// Before\npublic AccountDto update(long pathAccountId, UpdateAccountRequest request) {\n    return accountService.update(request.getAccountId(), request.getDisplayName());\n}\n\n// After\npublic AccountDto update(long pathAccountId, UpdateAccountRequest request) {\n    return accountService.update(pathAccountId, request.getDisplayName());\n}\n```\n\n*Note: The `accountId` field in `UpdateAccountRequest` is now effectively ignored for authorization purposes. If the API contract strictly requires the body ID to match the path ID for validation, that logic should be added here, but the primary fix is using the path ID for the operation.*\n\n### Regression Checks\n\n1.  **Valid Update:** Verify that a user can update their own account using the correct path ID and a valid body.\n    *   `PUT /accounts/100` with `{\"displayName\": \"New Name\"}` (body `accountId` can be null or ignored).\n2.  **IDOR Prevention:** Verify that a user cannot update another user's account by manipulating the body.\n    *   `PUT /accounts/100` with `{\"accountId\": 200, \"displayName\": \"Hacked\"}`.\n    *   **Expected Result:** Account 100 is updated; Account 200 remains unchanged.\n3.  **Path Integrity:** Verify that the path ID is actually used.\n    *   `PUT /accounts/999` should attempt to update account 999, regardless of the body content."
+        }
+      }
+    ],
+    "created": 1775317993,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b50-9c69907",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 582,
+      "prompt_tokens": 473,
+      "total_tokens": 1055,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-LhCVR5dVDqJez0vOBz1M69Ui2e8PNV6o",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 473,
+      "prompt_ms": 125.869,
+      "prompt_per_token_ms": 0.26610782241014797,
+      "prompt_per_second": 3757.875251253287,
+      "predicted_n": 582,
+      "predicted_ms": 4332.124,
+      "predicted_per_token_ms": 7.443512027491408,
+      "predicted_per_second": 134.34518494853796
+    }
+  }
+}

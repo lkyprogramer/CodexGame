@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7287.375792016974,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Solution Overview**\n\nWe need a tiny, production‑ready Python utility that can be dropped into any CI job or run manually against a replay file.  \n\n* It must stream the file (no full‑file reads) because the input can be many gigabytes.  \n* It must tolerate malformed JSON lines – a line that cannot be parsed is counted as *malformed* and ignored.  \n* For each `sessionId` we count:\n  * **turns** – events whose `type` is `\"agent.turn\"`  \n  * **invalid_output** – events whose `type` is `\"error\"` **and** `code` equals `\"invalid_output\"`  \n* At the end we emit a per‑session summary and a global footer with the total number of malformed lines.\n\nThe script below follows the exact requirements, uses only the Python standard library, and is deliberately kept to a few dozen lines so it can be reviewed and audited quickly.\n\n---\n\n## `replay_analyzer.py`\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nreplay_analyzer.py – tiny, dependency‑free analyzer for replay JSONL files.\n\nFeatures\n--------\n* Streams the input file line‑by‑line (constant memory).\n* Counts per‑session turn events and invalid‑output errors.\n* Counts malformed JSON lines (skipped but recorded).\n* Emits a per‑session summary and a global footer.\n\nUsage\n-----\n    python replay_analyzer.py /path/to/replay.jsonl > summary.txt\n\"\"\"\n\nimport json\nimport sys\nfrom collections import defaultdict\nfrom pathlib import Path\n\n# --------------------------------------------------------------------------- #\n# Types of events we care about\n# --------------------------------------------------------------------------- #\nTURN_TYPE = \"agent.turn\"\nERROR_TYPE = \"error\"\nINVALID_OUTPUT_CODE = \"invalid_output\"\n\n\ndef analyze(file_path: Path):\n    \"\"\"\n    Stream *file_path* and produce per‑session statistics.\n\n    Returns:\n        stats (dict): {\n            session_id: {\"turns\": int, \"invalid_output\": int},\n        }\n        malformed (int): total number of lines that could not be parsed.\n    \"\"\"\n    session_stats = defaultdict(lambda: {\"turns\": 0, \"invalid_output\": 0})\n    malformed = 0\n\n    # Open in text mode with universal newlines; ignore empty lines.\n    with file_path.open(\"r\", encoding=\"utf-8\") as fh:\n        for line_no, raw in enumerate(fh, start=1):\n            line = raw.strip()\n            if not line:\n                # Blank lines are ignored but not counted as malformed.\n                continue\n\n            try:\n                event = json.loads(line)\n            except json.JSONDecodeError:\n                malformed += 1\n                continue\n\n            # Guard against missing keys – treat as malformed for safety.\n            session_id = event.get(\"sessionId\")\n            event_type = event.get(\"type\")\n\n            if not isinstance(session_id, str) or not isinstance(event_type, str):\n                malformed += 1\n                continue\n\n            # Count only the events we care about.\n            if event_type == TURN_TYPE:\n                session_stats[session_id][\"turns\"] += 1\n            elif (\n                event_type == ERROR_TYPE\n                and event.get(\"code\") == INVALID_OUTPUT_CODE\n            ):\n                session_stats[session_id][\"invalid_output\"] += 1\n            # All other events are ignored but still considered well‑formed.\n\n    return session_stats, malformed\n\n\ndef print_summary(session_stats, malformed):\n    \"\"\"Print per‑session rows and a global footer.\"\"\"\n    # Header\n    print(f\"{'sessionId':<12} {'turns':>6} {'invalid_output':>14}  {'malformed_lines':>14}\")\n    print(\"-\" * 50)\n\n    total_turns = total_invalid = 0\n    for session_id, data in sorted(session_stats.items()):\n        turns = data[\"turns\"]\n        invalid = data[\"invalid_output\"]\n        total_turns += turns\n        total_invalid += invalid\n        print(f\"{session_id:<12} {turns:>6} {invalid:>14}  {0:>14}\")  # per‑session malformed = 0 (global)\n\n    # Footer – include global malformed count\n    print(\"-\" * 50)\n    print(f\"{'TOTAL':<12} {total_turns:>6} {total_invalid:>14}  {malformed:>14}\")\n\n\ndef main():\n    if len(sys.argv) != 2:\n        print(\"Usage: python replay_analyzer.py /path/to/replay.jsonl\", file=sys.stderr)\n        sys.exit(1)\n\n    file_path = Path(sys.argv[1])\n    if not file_path.is_file():\n        print(f\"Error: {file_path} does not exist or is not a file.\", file=sys.stderr)\n        sys.exit(1)\n\n    session_stats, malformed = analyze(file_path)\n    print_summary(session_stats, malformed)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\n### Why this script satisfies the requirements\n\n| Requirement | How the script meets it |\n|-------------|--------------------------|\n| **Multi‑GB input, no full‑file reads** | The file is opened and iterated line‑by‑line (`for line in fh`). Memory usage stays constant. |\n| **Skip malformed lines but count them** | `json.JSONDecodeError` is caught; `malformed` is incremented and the line is ignored. |\n| **Per‑session turn counts & invalid‑output counts** | `session_stats` stores two counters per `sessionId`. Turns are counted when `type == \"agent.turn\"`; invalid outputs when `type == \"error\"` and `code == \"invalid_output\"`. |\n| **One summary per session + global footer** | `print_summary` prints a row for each session (sorted) and a final `TOTAL` row that includes the global malformed‑line count. |\n| **Dependency‑free** | Only the"
+        }
+      }
+    ],
+    "created": 1774490951,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 509,
+      "total_tokens": 1809
+    },
+    "id": "chatcmpl-qXH8qF09vfbck1IfMQSADAcmu8WC5EVF",
+    "timings": {
+      "cache_n": 81,
+      "prompt_n": 428,
+      "prompt_ms": 67.452,
+      "prompt_per_token_ms": 0.15759813084112148,
+      "prompt_per_second": 6345.252920595387,
+      "predicted_n": 1300,
+      "predicted_ms": 6126.754,
+      "predicted_per_token_ms": 4.712887692307692,
+      "predicted_per_second": 212.18413535128064
+    }
+  }
+}

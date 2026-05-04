@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 25393.74941700953,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Analysis\n\nThe `MetricsTracker` class in `apps/game-runtime/src/runtime/metrics.ts` correctly tracks runtime metrics (`turnsTotal`, `invalidOutputCount`, etc.) and exposes them via a `snapshot()` method. However, these metrics are **not exposed** to the client.\n\n1.  **Server-Side:** The `GameRuntimeServer` class initializes `MetricsTracker` but never calls `this.metrics.snapshot()` or includes the metrics in any emitted message.\n2.  **Protocol:** The `ServerMessage` union in `packages/protocol/src/messages.ts` lacks a `metrics` field in the `session.state` payload.\n3.  **Client-Side:** The `App.tsx` does not store or display any metrics.\n\n### Root Cause\nThe runtime calculates metrics but fails to serialize them into the `session.state` WebSocket message sent to the client.\n\n### Fix Plan\n1.  **Protocol (`packages/protocol/src/messages.ts`):** Add `metrics: RuntimeMetrics` to the `session.state` payload type.\n2.  **Server (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`):** Import `RuntimeMetrics` and include `this.metrics.snapshot()` in the `sendSessionState` method.\n3.  **Client (`apps/game-client/src/App.tsx`):** Add state for `metrics` and update it in the `session.state` message handler.\n4.  **Tests (`apps/game-runtime/test/ui-contract.integration.test.ts`):** Add a contract test verifying the `metrics` field exists in the `session.state` payload.\n\n---\n\n### File Changes\n\n#### 1. `packages/protocol/src/messages.ts`\n**Change:** Add `metrics` field to the `session.state` payload type definition.\n\n```typescript\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n        metrics: {\n          turnsTotal: number;\n          invalidOutputCount: number;\n          actionAppliedCount: number;\n          actionRejectedCount: number;\n          queuedActions: number;\n        };\n      };\n    }\n```\n\n#### 2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n**Change:** Import `RuntimeMetrics` and include `this.metrics.snapshot()` in `sendSessionState`.\n\n```typescript\n// ... imports\nimport type { BuildRequestResult, CompletedTurn, RuntimeMetrics, SessionSnapshot, ThreadIds, TurnUsage } from \"./types\";\n// ...\n\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: this.phase,\n        paused: this.paused,\n        preparedSeed: this.preparedSeed,\n        threadIds: this.threadIds,\n        connected: this.connected,\n        runtime: {\n          model: this.turnModel,\n          effort: this.turnEffort,\n          tickMs: runtimeConfig.tickMs,\n          schedulerMs: runtimeConfig.schedulerMs,\n          maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n          availableModels: this.availableModels\n        },\n        metrics: this.metrics.snapshot()\n      }\n    });\n  }\n```\n\n#### 3. `apps/game-client/src/App.tsx`\n**Change:** Add `metrics` state and update it in the `session.state` handler.\n\n```typescript\n// ... imports\nimport type { RuntimeMetrics, ServerMessage, SessionPhase, WorldNearbyEntity } from \"@codexgame/protocol\";\n// ...\n\n  const [metrics, setMetrics] = useState<RuntimeMetrics>({\n    turnsTotal: 0,\n    invalidOutputCount: 0,\n    actionAppliedCount: 0,\n    actionRejectedCount: 0,\n    queuedActions: 0\n  });\n\n// ... inside ws.onmessage switch\n        case \"session.state\":\n          setPhase(message.payload.phase);\n          setPaused(message.payload.paused);\n          setPreparedSeed(message.payload.preparedSeed);\n          setThreadIds(message.payload.threadIds);\n          setRuntimeModel(message.payload.runtime.model);\n          setRuntimeEffort(message.payload.runtime.effort);\n          setRuntimeSchedulerMs(message.payload.runtime.schedulerMs);\n          setRuntimeQueueAhead(message.payload.runtime.maxQueuedActionsBeforeTurn);\n          setAvailableModels(message.payload.runtime.availableModels);\n          setMetrics(message.payload.metrics);\n          if (message.payload.phase === \"idle\") {\n            setTick(0);\n            setRuntimeAgents([]);\n            setCatalog({ prefabs: [], recipes: [] });\n            sceneRef.current?.clearSnapshot();\n          }\n          return;\n// ...\n```\n\n#### 4. `apps/game-runtime/test/ui-contract.integration.test.ts`\n**Change:** Add a test case verifying the `metrics` field is present and correctly structured in the `session.state` payload.\n\n```typescript\n  it(\"includes metrics in session.state payload\", () => {\n    const encoded = encodeServerMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: \"running\",\n        paused: false,\n        preparedSeed: null,\n        threadIds: { gameplayByAgentId: { \"agent-1\": \"thr-a\" } },\n       "
+        }
+      }
+    ],
+    "created": 1774451966,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-U4ogPqoru63rwaQLHvgFJSXYhdkcMX6a",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 3502.265,
+      "prompt_per_token_ms": 0.14412020081478127,
+      "prompt_per_second": 6938.652557701946,
+      "predicted_n": 1250,
+      "predicted_ms": 15540.702,
+      "predicted_per_token_ms": 12.4325616,
+      "predicted_per_second": 80.43394693495829
+    }
+  }
+}

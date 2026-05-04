@@ -13,6 +13,7 @@ type AgentConfigDraft = {
   id: string;
   model: string;
   effort: string;
+  personaPrompt: string;
 };
 
 type RuntimeAgentOption = {
@@ -263,6 +264,17 @@ export function GodConsoleSidebar(props: Props) {
                       </option>
                     ))}
                   </select>
+                  <textarea
+                    className="agent-config-persona"
+                    value={agent.personaPrompt}
+                    onChange={(event) => updateAgentConfig(index, "personaPrompt", event.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Optional role constraint (e.g. prioritize diplomacy, avoid risky combat)."
+                  />
+                  <p className="agent-config-hint muted">
+                    Optional and additive. It will not replace JSON/schema/action validity constraints.
+                  </p>
                 </div>
               </div>
             ))}

@@ -1,0 +1,250 @@
+{
+  "output_root": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl-128k/20260423-113141",
+  "profile": "128k-coding-agentic-manual",
+  "scale": "0-10 per task; task-level manual review of actual result quality, not only automatic success",
+  "coding": {
+    "summary": {
+      "qwen35_total": 187.5,
+      "qwen36_total": 183.0,
+      "max_total": 220,
+      "winners": {
+        "qwen35": 10,
+        "qwen36": 8,
+        "tie": 4
+      }
+    },
+    "items": [
+      {
+        "task": "java_audit_success_on_failure",
+        "qwen35": 9.0,
+        "qwen36": 8.0,
+        "winner": "qwen35",
+        "note": "Qwen3.5 removes success audit from finally and preserves failure semantics more cleanly; Qwen3.6 includes a confusing no-op finally before the cleaner fix."
+      },
+      {
+        "task": "java_cache_stale_after_write",
+        "qwen35": 9.0,
+        "qwen36": 8.5,
+        "winner": "qwen35",
+        "note": "Both identify write-side eviction; Qwen3.5 is more direct and lower-risk."
+      },
+      {
+        "task": "java_csv_import_partial_batch",
+        "qwen35": 9.0,
+        "qwen36": 9.0,
+        "winner": "tie",
+        "note": "Both keep validation ahead of persistence and avoid partial batch commits."
+      },
+      {
+        "task": "java_enum_db_compat",
+        "qwen35": 8.5,
+        "qwen36": 9.0,
+        "winner": "qwen36",
+        "note": "Qwen3.6 adds clearer null/normalization handling around legacy DB values."
+      },
+      {
+        "task": "java_idempotency_payment_callback",
+        "qwen35": 8.5,
+        "qwen36": 7.5,
+        "winner": "qwen35",
+        "note": "Qwen3.5 handles callback idempotency more safely; Qwen3.6 relies too heavily on paid status and under-specifies provider transaction checks."
+      },
+      {
+        "task": "java_null_nested_config",
+        "qwen35": 9.0,
+        "qwen36": 9.5,
+        "winner": "qwen36",
+        "note": "Qwen3.6 produces cleaner local variable handling and more actionable errors."
+      },
+      {
+        "task": "java_optimistic_lock_missing",
+        "qwen35": 8.5,
+        "qwen36": 9.0,
+        "winner": "qwen36",
+        "note": "Qwen3.6 models currentVersion/nextVersion propagation more directly."
+      },
+      {
+        "task": "java_outbox_publish_before_commit",
+        "qwen35": 7.5,
+        "qwen36": 9.0,
+        "winner": "qwen36",
+        "note": "Qwen3.6 recognizes the transaction-boundary problem and moves toward after-commit/outbox semantics; Qwen3.5 is less decisive."
+      },
+      {
+        "task": "java_pagination_boundary",
+        "qwen35": 8.0,
+        "qwen36": 6.5,
+        "winner": "qwen35",
+        "note": "Qwen3.6 makes an inclusive/exclusive boundary claim that would mislead the fix; Qwen3.5 is safer."
+      },
+      {
+        "task": "java_path_body_id_mismatch",
+        "qwen35": 9.0,
+        "qwen36": 8.5,
+        "winner": "qwen35",
+        "note": "Qwen3.5 explicitly rejects mismatched/null IDs and uses the path ID as authority."
+      },
+      {
+        "task": "java_permission_scope_trust_bug",
+        "qwen35": 9.0,
+        "qwen36": 9.5,
+        "winner": "qwen36",
+        "note": "Both correct the trust boundary; Qwen3.6 gives a more polished scope guard."
+      },
+      {
+        "task": "java_retry_duplicate_side_effect",
+        "qwen35": 8.5,
+        "qwen36": 6.0,
+        "winner": "qwen35",
+        "note": "Qwen3.6 suggests marking sent before retrying email, which can create false sent state; Qwen3.5 preserves side-effect safety better."
+      },
+      {
+        "task": "java_soft_delete_unique_email",
+        "qwen35": 7.5,
+        "qwen36": 8.0,
+        "winner": "qwen36",
+        "note": "Both identify the active-only uniqueness requirement; Qwen3.6 is slightly clearer, though both remain somewhat schematic."
+      },
+      {
+        "task": "java_transaction_partial_commit",
+        "qwen35": 9.0,
+        "qwen36": 9.0,
+        "winner": "tie",
+        "note": "Both use transaction boundaries appropriately."
+      },
+      {
+        "task": "script_bash_atomic_deploy",
+        "qwen35": 9.0,
+        "qwen36": 9.0,
+        "winner": "tie",
+        "note": "Both cover health check and rollback semantics well."
+      },
+      {
+        "task": "script_bash_log_triage",
+        "qwen35": 8.0,
+        "qwen36": 7.0,
+        "winner": "qwen35",
+        "note": "Qwen3.6 includes a broken placeholder pipeline before the real implementation; Qwen3.5 is simpler and less risky."
+      },
+      {
+        "task": "script_python_csv_reconcile",
+        "qwen35": 8.0,
+        "qwen36": 8.5,
+        "winner": "qwen36",
+        "note": "Qwen3.6 has more coherent duplicate and primary/fallback key handling."
+      },
+      {
+        "task": "script_python_jsonl_replay_analyzer",
+        "qwen35": 9.0,
+        "qwen36": 9.0,
+        "winner": "tie",
+        "note": "Both stream JSONL, tolerate malformed lines, and aggregate session-level signals."
+      },
+      {
+        "task": "ts_boot_restore_consistency",
+        "qwen35": 7.5,
+        "qwen36": 9.0,
+        "winner": "qwen36",
+        "note": "Qwen3.6 better preserves restore ordering by ensuring thread/session readiness before entering running phase."
+      },
+      {
+        "task": "ts_build_atomic_write_guard",
+        "qwen35": 8.5,
+        "qwen36": 7.5,
+        "winner": "qwen35",
+        "note": "Qwen3.5 keeps the existing tmp+rename contract and moves in-memory mutation after durable writes; Qwen3.6 is heavier and less compatible."
+      },
+      {
+        "task": "ts_reconnect_circuit_breaker",
+        "qwen35": 8.5,
+        "qwen36": 7.5,
+        "winner": "qwen35",
+        "note": "Qwen3.5 focuses on preserving the hard failure guard; Qwen3.6 over-focuses reconnect counter reset."
+      },
+      {
+        "task": "ts_runtime_metrics_protocol",
+        "qwen35": 9.0,
+        "qwen36": 8.5,
+        "winner": "qwen35",
+        "note": "Both wire protocol/runtime/client metrics; Qwen3.5 keeps the contract tighter."
+      }
+    ]
+  },
+  "agentic": {
+    "summary": {
+      "qwen35_total": 67.0,
+      "qwen36_total": 65.8,
+      "max_total": 80,
+      "winners": {
+        "qwen35": 5,
+        "qwen36": 3,
+        "tie": 0
+      }
+    },
+    "items": [
+      {
+        "task": "agentic_bash_log_triage",
+        "qwen35": 8.5,
+        "qwen36": 9.0,
+        "winner": "qwen36",
+        "note": "Both pass; Qwen3.6 normalizes key/value fields more robustly."
+      },
+      {
+        "task": "agentic_bash_log_triage_gz",
+        "qwen35": 9.0,
+        "qwen36": 9.2,
+        "winner": "qwen36",
+        "note": "Both pass gzip handling; Qwen3.6 has slightly richer status normalization."
+      },
+      {
+        "task": "agentic_python_metrics_contract",
+        "qwen35": 9.0,
+        "qwen36": 8.8,
+        "winner": "qwen35",
+        "note": "Both pass; Qwen3.5 output is cleaner and avoids minor formatting roughness."
+      },
+      {
+        "task": "agentic_python_reconcile_pkg",
+        "qwen35": 9.0,
+        "qwen36": 9.2,
+        "winner": "qwen36",
+        "note": "Both pass; Qwen3.6 catches a bit more duplicate-right detail."
+      },
+      {
+        "task": "agentic_python_replay_analyzer_patch",
+        "qwen35": 9.0,
+        "qwen36": 8.7,
+        "winner": "qwen35",
+        "note": "Qwen3.5 is simpler and closer to the dependency-light patch target; Qwen3.6 is richer but heavier."
+      },
+      {
+        "task": "agentic_python_restore_bootstrap",
+        "qwen35": 9.0,
+        "qwen36": 8.8,
+        "winner": "qwen35",
+        "note": "Both pass; Qwen3.5 has cleaner final patch formatting."
+      },
+      {
+        "task": "agentic_ts_metrics_contract_patch",
+        "qwen35": 9.0,
+        "qwen36": 7.8,
+        "winner": "qwen35",
+        "note": "Qwen3.6 weakens protocol type precision to Record<string, unknown>; Qwen3.5 preserves the schema contract better."
+      },
+      {
+        "task": "agentic_ts_restore_bootstrap_patch",
+        "qwen35": 4.5,
+        "qwen36": 4.3,
+        "winner": "qwen35",
+        "note": "Both repeats fail validation; Qwen3.5 is only marginally cleaner."
+      }
+    ]
+  },
+  "overall": {
+    "qwen35_total": 254.5,
+    "qwen36_total": 248.8,
+    "max_total": 300,
+    "winner": "qwen35",
+    "conclusion": "Qwen3.5-27B-UD-Q4_K_XL is slightly better for this 128K coding/agentic executor workload: it is more conservative, keeps contracts tighter, and avoids several harmful fixes. Qwen3.6-27B-UD-Q5_K_XL is close and often more expansive, but slower and uses more VRAM without a net quality win."
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 10695.278708008118,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Reconciliation Strategy & Edge-Case Guards\n\n**Matching Strategy:**\n1.  **Primary Key:** `merchant_order_id`\n2.  **Secondary Key (Fallback):** `provider_txn_id` (used only if `merchant_order_id` is missing or ambiguous, though in this schema, `merchant_order_id` is the primary business key).\n3.  **Normalization:**\n    *   Strip BOM (Byte Order Mark) from UTF-8 files.\n    *   Ignore blank lines and lines containing only whitespace.\n    *   Ignore duplicate header rows (e.g., if a file is concatenated).\n    *   Trim whitespace from all cell values.\n\n**Edge-Case Guards:**\n*   **Duplicates:** If `merchant_order_id` appears multiple times with identical data, flag as `DUPLICATE`. If data differs, flag as `DATA_CONFLICT`.\n*   **Missing Rows:** Rows present in one file but not the other are flagged as `MISSING_IN_SOURCE` or `MISSING_IN_TARGET`.\n*   **Stale Refunds:** If `status` is `REFUNDED` but the `updated_at` timestamp in the export is older than the statement (or vice versa), flag as `STALE_REFUND`.\n*   **Amount Mismatches:** If `amount_cents` differs between files for the same key, flag as `AMOUNT_MISMATCH`.\n\n**Output Files:**\n1.  `output/reconciliation_report.csv`: Machine-readable, one row per discrepancy or matched record with a `status` column.\n2.  `output/reconciliation_summary.txt`: Human-readable text summary (counts of matches, mismatches, missing).\n\n---\n\n### Production-Safe Script\n\nSave this as `scripts/reconcile_csv.py`. It uses only the Python standard library (`csv`, `io`, `os`, `datetime`) to ensure zero external dependencies.\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReconciliation Script for Finance Exports.\nMatches two CSV exports by merchant_order_id (primary) and provider_txn_id (fallback).\nHandles BOM, duplicates, blank lines, and header duplication.\n\"\"\"\n\nimport csv\nimport os\nimport sys\nfrom datetime import datetime\nfrom collections import defaultdict\nfrom typing import Dict, List, Tuple, Any\n\n# Configuration\nINPUT_DIR = \"samples\"\nOUTPUT_DIR = \"output\"\nFILE_EXPORT = \"finance_export.csv\"\nFILE_STATEMENT = \"merchant_statement.csv\"\n\n# Output files\nOUTPUT_CSV = os.path.join(OUTPUT_DIR, \"reconciliation_report.csv\")\nOUTPUT_TXT = os.path.join(OUTPUT_DIR, \"reconciliation_summary.txt\")\n\ndef normalize_row(row: Dict[str, str]) -> Dict[str, str]:\n    \"\"\"Strip whitespace and empty strings from values.\"\"\"\n    return {k: (v.strip() if v else \"\") for k, v in row.items()}\n\ndef parse_csv_file(filepath: str) -> List[Dict[str, str]]:\n    \"\"\"\n    Parse CSV, handling BOM, blank lines, and duplicate headers.\n    Returns a list of normalized row dictionaries.\n    \"\"\"\n    rows = []\n    seen_headers = False\n    \n    # Read with utf-8-sig to handle BOM automatically\n    with open(filepath, 'r', encoding='utf-8-sig', newline='') as f:\n        # Remove BOM if present in the first line manually (utf-8-sig handles most, but safety first)\n        content = f.read()\n        if content.startswith('\\ufeff'):\n            content = content[1:]\n        \n        # Split into lines to handle potential mixed line endings or blank lines\n        lines = content.splitlines()\n        \n        # Filter out blank lines\n        lines = [line for line in lines if line.strip()]\n        \n        if not lines:\n            return []\n\n        # Use csv.reader on the filtered lines\n        reader = csv.DictReader(lines)\n        \n        for row in reader:\n            # Skip duplicate header rows (if a row matches the header keys exactly)\n            if not seen_headers:\n                seen_headers = True\n                # Check if this row looks like a header (all keys match expected)\n                # In this specific schema, we assume the first non-blank line is the header.\n                # If the file has a duplicate header later, DictReader might treat it as data.\n                # We rely on the fact that 'merchant_order_id' is the first column.\n                # If the first value is 'merchant_order_id', it's a header row.\n                if row.get('merchant_order_id') == 'merchant_order_id':\n                    continue\n            \n            normalized = normalize_row(row)\n            # Skip rows that are effectively empty after normalization\n            if not any(normalized.values()):\n                continue\n                \n            rows.append(normalized)\n            \n    return rows\n\ndef get_key(row: Dict[str, str]) -> Tuple[str, str]:\n    \"\"\"Generate a composite key: (merchant_order_id, provider_txn_id).\"\"\"\n    return (row.get('merchant_order_id', ''), row.get('provider_txn_id', ''))\n\ndef reconcile(export_rows: List[Dict], statement_rows: List[Dict]) -> List[Dict]:\n    \"\"\"\n    Perform reconciliation logic.\n    Returns a list of result dictionaries.\n    \"\"\"\n    results = []\n    \n    # Index by primary key (merchant_order_id)\n    # If duplicates exist in source, we keep the first occurrence or flag them.\n    # Strategy: Group by merchant_order_id to detect duplicates within a single file.\n    \n    def detect_duplicates(rows: List[Dict], source_name: str) -> List[Dict]:\n        \"\"\"Detect and flag duplicates within a single file.\"\"\"\n        seen = {}\n        flagged = []\n        unique_rows = []\n        \n        for row in rows:\n            key = row.get('merchant_order_id', '')\n            if not key:\n                continue\n            \n            if key in seen:\n                # Duplicate found\n                flagged.append({\n                    'merchant_order_id': key,\n                    'provider_txn_id': row.get('provider_txn_id', ''),\n                   "
+        }
+      }
+    ],
+    "created": 1774496672,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-YUGKu3dBsARmwy3d1OEXk4sHwCvPonPa",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 183.588,
+      "prompt_per_token_ms": 0.3080335570469799,
+      "prompt_per_second": 3246.399546811339,
+      "predicted_n": 1300,
+      "predicted_ms": 9442.358,
+      "predicted_per_token_ms": 7.263352307692307,
+      "predicted_per_second": 137.67747420718428
+    }
+  }
+}

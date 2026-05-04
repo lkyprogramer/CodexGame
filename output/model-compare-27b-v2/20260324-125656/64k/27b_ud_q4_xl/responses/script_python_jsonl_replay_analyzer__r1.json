@@ -1,0 +1,40 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 39242.68541600031,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "The user wants me to write a small Python analyzer script for replay JSONL files. Let me analyze the requirements:\n\n1. **Input**: JSONL files (like `samples/replay.jsonl`)\n2. **Features needed**:\n   - Compute per-session turn counts\n   - Compute invalid-output counts per session\n   - Count malformed lines\n   - Handle malformed lines gracefully (skip but count)\n   - Memory-efficient (stream processing, not load entire file)\n   - Output one summary per session + global footer\n   - Keep it dependency-free if possible (use only stdlib)\n\n3. **From the sample data**:\n   - `sessionId` field identifies sessions\n   - `type` field can be `\"agent.turn\"` (count as turns) or `\"error\"`\n   - `code` field on errors can be `\"invalid_output\"` or `\"runtime_fault\"`\n   - There can be malformed lines like `\"not-json\"`\n\n4. **From docs/analyzer_requirements.md**:\n   - Input may be multi-GB - must stream, not load into memory\n   - Skip malformed lines but count them\n   - Output one summary per session and one global footer\n   - Keep dependency-free\n\nLet me write a production-safe Python script:\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReplay JSONL Analyzer\n\nAnalyzes replay JSONL files with malformed-line tolerance.\nStreams input to handle multi-GB files without loading into memory.\n\nUsage:\n    python replay_analyzer.py <input.jsonl>\n    python replay_analyzer.py <input1.jsonl> <input2.jsonl> ...\n\"\"\"\n\nimport json\nimport sys\nfrom collections import defaultdict\nfrom typing import Dict, Any\n\n\ndef parse_line(line: str) -> tuple[Dict[str, Any] | None, bool]:\n    \"\"\"\n    Parse a JSONL line.\n    \n    Returns:\n        (parsed_dict, is_valid) - parsed_dict is None if malformed\n    \"\"\"\n    try:\n        data = json.loads(line)\n        return data, True\n    except (json.JSONDecodeError, ValueError):\n        return None, False\n\n\ndef analyze_file(filepath: str) -> tuple[Dict[str, dict], int]:\n    \"\"\"\n    Analyze a single JSONL file.\n    \n    Returns:\n        (session_stats, malformed_count)\n        - session_stats: dict mapping sessionId to {turns, invalid_outputs, errors}\n        - malformed_count: number of malformed lines\n    \"\"\"\n    session_stats: Dict[str, dict] = defaultdict(lambda: {\n        \"turns\": 0,\n        \"invalid_outputs\": 0,\n        \"errors\": 0\n    })\n    malformed_count = 0\n    \n    with open(filepath, 'r', encoding='utf-8') as f:\n        for line in f:\n            line = line.strip()\n            if not line:\n                continue\n            \n            data, is_valid = parse_line(line)\n            \n            if not is_valid:\n                malformed_count += 1\n                continue\n            \n            session_id = data.get(\"sessionId\")\n            if not session_id:\n                malformed_count += 1\n                continue\n            \n            event_type = data.get(\"type\")\n            \n            if event_type == \"agent.turn\":\n                session_stats[session_id][\"turns\"] += 1\n            elif event_type == \"error\":\n                session_stats[session_id][\"errors\"] += 1\n                if data.get(\"code\") == \"invalid_output\":\n                    session_stats[session_id][\"invalid_outputs\"] += 1\n    \n    return dict(session_stats), malformed_count\n\n\ndef main():\n    if len(sys.argv) < 2:\n        print(\"Usage: python replay_analyzer.py <input.jsonl> [input2.jsonl ...]\", file=sys.stderr)\n        sys.exit(1)\n    \n    all_sessions: Dict[str, dict] = defaultdict(lambda: {\n        \"turns\": 0,\n        \"invalid_outputs\": 0,\n        \"errors\": 0\n    })\n    total_malformed = 0\n    total_lines = 0\n    \n    for filepath in sys.argv[1:]:\n        try:\n            session_stats, malformed_count = analyze_file(filepath)\n            total_malformed += malformed_count\n            \n            for session_id, stats in session_stats.items():\n                all_sessions[session_id][\"turns\"] += stats[\"turns\"]\n                all_sessions[session_id][\"invalid_outputs\"] += stats[\"invalid_outputs\"]\n                all_sessions[session_id][\"errors\"] += stats[\"errors\"]\n                \n            # Count valid lines\n            for stats in session_stats.values():\n                total_lines += stats[\"turns\"] + stats[\"errors\"]\n                \n        except FileNotFoundError:\n            print(f\"Error: File not found: {filepath}\", file=sys.stderr)\n            sys.exit(1)\n        except PermissionError:\n            print(f\"Error: Permission denied: {filepath}\", file=sys.stderr)\n            sys.exit(1)\n    \n    # Output per-session summary\n    print(\"=\" * 60)\n    print(\"PER-SESSION SUMMARY\")\n    print(\"=\" * 60)\n    \n    for session_id in sorted(all_sessions.keys()):\n        stats = all_sessions[session_id]\n        print(f\"\\nSession: {session_id}\")\n        print(f\"  Turns: {stats['turns']}\")\n        print(f\"  Invalid Outputs: {stats['invalid_outputs']}\")\n        print(f\"  Errors: {stats['errors']}\")\n    \n    # Output global footer\n    print(\"\\n\" + \"=\" * 60)\n    print(\"GLOBAL FOOTER\")\n    print(\"=\" * 60)\n    print(f\"Total Sessions: {len(all_sessions)}\")\n    total_turns = sum(s[\"turns\"] for s in all_sessions.values())\n    total_invalid = sum(s[\"invalid_outputs\"] for s in all_sessions.values())\n    total_errors = sum(s[\"errors\"] for s in all_sessions.values())\n    print(f\"Total Turns: {total_turns}\")\n   "
+        }
+      }
+    ],
+    "created": 1774358344,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 516,
+      "total_tokens": 1816
+    },
+    "id": "chatcmpl-XhvnbCSQu8r6efjTS2lG555EStEHDvvd",
+    "timings": {
+      "cache_n": 82,
+      "prompt_n": 434,
+      "prompt_ms": 228.56,
+      "prompt_per_token_ms": 0.5266359447004608,
+      "prompt_per_second": 1898.8449422471124,
+      "predicted_n": 1300,
+      "predicted_ms": 30516.879,
+      "predicted_per_token_ms": 23.474522307692308,
+      "predicted_per_second": 42.599375906035476
+    }
+  }
+}

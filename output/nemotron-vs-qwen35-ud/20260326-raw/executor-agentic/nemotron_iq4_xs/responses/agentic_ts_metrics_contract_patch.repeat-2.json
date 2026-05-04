@@ -1,0 +1,42 @@
+{
+  "task_id": "agentic_ts_metrics_contract_patch",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 4881.636292004259,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Fix the client to read metrics from session.state.runtime by moving the metrics field from worldSnapshot to sessionState and updating the client reducer to read from the correct path.\",\n  \"files\": [\n    {\n      \"path\": \"apps/game-runtime/src/runtime/sessionState.ts\",\n      \"content\": \"import type { SessionStateMessage, WorldSnapshotMessage } from \\\"@codexgame/protocol\\\";\\nimport type { RuntimeMetrics } from \\\"./metrics\\\";\\n\\nexport function buildMessages(metrics: RuntimeMetrics): {\\n  sessionState: SessionStateMessage;\\n  worldSnapshot: WorldSnapshotMessage;\\n} {\\n  return {\\n    sessionState: {\\n      type: \\\"session.state\\\",\\n      payload: {\\n        phase: \\\"running\\\",\\n        runtime: {\\n          model: \\\"local-qwen\\\",\\n          tickMs: 200,\\n          metrics,\\n        },\\n      },\\n    },\\n    worldSnapshot: {\\n      type: \\\"world.snapshot\\\",\\n      payload: {\\n        tick: 42,\\n        world: {},\\n      },\\n    } as unknown as WorldSnapshotMessage,\\n  };\\n}\\n\",\n    },\n    {\n      \"path\": \"apps/game-client/src/state.ts\",\n      \"content\": \"export type ClientState = {\\n  phase?: string;\\n  runtime?: Record<string, unknown>;\\n  world?: Record<string, unknown>;\\n};\\n\\nexport function reduceClientState(state: ClientState, message: any): ClientState {\\n  if (message.type === \\\"session.state\\\") {\\n    return {\\n      ...state,\\n      phase: message.payload.phase,\\n      runtime: message.payload.runtime,\\n    };\\n  }\\n  if (message.type === \\\"world.snapshot\\\") {\\n    return {\\n      ...state,\\n      world: message.payload.world,\\n    };\\n  }\\n  return state;\\n}\\n\",\n    },\n    {\n      \"path\": \"tests/test_metrics_contract.mjs\",\n      \"content\": \"import test from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { buildMessages } from \\\"../apps/game-runtime/src/runtime/sessionState.ts\\\";\\nimport { reduceClientState } from \\\"../apps/game-client/src/state.ts\\\";\\n\\ntest(\\\"metrics live in session.state runtime\\\", () => {\\n  const metrics = {\\n    turnsTotal: 9,\\n    invalidOutputCount: 4,\\n    actionAppliedCount: 3,\\n    actionRejectedCount: 0,\\n    queuedActions: 2,\\n  };\\n  const { sessionState, worldSnapshot } = buildMessages(metrics);\\n  assert.equal(worldSnapshot.payload.metrics, undefined);\\n  assert.equal(sessionState.payload.runtime.metrics.turnsTotal, 9);\\n});\\n\\ntest(\\\"client reads metrics from session.state\\\", () => {\\n  const metrics = {\\n    turnsTotal: 2,\\n    invalidOutputCount: 1,\\n    actionAppliedCount: 5,\\n    actionRejectedCount: 0,\\n    queuedActions: 3,\\n  };\\n  const { sessionState } = buildMessages(metrics);\\n  const next = reduceClientState({}, sessionState);\\n  assert.equal(next.runtime.metrics.queuedActions, 3);\\n});\\n\",\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1774496321,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 773,
+      "prompt_tokens": 988,
+      "total_tokens": 1761
+    },
+    "id": "chatcmpl-c4lLtys5u9uC0mlHI86Y0z9wNkBYlFvY",
+    "timings": {
+      "cache_n": 476,
+      "prompt_n": 512,
+      "prompt_ms": 75.759,
+      "prompt_per_token_ms": 0.147966796875,
+      "prompt_per_second": 6758.272944468644,
+      "predicted_n": 773,
+      "predicted_ms": 3642.292,
+      "predicted_per_token_ms": 4.711891332470892,
+      "predicted_per_second": 212.22900305631728
+    }
+  },
+  "validation_results": [],
+  "files_written": [],
+  "json_error": "JSONDecodeError('Expecting property name enclosed in double quotes: line 7 column 5 (char 1008)')"
+}

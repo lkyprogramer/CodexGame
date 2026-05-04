@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11612.150708009722,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to propose smallest protocol-first change set to expose runtime metrics to client HUD. Currently metrics are tracked in MetricsTracker but not sent to client. Need to expose via a new server message type, e.g., \"runtime.metrics\" with payload RuntimeMetrics. Also need to send metrics in session.state? Or separate message. The client HUD wants to display metrics. The simplest: add a new ServerMessage type \"runtime.metrics\" with payload RuntimeMetrics. Then in GameRuntimeServer, after updating metrics (e.g., after tick, after actions), send metrics snapshot to clients. Could piggyback on existing \"session.state\" but that already has many fields; adding metrics there would be okay but may be heavy. However protocol-first: we can add a new message type. The client can request? But we can just push updates when metrics change. The smallest change: add a new ServerMessage type in protocol definitions (messages.ts). Then in GameRuntimeServer, after metrics changes (e.g., after tick, after onInvalidOutput, after onTurnCompleted, after setQueueDepth), call emitMessage with type \"runtime.metrics\". Also need to add test contract for UI: add test that server can send runtime.metrics and client can parse.\n\nWe need to modify:\n\n- packages/protocol/src/messages.ts: add RuntimeMetrics type (already defined in runtime/types.ts). Actually RuntimeMetrics is defined in runtime/types.ts, but messages.ts currently defines ServerMessage types. We need to add a new ServerMessage variant: { version, type: \"runtime.metrics\", payload: RuntimeMetrics }. Also need to import RuntimeMetrics type from @codexgame/protocol? It is exported from @codexgame/protocol? In messages.ts we have import types from @codexgame/protocol, but RuntimeMetrics is not exported there. It is defined in @codexgame/protocol? In snapshot, @codexgame/protocol includes many types but not RuntimeMetrics. It exports types like SessionPhase, TurnEffort, etc. RuntimeMetrics is defined in @codexgame/protocol? In snapshot, runtime/types.ts exports RuntimeMetrics, but messages.ts imports from @codexgame/protocol. It may not have RuntimeMetrics. However we can add to messages.ts a new type alias using the existing type from @codexgame/protocol? Actually messages.ts imports type { ServerMessage } from \"@codexgame/protocol\"? It imports type { ServerMessage } from \"@codexgame/protocol\"? In messages.ts we have export type ServerMessage = ... It defines its own ServerMessage, not referencing external. It includes many types but not RuntimeMetrics. We can add a new ServerMessage variant referencing RuntimeMetrics type imported from @codexgame/protocol? The import list includes many types but not RuntimeMetrics. We could import { RuntimeMetrics } from \"@codexgame/protocol\". But messages.ts currently imports from \"@codexgame/protocol\" many types: AgentAction, BuildOutput, etc. It does not import RuntimeMetrics. We can add import { RuntimeMetrics } from \"@codexgame/protocol\". Then add to ServerMessage union: { version: Version; type: \"runtime.metrics\"; payload: RuntimeMetrics }. Ensure type compatibility.\n\nAlso need to update the client to handle this message: In App.tsx, in ws.onmessage switch, add case \"runtime.metrics\": setMetrics(payload). But the question only asks to expose runtime metrics to client HUD, not necessarily UI changes? It says \"expose runtime metrics to the client HUD\". The client already has a HUD but not metrics. We need to add a metric display maybe in GodConsoleSidebar or elsewhere. However the instruction: \"propose the smallest protocol-first change set to expose runtime metrics to the client HUD. Keep simulation authority in runtime and add the right contract tests.\" So we need to add contract tests for UI? There's already a contract test file for UI contract. We can add a test that server can send runtime.metrics and client can parse.\n\nThus changes:\n\n1. Add import of RuntimeMetrics in messages.ts and add new ServerMessage case.\n\n2. In GameRuntimeServer, after metrics update (maybe after tick, after onInvalidOutput, after onTurnCompleted, after setQueueDepth), call emitMessage with runtime.metrics. The simplest: after each tick, after metrics.setQueueDepth, we can send metrics snapshot. Also after onInvalidOutput, onActionApplied, etc. But we can just send after each tick (since tick updates metrics). In tick() after metrics.setQueueDepth and after sending world snapshot, we can also send metrics. Or we can send after each metric change. Simpler: after tick, call this.emitMessage({ version: PROTOCOL_VERSION, type: \"runtime.metrics\", payload: this.metrics.snapshot() }). Ensure we have access to metrics.\n\nAdd to tick method: after this.sendWorldSnapshot(); add this.emitMessage({ version: PROTOCOL_VERSION, type: \"runtime.metrics\", payload: this.metrics.snapshot() });\n\nAlso need to send metrics when session starts? Could also send in sendSessionState? But not needed.\n\nAdd a test: In test/ui-contract.integration.test.ts, add test that server can send runtime.metrics and client can parse. But we need to simulate server sending. Could just test that encodeServerMessage with type \"runtime.metrics\" and payload RuntimeMetrics works and can be parsed.\n\nAdd test: encodeServerMessage({ version: PROTOCOL_VERSION, type: \"runtime.metrics\", payload: { turnsTotal: 1, invalidOutputCount: 2, actionAppliedCount: 3, actionRejectedCount: 4, queuedActions: 5 } }) and then parse using a new parser? There's no parser for ServerMessage in protocol. But we can test that encodeServerMessage works and that the payload matches.\n\nBut we need to add parsing function? In messages.ts there is encodeServerMessage and parseClientMessage, but not parseServerMessage. However we can test that encodeServerMessage returns JSON that includes type runtime.metrics and payload matches.\n\nAdd test: const"
+        }
+      }
+    ],
+    "created": 1774491393,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 22650,
+      "total_tokens": 23900
+    },
+    "id": "chatcmpl-96dgVnv9gTmwdmGoObMGgMg01qAQrP70",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 22650,
+      "prompt_ms": 2990.282,
+      "prompt_per_token_ms": 0.13202128035320088,
+      "prompt_per_second": 7574.536448401856,
+      "predicted_n": 1250,
+      "predicted_ms": 6529.663,
+      "predicted_per_token_ms": 5.2237304,
+      "predicted_per_second": 191.4340755411114
+    }
+  }
+}

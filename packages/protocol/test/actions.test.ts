@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agentTurnOutputSchema } from "../src/actions";
+import { agentTurnOutputJsonSchema, agentTurnOutputSchema } from "../src/actions";
 
 describe("agentTurnOutputSchema", () => {
   it("accepts valid actions", () => {
@@ -31,5 +31,23 @@ describe("agentTurnOutputSchema", () => {
         actions: [{ type: "set_relation", targetAgentId: "agent-2", relation: "friend" }]
       })
     ).toThrow();
+  });
+
+  it("uses per-action required fields in JSON schema", () => {
+    const itemSchema = agentTurnOutputJsonSchema.properties.actions.items as {
+      required: ReadonlyArray<string>;
+      properties: {
+        type?: { enum?: ReadonlyArray<string> };
+        direction?: { enum?: ReadonlyArray<string | null> };
+        targetId?: { type?: ReadonlyArray<string> };
+      };
+    };
+
+    expect(itemSchema.required).toContain("type");
+    expect(itemSchema.required).toContain("direction");
+    expect(itemSchema.required).toContain("targetId");
+    expect(itemSchema.properties.type?.enum).toContain("gather");
+    expect(itemSchema.properties.direction?.enum).toContain(null);
+    expect(itemSchema.properties.targetId?.type).toEqual(["string", "null"]);
   });
 });

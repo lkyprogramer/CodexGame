@@ -1,0 +1,82 @@
+[
+  {
+    "task_id": "agentic_ts_metrics_contract_patch",
+    "description": "Apply the smallest multi-file TypeScript patch so runtime metrics live in session.state/runtime and the client reads them from there.",
+    "max_tokens": 2200,
+    "validation_commands": [
+      "node --experimental-strip-types --test tests/test_metrics_contract.mjs"
+    ],
+    "hidden_checklist": [
+      "Must move metrics into session.state/runtime rather than world.snapshot.",
+      "Requires protocol, runtime, and client edits together.",
+      "Should preserve client presentation-only role.",
+      "Passing tests confirm protocol placement and client reduction."
+    ],
+    "workspace_files": [
+      "packages/protocol/src/messages.ts",
+      "apps/game-runtime/src/runtime/metrics.ts",
+      "apps/game-runtime/src/runtime/sessionState.ts",
+      "apps/game-client/src/state.ts",
+      "tests/test_metrics_contract.mjs"
+    ]
+  },
+  {
+    "task_id": "agentic_ts_restore_bootstrap_patch",
+    "description": "Fix a multi-file TypeScript restore/bootstrap flow so running state is not exposed before thread restoration completes.",
+    "max_tokens": 2200,
+    "validation_commands": [
+      "node --experimental-strip-types --test tests/test_restore_runtime.mjs"
+    ],
+    "hidden_checklist": [
+      "Should preserve existing thread ids from snapshot instead of recreating them blindly.",
+      "Must not expose running state before thread restoration is effectively complete.",
+      "Requires multi-file coordination across restore/types/bootstrap.",
+      "Passing tests confirm idempotent bootstrap behavior."
+    ],
+    "workspace_files": [
+      "apps/game-runtime/src/runtime/types.ts",
+      "apps/game-runtime/src/runtime/bootstrap.ts",
+      "apps/game-runtime/src/runtime/restore.ts",
+      "tests/test_restore_runtime.mjs"
+    ]
+  },
+  {
+    "task_id": "agentic_bash_log_triage_gz",
+    "description": "Produce a Bash triage script that handles .log and .log.gz together, normalizes volatile ids, ignores health checks, and sorts counts descending.",
+    "max_tokens": 1800,
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "hidden_checklist": [
+      "Must actually process .gz files, not just mention them.",
+      "Should normalize volatile ids such as orderId/providerTxnId/traceId/email/requestId.",
+      "Must suppress health check noise and sort counts descending.",
+      "Passing tests are the success criterion."
+    ],
+    "workspace_files": [
+      "logs/app.log",
+      "logs/archive.log",
+      "scripts/triage.sh",
+      "tests/test_triage_gz.py"
+    ]
+  },
+  {
+    "task_id": "agentic_python_replay_analyzer_patch",
+    "description": "Produce a working Python replay analyzer that streams JSONL, counts malformed lines, and aggregates per-session turns and invalid outputs.",
+    "max_tokens": 1900,
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "hidden_checklist": [
+      "Must stream line-by-line rather than assume tiny files.",
+      "Must count malformed lines explicitly.",
+      "Must aggregate per-session turns and invalid_output counts.",
+      "Passing tests are the success criterion."
+    ],
+    "workspace_files": [
+      "data/replay.jsonl",
+      "scripts/replay_analyzer.py",
+      "tests/test_replay_analyzer.py"
+    ]
+  }
+]

@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_reconnect_circuit_breaker",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 9015.805917006219,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**\n\nIn `GameRuntimeServer.handleDisconnect()` the reconnect logic is started **without** first interrupting the turn that is currently in progress.  \nIf a turn is running when the CodeX process dies, the turn will keep waiting for a response that will never arrive. When the reconnect finally succeeds the server will think the turn is still pending and will resolve it with stale data, effectively **bypassing the circuit‑breaker** that should stop the runtime loop after too many reconnect attempts.\n\nThe reconnect counter (`reconnectAttempts`) is incremented in `handleDisconnect()` and the circuit‑breaker is triggered only when `reconnectAttempts > maxReconnectAttempts`. Because the pending turn is never cancelled, the server can keep processing after the break‑point, violating the intended safety guarantee.\n\n**Exact location**\n\n`apps/game-runtime/src/runtime/GameRuntimeServer.ts` – `handleDisconnect()` (lines ~620‑650) and the related `interruptedTurnIds` handling in `handleCodexNotification()` (lines ~560‑590).\n\n**Smallest safe fix**\n\nAdd a call to `cancelPendingTurns(\"codex_disconnect\")` before starting the reconnect timer. This clears every pending turn (including the active one) and forces the runtime to pause, preserving the hard reconnect guard. The fix is a single line that re‑uses the existing `cancelPendingTurns` helper, so it is minimal and maintainable.\n\n```diff\n--- a/apps/game-runtime/src/runtime/GameRuntimeServer.ts\n+++ b/apps/game-runtime/src/runtime/GameRuntimeServer.ts\n@@   private async handleDisconnect(): Promise<void> {\n     if (this.phase !== \"running\") {\n       return;\n     }\n\n     this.reconnectAttempts += 1;\n     if (this.reconnectAttempts > runtimeConfig.maxReconnectAttempts) {\n       this.phase = \"error\";\n       this.emitError(\"circuit_breaker\", \"Too many codex reconnect failures.\", false);\n       return;\n     }\n\n+    // Abort any turn that is waiting for a response – otherwise a stale\n+    // completion could be processed after reconnect, bypassing the circuit\n+    // breaker.  The helper clears `pendingTurns` and rejects the collectors.\n+    this.cancelPendingTurns(\"codex_disconnect\");\n+\n     const delay = Math.min(10_000, this.reconnectAttempts * 1_000);\n     this.emitMessage({\n       version: PROTOCOL_VERSION,\n       type: \"agent.feed\",\n       payload: {\n         role: \"system\",\n         text: `Codex disconnected; reconnecting in ${delay}ms...`\n       }\n     });\n\n     setTimeout(() => {\n       void this.reconnect();\n     }, delay);\n   }\n```\n\n**Why this works**\n\n* `cancelPendingTurns` already exists and is used elsewhere (e.g. on session reset). It rejects all pending turn collectors with an error, clears `pendingTurns`, and leaves the runtime in a safe state.\n* By calling it **before** the reconnect timer we guarantee that no turn can finish after a reconnect, so the circuit‑breaker (`maxReconnectAttempts`) will correctly halt the server if reconnects keep failing.\n* The fix does not alter any other logic, respects the existing “hard reconnect guard”, and keeps the reconnect back‑off unchanged.\n\n**Regression checks**\n\n1. **Unit‑test** – Verify that after a simulated CodeX disconnect while a turn is pending, the pending turn is rejected and `pendingTurns` is empty before the reconnect timer fires.  \n2. **Integration test** – Simulate `maxReconnectAttempts` failures; ensure the server transitions to `\"error\"` and does **not** process any turn after the final reconnect attempt.  \n3. **End‑to‑end** – Start a session, trigger a disconnect, reconnect once, then send a turn request; ensure the turn is processed only after the reconnect and that the circuit‑breaker still triggers after the configured number of failures.\n\nThese checks confirm that the reconnect path no longer silently completes a stale turn and that the circuit‑breaker remains effective."
+        }
+      }
+    ],
+    "created": 1774496114,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 907,
+      "prompt_tokens": 19637,
+      "total_tokens": 20544
+    },
+    "id": "chatcmpl-zhnvF5Y2ZE3QaNpSOwhk5HsEHhJWrDzD",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 19637,
+      "prompt_ms": 2553.861,
+      "prompt_per_token_ms": 0.1300535214136579,
+      "prompt_per_second": 7689.142048059781,
+      "predicted_n": 907,
+      "predicted_ms": 4676.431,
+      "predicted_per_token_ms": 5.155932745314222,
+      "predicted_per_second": 193.95132741186603
+    }
+  }
+}

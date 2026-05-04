@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 32118.16179199377,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script. It is designed to be a single-file utility (`reconcile.py`) that handles the specified edge cases (BOM, duplicates, blank lines) and implements the required matching logic.\n\n### Strategy Overview\n\n1.  **Normalization**:\n    *   Strip BOMs and whitespace.\n    *   Filter out blank lines and duplicate header rows.\n    *   **Deduplication**: If a row appears multiple times in a source file, keep only the first occurrence to prevent false \"duplicate\" flags during comparison.\n2.  **Matching Logic**:\n    *   **Primary Key**: `merchant_order_id`.\n    *   **Secondary Key**: `provider_txn_id` (used if primary key is missing/empty, though the rules imply a hierarchy).\n    *   *Implementation*: We create a composite key `(merchant_order_id, provider_txn_id)` for strict comparison. If `merchant_order_id` is empty, we fall back to `provider_txn_id`.\n3.  **Output**:\n    *   `reconcile_details.csv`: Machine-readable row-by-row status.\n    *   `reconcile_summary.txt`: Human-readable counts and error lists.\n\n### The Script\n\nSave this as `reconcile.py` in the project root (same directory as `samples/`).\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nProduction Reconciliation Script for Finance Exports.\nHandles BOM, blank lines, duplicate headers, and row duplicates.\n\"\"\"\n\nimport csv\nimport sys\nfrom pathlib import Path\nfrom collections import OrderedDict\n\n# Configuration\nINPUT_DIR = Path(\"samples\")\nFINANCE_FILE = INPUT_DIR / \"finance_export.csv\"\nMERCHANT_FILE = INPUT_DIR / \"merchant_statement.csv\"\nOUTPUT_DIR = Path(\"output\")\nDETAILS_FILE = OUTPUT_DIR / \"reconcile_details.csv\"\nSUMMARY_FILE = OUTPUT_DIR / \"reconcile_summary.txt\"\n\n# Expected Columns\nEXPECTED_COLS = [\"merchant_order_id\", \"provider_txn_id\", \"amount_cents\", \"status\", \"updated_at\"]\n\ndef safe_read_csv(filepath: Path) -> list[dict]:\n    \"\"\"\n    Reads CSV, handling BOM, blank lines, and duplicate headers.\n    Returns a list of unique row dictionaries.\n    \"\"\"\n    rows = []\n    seen_keys = set()\n    \n    try:\n        with open(filepath, 'r', encoding='utf-8-sig') as f:\n            content = f.read()\n    except FileNotFoundError:\n        print(f\"Error: File not found: {filepath}\")\n        sys.exit(1)\n\n    lines = content.splitlines()\n    \n    # 1. Filter blank lines\n    lines = [l for l in lines if l.strip()]\n    \n    if not lines:\n        return []\n\n    # 2. Identify Header (skip duplicate headers)\n    # We assume the first non-blank line is the header. \n    # If a subsequent line matches the header exactly, skip it.\n    header_line = lines[0]\n    header_reader = csv.DictReader([header_line])\n    headers = header_reader.fieldnames\n    \n    if not headers:\n        print(f\"Error: No headers found in {filepath}\")\n        sys.exit(1)\n\n    # Normalize headers (strip whitespace)\n    headers = [h.strip() for h in headers]\n    \n    # 3. Parse Data\n    for line in lines[1:]:\n        # Skip if line matches header exactly (duplicate header row)\n        if line.strip() == header_line.strip():\n            continue\n            \n        # Parse row\n        reader = csv.DictReader([header_line, line])\n        for row in reader:\n            # Clean keys\n            clean_row = {k.strip(): v.strip() if v else \"\" for k, v in row.items()}\n            \n            # Generate unique key for deduplication within the same file\n            # Using all columns to detect exact duplicates\n            row_key = tuple(clean_row.get(h, \"\") for h in headers)\n            \n            if row_key not in seen_keys:\n                seen_keys.add(row_key)\n                rows.append(clean_row)\n                \n    return rows\n\ndef get_match_key(row: dict) -> tuple:\n    \"\"\"\n    Generates a tuple key for matching.\n    Priority: merchant_order_id, then provider_txn_id.\n    \"\"\"\n    mid = row.get(\"merchant_order_id\", \"\")\n    pid = row.get(\"provider_txn_id\", \"\")\n    \n    # If merchant_order_id is present, it's the primary key.\n    # If empty, fallback to provider_txn_id.\n    if mid:\n        return (mid, pid)\n    return (pid, mid)\n\ndef reconcile(finance_rows: list, merchant_rows: list) -> tuple:\n    \"\"\"\n    Performs the reconciliation logic.\n    Returns (details_list, summary_dict).\n    \"\"\"\n    # Index Merchant Rows by Key\n    merchant_index = {}\n    for row in merchant_rows:\n        key = get_match_key(row)\n        # If duplicate keys exist in merchant file (after our initial dedup), \n        # we keep the first one. If the source had duplicates, they were removed in safe_read_csv.\n        if key not in merchant_index:\n            merchant_index[key] = row\n\n    details = []\n    stats = {\n        \"total_finance\": len(finance_rows),\n        \"total_merchant\": len(merchant_rows),\n        \"matched\": 0,\n        \"missing_in_merchant\": 0,\n        \"missing_in_finance\": 0,\n        \"amount_mismatch\": 0,\n        \"status_mismatch\": 0,\n        \"duplicates_in_finance\": 0, # Handled by safe_read_csv, but we track if we saw them\n        \"errors\": []\n    }\n\n    # Track processed keys to find \"Missing in Finance\" later\n    processed_keys = set()\n\n    # 1. Iterate Finance (Source of Truth for \"Expected\")\n    for f_row in finance_rows"
+        }
+      }
+    ],
+    "created": 1776916477,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-8x7aPzqsv13YAoDZBkR2ZSIcraSu1ax2",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 325.817,
+      "prompt_per_token_ms": 0.5466728187919463,
+      "prompt_per_second": 1829.2477065346498,
+      "predicted_n": 1300,
+      "predicted_ms": 30442.761,
+      "predicted_per_token_ms": 23.41750846153846,
+      "predicted_per_second": 42.703091220930986
+    }
+  }
+}

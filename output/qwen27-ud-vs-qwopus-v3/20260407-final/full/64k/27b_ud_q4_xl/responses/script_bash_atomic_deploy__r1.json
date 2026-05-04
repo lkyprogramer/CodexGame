@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 22676.27464234829,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script skeleton based on your requirements.\n\n### File: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# --- Configuration ---\nreadonly BASE_DIR=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${BASE_DIR}/releases\"\nreadonly CURRENT_LINK=\"${BASE_DIR}/current\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${BASE_DIR}/deploy.log\"\nreadonly MAX_RETRIES=5\nreadonly RETRY_DELAY=2\n\n# --- Arguments ---\n# Usage: ./deploy.sh <new_release_timestamp>\nif [[ $# -ne 1 ]]; then\n    echo \"Usage: $0 <new_release_timestamp>\"\n    exit 1\nfi\n\nNEW_RELEASE_DIR=\"${RELEASES_DIR}/${1}\"\nTIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')\n\n# --- Logging Helper ---\nlog() {\n    echo \"[${TIMESTAMP}] $*\" | tee -a \"${LOG_FILE}\"\n}\n\n# --- Pre-flight Checks ---\nlog \"Starting deployment for release: ${1}\"\n\n# 1. Check if current symlink exists (Ops Constraint)\nif [[ ! -L \"${CURRENT_LINK}\" ]]; then\n    log \"ERROR: Current symlink '${CURRENT_LINK}' is missing. Aborting.\"\n    exit 1\nfi\n\n# 2. Check if new release directory exists\nif [[ ! -d \"${NEW_RELEASE_DIR}\" ]]; then\n    log \"ERROR: New release directory '${NEW_RELEASE_DIR}' does not exist.\"\n    exit 1\nfi\n\n# Capture previous target for rollback\nPREVIOUS_TARGET=$(readlink -f \"${CURRENT_LINK}\")\nlog \"Current live target: ${PREVIOUS_TARGET}\"\n\n# --- Atomic Swap ---\nlog \"Performing atomic symlink swap to ${NEW_RELEASE_DIR}...\"\nln -sfn \"${NEW_RELEASE_DIR}\" \"${CURRENT_LINK}\"\n\n# --- Health Check ---\nlog \"Performing health check against ${HEALTH_URL}...\"\nHEALTH_STATUS=0\n\nfor ((i=1; i<=MAX_RETRIES; i++)); do\n    if curl -sf --max-time 5 \"${HEALTH_URL}\" > /dev/null 2>&1; then\n        log \"Health check passed on attempt ${i}.\"\n        HEALTH_STATUS=0\n        break\n    else\n        log \"Health check failed on attempt ${i}. Retrying in ${RETRY_DELAY}s...\"\n        sleep \"${RETRY_DELAY}\"\n        HEALTH_STATUS=1\n    fi\ndone\n\n# --- Rollback or Success ---\nif [[ ${HEALTH_STATUS} -ne 0 ]]; then\n    log \"CRITICAL: Health check failed after ${MAX_RETRIES} attempts. Initiating ROLLBACK.\"\n    log \"Restoring symlink to previous target: ${PREVIOUS_TARGET}\"\n    \n    # Restore previous symlink\n    ln -sfn \"${PREVIOUS_TARGET}\" \"${CURRENT_LINK}\"\n    \n    log \"Rollback complete. Previous release is now live.\"\n    log \"Deployment FAILED.\"\n    exit 1\nfi\n\nlog \"Deployment SUCCESSFUL. New release is live.\"\nexit 0\n```\n\n### Verification Checks\n\n1.  **Safety Constraints**:\n    *   Verify `set -euo pipefail` is present at the top.\n    *   Verify the script exits immediately if `CURRENT_LINK` is missing.\n    *   Verify `ln -sfn` is used for atomic swapping (no intermediate file creation).\n\n2.  **Rollback Logic**:\n    *   Confirm `PREVIOUS_TARGET` is captured *before* the swap.\n    *   Confirm the script restores `PREVIOUS_TARGET` if the health check loop fails.\n    *   Confirm the old release directory is **not** deleted (script only manipulates symlinks).\n\n3.  **Logging**:\n    *   Ensure all output is piped to `/srv/myapp/deploy.log` via the `log` function.\n\n4.  **Dry Run (Mental Check)**:\n    *   If `curl` fails 5 times, does the script exit with code 1 and print \"Rollback complete\"?\n    *   If `curl` succeeds, does it exit with code 0 and print \"Deployment SUCCESSFUL\"?\n\n### Usage\n```bash\nchmod +x deploy.sh\n./deploy.sh 20231027-143000\n```"
+        }
+      }
+    ],
+    "created": 1775547566,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 954,
+      "prompt_tokens": 292,
+      "total_tokens": 1246
+    },
+    "id": "chatcmpl-E5EkCyLbCr8GKRLTa88Zejge2DbzG5Y1",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 131.161,
+      "prompt_per_token_ms": 0.6305817307692307,
+      "prompt_per_second": 1585.8372534518644,
+      "predicted_n": 954,
+      "predicted_ms": 22283.58,
+      "predicted_per_token_ms": 23.358050314465412,
+      "predicted_per_second": 42.81179236011449
+    }
+  }
+}

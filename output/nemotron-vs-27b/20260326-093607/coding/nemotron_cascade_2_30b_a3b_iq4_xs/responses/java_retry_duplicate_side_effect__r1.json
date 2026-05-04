@@ -1,0 +1,39 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 5173.886374977883,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**  \n`InvoiceNotificationService.send()` executes *both* `invoiceGateway.markSent(invoiceId)` **and** `emailGateway.sendInvoice(invoiceId)` inside the same `RetryExecutor.run()` block.  \nIf the call fails after the invoice has been marked as sent but before the email is sent, a retry will re‑execute the whole block. The second attempt will **re‑mark the invoice as sent** (idempotent in the real system, but the side‑effect is still visible to downstream processes) and will **send the email a second time**. The user‑visible side effect – the email being sent – is therefore duplicated.\n\n**Root cause**  \nThe retry logic treats the whole method as a single atomic action, but the method contains *two* distinct side‑effects. Only the *idempotent* operation (`markSent`) can safely be retried; the *non‑idempotent* operation (`sendInvoice`) must not be re‑executed on a retry.\n\n**Smallest safe fix**  \nSplit the operation so that the retry only wraps the *idempotent* part. The email send must be performed **outside** the retry (or wrapped in a separate, non‑retryable call). This guarantees that a retry cannot cause the email to be sent twice.\n\n**Exact code change**  \n\n```diff\n--- a/src/main/java/com/example/invoice/InvoiceNotificationService.java\n+++ b/src/main/java/com/example/invoice/InvoiceNotificationService.java\n@@\n public void send(long invoiceId) {\n-        retryExecutor.run(() -> {\n-            invoiceGateway.markSent(invoiceId);\n-            emailGateway.sendInvoice(invoiceId);\n-        });\n+        // Only the idempotent invoice marking is retried.\n+        retryExecutor.run(() -> {\n+            invoiceGateway.markSent(invoiceId);\n+        });\n+\n+        // Email send is a side‑effect that must not be retried.\n+        emailGateway.sendInvoice(invoiceId);\n }\n```\n\n*Why this is safe*  \n- `invoiceGateway.markSent` can be called multiple times without adverse effects (the system treats it as idempotent).  \n- `emailGateway.sendInvoice` is executed exactly once, regardless of retries.  \n- No other code paths are altered; the public API of `RetryExecutor` remains unchanged.\n\n**What must **not** be retried blindly**  \n`emailGateway.sendInvoice(invoiceId)` – sending an email is a user‑visible action that should happen only once. It must not be wrapped in the retry executor.\n\n**Regression checks** (run after the change)\n\n1. **Unit test – successful path**  \n   - Mock `invoiceGateway` and `emailGateway`.  \n   - Call `service.send(id)`.  \n   - Verify `invoiceGateway.markSent` is called **once** (even if the mock throws, the retry may retry, but the email is still called exactly once).  \n   - Verify `emailGateway.sendInvoice` is called **exactly once**.\n\n2. **Unit test – failure of invoice marking**  \n   - Make `invoiceGateway.markSent` throw an exception on the first attempt, succeed on the second.  \n   - Verify `invoiceGateway.markSent` is called twice, `emailGateway.sendInvoice` is called **once**.\n\n3. **Unit test – failure of email sending** (email send is outside retry)  \n   - Ensure `invoiceGateway.markSent` succeeds.  \n   - Make `emailGateway.sendInvoice` throw.  \n   - Verify that the exception propagates and that `invoiceGateway.markSent` is not rolled back (it may have been called multiple times due to retry, which is acceptable).  \n   - Ensure `emailGateway.sendInvoice` is called **once** (the retry does not affect it).\n\nAll tests should pass, confirming that the side‑effect (email) is not duplicated while the idempotent invoice marking can still be retried safely."
+        }
+      }
+    ],
+    "created": 1774490926,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 851,
+      "prompt_tokens": 404,
+      "total_tokens": 1255
+    },
+    "id": "chatcmpl-kWoiKVpLixrDGYp9TJCnidnBjELdZ41X",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 404,
+      "prompt_ms": 56.95,
+      "prompt_per_token_ms": 0.14096534653465348,
+      "prompt_per_second": 7093.942054433714,
+      "predicted_n": 851,
+      "predicted_ms": 4006.01,
+      "predicted_per_token_ms": 4.707414806110458,
+      "predicted_per_second": 212.4308226889099
+    }
+  }
+}

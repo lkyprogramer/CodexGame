@@ -1,0 +1,40 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 52863.32887498429,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Code Review: Runtime Metrics Protocol Exposure\n\n### Root Cause\nRuntime metrics are tracked server-side (`MetricsTracker`) but never exposed to the client. The `session.state` message lacks a `metrics` field, and there's no protocol contract for metrics transmission.\n\n### Smallest Protocol-First Fix\n\n#### 1. Protocol Contract (`packages/protocol/src/messages.ts`)\n\nAdd `metrics` field to `session.state` payload:\n\n```typescript\n// In ServerMessage type, update session.state payload:\ntype: \"session.state\";\npayload: {\n  phase: SessionPhase;\n  paused: boolean;\n  preparedSeed: number | null;\n  threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n  connected: boolean;\n  runtime: {\n    model: string | null;\n    effort: TurnEffort;\n    tickMs: number;\n    schedulerMs: number;\n    maxQueuedActionsBeforeTurn: number;\n    availableModels: RuntimeModelOption[];\n    metrics: {\n      turnsTotal: number;\n      invalidOutputCount: number;\n      actionAppliedCount: number;\n      actionRejectedCount: number;\n      queuedActions: number;\n    };\n  };\n};\n```\n\nUpdate the Zod schema to include metrics validation:\n\n```typescript\nconst clientMessageSchema = z.discriminatedUnion(\"type\", [\n  z.object({\n    version: z.literal(PROTOCOL_VERSION),\n    type: z.literal(\"session.start\"),\n    payload: z.object({\n      seed: z.number().int().optional(),\n      model: z.string().min(1).max(120).optional(),\n      effort: z.string().min(1).max(32).optional(),\n      agents: z.array(sessionAgentSchema).min(1).max(4)\n    })\n  }),\n  // ... other client messages\n]);\n\n// Add server-side metrics schema for validation (optional but recommended)\nexport const serverRuntimeMetricsSchema = z.object({\n  turnsTotal: z.number().int().nonnegative(),\n  invalidOutputCount: z.number().int().nonnegative(),\n  actionAppliedCount: z.number().int().nonnegative(),\n  actionRejectedCount: z.number().int().nonnegative(),\n  queuedActions: z.number().int().nonnegative()\n});\n```\n\n#### 2. Runtime Server (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`)\n\nUpdate `sendSessionState()` to include metrics:\n\n```typescript\nprivate sendSessionState(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"session.state\",\n    payload: {\n      phase: this.phase,\n      paused: this.paused,\n      preparedSeed: this.preparedSeed,\n      threadIds: this.threadIds,\n      connected:",
+          "reasoning_content": "Let me analyze the task:\n\n1. **Goal**: Expose runtime metrics to the client HUD in a protocol-first way\n2. **Constraint**: Keep simulation authority in runtime (the runtime already has MetricsTracker)\n3. **Requirement**: Add contract tests\n\n**Current State:**\n- `apps/game-runtime/src/runtime/metrics.ts` has `MetricsTracker` with `snapshot()` method returning `RuntimeMetrics`\n- `apps/game-runtime/src/runtime/types.ts` defines `RuntimeMetrics` type\n- `apps/game-runtime/src/runtime/GameRuntimeServer.ts` uses `this.metrics` but doesn't expose it to clients\n- `packages/protocol/src/messages.ts` defines the protocol messages but doesn't include runtime metrics\n- `apps/game-client/src/App.tsx` doesn't receive or display runtime metrics\n\n**What's missing:**\n1. Protocol message type for runtime metrics\n2. Server-side emission of metrics (likely in `sendSessionState` or a new message type)\n3. Client-side handling and display of metrics\n4. Contract tests for the new protocol message\n\n**Smallest Protocol-First Change Set:**\n\n1. **Protocol (packages/protocol/src/messages.ts)**:\n   - Add `runtimeMetrics` field to `session.state` payload OR create a new `runtime.metrics` message type\n   - Given the existing `session.state` is already sent on state changes, adding metrics there is cleaner\n\n2. **Runtime Server (apps/game-runtime/src/runtime/GameRuntimeServer.ts)**:\n   - Include metrics in `sendSessionState()` payload\n\n3. **Client (apps/game-client/src/App.tsx)**:\n   - Parse and store metrics from `session.state`\n   - Display metrics in HUD\n\n4. **Tests (apps/game-runtime/test/ui-contract.integration.test.ts)**:\n   - Add test for the new metrics field in protocol\n\nLet me check the existing `session.state` payload structure in the protocol:\n\n\nThe `session.state` message already contains a `runtime` object with model, effort, tickMs, schedulerMs, maxQueuedActionsBeforeTurn, and availableModels. I should add a `metrics` field to this object to carry the runtime metrics. The metrics include turnsTotal, invalidOutputCount, actionAppliedCount, actionRejectedCount, and queuedActions. I'll add a `metrics` object to the `runtime` payload with these fields, then update the server to populate it from the MetricsTracker, the client to consume and display it, and add protocol validation tests. I need to add the metrics field to the runtime payload in both the type definition and Zod schema. The metrics object should include turnsTotal, invalidOutputCount, actionAppliedCount, actionRejectedCount, and queuedActions. Then I'll update GameRuntimeServer to include these metrics when sending session state, and modify the client to extract and display them from the session.state message.\n\nFor testing, I should verify the metrics are correctly included in the protocol message. The client will need to parse the metrics from the runtime payload and render them in the HUD.\n"
+        }
+      }
+    ],
+    "created": 1774445529,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24299,
+      "total_tokens": 25549
+    },
+    "id": "chatcmpl-2v9IuCDj04lPIFiC6tY7h7gzfVUKJwHp",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24299,
+      "prompt_ms": 10557.459,
+      "prompt_per_token_ms": 0.434481213218651,
+      "prompt_per_second": 2301.595488080986,
+      "predicted_n": 1250,
+      "predicted_ms": 31578.621,
+      "predicted_per_token_ms": 25.2628968,
+      "predicted_per_second": 39.583742431311364
+    }
+  }
+}

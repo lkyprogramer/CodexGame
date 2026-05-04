@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11017.89462499437,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk restore‑consistency bug**\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`  \n**Method:** `restoreSession()`\n\nThe method restores a saved session by:\n\n1. Re‑creating the `Simulation` from the persisted `SimulationState`.  \n2. Re‑creating the `threadIds` map (`gameplayByAgentId` and `builder`) **only** from the saved `threadIds` that were stored in the snapshot.  \n3. **Never** re‑creates the Codex threads for agents that already have a `threadId` in the snapshot.\n\nIf the persisted `threadIds` are missing (e.g. a crash after the threads were created but before the snapshot was written) the restored session will have **no thread IDs**. The scheduler will think there are no agents with a thread, the turn scheduler will never pick an agent, and the system will stay stuck in a “running” phase with no active turn – an inconsistent running state that the UI cannot recover from.\n\n**Root cause**\n\n`restoreSession()` trusts the persisted `threadIds` without verifying that a corresponding Codex thread actually exists. When the snapshot was taken after the threads were created, the `threadIds` are present, but after a crash the Codex process may have been restarted and the threads lost. The next start will try to use the stale thread IDs, leading to:\n\n* `startTurnAndWait()` will fail because the thread does not exist.  \n* The scheduler will never find a schedulable agent (no `threadIds.gameplayByAgentId` entries are considered valid).  \n* The runtime stays in a deadlocked “running” phase – a **running‑state inconsistency**.\n\n**Smallest safe fix**\n\nAdd a verification step after the snapshot is loaded: for every `gameplayByAgentId` entry, call `codexClient.request(\"thread/info\", …)` (or any safe read‑only method) to confirm the thread still exists. If the call fails, **re‑create the missing thread** before proceeding. This restores the missing thread IDs while preserving atomic persistence and avoiding duplicate thread creation (the `ensureThreadId` helper already throws on missing IDs, so we only call it when the thread is truly missing).\n\n**Exact change (≈ 30 lines)**\n\n```ts\n// In GameRuntimeServer.restoreSession()\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n    }\n    this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n  } else if (typeof saved.seed === \"number\") {\n    this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n      { id: \"agent-1\", name: \"Agent 1\" }\n    ]);\n    this.seed = saved.seed;\n    this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n    this.resetAgentLoopState([\"agent-1\"]);\n  } else {\n    return;\n  }\n\n  this.phase = \"running\";\n  this.preparedSeed = null;\n  this.threadIds = { gameplayByAgentId: {} };\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n\n  // ---- NEW: verify / recreate missing threads ----\n  for (const [agentId, savedThreadId] of Object.entries(saved.threadIds?.gameplayByAgentId ?? {})) {\n    try {\n      // A cheap no‑op request that fails if the thread is gone.\n      await this.codexClient.request(\"thread/info\", { threadId: savedThreadId });\n    } catch {\n      // Thread does not exist – start a fresh one.\n      const gameplay = await this.codexClient.request(\"thread/start\", {\n        cwd: runtimeConfig.codexCwd,\n        approvalPolicy: \"never\"\n      });\n      const newThreadId = ensureThreadId(gameplay);\n      this.threadIds.gameplayByAgentId[agentId] = newThreadId;\n      this.threadToAgentId.set(newThreadId, agentId);\n    }\n  }\n\n  // Builder thread (optional)\n  if (saved.threadIds?.builder) {\n    try {\n      await this.codexClient.request(\"thread/info\", { threadId: saved.threadIds.builder });\n    } catch {\n      const builder = await this.codexClient.request(\"thread/start\", {\n        cwd: runtimeConfig.codexCwd,\n        approvalPolicy: \"never\"\n      });\n      this.threadIds.builder = ensureThreadId(builder);\n      this.threadToAgentId.set(this.threadIds.builder, \"builder\");\n    }\n  }\n  // ------------------------------------------------\n\n  await this.logReplay(\"session.restored\", {\n    seed: this.seed,\n    tick: this.simulation.getState().tick\n  });\n}\n```\n\n*Why this is the minimal, maintainable fix*\n\n* **Atomic persistence** – we never delete or overwrite the persisted snapshot; we only add a verification step that may add missing threads.\n* **No duplicate thread creation** – we only call `thread/start` when the `thread/info` call fails, guaranteeing we don’t start a second thread for the same agent.\n* **Preserves existing logic** – the rest of `restoreSession()` (simulation restoration, state reset, metrics, etc.) stays untouched.\n* **Small footprint** – the added loop is ~15"
+        }
+      }
+    ],
+    "created": 1774490889,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 19949,
+      "total_tokens": 21199
+    },
+    "id": "chatcmpl-1gHT1lX2QaVR8gdkvjmlM5QVpXWEeTum",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 19949,
+      "prompt_ms": 2583.088,
+      "prompt_per_token_ms": 0.12948458569351848,
+      "prompt_per_second": 7722.926977323265,
+      "predicted_n": 1250,
+      "predicted_ms": 6452.236,
+      "predicted_per_token_ms": 5.1617888,
+      "predicted_per_second": 193.73128943206666
+    }
+  }
+}

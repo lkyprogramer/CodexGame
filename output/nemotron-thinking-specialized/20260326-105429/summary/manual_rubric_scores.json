@@ -1,0 +1,289 @@
+{
+  "rubric": {
+    "task_completion": "0-4",
+    "evidence_grounding": "0-4",
+    "constraint_adherence": "0-4",
+    "decision_completeness": "0-4",
+    "penalty": "0 to -3",
+    "max_total": 16
+  },
+  "tasks": [
+    {
+      "task_id": "longctx_restore_bootstrap",
+      "family": "longctx",
+      "hidden_focus": [
+        "Must identify running state exposed before thread restoration completes.",
+        "Must mention ordering between thread bootstrap and visible session state."
+      ],
+      "no_think": {
+        "task_completion": 4,
+        "evidence_grounding": 4,
+        "constraint_adherence": 4,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 15,
+        "verdict": "better",
+        "notes": "直接命中 running phase 与 gameplay threads 缺失的错位，证据与文件定位都准。缺点是方案略偏代码展开，但仍然收敛。"
+      },
+      "think": {
+        "task_completion": 4,
+        "evidence_grounding": 4,
+        "constraint_adherence": 3,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 13,
+        "verdict": "worse",
+        "notes": "核心判断仍然正确，但前置自述较多，收敛更慢，最终方案没有比 no-think 更完整。"
+      }
+    },
+    {
+      "task_id": "longctx_metrics_contract",
+      "family": "longctx",
+      "hidden_focus": [
+        "Should mention metrics contract ownership between runtime, protocol, and client.",
+        "Should stay concrete and not drift into generic observability advice."
+      ],
+      "no_think": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 2,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 10,
+        "verdict": "better",
+        "notes": "虽然对 contract 的理解有过度推断，且文件名有误，但至少给出了具体缺口和补法。"
+      },
+      "think": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 7,
+        "verdict": "worse",
+        "notes": "明显更长，但大量篇幅在自我分析和猜测，没有更好地收敛到 runtime/protocol/client 的明确契约缺口。"
+      }
+    },
+    {
+      "task_id": "longctx_java_change_impact",
+      "family": "longctx",
+      "hidden_focus": [
+        "Should identify duplicate side effects / notification before durable commit risk.",
+        "Should keep remediation bounded instead of redesigning the system."
+      ],
+      "no_think": {
+        "task_completion": 2,
+        "evidence_grounding": 3,
+        "constraint_adherence": 1,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 8,
+        "verdict": "tie",
+        "notes": "看到了 duplicate side effect，但方案跳到 NotificationGateway contract 级别，明显偏大。"
+      },
+      "think": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 3,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 8,
+        "verdict": "tie",
+        "notes": "方案更小，但把问题收缩成 already-approved guard，没真正命中 notification side effect 的核心。"
+      }
+    },
+    {
+      "task_id": "multi_restore_self_repair",
+      "family": "multi_round",
+      "hidden_focus": [
+        "Should converge on restore/order-of-operations, not drift to unrelated refactors.",
+        "Final round should be more concrete than round 1."
+      ],
+      "no_think": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 7,
+        "verdict": "worse",
+        "notes": "最终 round 漂到了 incomplete snapshot / fresh init 分支，没有沿着 restore sequencing 收敛。"
+      },
+      "think": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 3,
+        "decision_completeness": 2,
+        "penalty": 0,
+        "total": 11,
+        "verdict": "better",
+        "notes": "最终收敛到 threadIds / threadToAgentId 恢复，虽然还不够完整，但明显比 no-think 更贴 hidden focus。"
+      }
+    },
+    {
+      "task_id": "multi_outbox_self_repair",
+      "family": "multi_round",
+      "hidden_focus": [
+        "Should stay focused on publish-before-commit / outbox ordering.",
+        "Final answer should remain minimal and implementation-oriented."
+      ],
+      "no_think": {
+        "task_completion": 2,
+        "evidence_grounding": 3,
+        "constraint_adherence": 1,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 7,
+        "verdict": "better",
+        "notes": "至少一直围绕 outbox ordering，但最后还是引入新方法和默认抛异常，违背 minimal/stable 约束。"
+      },
+      "think": {
+        "task_completion": 1,
+        "evidence_grounding": 2,
+        "constraint_adherence": 1,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 5,
+        "verdict": "worse",
+        "notes": "思考过程更长，但最终没有真正收敛到一个可执行的最小补丁，反而不断在“能否新建文件/仓储”之间摇摆。"
+      }
+    },
+    {
+      "task_id": "multi_reconnect_self_repair",
+      "family": "multi_round",
+      "hidden_focus": [
+        "Must preserve reconnect safety guard.",
+        "Should converge toward a bounded reconnect fix, not a broad retry redesign."
+      ],
+      "no_think": {
+        "task_completion": 4,
+        "evidence_grounding": 3,
+        "constraint_adherence": 4,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 14,
+        "verdict": "better",
+        "notes": "核心 fix 非常收敛：successful reconnect 后重置 counter，且明确不放松 maxReconnectAttempts。"
+      },
+      "think": {
+        "task_completion": 2,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 1,
+        "penalty": 0,
+        "total": 7,
+        "verdict": "worse",
+        "notes": "把焦点转移到 pendingTurns / stale state，偏离了题目要验证的 reconnect guard 主线。"
+      }
+    },
+    {
+      "task_id": "plan_boot_restore_gap",
+      "family": "planning",
+      "hidden_focus": [
+        "Should break the work into restore sequencing, thread recreation, and tests.",
+        "Should keep client protocol compatibility explicit."
+      ],
+      "no_think": {
+        "task_completion": 3,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 4,
+        "penalty": 0,
+        "total": 11,
+        "verdict": "worse",
+        "notes": "计划很具体，但直接写成大段替换代码，且引入 metrics restore 等额外内容，边界不够干净。"
+      },
+      "think": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 2,
+        "decision_completeness": 4,
+        "penalty": 0,
+        "total": 12,
+        "verdict": "better",
+        "notes": "虽然仍然偏长，但对 failure handling、pending state、thread recreation 的覆盖更完整，规划视角更强。"
+      }
+    },
+    {
+      "task_id": "plan_metrics_exposure",
+      "family": "planning",
+      "hidden_focus": [
+        "Should start from protocol contract, then runtime emit, then client consume.",
+        "Should mention tests, not only code changes."
+      ],
+      "no_think": {
+        "task_completion": 3,
+        "evidence_grounding": 2,
+        "constraint_adherence": 3,
+        "decision_completeness": 4,
+        "penalty": 0,
+        "total": 12,
+        "verdict": "better",
+        "notes": "完全按 protocol -> runtime -> client -> tests 的顺序展开，虽然设计偏重，但结构符合题意。"
+      },
+      "think": {
+        "task_completion": 3,
+        "evidence_grounding": 2,
+        "constraint_adherence": 3,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 11,
+        "verdict": "worse",
+        "notes": "也能走正确顺序，但更像解释过程，决策面比 no-think 更散，最终落点不如 no-think 干净。"
+      }
+    },
+    {
+      "task_id": "plan_reconnect_fault_injection",
+      "family": "planning",
+      "hidden_focus": [
+        "Should define explicit failure injection points and assertions.",
+        "Should preserve current runtime safety semantics."
+      ],
+      "no_think": {
+        "task_completion": 3,
+        "evidence_grounding": 2,
+        "constraint_adherence": 2,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 10,
+        "verdict": "worse",
+        "notes": "failure injection 与 assertions 有了，但实现细节里夹了不少 repo 并不存在的测试设施和 API。"
+      },
+      "think": {
+        "task_completion": 3,
+        "evidence_grounding": 3,
+        "constraint_adherence": 2,
+        "decision_completeness": 3,
+        "penalty": 0,
+        "total": 11,
+        "verdict": "better",
+        "notes": "虽然也有一定想当然，但 harness / injector / observability 三段式更贴题，安全语义保留得更明确。"
+      }
+    }
+  ],
+  "summary": {
+    "no_think_total": 94,
+    "think_total": 85,
+    "delta": -9,
+    "task_wins": {
+      "no_think_better": 5,
+      "think_better": 3,
+      "tie": 1
+    },
+    "family_totals": {
+      "longctx": {
+        "no_think": 33,
+        "think": 28
+      },
+      "multi_round": {
+        "no_think": 28,
+        "think": 23
+      },
+      "planning": {
+        "no_think": 33,
+        "think": 34
+      }
+    },
+    "conclusion": "长答案并没有在这轮专项任务上转化成更高的总质量。thinking=true 只在少数规划题上略有收益，但在长上下文分析和多轮修复上更常见的是叙述膨胀，而不是更好的问题求解。"
+  }
+}

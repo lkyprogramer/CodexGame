@@ -1,0 +1,40 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 34614.63195795659,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Analysis\n\n**Root Cause:** Runtime metrics exist in `MetricsTracker` but are only used for persistence (`persistSession()`). They are never included in any server-to-client message payload.\n\n**Protocol-First Solution:** Add `metrics` field to the `session.state` message payload. This is the correct place because:\n- `session.state` already carries runtime-level configuration (`runtime` object)\n- Metrics are runtime statistics, not world state\n- Clients already receive `session.state` on connect and updates\n- Minimal protocol change\n\n---\n\n## Change Set\n\n### 1. Protocol: Add metrics to `session.state` payload\n\n**File: `packages/protocol/src/messages.ts`**\n\n```diff\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n+       metrics: {\n+         turnsTotal: number;\n+         invalidOutputCount: number;\n+         actionAppliedCount: number;\n+         actionRejectedCount: number;\n+         queuedActions: number;\n+       };\n      };\n    }\n```\n\n---\n\n### 2. Server: Include metrics in `sendSessionState()`\n\n**File: `apps/game-runtime/src/runtime/GameRuntimeServer.ts`**\n\n```diff\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: this.phase,\n        paused: this.paused,\n        preparedSeed: this.preparedSeed,\n        threadIds: this.threadIds,\n        connected: this.connected,\n        runtime: {\n          model: this.turnModel,\n          effort: this.turnEffort,\n          tickMs: runtimeConfig.tickMs,\n          schedulerMs: runtimeConfig.schedulerMs,\n          maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n          availableModels: this.availableModels\n        },\n+       metrics: this.metrics.snapshot()\n      }\n    });\n  }\n```\n\n---\n\n### 3. Client: Receive and display metrics\n\n**File: `apps/game-client/src/App.tsx`**\n\n```diff\n  const [runtimeSchedulerMs, setRuntimeSchedulerMs] = useState<number>(0);\n  const [runtimeQueueAhead, setRuntimeQueueAhead] = useState<number>(0);\n+ const [runtimeMetrics, setRuntimeMetrics] = useState<{\n+   turnsTotal: number;\n+   invalidOutputCount: number;\n+   actionAppliedCount: number;\n+",
+          "reasoning_content": "Let me analyze this task carefully.\n\n**Understanding the Problem:**\n- Runtime metrics exist in `apps/game-runtime/src/runtime/metrics.ts` with a `MetricsTracker` class\n- These metrics track: turnsTotal, invalidOutputCount, actionAppliedCount, actionRejectedCount, queuedActions\n- The metrics are stored server-side but NOT exposed to the client\n- The client HUD needs to display these metrics\n\n**Current State Analysis:**\n\n1. **Server-side metrics tracking** (`metrics.ts`):\n   - `MetricsTracker` class maintains metrics\n   - `snapshot()` method returns a copy of metrics\n   - Metrics are updated throughout runtime operations\n\n2. **Protocol messages** (`packages/protocol/src/messages.ts`):\n   - `session.state` message contains runtime config but NO metrics\n   - `world.snapshot` contains world state but NO metrics\n   - Need to add metrics to one of these messages\n\n3. **Client HUD** (`apps/game-client/src/App.tsx`):\n   - HUD shows tick, latency, model, effort, scheduler info\n   - No metrics display currently\n\n**Protocol-First Design Decision:**\n\nThe cleanest approach is to add `metrics` to the `session.state` message payload. This is because:\n- `session.state` already contains runtime-level configuration\n- Metrics are runtime-level statistics, not world state\n- Client can subscribe to `session.state` updates (already happens on connection)\n- Minimal protocol change - just extend existing message\n\n**Files to Change:**\n\n1. `packages/protocol/src/messages.ts` - Add `metrics` field to `session.state` payload type\n2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts` - Include metrics in `sendSessionState()`\n3. `apps/game-client/src/App.tsx` - Receive and display metrics in HUD\n4. `apps/game-runtime/test/ui-contract.integration.test.ts` - Add contract test for metrics\n\n**Step-by-Step Implementation:**\n\n**Step 1: Protocol Change**\n\n\nI'll extend the `session.state` message to include a metrics object with key performance indicators. This involves adding a new type definition that captures turn counts, validation metrics, and action tracking. The change ensures clients can access comprehensive runtime statistics through the existing state synchronization mechanism.\n\n**Step 2: Server Update**\nThe server will now populate the metrics field when sending session state, pulling real-time data from the metrics tracking system. This ensures clients receive the most current performance and operational statistics.\n\n**Step 3: Client HUD Update**\nThe client interface will parse the incoming metrics and display relevant information, providing users with visibility into system performance and operational status.\n\n**Step 4: Contract Test**\nI'll add a test case to validate the metrics transmission, ensuring the protocol correctly handles the new data structure and maintains backward compatibility.\n"
+        }
+      }
+    ],
+    "created": 1772944666,
+    "model": "jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Q4_K_M",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24300,
+      "total_tokens": 25550
+    },
+    "id": "chatcmpl-637xj2vpO9G2xBJONeJ8wIzIO713mml5",
+    "timings": {
+      "cache_n": 23788,
+      "prompt_n": 512,
+      "prompt_ms": 279.856,
+      "prompt_per_token_ms": 0.54659375,
+      "prompt_per_second": 1829.5123206220342,
+      "predicted_n": 1250,
+      "predicted_ms": 30218.084,
+      "predicted_per_token_ms": 24.1744672,
+      "predicted_per_second": 41.36595821230757
+    }
+  }
+}

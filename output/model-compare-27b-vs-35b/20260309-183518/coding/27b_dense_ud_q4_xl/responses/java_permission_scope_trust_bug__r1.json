@@ -1,0 +1,39 @@
+{
+  "task_id": "java_permission_scope_trust_bug",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11899.596416042186,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Security Bug Analysis\n\n**Highest-Risk Bug:** **Insecure Direct Object Reference (IDOR) / Privilege Escalation via Trust Boundary Violation.**\n\nIn `ReportController.java`, the `generate` method accepts `orgId` directly from the `GenerateReportRequest` (user-controlled input) and passes it to the service layer. It completely ignores the `orgId` present in the `UserSession` (the authenticated context).\n\n**Impact:** An authenticated user can generate reports for any organization by simply changing the `orgId` in their request payload, bypassing access controls.\n\n### Root Cause\nThe code trusts the client-supplied `request.getOrgId()` over the server-verified `session.getOrgId()`. The trust boundary is incorrectly placed at the request payload rather than the authentication context.\n\n### Smallest Safe Fix\nReplace the usage of `request.getOrgId()` with `session.getOrgId()` in the controller. This ensures the report is generated strictly for the organization the authenticated user belongs to.\n\n**Files to Change:**\n1.  `src/main/java/com/example/report/ReportController.java`\n\n**Code Diff:**\n\n```java\n// File: src/main/java/com/example/report/ReportController.java\n\npublic ReportDto generate(UserSession session, GenerateReportRequest request) {\n    // FIX: Use orgId from the authenticated session, not the request payload\n    return reportService.generate(session.getOrgId(), session.getUserId(), request.getRange());\n}\n```\n\n### Regression Checks\n1.  **Authorized Access:** Verify that a user belonging to `Org A` can successfully generate a report for `Org A`.\n2.  **Unauthorized Access:** Verify that a user belonging to `Org A` attempting to generate a report for `Org B` (by sending `orgId` for `Org B` in the request) is rejected (either by the service layer returning an error or the controller preventing the call).\n3.  **Data Integrity:** Confirm that the generated report data corresponds strictly to the `orgId` associated with the user's session, regardless of the `orgId` sent in the request body."
+        }
+      }
+    ],
+    "created": 1773053008,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 447,
+      "prompt_tokens": 407,
+      "total_tokens": 854
+    },
+    "id": "chatcmpl-OaMSFiCfr3jSorUTYTkMyxC1NU6dJH3q",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 407,
+      "prompt_ms": 180.459,
+      "prompt_per_token_ms": 0.4433882063882064,
+      "prompt_per_second": 2255.359943255809,
+      "predicted_n": 447,
+      "predicted_ms": 10442.112,
+      "predicted_per_token_ms": 23.36042953020134,
+      "predicted_per_second": 42.80743205972125
+    }
+  }
+}

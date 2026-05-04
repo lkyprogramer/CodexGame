@@ -1,0 +1,50 @@
+{
+  "flashprefill_kernels": {
+    "label": "smoke_flashprefill_kernels",
+    "cmd": [
+      "/home/hhtele/lucebox-hub-main-maxperf-qwen36/dflash/build/test_flashprefill_kernels"
+    ],
+    "returncode": 0,
+    "elapsed_s": 0.9723329544067383,
+    "stdout_tail": "[fp-test] kernel 1 (compute_mean_vector): max diff = 0.00005 PASS\n[fp-test] kernel 2 (compute_block_score): launch ok\n[fp-test] kernel 4 (sparse_flash_forward): launch ok\n[fp-test] kernel 4 (sparse_flash_forward) numerics: max diff = 0.00040 PASS\n[fp-test] e2e flash_prefill_forward_bf16 at S=8192: 2.7 ms / iter (avg of 5)\n",
+    "stderr_tail": "",
+    "stdout_log": "/tmp/qwen36_maxperf_results3/logs/smoke_flashprefill_kernels.stdout.log",
+    "stderr_log": "/tmp/qwen36_maxperf_results3/logs/smoke_flashprefill_kernels.stderr.log"
+  },
+  "run_py_tq3": {
+    "label": "smoke_run_py_tq3",
+    "cmd": [
+      "/home/hhtele/lucebox-hub-main-maxperf-qwen36/dflash/.venv/bin/python",
+      "scripts/run.py",
+      "--prompt",
+      "def fibonacci(n):",
+      "--n-gen",
+      "128",
+      "--budget",
+      "22",
+      "--target",
+      "/data/models/qwen/Qwen3.6-27B-Q4_K_M.gguf",
+      "--draft",
+      "/data/models/qwen/dflash-draft-qwen36-q8/dflash-draft-3.6-q8_0.gguf",
+      "--bin",
+      "/home/hhtele/lucebox-hub-main-maxperf-qwen36/dflash/build/test_dflash",
+      "--kv-tq3",
+      "--fa-window",
+      "2048"
+    ],
+    "returncode": 0,
+    "elapsed_s": 8.039741039276123,
+    "stdout_tail": "Here's a thinking process:\n\n1.  **Understand User Input:** The user provided a Python function signature: `def fibonacci(n):` and stopped there. This implies they want me to complete the function or provide an implementation of the Fibonacci sequence in Python.\n\n2.  **Identify Key Requirements:**\n   - Function name: `fibonacci`\n   - Parameter: `n` (typically represents the index or number of terms)\n   - Expected behavior: Return the nth Fibonacci number or the first n Fibonacci numbers (need to clarify or provide a standard implementation)\n   - Standard Fibonacci sequence: F(",
+    "stderr_tail": "16:264] [20:d2:p1:279] [21:d2:p16:279] [22:d2:p1:449]\n[step 8] committed=57 last_tok=466 tree_N=23 accept=3 next=7873\n[step 9] committed=60 last_tok=7873 tree_N=23 accept=5 next=303\n[dbg sib step 10] N=23 accept=14 walked_sib=1\n  walk: 0 1 2 3 4 5 6 7 8 9 10 11 12 20\n  sibling info: [16:d11:p10:84457] [17:d11:p10:73182] [18:d11:p10:81088] [19:d12:p16:64700] [20:d13:p12:198] [21:d12:p17:64700] [22:d12:p18:64700]\n[step 10] committed=65 last_tok=303 tree_N=23 accept=14 next=256\n[step 11] committed=79 last_tok=256 tree_N=23 accept=6 next=72758\n[step 12] committed=85 last_tok=72758 tree_N=23 accept=12 next=83113\n[dbg sib step 13] N=23 accept=3 walked_sib=1\n  walk: 0 16 22\n  sibling info: [16:d1:p0:10551] [17:d1:p0:279] [18:d1:p0:13661] [19:d2:p16:7308] [20:d2:p17:7308] [21:d2:p1:279] [22:d2:p16:279]\n[step 13] committed=97 last_tok=83113 tree_N=23 accept=3 next=1857\n[dbg sib step 14] N=23 accept=2 walked_sib=1\n  walk: 0 16\n  sibling info: [16:d1:p0:466] [17:d1:p0:314] [18:d2:p16:279] [19:d2:p17:279] [20:d1:p0:364] [21:d2:p20:279] [22:d3:p2:76938]\n[step 14] committed=100 last_tok=1857 tree_N=23 accept=2 next=1324\n[dbg sib step 15] N=23 accept=4 walked_sib=1\n  walk: 0 1 2 21\n  sibling info: [16:d2:p1:76938] [17:d3:p2:4947] [18:d4:p3:198] [19:d3:p16:310] [20:d4:p3:12204] [21:d3:p2:8] [22:d4:p3:310]\n[step 15] committed=102 last_tok=1324 tree_N=23 accept=4 next=198\n[dbg sib step 16] N=23 accept=4 walked_sib=1\n  walk: 0 1 2 18\n  sibling info: [16:d4:p3:25] [17:d3:p2:8984] [18:d3:p2:30003] [19:d5:p16:4072] [20:d5:p4:12204] [21:d3:p2:38622] [22:d4:p17:310]\n[step 16] committed=106 last_tok=198 tree_N=23 accept=4 next=7465\n[step 17] committed=110 last_tok=7465 tree_N=23 accept=7 next=466\n[step 18] committed=117 last_tok=466 tree_N=23 accept=2 next=1118\n[step 19] committed=119 last_tok=1118 tree_N=23 accept=4 next=318\n[dbg sib step 20] N=23 accept=2 walked_sib=1\n  walk: 0 17\n  sibling info: [16:d1:p0:40] [17:d1:p0:16546] [18:d2:p1:310] [19:d2:p16:383] [20:d2:p17:383] [21:d2:p1:1386] [22:d1:p0:41547]\n[step 20] committed=123 last_tok=318 tree_N=23 accept=2 next=310\n[dbg sib step 21] N=23 accept=4 walked_sib=1\n  walk: 0 1 2 16\n  sibling info: [16:d3:p2:3300] [17:d3:p2:466] [18:d3:p2:9370] [19:d3:p2:11] [20:d2:p1:11] [21:d3:p2:3579] [22:d3:p2:5129]\n[step 21] committed=125 last_tok=310 tree_N=23 accept=4 next=264\n[dbg sib step 22] N=23 accept=3 walked_sib=1\n  walk: 0 16 18\n  sibling info: [16:d1:p0:5129] [17:d2:p1:14] [18:d2:p16:7873] [19:d2:p16:14] [20:d2:p1:11] [21:d2:p16:11] [22:d3:p2:8]\n[step 22] committed=129 last_tok=264 tree_N=23 accept=3 next=8\n[dbg sib step 23] N=23 accept=5 walked_sib=1\n  walk: 0 1 2 3 16\n  sibling info: [16:d4:p3:11429] [17:d5:p4:310] [18:d4:p3:11106] [19:d4:p3:353] [20:d5:p4:6380] [21:d5:p4:7044] [22:d5:p4:1220]\n[step 23] committed=132 last_tok=8 tree_N=23 accept=5 next=76938\n[dbg sib step 24] N=23 accept=4 walked_sib=1\n  walk: 0 16 17 20\n  sibling info: [16:d1:p0:8240] [17:d2:p16:25] [18:d1:p0:25] [19:d2:p18:25] [20:d3:p17:426] [21:d3:p2:220] [22:d3:p2:7]\n[step 24] committed=137 last_tok=76938 tree_N=23 accept=4 next=7\n[step 25] committed=141 last_tok=7 tree_N=23 accept=16 next=1393\n\n[timing] per-step averages over 26 steps (ms):\n  draft_build    0.54\n  draft_copyfeat 0.11\n  draft_set      0.02\n  draft_compute  5.00\n  draft_logits   10.18\n  snapshot_ssm   0.00\n  verify_build   4.03\n  verify_set     2.60\n  verify_compute 35.45\n  verify_logits  0.00\n  accept         0.03\n  restore_ssm    0.00\n  replay_build   0.00\n  replay_set     0.00\n  replay_compute 0.00\n  replay_logits  0.00\n  ----- sum     57.94\n\n[dflash] generated 128 tokens in 1.528 s  ->  83.79 tok/s\n[dflash] 26 draft steps, accepted=128/416 (30.8% per step), avg commit/step=4.92\n[dflash] output tail: 4947 318 16546 310 35932 466 3300 264 5129 7873 8 198 256 471 11429 76938 8240 25 426 7 \nggml_cuda_init: found 1 CUDA devices (Total VRAM: 24217 MiB):\n  Device 0: NVIDIA GeForce RTX 4090, compute capability 8.9, VMM: yes, VRAM: 24217 MiB\n\n[run] generated 128 tokens\n",
+    "stdout_log": "/tmp/qwen36_maxperf_results3/logs/smoke_run_py_tq3.stdout.log",
+    "stderr_log": "/tmp/qwen36_maxperf_results3/logs/smoke_run_py_tq3.stderr.log"
+  },
+  "run_py_tq3_stats": {
+    "tok_s": 83.79,
+    "commit_per_step": 4.92,
+    "accepted": 128,
+    "total_draft_pos": 416,
+    "accept_pct": 30.8,
+    "steps": 26
+  }
+}

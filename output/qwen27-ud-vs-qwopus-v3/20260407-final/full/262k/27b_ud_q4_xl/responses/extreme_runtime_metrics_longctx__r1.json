@@ -1,0 +1,39 @@
+{
+  "task_id": "extreme_runtime_metrics_longctx",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 201266.13757759333,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "# Code Review: Runtime Metrics Exposure\n\n## Root Cause\nThe runtime maintains authoritative metrics in `MetricsTracker` (`apps/game-runtime/src/runtime/metrics.ts`) but **never exposes them to the client**. The client (`apps/game-client/src/App.tsx`) currently displays static or derived values (e.g., `runtimeQueueAhead` from config) rather than live runtime state. The protocol (`packages/protocol/src/messages.ts`) lacks a dedicated metrics payload in `session.state` or a new `runtime.metrics` message type.\n\n## Smallest Safe Fix\nExtend the existing `session.state` server message to include the current metrics snapshot. This avoids adding a new message type, keeps the runtime authoritative, and requires minimal client changes.\n\n### 1. Protocol Change\n**File:** `packages/protocol/src/messages.ts`\n\nAdd a `metrics` field to the `session.state` payload type.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports ...\n\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n        metrics: RuntimeMetrics; // <-- ADD THIS\n      };\n    }\n  // ... rest of union ...\n```\n\n### 2. Runtime Change\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nUpdate `sendSessionState` to include the metrics snapshot.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports ...\n\nprivate sendSessionState(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"session.state\",\n    payload: {\n      phase: this.phase,\n      paused: this.paused,\n      preparedSeed: this.preparedSeed,\n      threadIds: this.threadIds,\n      connected: this.connected,\n      runtime: {\n        model: this.turnModel,\n        effort: this.turnEffort,\n        tickMs: runtimeConfig.tickMs,\n        schedulerMs: runtimeConfig.schedulerMs,\n        maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n        availableModels: this.availableModels\n      },\n      metrics: this.metrics.snapshot() // <-- ADD THIS\n    }\n  });\n}\n```\n\n### 3. Client Change\n**File:** `apps/game-client/src/App.tsx`\n\nUpdate the `session.state` handler to consume and display the new metrics.\n\n```typescript\n// apps/game-client/src/App.tsx\n\n// ... existing imports ...\n\n// Add state for metrics\nconst [metrics, setMetrics] = useState<{\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n} | null>(null);\n\n// ... inside ws.onmessage switch ...\n\ncase \"session.state\":\n  setPhase(message.payload.phase);\n  setPaused(message.payload.paused);\n  setPreparedSeed(message.payload.preparedSeed);\n  setThreadIds(message.payload.threadIds);\n  setRuntimeModel(message.payload.runtime.model);\n  setRuntimeEffort(message.payload.runtime.effort);\n  setRuntimeSchedulerMs(message.payload.runtime.schedulerMs);\n  setRuntimeQueueAhead(message.payload.runtime.maxQueuedActionsBeforeTurn);\n  setAvailableModels(message.payload.runtime.availableModels);\n  setMetrics(message.payload.metrics); // <-- ADD THIS\n  if (message.payload.phase === \"idle\") {\n    setTick(0);\n    setRuntimeAgents([]);\n    setCatalog({ prefabs: [], recipes: [] });\n    sceneRef.current?.clearSnapshot();\n  }\n  return;\n```\n\nUpdate the topbar to display the metrics (optional but recommended for visibility):\n\n```typescript\n// apps/game-client/src/App.tsx\n\n// ... inside return (...) ...\n\n<div className=\"game-topbar\">\n  <span className=\"pill\">Runtime: {connected ? \"connected\" : \"offline\"}</span>\n  <span className=\"pill\">Phase: {phase}</span>\n  <span className=\"pill\">Latency: {latencyMs}ms</span>\n  <span className=\"pill\">Model: {runtimeModel ?? \"default\"}</span>\n  <span className=\"pill\">\n    Effort: {runtimeEffort} | Scheduler: {runtimeSchedulerMs || \"-\"}ms\n  </span>\n  {metrics ? (\n    <span className=\"pill\">\n      Turns: {metrics.turnsTotal} | Queued: {metrics.queuedActions} | Invalid: {metrics.invalidOutputCount}\n    </span>\n  ) : null}\n</div>\n```\n\n## Regression Checks\n1.  **Protocol Validation:** Ensure `parseClientMessage` and `encodeServerMessage` still work with the updated `ServerMessage` union (no breaking changes to existing types).\n2.  **Runtime Persistence:** Verify `persistSession` still saves metrics correctly (it already uses `this.metrics.snapshot()`).\n3.  **Client Resilience:** Ensure the client handles `session.state` messages gracefully if `metrics` is missing (e.g., during a brief transition or if an older runtime is running). The client state update `setMetrics(message.payload.metrics)` is safe as long as the type definition is updated.\n4.  **UI Rendering:** Confirm the new metrics pill in the topbar renders correctly and updates in real-time as the game runs."
+        }
+      }
+    ],
+    "created": 1775548652,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1317,
+      "prompt_tokens": 194012,
+      "total_tokens": 195329
+    },
+    "id": "chatcmpl-jGm39bbxoFFGCt1nV9EhrgtMPIANHhwS",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 194012,
+      "prompt_ms": 147237.709,
+      "prompt_per_token_ms": 0.7589103199802074,
+      "prompt_per_second": 1317.6787476365855,
+      "predicted_n": 1317,
+      "predicted_ms": 49936.103,
+      "predicted_per_token_ms": 37.9165550493546,
+      "predicted_per_second": 26.373704011304202
+    }
+  }
+}

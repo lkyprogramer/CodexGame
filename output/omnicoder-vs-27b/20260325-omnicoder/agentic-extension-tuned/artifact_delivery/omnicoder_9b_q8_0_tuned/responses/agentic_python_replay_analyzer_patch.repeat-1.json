@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_replay_analyzer_patch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 4326.740541990148,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"summary\":\"Implemented replay_analyzer.py to stream JSONL, count malformed lines, and aggregate per-session turns and invalid outputs.\",\"files\":[{\"path\":\"scripts/replay_analyzer.py\",\"content\":\"import json\\n\\n\\ndef analyze(path: str) -> dict:\\n    malformed_lines = 0\\n    sessions = {}\\n\\n    with open(path, 'r') as f:\\n        for line in f:\\n            line = line.strip()\\n            if not line:\\n                continue\\n            try:\\n                entry = json.loads(line)\\n            except json.JSONDecodeError:\\n                malformed_lines += 1\\n                continue\\n\\n            session_id = entry.get('sessionId')\\n            entry_type = entry.get('type')\\n\\n            if session_id not in sessions:\\n                sessions[session_id] = {'turns': 0, 'invalid_output': 0}\\n\\n            if entry_type == 'agent.turn':\\n                sessions[session_id]['turns'] += 1\\n            elif entry_type == 'error' and entry.get('code') == 'invalid_output':\\n                sessions[session_id]['invalid_output'] += 1\\n\\n    return {\\n        'malformed_lines': malformed_lines,\\n        'sessions': sessions\\n    }\"}]}"
+        }
+      }
+    ],
+    "created": 1774452234,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 272,
+      "prompt_tokens": 487,
+      "total_tokens": 759
+    },
+    "id": "chatcmpl-fyxV8Jcyp2HKVKYU2NH14ngikZo5kAdj",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 487,
+      "prompt_ms": 68.796,
+      "prompt_per_token_ms": 0.14126488706365503,
+      "prompt_per_second": 7078.899936042792,
+      "predicted_n": 272,
+      "predicted_ms": 3195.63,
+      "predicted_per_token_ms": 11.748639705882354,
+      "predicted_per_second": 85.11623686096326
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "scripts/replay_analyzer.py"
+  ],
+  "json_error": ""
+}

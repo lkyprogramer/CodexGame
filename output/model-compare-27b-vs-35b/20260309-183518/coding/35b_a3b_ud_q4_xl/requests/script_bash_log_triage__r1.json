@@ -1,0 +1,19 @@
+{
+  "task_id": "script_bash_log_triage",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: script_bash_log_triage\nScenario: Write a shell script to summarize recurring production errors from mixed application logs.\n\nInstructions:\nWrite a production-safe Bash script or shell pipeline to summarize the top recurring error signatures. Ignore health checks and keep the script reviewable.\n\nProject snapshot:\n\n=== File: logs/app.log ===\n2026-03-08T10:00:01Z INFO healthcheck ok\n2026-03-08T10:00:02Z ERROR OrderService failed to reserve inventory orderId=991 sku=abc code=INV-409\n2026-03-08T10:00:03Z ERROR OrderService failed to reserve inventory orderId=992 sku=abc code=INV-409\n2026-03-08T10:00:05Z WARN healthcheck latency 82ms\n2026-03-08T10:00:06Z ERROR PaymentGateway timeout providerTxnId=P-9001\n2026-03-08T10:00:07Z ERROR PaymentGateway timeout providerTxnId=P-9002\n2026-03-08T10:00:09Z ERROR ProfileService duplicate email email=alice@example.com\n\n=== File: docs/ops_requirement.md ===\n- Group similar errors into one signature by stripping ids, emails, timestamps, and txn values.\n- Print top signatures sorted by count descending.\n- Accept both plain text *.log and gzipped *.log.gz files.\n- Ignore INFO/WARN healthcheck noise.\n"
+      }
+    ],
+    "max_tokens": 1150,
+    "stream": false
+  }
+}

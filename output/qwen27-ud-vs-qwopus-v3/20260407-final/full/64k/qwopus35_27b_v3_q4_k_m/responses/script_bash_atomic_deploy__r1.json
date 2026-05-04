@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 28319.770455360413,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The user wants a Bash deployment script for atomic release swap with health check and rollback. Let me analyze the requirements:\n\n**Requirements from docs/deploy_requirements.md:**\n1. New release unpacked under `/srv/myapp/releases/<timestamp>`\n2. Current live symlink is `/srv/myapp/current`\n3. Health check endpoint: `http://127.0.0.1:8080/healthz`\n4. On failure, restore previous symlink target\n5. Keep logs under `/srv/myapp/deploy.log`\n\n**Constraints from docs/ops_constraints.md:**\n1. Use `set -euo pipefail`\n2. Refuse to run if current symlink is missing\n3. Do not delete previous release before health check succeeds\n4. Print clear rollback messages\n\n**Key considerations:**\n- Atomic swap means using symlinks to switch between releases instantly\n- Need to preserve the previous release until health check passes (for rollback capability)\n- Must be safe to abort at any point\n- Need proper error handling and logging\n- Should validate inputs and preconditions\n\n**Script structure:**\n1. Shebang and strict mode (`set -euo pipefail`)\n2. Configuration variables (paths, health check URL, etc.)\n3. Logging function\n4. Validation/pre-flight checks (current symlink exists, new release exists)\n5. Deploy function:\n   - Record previous release target\n   - Update symlink to new release\n   - Run health check with retries\n   - If health check fails: rollback (restore previous symlink) and exit with error\n   - If health check succeeds: cleanup old release (optional, but requirement says \"do not delete previous release before health check succeeds\" - implies we can delete after, but safer to keep it or at least not delete immediately)\n6. Main execution block\n\n**Safety features:**\n- Check if current symlink exists before proceeding\n- Keep previous release available until health check passes\n- Use atomic symlink operations (ln -sfn)\n- Health check with timeout and retries\n- Clear error messages and rollback notifications\n\n**Implementation details:**\n- Use `ln -sfn` for atomic symlink update\n- Health check using `curl` with timeout\n- Trap for cleanup? Actually, since we need to keep previous release until health check, we shouldn't delete it in a trap. We should only delete it after successful health check, or not at all (let manual cleanup handle it).\n- The requirement says \"Do not delete previous release before health check succeeds\" - this implies we might delete it after, but it's safer to not delete it automatically in the script (let ops handle cleanup) or only delete it after success.\n\nLet me write the script:\n\n```bash\n#!/bin/bash\nset -euo pipefail\n\n# Configuration\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_ROOT}/releases\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly HEALTH_CHECK_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_CHECK_TIMEOUT=5\nreadonly HEALTH_CHECK_RETRIES=3\nreadonly HEALTH_CHECK_INTERVAL=2\n\n# Logging function\nlog() {\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] $*\" | tee -a \"${LOG_FILE}\"\n}\n\n# Validate arguments\nif [[ $# -ne 1 ]]; then\n    echo \"Usage: $0 <release_timestamp>\" >&2\n    exit 1\nfi\n\nNEW_RELEASE=\"${RELEASES_DIR}/$1\"\n\n# Pre-flight checks\nlog \"Starting deployment for release: ${NEW_RELEASE}\"\n\n# Check if new release exists\nif [[ ! -d \"${NEW_RELEASE}\" ]]; then\n    log \"ERROR: New release directory not found: ${NEW_RELEASE}\"\n    exit 1\nfi\n\n# Check if current symlink exists (refuse to run if missing)\nif [[ ! -L \"${CURRENT_LINK}\" ]]; then\n    log \"ERROR: Current symlink is missing: ${CURRENT_LINK}\"\n    exit 1\nfi\n\n# Get previous release target for rollback capability\nPREVIOUS_RELEASE=$(readlink -f \"${CURRENT_LINK}\")\nlog \"Previous release: ${PREVIOUS_RELEASE}\"\n\n# Atomic swap: update symlink to new release\nlog \"Swapping symlink from ${PREVIOUS_RELEASE} to ${NEW_RELEASE}\"\nln -sfn \"${NEW_RELEASE}\" \"${CURRENT_LINK}\"\n\n# Health check with retries\nlog \"Running health check against ${HEALTH_CHECK_URL}\"\nfor i in $(seq 1 \"${HEALTH_CHECK_RETRIES}\"); do\n    if curl -sf --max-time \"${HEALTH_CHECK_TIMEOUT}\" \"${HEALTH_CHECK_URL}\" > /dev/null 2>&1; then\n        log \"Health check passed on attempt ${i}/${HEALTH_CHECK_RETRIES}\"\n        break\n    else\n        log \"Health check failed on attempt ${i}/${HEALTH_CHECK_RETRIES}\"\n        if [[ $i -eq ${HEALTH_CHECK_RETRIES} ]]; then\n            log \"ERROR: Health check failed after ${HEALTH_CHECK_RETRIES} attempts. Initiating rollback...\"\n            log \"ROLLBACK: Restoring symlink to ${PREVIOUS_RELEASE}\"\n            ln -sfn \"${PREVIOUS_RELEASE}\" \"${CURRENT_LINK}\"\n            log \"ROLLBACK: Completed. Service restored to ${PREVIOUS_RELEASE}\"\n            exit 1\n        fi\n        sleep \"${HEALTH_CHECK_INTERVAL}\"\n    fi\ndone\n\nlog \"Deployment successful. New release: ${NEW_RELEASE}\"\nexit 0\n```\n\nWait, I should reconsider the cleanup aspect. The requirement says \"Do not delete previous release before health check succeeds\". This implies that after health check succeeds, we might want to delete the previous release, but it's not explicitly required. However, for a production script, it's"
+        }
+      }
+    ],
+    "created": 1775548162,
+    "model": "bench/qwopus35-27b-v3-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 291,
+      "total_tokens": 1541
+    },
+    "id": "chatcmpl-9ybu7RIYQ4mvYLf7XTmqMcPjMMs1sH1g",
+    "timings": {
+      "cache_n": 83,
+      "prompt_n": 208,
+      "prompt_ms": 133.856,
+      "prompt_per_token_ms": 0.6435384615384615,
+      "prompt_per_second": 1553.9086779823094,
+      "predicted_n": 1250,
+      "predicted_ms": 27962.819,
+      "predicted_per_token_ms": 22.3702552,
+      "predicted_per_second": 44.70221689737362
+    }
+  }
+}

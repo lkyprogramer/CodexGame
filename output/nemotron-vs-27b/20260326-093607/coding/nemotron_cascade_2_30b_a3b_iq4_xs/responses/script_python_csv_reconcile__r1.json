@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7324.986250023358,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Reconciliation script – `reconcile.py` (Python 3.9+, std‑lib only)**  \n\n```python\n#!/usr/bin/env python3\n\"\"\"\nreconcile.py – reconcile two daily business CSV exports.\n\nMatching order:\n    1️⃣  merchant_order_id\n    2️⃣  provider_txn_id (fallback when the same order_id appears with\n        different txn ids – e.g. a refund vs a settlement).\n\nOutputs:\n    • `reconcile_report.csv` – machine‑readable diff (one row per finding)\n    • `reconcile_summary.txt` – human‑readable summary (counts, stale refunds,\n      amount mismatches, duplicate rows, etc.)\n\nEdge‑case guards (see `main.__doc__` for details):\n    • BOM, duplicate header rows, blank lines → ignored.\n    • Duplicate data rows (exact same merchant_order_id+provider_txn_id) → flagged.\n    • Missing rows (present in one file, absent in the other) → flagged.\n    • Stale refunds (REFUNDED older than the latest SETTLED for the same order) → flagged.\n    • Amount mismatches (different amount_cents for the same txn) → flagged.\n\"\"\"\n\nimport csv\nimport sys\nfrom collections import defaultdict, namedtuple\nfrom datetime import datetime, timezone\nfrom pathlib import Path\n\n# --------------------------------------------------------------------------- #\n# Helper data structures\n# --------------------------------------------------------------------------- #\nRecord = namedtuple(\"Record\", \"merchant_order_id provider_txn_id amount_cents status updated_at\")\nDiff = namedtuple(\"Diff\", \"type merchant_order_id provider_txn_id amount_cents status updated_at\")\n\n# --------------------------------------------------------------------------- #\n# CSV loader – tolerant to BOM, duplicate headers, blank lines\n# --------------------------------------------------------------------------- #\ndef load_csv(path: Path) -> list[Record]:\n    \"\"\"Read a CSV file and return a list of Record objects.\n\n    - Skips blank rows.\n    - Skips duplicate header rows (case‑insensitive).\n    - Strips UTF‑8 BOM if present.\n    \"\"\"\n    records = []\n    seen_headers = set()\n    with path.open(newline=\"\", encoding=\"utf-8-sig\") as f:  # utf‑8‑sig strips BOM\n        reader = csv.reader(f)\n        for i, row in enumerate(reader, start=1):\n            if not row:                     # blank line\n                continue\n            if i == 1:\n                # First non‑blank line is assumed to be the header.\n                # Guard against duplicate header rows later in the file.\n                if tuple(col.lower() for col in row) in seen_headers:\n                    continue\n                seen_headers.add(tuple(col.lower() for col in row))\n                # Verify required columns exist (order may vary)\n                required = {\"merchant_order_id\", \"provider_txn_id\", \"amount_cents\",\n                            \"status\", \"updated_at\"}\n                if not required.issubset({c.lower() for c in row}):\n                    raise ValueError(f\"Missing required columns in {path} (row {i})\")\n                continue  # skip header line\n            # Parse the row\n            try:\n                rec = Record(\n                    merchant_order_id=row[0].strip(),\n                    provider_txn_id=row[1].strip(),\n                    amount_cents=int(row[2].strip()),\n                    status=row[3].strip().upper(),\n                    updated_at=row[4].strip(),\n                )\n                records.append(rec)\n            except Exception as e:\n                # Treat malformed rows as a duplicate‑row guard – they will be\n                # reported as “malformed” in the diff.\n                records.append(\n                    Record(\n                        merchant_order_id=\"<MALFORMED>\",\n                        provider_txn_id=\"<MALFORMED>\",\n                        amount_cents=0,\n                        status=\"<MALFORMED>\",\n                        updated_at=\"\",\n                    )\n                )\n    return records\n\n# --------------------------------------------------------------------------- #\n# Core reconciliation logic\n# --------------------------------------------------------------------------- #\ndef reconcile(\n    left: list[Record], right: list[Record]\n) -> tuple[list[Diff], dict]:\n    \"\"\"\n    Returns:\n        diffs   – list of Diff objects describing every finding.\n        meta    – dict with counters for the summary (e.g. stale_refunds).\n    \"\"\"\n    # Indexes for fast lookup\n    left_by_key = defaultdict(list)   # (order_id, txn_id) -> list[Record]\n    right_by_key = defaultdict(list)\n\n    for rec in left:\n        key = (rec.merchant_order_id, rec.provider_txn_id)\n        left_by_key[rec.merchant_order_id].append(rec)  # keep all rows per order_id\n\n    for rec in right:\n        key = (rec.merchant_order_id, rec.provider_txn_id)\n        right_by_key[rec.merchant_order_id].append(rec)\n\n    diffs = []\n    meta = defaultdict(int)\n\n    # ------------------------------------------------------------------- #\n    # 1️⃣  Detect duplicate rows (exact same order_id+txn_id) in the same file\n    # ------------------------------------------------------------------- #\n    for order_id, rows in left_by_key.items():\n        seen = set()\n        for r in rows:\n            key = (r.provider_txn_id,)\n            if key in seen:\n                diffs.append(\n                    Diff(\n                        type=\"DUPLICATE_IN_FILE\",\n                        merchant_order_id=order_id,\n                        provider_txn_id=r.provider_txn_id,\n                        amount_cents=r.amount_cents,\n                        status=r.status,\n                        updated_at=r.updated_at,\n                    )\n                )\n                meta[\"duplicate_in_left\"] += 1\n            else:\n                seen.add(key)\n\n    for order_id, rows in right_by_key.items():\n        seen = set()\n        for r in rows:\n            key = (r.provider_txn_id,)\n            if key in seen:\n                diffs.append(\n                    Diff(\n                        type=\"DUPLICATE_IN_FILE\",\n                        merchant_order_id=order_id,\n                        provider_txn_id=r.provider"
+        }
+      }
+    ],
+    "created": 1774490937,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 593,
+      "total_tokens": 1893
+    },
+    "id": "chatcmpl-nQbBigUAaZc97vwSiiUg3L2nazOR6wQe",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 593,
+      "prompt_ms": 106.56,
+      "prompt_per_token_ms": 0.1796964586846543,
+      "prompt_per_second": 5564.93993993994,
+      "predicted_n": 1300,
+      "predicted_ms": 6130.309,
+      "predicted_per_token_ms": 4.715622307692308,
+      "predicted_per_second": 212.06108860091717
+    }
+  }
+}

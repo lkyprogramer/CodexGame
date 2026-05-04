@@ -1,0 +1,42 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 33835.663249999925,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "<think>\n\n</think>\n\n### Analysis\nThe task requires a robust, atomic deployment script for a Unix-based application. The core requirements are:\n1.  **Atomicity**: Use a symlink (`/srv/myapp/current`) to switch versions.\n2.  **Safety**: Validate the new version via a health check before updating the symlink.\n3.  **Rollback**: If the health check fails, revert the symlink to the previous target.\n4.  **Constraints**: Strict Bash safety (`set -euo pipefail`), logging, and specific directory structures.\n\n### Implementation Plan\nI will create a single Bash script `deploy.sh` that:\n1.  Validates the environment (checks for the current symlink).\n2.  Accepts the new release path as an argument.\n3.  Performs a health check against the new release.\n4.  Updates the symlink only if the health check passes.\n5.  Implements a rollback mechanism if the health check fails or the script is interrupted (using a trap).\n6.  Logs all actions to `/srv/myapp/deploy.log`.\n\n### Script: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\n#\n# deploy.sh - Atomic release deployment with health check and rollback.\n#\n# Usage: ./deploy.sh <new_release_path>\n# Example: ./deploy.sh /srv/myapp/releases/20231027_120000\n#\n# Prerequisites:\n# - /srv/myapp/current must exist and point to a valid release.\n# - Health check endpoint: http://127.0.0.1:8080/healthz\n# - Log file: /srv/myapp/deploy.log\n\nset -euo pipefail\n\n# --- Configuration ---\nAPP_ROOT=\"/srv/myapp\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nHEALTH_MAX_RETRIES=5\nHEALTH_RETRY_DELAY=2\n\n# --- Helper Functions ---\n\nlog() {\n    local level=\"$1\"\n    shift\n    local msg=\"$*\"\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] [${level}] ${msg}\" | tee -a \"${LOG_FILE}\"\n}\n\nerror_exit() {\n    log \"ERROR\" \"$*\"\n    exit 1\n}\n\n# --- Validation ---\n\nif [[ $# -ne 1 ]]; then\n    error_exit \"Usage: $0 <new_release_path>\"\nfi\n\nNEW_RELEASE=\"$1\"\n\n# Ensure new release path is absolute and exists\nif [[ ! -d \"${NEW_RELEASE}\" ]]; then\n    error_exit \"New release directory does not exist: ${NEW_RELEASE}\"\nfi\n\n# Ensure current symlink exists (as per ops_constraints.md)\nif [[ ! -L \"${CURRENT_LINK}\" ]]; then\n    error_exit \"Current symlink is missing: ${CURRENT_LINK}. Refusing to deploy.\"\nfi\n\n# Get the previous release path (target of current symlink)\nPREVIOUS_RELEASE=$(readlink \"${CURRENT_LINK}\")\nif [[ -z \"${PREVIOUS_RELEASE}\" ]]; then\n    error_exit \"Current symlink points to empty target.\"\nfi\n\nlog \"INFO\" \"Starting deployment.\"\nlog \"INFO\" \"Current release: ${PREVIOUS_RELEASE}\"\nlog \"INFO\" \"New release: ${NEW_RELEASE}\"\n\n# --- Health Check Function ---\n\ncheck_health() {\n    local retries=0\n    while [[ $retries -lt ${HEALTH_MAX_RETRIES} ]]; do\n        if curl -sf --max-time 5 \"${HEALTH_URL}\" > /dev/null 2>&1; then\n            return 0\n        fi\n        retries=$((retries + 1))\n        log \"WARN\" \"Health check failed (attempt ${retries}/${HEALTH_MAX_RETRIES}). Retrying in ${HEALTH_RETRY_DELAY}s...\"\n        sleep \"${HEALTH_RETRY_DELAY}\"\n    done\n    return 1\n}\n\n# --- Deployment Logic ---\n\n# Trap to handle rollback on failure or interruption\nrollback_and_exit() {\n    local exit_code=$?\n    log \"ERROR\" \"Deployment failed or interrupted. Initiating rollback.\"\n    \n    # Restore the symlink to the previous release\n    if [[ -d \"${PREVIOUS_RELEASE}\" ]]; then\n        log \"INFO\" \"Restoring symlink to previous release: ${PREVIOUS_RELEASE}\"\n        # Use -n to avoid error if it somehow already points there, though logic dictates it shouldn't be the new one yet\n        ln -sfn \"${PREVIOUS_RELEASE}\" \"${CURRENT_LINK}\"\n        log \"INFO\" \"Rollback successful. Symlink restored.\"\n    else\n        log \"ERROR\" \"Previous release directory missing (${PREVIOUS_RELEASE}). Cannot rollback automatically.\"\n    fi\n    \n    exit ${exit_code}\n}\n\ntrap rollback_and_exit ERR INT TERM\n\n# Perform health check on the NEW release before swapping\nlog \"INFO\" \"Performing health check on new release...\"\nif ! check_health; then\n    error_exit \"Health check failed for new release: ${NEW_RELEASE}\"\nfi\n\nlog \"INFO\" \"Health check passed. Swapping symlink.\"\n\n# Atomic swap: Update symlink to point to new release\n# -n: Don't follow symlinks (safe)\n# -f: Force replace existing symlink\nln -sfn \"${NEW_RELEASE}\" \"${CURRENT_LINK}\"\n\nlog \"INFO\" \"Deployment successful. New release active: ${NEW_RELEASE}\"\n\n# Clear the trap on success so we don't accidentally trigger rollback logic if something else fails later\ntrap - ERR INT TERM\n\nexit 0\n```\n\n### Changes Summary\n\n| File | Action | Description |\n| :--- | :--- | :--- |\n| `"
+        }
+      }
+    ],
+    "created": 1775318481,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b50-9c69907",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 292,
+      "total_tokens": 1542,
+      "prompt_tokens_details": {
+        "cached_tokens": 80
+      }
+    },
+    "id": "chatcmpl-btZuKV2RW2rvw85ADeGVp72Y53qxlJsB",
+    "timings": {
+      "cache_n": 80,
+      "prompt_n": 212,
+      "prompt_ms": 124.033,
+      "prompt_per_token_ms": 0.585061320754717,
+      "prompt_per_second": 1709.222545612861,
+      "predicted_n": 1250,
+      "predicted_ms": 9136.078,
+      "predicted_per_token_ms": 7.3088624,
+      "predicted_per_second": 136.8201979011125
+    }
+  }
+}

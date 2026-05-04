@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 48037.14841598412,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Runtime Metrics Protocol Exposure\n\n**Summary:**\nThe `MetricsTracker` in `apps/game-runtime` correctly aggregates runtime statistics, but these are currently only persisted to disk (`StateStore`) and not exposed over the WebSocket protocol to the client HUD.\n\nTo fix this with the smallest protocol-first change set:\n1.  **Protocol (`packages/protocol`)**: Add a `metrics` field to the `session.state` server message payload.\n2.  **Runtime (`apps/game-runtime`)**: Inject `this.metrics.snapshot()` into the `session.state` emission.\n3.  **Client (`apps/game-client`)**: Consume the metrics in the `session.state` handler and display them in the HUD.\n4.  **Tests**: Update the contract test to verify the new field.\n\n---\n\n### 1. Protocol Definition\n**File:** `packages/protocol/src/messages.ts`\n\nAdd the `RuntimeMetrics` type and include it in the `session.state` payload.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports ...\n\n// Add new type definition\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n        // ADD THIS BLOCK\n        metrics: RuntimeMetrics;\n      };\n    }\n  // ... rest of ServerMessage union ...\n```\n\n---\n\n### 2. Runtime Server Implementation\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nUpdate `sendSessionState` to include the metrics snapshot.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports ...\n\nprivate sendSessionState(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"session.state\",\n    payload: {\n      phase: this.phase,\n      paused: this.paused,\n      preparedSeed: this.preparedSeed,\n      threadIds: this.threadIds,\n      connected: this.connected,\n      runtime: {\n        model: this.turnModel,\n        effort: this.turnEffort,\n        tickMs: runtimeConfig.tickMs,\n        schedulerMs: runtimeConfig.schedulerMs,\n        maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n        availableModels: this.availableModels\n      },\n      // ADD THIS LINE\n      metrics: this.metrics.snapshot()\n    }\n  });\n}\n```\n\n---\n\n### 3. Client HUD Integration\n**File:** `apps/game-client/src/App.tsx`\n\n1.  Import the new type.\n2.  Add state for metrics.\n3.  Update the `session.state` message handler.\n4.  Display metrics in the top bar.\n\n```typescript\n// apps/game-client/src/App.tsx\n\n// 1. Update Import\nimport type { RuntimeModelOption, RuntimeMetrics, ServerMessage, SessionPhase, WorldNearbyEntity } from \"@codexgame/protocol\";\n\n// ... inside App component ...\n\n// 2. Add State\nconst [runtimeMetrics, setRuntimeMetrics] = useState<RuntimeMetrics>({\n  turnsTotal: 0,\n  invalidOutputCount: 0,\n  actionAppliedCount: 0,\n  actionRejectedCount: 0,\n  queuedActions: 0\n});\n\n// ... inside ws.onmessage effect ...\n\ncase \"session.state\":\n  setPhase(message.payload.phase);\n  setPaused(message.payload.paused);\n  setPreparedSeed(message.payload.preparedSeed);\n  setThreadIds(message.payload.threadIds);\n  setRuntimeModel(message.payload.runtime.model);\n  setRuntimeEffort(message.payload.runtime.effort);\n  setRuntimeSchedulerMs(message.payload.runtime.schedulerMs);\n  setRuntimeQueueAhead(message.payload.runtime.maxQueuedActionsBeforeTurn);\n  setAvailableModels(message.payload.runtime.availableModels);\n  \n  // 3. Update Handler\n  if (message.payload.metrics) {\n    setRuntimeMetrics(message.payload.metrics);\n  }\n\n  if (message.payload.phase === \"idle\") {\n    setTick(0);\n    setRuntimeAgents([]);\n    setCatalog({ prefabs: [], recipes: [] });\n    sceneRef.current?.clearSnapshot();\n  }\n  return;\n\n// ... inside return JSX ...\n\n<div className=\"game-topbar\">\n  <span className=\"pill\">Runtime: {connected ? \"connected\" : \"offline\"}</span>\n  <span className=\"pill\">Phase: {phase}</span>\n  <span className=\"pill\">Latency: {latencyMs}ms</span>\n  <span className=\"pill\">Model: {runtimeModel ?? \"default\"}</span>\n  <span className=\"pill\">\n    Effort: {runtimeEffort} | Scheduler: {runtimeSchedulerMs || \"-\"}ms\n  </span>\n  {/* 4. Add Metrics Display */}\n  <span className=\"pill\">\n    Turns: {runtimeMetrics.turnsTotal} | Applied: {runtimeMetrics.actionAppliedCount} | Rejected: {runtimeMetrics.actionRejectedCount}\n  </span"
+        }
+      }
+    ],
+    "created": 1776917104,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-FQhEOfn2qgfN2tMLlkGDRKphHUEDllxu",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 10829.565,
+      "prompt_per_token_ms": 0.4456427719023909,
+      "prompt_per_second": 2243.9497800696518,
+      "predicted_n": 1250,
+      "predicted_ms": 34540.316,
+      "predicted_per_token_ms": 27.6322528,
+      "predicted_per_second": 36.189593633132944
+    }
+  }
+}

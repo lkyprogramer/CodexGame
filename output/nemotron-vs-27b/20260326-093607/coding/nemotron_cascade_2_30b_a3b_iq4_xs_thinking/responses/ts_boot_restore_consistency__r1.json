@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11160.107000003336,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to identify highest-risk restore consistency bug: boot-time restore can expose an inconsistent running state before threads are restored. Looking at restoreSession in GameRuntimeServer. It loads saved state, sets simulation, threadIds, etc. It does not re-establish threads (i.e., thread IDs) for existing session before proceeding. In startSession, they start threads for each agent and builder. In restoreSession, they load saved simulation and agentConfigs, resetAgentLoopState, but they set threadIds = { gameplayByAgentId: {} } and threadToAgentId.clear(). They do not start threads for existing session; later maybe they will start threads when needed? In startSession they call ensureCodexConnected and refreshModelCatalog, then start threads for each agent and builder. In restoreSession they also later call ensureCodexConnected? Actually restoreSession is called from start() after contentStore.load, replay.start, logReplay, then restoreSession, startTimers, primeCodexModelCatalog. In primeCodexModelCatalog, they call ensureCodexConnected, refreshModelCatalog, and if simulation && no gameplay threads and no builder, they call startThreadsForExistingSession. But restoreSession already set simulation and agentConfigs, but threadIds empty. However they also set activeTurn = null, schedulerIndex = 0, etc. The bug: restoreSession may leave threadIds empty while simulation is running, causing later scheduler to think no threads, leading to duplicate thread creation or missing threads. The risk: before threads are restored, the system may think there are no threads, and later startThreadsForExistingSession may be called incorrectly, causing duplicate thread creation or missing threads. The bug is that restoreSession does not restore threadToAgentId mapping and threadIds for existing session, and does not restore pendingTurns, etc. It also does not restore activeTurn, but that's fine. The main issue: after restore, the system may think there are no threads, and later when scheduler runs, it may attempt to start new threads (via startThreadsForExistingSession) while threads already exist, causing duplicate threads.\n\nSpecifically, in restoreSession they set this.threadIds = { gameplayByAgentId: {} }; they also clear threadToAgentId. They also clear pendingTurns? They don't clear pendingTurns; but pendingTurns may still have entries from before? Actually after restore, pendingTurns should be empty because turns were completed before snapshot. But they also need to restore pendingTurns? Not needed.\n\nThe bug: they clear threadIds but do not restore threadToAgentId mapping, causing later code that uses threadToAgentId (e.g., in handleCodexNotification for item/agentMessage/delta) to not map threadId to agentId, leading to missing feed messages. Also, they may lose track of which thread belongs to which agent, causing duplicate thread creation when startThreadsForExistingSession is called later (maybe after reconnect). The fix: restore threadIds and threadToAgentId from saved snapshot. The saved snapshot includes threadIds (gameplayByAgentId and builder). So restoreSession should set this.threadIds = saved.threadIds; and also rebuild threadToAgentId mapping from threadIds and agentConfigs (or from saved threadToAgentId?). The snapshot includes threadIds but not threadToAgentId. However threadToAgentId can be reconstructed: for each agentId in threadIds.gameplayByAgentId, map threadId to agentId. Also builder threadId to maybe \"builder\". So we need to set this.threadToAgentId accordingly.\n\nThus fix: in restoreSession after loading saved, set this.threadIds = saved.threadIds; then rebuild threadToAgentId: for (const [agentId, threadId] of Object.entries(this.threadIds.gameplayByAgentId)) { this.threadToAgentId.set(threadId, agentId); } if (this.threadIds.builder) { this.threadToAgentId.set(this.threadIds.builder, \"builder\"); } Also need to ensure activeTurn is cleared (already). Also need to ensure pendingTurns? Might be okay.\n\nAlso need to ensure that after restore, the simulation is loaded and thread IDs exist, but the code later in primeCodexModelCatalog will check if simulation && Object.keys(threadIds.gameplayByAgentId).length === 0 && !threadIds.builder then start threads. Since we restored threadIds, that condition will be false, so startThreadsForExistingSession will not be called again, preventing duplicate threads. However we also need to ensure that threadToAgentId is set before any codex notifications are processed (e.g., after reconnect). So we should set threadToAgentId before sending session state.\n\nThus modify restoreSession to restore threadIds and threadToAgentId.\n\nPotential other bug: they also clear agentConfigs? They set agentConfigs from saved simulation.agents (they set agentConfigs.set(agent.id, {id, name})). That's fine.\n\nBut they also need to restore this.threadToAgentId mapping for builder thread as well.\n\nThus propose fix: in restoreSession, after loading saved, set this.threadIds = saved.threadIds; then rebuild threadToAgentId.\n\nAlso need to ensure that threadIds.builder may be undefined; handle.\n\nImplementation: after saved.simulation block, before this.phase = \"running\", do:\n\nthis.threadIds = saved.threadIds ?? { gameplayByAgentId: {} };\nthis.threadToAgentId.clear();\nfor (const [agentId, threadId] of Object.entries(this.threadIds.gameplayByAgentId)) {\n  this.threadToAgentId.set(threadId, agentId);\n}\nif (this.threadIds.builder) {\n  this.threadToAgentId.set(this.threadIds.builder, \"builder\");\n}\n\nAlso need to ensure that threadIds.builder may be present; we map to \"builder\". The code elsewhere uses threadToAgentId for gameplay threads only; but builder may be used for other notifications? In handleCodex"
+        }
+      }
+    ],
+    "created": 1774491381,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 19949,
+      "total_tokens": 21199
+    },
+    "id": "chatcmpl-EdLJOnvvfuRknZmBRUnpjz0yHMNfBLc4",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 19949,
+      "prompt_ms": 2588.434,
+      "prompt_per_token_ms": 0.12975256905108026,
+      "prompt_per_second": 7706.9764962135405,
+      "predicted_n": 1250,
+      "predicted_ms": 6450.877,
+      "predicted_per_token_ms": 5.1607016,
+      "predicted_per_second": 193.77210261488474
+    }
+  }
+}

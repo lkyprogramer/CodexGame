@@ -1,0 +1,39 @@
+{
+  "task_id": "java_permission_scope_trust_bug",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 12302.996292011812,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Security Bug Analysis\n\n**Highest-Risk Bug:** **IDOR / Privilege Escalation via Trusted Input**\nIn `ReportController.java`, the `generate` method passes `request.getOrgId()` (user-supplied input) directly to the service layer. This allows an authenticated user to generate reports for any organization by simply modifying the `orgId` in the request payload, bypassing the actual authorization context established in `UserSession`.\n\n**Root Cause:** The code trusts the client-provided `orgId` over the server-verified `orgId` contained within the authenticated `UserSession`.\n\n### Smallest Maintainable Fix\n\nThe fix requires changing the `ReportController` to extract the `orgId` from the `UserSession` (the trusted context) instead of the `GenerateReportRequest`.\n\n**File to Change:** `src/main/java/com/example/report/ReportController.java`\n\n**Diff:**\n\n```diff\n--- a/src/main/java/com/example/report/ReportController.java\n+++ b/src/main/java/com/example/report/ReportController.java\n@@ -10,7 +10,7 @@ public class ReportController {\n     }\n \n     public ReportDto generate(UserSession session, GenerateReportRequest request) {\n-        return reportService.generate(request.getOrgId(), session.getUserId(), request.getRange());\n+        return reportService.generate(session.getOrgId(), session.getUserId(), request.getRange());\n     }\n }\n```\n\n### Regression Checks\n\n1.  **Authorization Test:** Verify that a user belonging to `Org A` cannot generate a report for `Org B` by sending a request with `orgId` set to `Org B`. The system should either reject the request or generate the report for `Org A` (depending on service logic, but the input `orgId` must be ignored).\n2.  **Functional Test:** Verify that a user belonging to `Org A` can still successfully generate a report for `Org A` when the request payload contains a valid range.\n3.  **Null Safety:** Ensure `UserSession` is never null (handled by framework/auth filter) and that `session.getOrgId()` returns a valid value before the call."
+        }
+      }
+    ],
+    "created": 1773052041,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 458,
+      "prompt_tokens": 407,
+      "total_tokens": 865
+    },
+    "id": "chatcmpl-yQmwAxOooYCczMFJqDdzYk3Q6RgYM1yR",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 407,
+      "prompt_ms": 180.908,
+      "prompt_per_token_ms": 0.44449140049140046,
+      "prompt_per_second": 2249.7623101244835,
+      "predicted_n": 458,
+      "predicted_ms": 10701.686,
+      "predicted_per_token_ms": 23.366126637554583,
+      "predicted_per_second": 42.79699479128803
+    }
+  }
+}

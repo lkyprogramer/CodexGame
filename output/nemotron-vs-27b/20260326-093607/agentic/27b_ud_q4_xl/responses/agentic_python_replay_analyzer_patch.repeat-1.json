@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_replay_analyzer_patch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 9008.045624999795,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Implement the replay analyzer to stream JSONL, count malformed lines, and aggregate per-session turns and invalid_output counts.\",\n  \"files\": [\n    {\n      \"path\": \"scripts/replay_analyzer.py\",\n      \"content\": \"import json\\nfrom collections import defaultdict\\n\\n\\ndef analyze(path: str) -> dict:\\n    sessions: dict = defaultdict(lambda: {\\\"turns\\\": 0, \\\"invalid_output\\\": 0})\\n    malformed_lines = 0\\n\\n    with open(path, \\\"r\\\", encoding=\\\"utf-8\\\") as f:\\n        for line in f:\\n            line = line.strip()\\n            if not line:\\n                continue\\n            try:\\n                record = json.loads(line)\\n            except json.JSONDecodeError:\\n                malformed_lines += 1\\n                continue\\n\\n            session_id = record.get(\\\"sessionId\\\")\\n            if session_id is None:\\n                malformed_lines += 1\\n                continue\\n\\n            record_type = record.get(\\\"type\\\")\\n            if record_type == \\\"agent.turn\\\":\\n                sessions[session_id][\\\"turns\\\"] += 1\\n            elif record_type == \\\"error\\\" and record.get(\\\"code\\\") == \\\"invalid_output\\\":\\n                sessions[session_id][\\\"invalid_output\\\"] += 1\\n\\n    return {\\n        \\\"malformed_lines\\\": malformed_lines,\\n        \\\"sessions\\\": dict(sessions),\\n    }\\n\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1774490670,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 322,
+      "prompt_tokens": 487,
+      "total_tokens": 809
+    },
+    "id": "chatcmpl-C0qc7Z1GnQB1e7Da0pEujuHVciu3n9u5",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 487,
+      "prompt_ms": 202.458,
+      "prompt_per_token_ms": 0.4157248459958932,
+      "prompt_per_second": 2405.4371770935204,
+      "predicted_n": 322,
+      "predicted_ms": 7527.349,
+      "predicted_per_token_ms": 23.376860248447205,
+      "predicted_per_second": 42.777344321354036
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "scripts/replay_analyzer.py"
+  ],
+  "json_error": ""
+}

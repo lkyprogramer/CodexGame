@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 24548.865250020754,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script skeleton based on your requirements.\n\n### File: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# --- Configuration ---\nAPP_ROOT=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_ROOT}/releases\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\nMAX_RETRIES=5\nRETRY_DELAY=2\n\n# --- Helper Functions ---\nlog() {\n    local msg=\"[$(date '+%Y-%m-%d %H:%M:%S')] $*\"\n    echo \"$msg\" | tee -a \"$LOG_FILE\"\n}\n\nerror_exit() {\n    log \"ERROR: $*\"\n    exit 1\n}\n\n# --- Pre-flight Checks ---\nlog \"Starting deployment...\"\n\n# 1. Validate environment\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    error_exit \"Current symlink ($CURRENT_LINK) is missing or not a symlink. Aborting.\"\nfi\n\nif [[ ! -d \"$RELEASES_DIR\" ]]; then\n    error_exit \"Releases directory ($RELEASES_DIR) does not exist.\"\nfi\n\n# 2. Determine new release path\n# Expecting the script to be called with the new release directory as an argument\nif [[ -z \"${1:-}\" ]]; then\n    error_exit \"Usage: $0 <new_release_path>\"\nfi\n\nNEW_RELEASE_PATH=\"$1\"\n\nif [[ ! -d \"$NEW_RELEASE_PATH\" ]]; then\n    error_exit \"New release path ($NEW_RELEASE_PATH) does not exist.\"\nfi\n\n# Resolve the absolute path of the current target to preserve it for rollback\nCURRENT_TARGET=$(readlink -f \"$CURRENT_LINK\")\nlog \"Current live target: $CURRENT_TARGET\"\nlog \"New release target: $NEW_RELEASE_PATH\"\n\n# --- Atomic Swap ---\nlog \"Performing atomic symlink swap...\"\nln -sfn \"$NEW_RELEASE_PATH\" \"$CURRENT_LINK\"\n\n# --- Health Check ---\nlog \"Performing health check against $HEALTH_URL...\"\nHEALTH_SUCCESS=false\n\nfor ((i=1; i<=MAX_RETRIES; i++)); do\n    if curl -sf --max-time 5 \"$HEALTH_URL\" > /dev/null 2>&1; then\n        log \"Health check passed on attempt $i.\"\n        HEALTH_SUCCESS=true\n        break\n    fi\n    log \"Health check failed (attempt $i/$MAX_RETRIES). Waiting ${RETRY_DELAY}s...\"\n    sleep \"$RETRY_DELAY\"\ndone\n\nif [[ \"$HEALTH_SUCCESS\" == \"false\" ]]; then\n    log \"CRITICAL: Health check failed after $MAX_RETRIES attempts.\"\n    log \"ROLLBACK: Restoring symlink to previous target ($CURRENT_TARGET)...\"\n    \n    # Restore previous symlink\n    ln -sfn \"$CURRENT_TARGET\" \"$CURRENT_LINK\"\n    \n    log \"ROLLBACK: Symlink restored. Deployment aborted.\"\n    error_exit \"Deployment failed and rolled back.\"\nfi\n\n# --- Post-Deploy Cleanup (Optional) ---\n# Note: Per constraints, we do NOT delete the previous release here.\n# Cleanup of old releases should be handled by a separate retention policy script.\nlog \"Deployment successful. New live target: $NEW_RELEASE_PATH\"\n```\n\n### Usage\n```bash\n# Make executable\nchmod +x deploy.sh\n\n# Run with the path to the new release directory\n./deploy.sh /srv/myapp/releases/2023-10-27-143000\n```\n\n### Verification Checks\n1.  **Safety Flags**: Verify `set -euo pipefail` is present at the top to ensure immediate exit on errors.\n2.  **Symlink Validation**: Run the script without a valid `current` symlink; it must exit with an error message.\n3.  **Rollback Logic**:\n    *   Simulate a failing health check (e.g., stop the service or use a mock script that returns 500).\n    *   Verify the script logs \"ROLLBACK\" and the `current` symlink points back to the *original* target, not the new one.\n4.  **Atomicity**: Verify that `ln -sfn` is used (atomic on most Linux filesystems) rather than `rm` + `ln`.\n5.  **Logging**: Check `/srv/myapp/deploy.log` to ensure all steps, retries, and rollback actions are recorded with timestamps."
+        }
+      }
+    ],
+    "created": 1776910783,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 981,
+      "prompt_tokens": 292,
+      "total_tokens": 1273
+    },
+    "id": "chatcmpl-K66qyocV23wihXM5HZgLTUYS0GxNCLG4",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 139.849,
+      "prompt_per_token_ms": 0.6723509615384615,
+      "prompt_per_second": 1487.3184649157306,
+      "predicted_n": 981,
+      "predicted_ms": 22923.667,
+      "predicted_per_token_ms": 23.36765239551478,
+      "predicted_per_second": 42.7942004217737
+    }
+  }
+}

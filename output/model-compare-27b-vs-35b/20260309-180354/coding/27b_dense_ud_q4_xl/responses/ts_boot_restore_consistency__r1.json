@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 42529.93770793546,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\n\nThe highest-risk bug is in `apps/game-runtime/src/runtime/GameRuntimeServer.ts` within the `restoreSession` method.\n\n**The Issue:**\nWhen the runtime restores a session from disk (`stateStore.load`), it correctly restores the `Simulation` state (agents, world, tick) and the `threadIds` (mapping agent IDs to Codex thread IDs). However, it **fails to restore the `threadToAgentId` Map**.\n\n**Consequences:**\n1.  **Inconsistent State:** The `threadIds` object is populated, but `threadToAgentId` is empty.\n2.  **Broken Event Handling:** The `handleCodexNotification` method relies on `threadToAgentId` to map incoming Codex notifications (like `turn/completed` or `item/agentMessage/delta`) back to the correct `agentId`.\n3.  **Silent Failure:** Because the map is empty, `gameplayAgentId` becomes `undefined` in `handleCodexNotification`. The code then silently ignores critical turn completion events (`return` early).\n4.  **Deadlock:** The `startTurnAndWait` method waits for a `PendingTurnCollector` to be resolved. Since the completion notification is ignored, the collector is never resolved, causing the scheduler to hang indefinitely on the first turn after restore.\n\n**Secondary Issue (Duplicate Threads):**\nThe `restoreSession` method does not check if the restored `threadIds` are still valid in the Codex process. If the Codex process restarted (losing thread state) but the runtime did not, the runtime will attempt to use stale thread IDs. While `startThreadsForExistingSession` handles *new* sessions, `restoreSession` assumes the threads are alive. The safest fix for consistency is to ensure the mapping exists; if threads are truly dead, the Codex error handling will eventually trigger a reconnect or error, but the immediate crash is the missing map.\n\n### Proposed Fix\n\n1.  **Populate `threadToAgentId`**: In `restoreSession`, iterate over the restored `threadIds.gameplayByAgentId` and rebuild the `threadToAgentId` map.\n2.  **Ensure Atomicity**: This ensures that as soon as the simulation is restored, the event listener is ready to handle incoming Codex messages for those threads.\n\n### File Changes\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change:** Update `restoreSession` to reconstruct the `threadToAgentId` map from the restored `threadIds`.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports and class definition ...\n\n  private async restoreSession(): Promise<void> {\n    const saved = await this.stateStore.load();\n    if (!saved) {\n      return;\n    }\n\n    const content = this.contentStore.getContent();\n    if (saved.simulation) {\n      this.simulation = Simulation.fromState(saved.simulation, content);\n      this.seed = saved.simulation.seed;\n      for (const agent of saved.simulation.agents ?? []) {\n        this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n      }\n      this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n    } else if (typeof saved.seed === \"number\") {\n      this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n        { id: \"agent-1\", name: \"Agent 1\" }\n      ]);\n      this.seed = saved.seed;\n      this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n      this.resetAgentLoopState([\"agent-1\"]);\n    } else {\n      return;\n    }\n\n    this.phase = \"running\";\n    this.preparedSeed = null;\n    \n    // FIX: Restore threadIds and rebuild the reverse map to ensure event handling works\n    this.threadIds = saved.threadIds;\n    this.threadToAgentId.clear();\n    for (const [agentId, threadId] of Object.entries(this.threadIds.gameplayByAgentId)) {\n      this.threadToAgentId.set(threadId, agentId);\n    }\n    if (this.threadIds.builder) {\n      // Builder thread doesn't map to an agentId in gameplay, but we ensure the ID is set\n      // No reverse map entry needed for builder as it's not used in gameplayAgentId lookup\n    }\n\n    this.activeTurn = null;\n    this.schedulerIndex = 0;\n    await this.logReplay(\"session.restored\", {\n      seed: this.seed,\n      tick: this.simulation.getState().tick\n    });\n  }\n\n// ... rest of the class\n```\n\n### Regression Checks\n\n1.  **Restore Consistency**:\n    *   Start a session, let it run for a few turns.\n    *   Restart the `GameRuntimeServer` process.\n    *   Verify the server logs `session.restored`.\n    *   Verify the scheduler immediately attempts a turn (no hang).\n    *   Verify `agent.turn` events are received by the client.\n\n2.  **Thread Mapping**:\n    *   Check that `threadToAgentId` is populated after restore by adding a temporary debug log or checking the `session.state` payload (if exposed) or ensuring `handleCodexNotification` does not return early for `turn/completed`.\n\n3.  **No Duplicate Threads**:\n    *   Ensure `startThreadsForExistingSession` is **not** called during restore (it checks `Object.keys(this.threadIds.gameplayByAgentId).length === 0`). Since we now populate `threadIds` from the save, this condition remains false, preventing duplicate thread creation.\n\n4. "
+        }
+      }
+    ],
+    "created": 1773050923,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21368,
+      "total_tokens": 22618
+    },
+    "id": "chatcmpl-SEjyWh4Xnou36Xx0AHBoXdJTTpIkez3Z",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21368,
+      "prompt_ms": 9152.084,
+      "prompt_per_token_ms": 0.42830793710220894,
+      "prompt_per_second": 2334.768780531297,
+      "predicted_n": 1250,
+      "predicted_ms": 31238.241,
+      "predicted_per_token_ms": 24.9905928,
+      "predicted_per_second": 40.015057185838344
+    }
+  }
+}

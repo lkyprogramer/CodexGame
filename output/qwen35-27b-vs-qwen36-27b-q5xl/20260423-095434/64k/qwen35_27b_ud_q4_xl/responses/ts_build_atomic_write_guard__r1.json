@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 39458.56816699961,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Build Flow Atomicity & Validation\n\n**Highest-Risk Bug:**\nThe `ContentStore.applyOperations` method in `apps/game-runtime/src/runtime/contentStore.ts` violates the atomic write guarantee during partial failure scenarios.\n\n1.  **Race Condition / Partial State:** The method uses `Promise.all` to write three separate files (`prefabs.json`, `recipes.json`, `world_rules.json`) concurrently. While `writeJsonAtomic` ensures *individual* file writes are atomic (write to temp, rename), the *set* of files is not. If `writeJsonAtomic` for `recipes.json` succeeds but `world_rules.json` fails (e.g., disk full, permission error, or a crash during the rename), the system is left in an inconsistent state where `prefabs` and `recipes` are updated, but `world_rules` is stale.\n2.  **In-Memory State Corruption:** The line `this.content = next;` executes **after** the `Promise.all` block. If the file writes fail (throwing an error), the in-memory `this.content` is updated to the new state `next` *before* the error is caught. This means the runtime holds a \"ghost\" state that does not match the disk, leading to undefined behavior on subsequent ticks or reloads.\n3.  **Validation Timing:** While `contentOperationSchema.parse` runs before the loop, the `buildOutputJsonSchema` (used in `GameRuntimeServer`) is overly permissive (allowing `null` values for required fields) compared to the strict Zod schemas. The `normalizeBuildOutput` function attempts to fix this, but if normalization fails or produces invalid data that passes the loose JSON schema but fails the strict Zod schema later, the atomicity issue above compounds the problem.\n\n**Root Cause:**\nThe separation of validation, in-memory state update, and disk persistence is not transactional. The in-memory state is updated unconditionally after the async write block, regardless of success.\n\n**Smallest Safe Fix:**\n1.  Move the in-memory state update (`this.content = next`) to **inside** a `try` block that wraps the file writes, ensuring it only happens if all writes succeed.\n2.  Ensure the `Promise.all` is awaited within the `try` block so any failure prevents the state update.\n3.  (Optional but recommended for robustness) Add a `finally` block to clean up any potential temp files if the process crashes mid-write, though `writeJsonAtomic` handles the rename atomicity. The primary fix is the state update ordering.\n\n### Proposed Changes\n\n**File:** `apps/game-runtime/src/runtime/contentStore.ts`\n\n**Change:** Refactor `applyOperations` to ensure `this.content` is only updated after successful disk writes.\n\n```typescript\n// apps/game-runtime/src/runtime/contentStore.ts\n\n  public async applyOperations(operations: ContentOperation[]): Promise<BuildApplyResult> {\n    if (!this.content) {\n      throw new Error(\"content not loaded\");\n    }\n\n    // 1. Validate all operations first\n    operations.forEach((operation) => contentOperationSchema.parse(operation));\n    \n    // 2. Compute the next state in memory\n    const next: ContentSet = {\n      prefabs: [...this.content.prefabs],\n      recipes: [...this.content.recipes],\n      biomeRules: [...this.content.biomeRules],\n      spawnRules: [...this.content.spawnRules]\n    };\n\n    for (const operation of operations) {\n      switch (operation.type) {\n        case \"upsert_prefab\":\n          next.prefabs = upsertById(next.prefabs, operation.value);\n          break;\n        case \"upsert_recipe\":\n          next.recipes = upsertById(next.recipes, operation.value);\n          break;\n        case \"upsert_biome_rule\":\n          next.biomeRules = upsertById(next.biomeRules, operation.value);\n          break;\n        case \"upsert_spawn_rule\":\n          next.spawnRules = upsertById(next.spawnRules, operation.value);\n          break;\n        case \"remove_by_id\":\n          if (operation.target === \"prefab\") {\n            next.prefabs = removeById(next.prefabs, operation.id);\n          } else if (operation.target === \"recipe\") {\n            next.recipes = removeById(next.recipes, operation.id);\n          } else if (operation.target === \"biome_rule\") {\n            next.biomeRules = removeById(next.biomeRules, operation.id);\n          } else {\n            next.spawnRules = removeById(next.spawnRules, operation.id);\n          }\n          break;\n      }\n    }\n\n    const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n    const recipesPath = path.join(this.contentDir, RECIPES_FILE);\n    const worldRulesPath = path.join(this.contentDir, WORLD_RULES_FILE);\n\n    // 3. Write to disk atomically (per file) and only update in-memory state on success\n    try {\n      await Promise.all([\n        writeJsonAtomic(prefabsPath, next.prefabs),\n        writeJsonAtomic(recipesPath, next.recipes),\n        writeJsonAtomic(worldRulesPath, {\n          biomeRules: next.biomeRules,\n          spawnRules: next.spawnRules\n        })\n      ]);\n\n      // 4. Update in-memory state ONLY after successful writes\n      this.content = next;\n    } catch (error) {\n      // If any write fails, the in-memory state remains unchanged (this.content)\n      // The error propagates to the caller (GameRuntimeServer)\n      throw error;\n    }\n\n    return {\n      changedFiles: [prefabsPath, recipesPath, worldRulesPath],\n      content: next,\n      operations\n    };\n  }\n```\n\n### Regression"
+        }
+      }
+    ],
+    "created": 1776910866,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14464,
+      "total_tokens": 15714
+    },
+    "id": "chatcmpl-MB0gbh21WbTD5YIKYAtSKFs0tkGGSKDT",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6112.986,
+      "prompt_per_token_ms": 0.42263454092920355,
+      "prompt_per_second": 2366.1104409530794,
+      "predicted_n": 1250,
+      "predicted_ms": 30553.126,
+      "predicted_per_token_ms": 24.4425008,
+      "predicted_per_second": 40.912343961138376
+    }
+  }
+}

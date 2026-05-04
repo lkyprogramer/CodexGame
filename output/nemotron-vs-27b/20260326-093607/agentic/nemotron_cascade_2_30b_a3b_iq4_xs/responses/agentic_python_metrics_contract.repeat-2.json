@@ -1,0 +1,53 @@
+{
+  "task_id": "agentic_python_metrics_contract",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 2772.15483301552,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Move metrics from world snapshot to session state by adding a 'metrics' key to the runtime dict in make_session_state and updating emit_state to include it. This ensures metrics travel through session state as required.\",\n  \"files\": [\n    {\n      \"path\": \"protocol/messages.py\",\n      \"content\": \"from __future__ import annotations\\n\\ndef make_session_state(phase: str, runtime: dict) -> dict:\\n    return {\\n        \\\"type\\\": \\\"session.state\\\",\\n        \\\"payload\\\": {\\n            \\\"phase\\\": phase,\\n            \\\"runtime\\\": runtime,\\n        },\\n    }\\n\\n\\ndef make_world_snapshot(tick: int, world: dict) -> dict:\\n    return {\\n        \\\"type\\\": \\\"world.snapshot\\\",\\n        \\\"payload\\\": {\\n            \\\"tick\\\": tick,\\n            \\\"world\\\": world,\\n        },\\n    }\\n\"\n    },\n    {\n      \"path\": \"runtime/server.py\",\n      \"content\": \"from __future__ import annotations\\n\\nfrom protocol.messages import make_session_state, make_world_snapshot\\n\\n\\ndef emit_state(phase: str, metrics_snapshot: dict) -> tuple[dict, dict]:\\n    session_state = make_session_state(\\n        phase,\\n        {\\n            \\\"model\\\": \\\"local-qwen\\\",\\n            \\\"tick_ms\\\": 200,\\n            \\\"metrics\\\": metrics_snapshot,\\n        },\\n    )\\n    world_snapshot = make_world_snapshot(10, {\\\"tiles\\\": []})\\n    return session_state, world_snapshot\\n\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1774491117,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 351,
+      "prompt_tokens": 899,
+      "total_tokens": 1250
+    },
+    "id": "chatcmpl-NUVHOBx4lylpfTw8Gn6Mh6covc3PZfOK",
+    "timings": {
+      "cache_n": 387,
+      "prompt_n": 512,
+      "prompt_ms": 77.344,
+      "prompt_per_token_ms": 0.1510625,
+      "prompt_per_second": 6619.776582540339,
+      "predicted_n": 351,
+      "predicted_ms": 1653.679,
+      "predicted_per_token_ms": 4.711336182336183,
+      "predicted_per_second": 212.25401060302514
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "protocol/messages.py",
+    "runtime/server.py"
+  ],
+  "json_error": ""
+}

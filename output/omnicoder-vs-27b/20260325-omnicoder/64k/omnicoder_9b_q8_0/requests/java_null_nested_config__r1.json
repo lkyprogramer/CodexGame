@@ -1,0 +1,19 @@
+{
+  "task_id": "java_null_nested_config",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/omnicoder-9b-q8_0",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_null_nested_config\nScenario: Optional nested config causes startup-time null handling bug.\n\nInstructions:\nFind the highest-risk correctness bug. Explain the root cause and give the smallest production-safe patch plan. Keep the fix minimal and localized.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/config/AppConfig.java ===\npackage com.example.config;\n\npublic class AppConfig {\n    private DatabaseConfig database;\n\n    public DatabaseConfig getDatabase() {\n        return database;\n    }\n\n    public void setDatabase(DatabaseConfig database) {\n        this.database = database;\n    }\n}\n\n=== File: src/main/java/com/example/config/DatabaseConfig.java ===\npackage com.example.config;\n\npublic class DatabaseConfig {\n    private String jdbcUrl;\n\n    public String getJdbcUrl() {\n        return jdbcUrl;\n    }\n\n    public void setJdbcUrl(String jdbcUrl) {\n        this.jdbcUrl = jdbcUrl;\n    }\n}\n\n=== File: src/main/java/com/example/config/DataSourceFactory.java ===\npackage com.example.config;\n\npublic class DataSourceFactory {\n    public String buildJdbcUrl(AppConfig config) {\n        return config.getDatabase().getJdbcUrl().trim();\n    }\n}\n\n=== File: src/main/java/com/example/bootstrap/StartupListener.java ===\npackage com.example.bootstrap;\n\nimport com.example.config.AppConfig;\nimport com.example.config.DataSourceFactory;\n\npublic class StartupListener {\n    private final DataSourceFactory dataSourceFactory = new DataSourceFactory();\n\n    public void onStartup(AppConfig config) {\n        String jdbcUrl = dataSourceFactory.buildJdbcUrl(config);\n        System.out.println(\"Connecting to \" + jdbcUrl);\n    }\n}\n"
+      }
+    ],
+    "max_tokens": 900,
+    "stream": false
+  }
+}

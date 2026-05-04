@@ -1,0 +1,836 @@
+[
+  {
+    "task_id": "basic_ready_only",
+    "family": "basic",
+    "description": "Minimal single-token query should return exact READY output.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "hermes",
+    "output_contract": {
+      "kind": "exact_text",
+      "spec": {
+        "text": "READY"
+      }
+    },
+    "hidden_checklist": [
+      "Must return exactly READY.",
+      "Must not add explanation or markdown."
+    ],
+    "expected_snippets": [
+      "READY"
+    ],
+    "repo_files": [],
+    "validation_commands": [],
+    "max_seconds": 60,
+    "max_tokens_hint": 16,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "basic_status_line",
+    "family": "basic",
+    "description": "Single-line fixed-prefix output should remain stable.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "hermes",
+    "output_contract": {
+      "kind": "line_prefixes",
+      "spec": {
+        "lines": [
+          "STATUS: READY"
+        ],
+        "exact_count": 1
+      }
+    },
+    "hidden_checklist": [
+      "Must keep a single line.",
+      "Must preserve exact STATUS prefix."
+    ],
+    "expected_snippets": [
+      "STATUS: READY"
+    ],
+    "repo_files": [],
+    "validation_commands": [],
+    "max_seconds": 60,
+    "max_tokens_hint": 32,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "basic_json_only",
+    "family": "basic",
+    "description": "Strict JSON-only response must be parseable without cleanup.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "hermes",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "status",
+          "endpoint",
+          "mode"
+        ],
+        "exact_values": {
+          "status": "ready"
+        }
+      }
+    },
+    "hidden_checklist": [
+      "Must be valid JSON.",
+      "Must not include markdown fences.",
+      "Must include status, endpoint, mode."
+    ],
+    "expected_snippets": [
+      "ready",
+      "local",
+      "custom"
+    ],
+    "repo_files": [],
+    "validation_commands": [],
+    "max_seconds": 60,
+    "max_tokens_hint": 64,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "basic_three_bullets",
+    "family": "basic",
+    "description": "Longer plain-text response should remain contract-compliant.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "hermes",
+    "output_contract": {
+      "kind": "bullet_count",
+      "spec": {
+        "count": 3
+      }
+    },
+    "hidden_checklist": [
+      "Must return exactly 3 bullets.",
+      "Should mention role compatibility or stability."
+    ],
+    "expected_snippets": [
+      "system",
+      "user",
+      "developer"
+    ],
+    "repo_files": [],
+    "validation_commands": [],
+    "max_seconds": 90,
+    "max_tokens_hint": 160,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "repo_entrypoints_json",
+    "family": "repo_readonly",
+    "description": "Identify the core authority and main entrypoints in CodexGame.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "runtime_authority",
+          "runtime_entrypoint",
+          "client_entrypoint",
+          "protocol_source"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must identify runtime authority as apps/game-runtime.",
+      "Must point to GameRuntimeServer.ts or equivalent runtime entrypoint.",
+      "Must point to apps/game-client/src/App.tsx for client entrypoint.",
+      "Must identify packages/protocol/src/messages.ts as protocol source."
+    ],
+    "expected_snippets": [
+      "apps/game-runtime",
+      "GameRuntimeServer.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 180,
+    "max_tokens_hint": 500,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "repo_restore_root_cause",
+    "family": "repo_readonly",
+    "description": "Analyze the boot-time restore inconsistency risk and propose the smallest safe fix.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "sections",
+      "spec": {
+        "required_prefixes": [
+          "1.",
+          "2.",
+          "3.",
+          "4."
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must mention running state exposed before threads are restored or rebuilt.",
+      "Must reference session persistence / stateStore / runtime restore path.",
+      "Must prefer a minimal ordering fix over broad refactor."
+    ],
+    "expected_snippets": [
+      "running",
+      "thread",
+      "stateStore",
+      "restore"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 240,
+    "max_tokens_hint": 900,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "repo_metrics_protocol_json",
+    "family": "repo_readonly",
+    "description": "Explain the protocol-first gap for exposing runtime metrics to the client.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "root_cause",
+          "protocol_files",
+          "runtime_files",
+          "client_files",
+          "smallest_safe_fix"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must route metrics through protocol first, not ad-hoc client state.",
+      "Must mention packages/protocol/src/messages.ts.",
+      "Must include runtime and client touch points."
+    ],
+    "expected_snippets": [
+      "packages/protocol/src/messages.ts",
+      "apps/game-runtime",
+      "apps/game-client",
+      "metrics"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 240,
+    "max_tokens_hint": 900,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "repo_reconnect_circuit_breaker",
+    "family": "repo_readonly",
+    "description": "Trace the reconnect circuit breaker risk and propose the minimum safe guardrail-preserving fix.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "sections",
+      "spec": {
+        "required_prefixes": [
+          "1.",
+          "2.",
+          "3.",
+          "4."
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must mention maxReconnectAttempts or reconnect guardrail.",
+      "Must preserve safety semantics instead of widening retries.",
+      "Should reference runtime config or reconnect loop implementation."
+    ],
+    "expected_snippets": [
+      "maxReconnectAttempts",
+      "reconnect",
+      "circuit breaker",
+      "config"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 240,
+    "max_tokens_hint": 900,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "repo_atomic_build_write_guard",
+    "family": "repo_readonly",
+    "description": "Explain the atomic build write requirement and the smallest safe way to preserve it.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "root_cause",
+          "key_file",
+          "required_invariant",
+          "smallest_safe_fix",
+          "risks"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must mention tmp + rename or equivalent atomic write pattern.",
+      "Must identify contentStore.ts as key file.",
+      "Must not recommend non-atomic overwrite."
+    ],
+    "expected_snippets": [
+      "contentStore.ts",
+      "tmp",
+      "rename",
+      "atomic"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 180,
+    "max_tokens_hint": 700,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "repo_top_gaps_json",
+    "family": "repo_readonly",
+    "description": "Summarize the top 3 engineering gaps already implied by the repository and AGENTS guidance.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "json_array_length",
+      "spec": {
+        "root_key": "gaps",
+        "length": 3
+      }
+    },
+    "hidden_checklist": [
+      "Should surface boot-time restore gap.",
+      "Should surface reconnect fault-injection or circuit-breaker test gap.",
+      "Should surface runtime metrics exposure gap."
+    ],
+    "expected_snippets": [
+      "restore",
+      "reconnect",
+      "metrics"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 240,
+    "max_tokens_hint": 900,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "terminal_pwd_git_status",
+    "family": "terminal",
+    "description": "Use terminal tools to report cwd and clean git status in fixed format.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "line_prefixes",
+      "spec": {
+        "required_prefixes": [
+          "PWD:",
+          "GIT:"
+        ],
+        "exact_count": 2
+      }
+    },
+    "hidden_checklist": [
+      "Must call terminal tools, not guess the path.",
+      "Must preserve fixed two-line format."
+    ],
+    "expected_snippets": [
+      "PWD:",
+      "GIT:"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 120,
+    "max_tokens_hint": 128,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "terminal_protocol_version_json",
+    "family": "terminal",
+    "description": "Use rg to locate the protocol version source and return fixed JSON.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "path",
+          "version"
+        ],
+        "exact_values": {
+          "version": "v1"
+        }
+      }
+    },
+    "hidden_checklist": [
+      "Must locate packages/protocol/src/messages.ts.",
+      "Must report v1."
+    ],
+    "expected_snippets": [
+      "packages/protocol/src/messages.ts",
+      "v1"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 120,
+    "max_tokens_hint": 160,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "terminal_log_summary_json",
+    "family": "terminal",
+    "description": "Summarize recurring errors from a prepared log fixture using shell tools only.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "fixture",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "error_count",
+          "top_signature",
+          "top_count"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must use the actual log fixture.",
+      "Must identify the dominant recurring signature."
+    ],
+    "expected_snippets": [
+      "Database timeout",
+      "7"
+    ],
+    "repo_files": [],
+    "validation_commands": [],
+    "max_seconds": 120,
+    "max_tokens_hint": 220,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "terminal_top_level_dirs_json",
+    "family": "terminal",
+    "description": "Report whether key top-level project directories exist.",
+    "readonly": true,
+    "sandbox_write": false,
+    "working_dir_kind": "repo",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "repo_name",
+          "apps",
+          "packages",
+          "scripts",
+          "data"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must inspect the actual directory structure.",
+      "Must identify apps/packages/scripts/data."
+    ],
+    "expected_snippets": [
+      "CodexGame",
+      "apps",
+      "packages",
+      "scripts",
+      "data"
+    ],
+    "repo_files": [
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "apps/game-runtime/src/runtime/GameRuntimeServer.ts",
+      "apps/game-runtime/src/runtime/contentStore.ts",
+      "apps/game-runtime/src/runtime/config.ts",
+      "apps/game-runtime/src/runtime/prompting.ts",
+      "apps/game-runtime/src/runtime/replay.ts",
+      "apps/game-runtime/src/runtime/stateStore.ts",
+      "apps/game-runtime/src/codex/CodexAppServerClient.ts",
+      "apps/game-client/src/App.tsx",
+      "packages/protocol/src/messages.ts",
+      "packages/protocol/src/actions.ts",
+      "packages/protocol/src/build.ts",
+      "packages/simulation/src/simulation.ts",
+      "packages/simulation/src/world.ts",
+      "packages/simulation/src/snapshot.ts"
+    ],
+    "validation_commands": [],
+    "max_seconds": 120,
+    "max_tokens_hint": 180,
+    "max_expected_changed_files": null
+  },
+  {
+    "task_id": "agentic_python_reconcile_pkg",
+    "family": "sandbox",
+    "description": "Complete a multi-file Python reconciliation package so the business discrepancy tests pass.",
+    "readonly": false,
+    "sandbox_write": true,
+    "working_dir_kind": "sandbox",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "summary",
+          "files_changed",
+          "validation"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Requires coordinated edits across matcher/report rather than one-file explanation only.",
+      "Must detect duplicate_left, missing_left, missing_right, and amount_mismatch.",
+      "Should keep implementation small and deterministic.",
+      "Passing tests is the primary success signal."
+    ],
+    "expected_snippets": [
+      "summary",
+      "files_changed",
+      "validation"
+    ],
+    "repo_files": [],
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "max_seconds": 420,
+    "max_tokens_hint": 2200,
+    "max_expected_changed_files": 4
+  },
+  {
+    "task_id": "agentic_python_restore_bootstrap",
+    "family": "sandbox",
+    "description": "Fix a multi-file Python runtime restore flow so running state is not exposed before threads exist.",
+    "readonly": false,
+    "sandbox_write": true,
+    "working_dir_kind": "sandbox",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "summary",
+          "files_changed",
+          "validation"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Should preserve existing thread ids instead of recreating them blindly.",
+      "Must not set running-visible state before thread restoration is effectively complete.",
+      "Requires multi-file coordination across restore/types/threads.",
+      "Passing tests should confirm idempotent bootstrap behavior."
+    ],
+    "expected_snippets": [
+      "summary",
+      "files_changed",
+      "validation"
+    ],
+    "repo_files": [],
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "max_seconds": 420,
+    "max_tokens_hint": 2200,
+    "max_expected_changed_files": 4
+  },
+  {
+    "task_id": "agentic_python_metrics_contract",
+    "family": "sandbox",
+    "description": "Fix a small runtime/protocol/client package so metrics travel through session state instead of ad-hoc world state.",
+    "readonly": false,
+    "sandbox_write": true,
+    "working_dir_kind": "sandbox",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "summary",
+          "files_changed",
+          "validation"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must move metrics into session.state/runtime rather than world snapshot.",
+      "Requires edits across protocol, runtime, and client.",
+      "Should use MetricsTracker.snapshot output as source of truth.",
+      "Passing tests confirm protocol placement and client reduction logic."
+    ],
+    "expected_snippets": [
+      "summary",
+      "files_changed",
+      "validation"
+    ],
+    "repo_files": [],
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "max_seconds": 420,
+    "max_tokens_hint": 2200,
+    "max_expected_changed_files": 4
+  },
+  {
+    "task_id": "agentic_bash_log_triage",
+    "family": "sandbox",
+    "description": "Produce a working Bash triage script that groups noisy logs into stable error signatures.",
+    "readonly": false,
+    "sandbox_write": true,
+    "working_dir_kind": "sandbox",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "summary",
+          "files_changed",
+          "validation"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must produce an actually runnable shell script, not just a plan.",
+      "Should normalize volatile ids and suppress healthcheck noise.",
+      "Output should be stable and count-sorted.",
+      "Passing tests are the success criterion."
+    ],
+    "expected_snippets": [
+      "summary",
+      "files_changed",
+      "validation"
+    ],
+    "repo_files": [],
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "max_seconds": 420,
+    "max_tokens_hint": 1800,
+    "max_expected_changed_files": 4
+  },
+  {
+    "task_id": "sandbox_python_jsonl_replay_analyzer",
+    "family": "sandbox",
+    "description": "Implement a replay JSONL analyzer with malformed-line tolerance.",
+    "readonly": false,
+    "sandbox_write": true,
+    "working_dir_kind": "sandbox",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "summary",
+          "files_changed",
+          "validation"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must tolerate malformed JSONL lines instead of crashing.",
+      "Must return aggregated counts by event type.",
+      "Must keep implementation small."
+    ],
+    "expected_snippets": [
+      "summary",
+      "files_changed",
+      "validation"
+    ],
+    "repo_files": [],
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "max_seconds": 360,
+    "max_tokens_hint": 1400,
+    "max_expected_changed_files": 2
+  },
+  {
+    "task_id": "sandbox_bash_atomic_swap",
+    "family": "sandbox",
+    "description": "Produce a working Bash deploy script that performs atomic symlink swap after health check.",
+    "readonly": false,
+    "sandbox_write": true,
+    "working_dir_kind": "sandbox",
+    "output_contract": {
+      "kind": "json_keys",
+      "spec": {
+        "required_keys": [
+          "summary",
+          "files_changed",
+          "validation"
+        ]
+      }
+    },
+    "hidden_checklist": [
+      "Must only flip current symlink after health check succeeds.",
+      "Must keep previous symlink target on failed health check.",
+      "Should avoid broad redesign."
+    ],
+    "expected_snippets": [
+      "summary",
+      "files_changed",
+      "validation"
+    ],
+    "repo_files": [],
+    "validation_commands": [
+      "bash test_deploy.sh"
+    ],
+    "max_seconds": 360,
+    "max_tokens_hint": 1400,
+    "max_expected_changed_files": 1
+  }
+]

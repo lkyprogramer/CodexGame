@@ -1,0 +1,39 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 10191.074625006877,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Root Cause Analysis\n\nThe bug lies in **`InvoiceNotificationService.java`**. The `send` method wraps the entire business logic (marking the invoice as sent AND sending the email) inside the `retryExecutor.run` block.\n\nIf `emailGateway.sendInvoice(invoiceId)` fails (e.g., network timeout, SMTP error), the retry mechanism will re-execute the lambda. On the next attempt:\n1. `invoiceGateway.markSent(invoiceId)` is called again.\n2. `emailGateway.sendInvoice(invoiceId)` is called again.\n\n**Consequence:** The database state becomes inconsistent (duplicate \"sent\" records) and the user receives duplicate emails. This is a classic \"idempotency violation\" caused by blindly retrying side effects.\n\n## Smallest Safe Fix\n\nWe must decouple the **state-changing side effect** (`markSent`) from the **potentially failing network call** (`sendInvoice`). The state change should happen *before* the retry loop, or the retry logic must be aware of idempotency (which we cannot assume based on the provided interfaces).\n\nThe safest, minimal fix is to execute the idempotent state update outside the retry block, and only retry the network call.\n\n### File to Change\n**`src/main/java/com/example/invoice/InvoiceNotificationService.java`**\n\n### Proposed Code Change\n\n```java\npackage com.example.invoice;\n\npublic class InvoiceNotificationService {\n    private final RetryExecutor retryExecutor;\n    private final InvoiceGateway invoiceGateway;\n    private final EmailGateway emailGateway;\n\n    public InvoiceNotificationService(\n            RetryExecutor retryExecutor,\n            InvoiceGateway invoiceGateway,\n            EmailGateway emailGateway) {\n        this.retryExecutor = retryExecutor;\n        this.invoiceGateway = invoiceGateway;\n        this.emailGateway = emailGateway;\n    }\n\n    public void send(long invoiceId) {\n        // 1. Execute the idempotent side effect immediately.\n        // This ensures the state is updated exactly once, regardless of subsequent retries.\n        invoiceGateway.markSent(invoiceId);\n\n        // 2. Only retry the network call.\n        retryExecutor.run(() -> {\n            emailGateway.sendInvoice(invoiceId);\n        });\n    }\n}\n```\n\n## What Must Not Be Retried Blindly\n*   **Database State Updates:** Operations like `markSent` modify persistent state. Retrying them blindly leads to duplicates or race conditions. These must be idempotent or executed outside the retry loop.\n*   **External Side Effects:** Actions like sending emails, logging, or triggering webhooks are generally non-idempotent in their observable effects (sending 2 emails is different from sending 1).\n\n## Regression Checks\n1.  **Duplicate Emails:** Verify that if `sendInvoice` fails and retries, the user receives exactly one email.\n2.  **Database Consistency:** Verify that `markSent` is called exactly once per `send` invocation, even if `sendInvoice` fails multiple times.\n3.  **Failure Handling:** Ensure that if `sendInvoice` eventually succeeds after retries, the flow completes successfully without throwing an exception."
+        }
+      }
+    ],
+    "created": 1774451984,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 666,
+      "prompt_tokens": 431,
+      "total_tokens": 1097
+    },
+    "id": "chatcmpl-8YFv2nk61qhVqwiUfU9C256PEmCksOR7",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 431,
+      "prompt_ms": 63.144,
+      "prompt_per_token_ms": 0.1465058004640371,
+      "prompt_per_second": 6825.66831369568,
+      "predicted_n": 666,
+      "predicted_ms": 7853.85,
+      "predicted_per_token_ms": 11.792567567567568,
+      "predicted_per_second": 84.79917492694665
+    }
+  }
+}

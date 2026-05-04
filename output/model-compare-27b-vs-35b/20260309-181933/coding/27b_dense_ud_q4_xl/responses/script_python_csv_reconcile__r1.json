@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 31931.648833910003,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script designed to handle the specific edge cases (duplicates, blank rows, BOMs) and matching rules defined in your project snapshot.\n\n### Script: `reconcile_exports.py`\n\nThis script requires no external dependencies (uses only Python standard library).\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReconciliation Script for Finance Exports.\nHandles: BOMs, blank lines, duplicate headers, duplicate data rows.\nMatching: merchant_order_id (primary) -> provider_txn_id (fallback).\n\"\"\"\n\nimport csv\nimport sys\nfrom collections import defaultdict\nfrom datetime import datetime\n\n# Configuration\nINPUT_FINANCE = \"samples/finance_export.csv\"\nINPUT_MERCHANT = \"samples/merchant_statement.csv\"\nOUTPUT_CSV = \"reconciliation_report.csv\"\nOUTPUT_SUMMARY = \"reconciliation_summary.txt\"\n\ndef read_csv_robust(filepath):\n    \"\"\"\n    Reads CSV, handling BOM, blank lines, and duplicate header rows.\n    Returns a list of dicts.\n    \"\"\"\n    rows = []\n    seen_headers = False\n    \n    try:\n        with open(filepath, 'r', encoding='utf-8-sig') as f: # utf-8-sig handles BOM\n            reader = csv.DictReader(f)\n            for row in reader:\n                # Skip blank rows (all values empty or None)\n                if not any(row.values()):\n                    continue\n                \n                # Skip duplicate header rows (if data looks like header)\n                # Heuristic: If the first key's value matches the key name, it's likely a header row\n                if row and list(row.keys())[0] in row and row[list(row.keys())[0]] == list(row.keys())[0]:\n                    continue\n                \n                rows.append(row)\n    except FileNotFoundError:\n        print(f\"Error: File not found: {filepath}\", file=sys.stderr)\n        sys.exit(1)\n        \n    return rows\n\ndef normalize_key(row):\n    \"\"\"\n    Create a composite key for matching.\n    Priority: merchant_order_id, then provider_txn_id.\n    \"\"\"\n    mid = row.get('merchant_order_id', '').strip()\n    pid = row.get('provider_txn_id', '').strip()\n    return (mid, pid)\n\ndef reconcile(finance_rows, merchant_rows):\n    \"\"\"\n    Performs the reconciliation logic.\n    Returns: (matches, mismatches, missing_in_finance, missing_in_merchant, duplicates)\n    \"\"\"\n    # Index Merchant Data by Key\n    merchant_index = {}\n    for row in merchant_rows:\n        key = normalize_key(row)\n        if key in merchant_index:\n            # Handle duplicates in source: keep the latest based on updated_at or just flag\n            # For this script, we flag the duplicate in the source analysis, \n            # but for matching, we use the first occurrence found (or latest).\n            # Here we store the first one to match against, duplicates are tracked separately.\n            pass \n        else:\n            merchant_index[key] = row\n\n    # Track duplicates within Finance file\n    finance_seen = set()\n    finance_duplicates = []\n    \n    matches = []\n    mismatches = []\n    missing_in_finance = [] # In Merchant but not Finance\n    missing_in_merchant = [] # In Finance but not Merchant\n\n    # Process Finance Rows\n    for f_row in finance_rows:\n        key = normalize_key(f_row)\n        \n        # Check for internal duplicates in Finance\n        if key in finance_seen:\n            finance_duplicates.append(f_row)\n            continue\n        finance_seen.add(key)\n\n        if key in merchant_index:\n            m_row = merchant_index[key]\n            \n            # Compare Amounts\n            f_amt = int(f_row.get('amount_cents', 0))\n            m_amt = int(m_row.get('amount_cents', 0))\n            \n            # Compare Status\n            f_status = f_row.get('status', '').strip()\n            m_status = m_row.get('status', '').strip()\n\n            if f_amt != m_amt:\n                mismatches.append({\n                    \"type\": \"AMOUNT_MISMATCH\",\n                    \"finance\": f_row,\n                    \"merchant\": m_row,\n                    \"details\": f\"Finance: {f_amt}, Merchant: {m_amt}\"\n                })\n            elif f_status != m_status:\n                mismatches.append({\n                    \"type\": \"STATUS_MISMATCH\",\n                    \"finance\": f_row,\n                    \"merchant\": m_row,\n                    \"details\": f\"Finance: {f_status}, Merchant: {m_status}\"\n                })\n            else:\n                matches.append({\n                    \"type\": \"MATCH\",\n                    \"finance\": f_row,\n                    \"merchant\": m_row\n                })\n        else:\n            missing_in_merchant.append(f_row)\n\n    # Check for items in Merchant not in Finance\n    for key, m_row in merchant_index.items():\n        if key not in finance_seen:\n            missing_in_finance.append(m_row)\n\n    return matches, mismatches, missing_in_finance, missing_in_merchant, finance_duplicates\n\ndef write_outputs(matches, mismatches, missing_f, missing_m, duplicates):\n    \"\"\"\n    Writes the machine-readable CSV and human-readable summary.\n    \"\"\"\n    # 1. Machine Readable CSV\n    with open(OUTPUT_CSV, 'w', newline='', encoding='utf-8') as f:\n        writer = csv.writer(f)\n        writer.writerow([\"category\", \"merchant_order_id\", \"provider_txn_id\", \"finance_amount\", \"merchant_amount\", \"finance_status\", \"merchant_status\", \"details\"])\n        \n        def write_row(cat, f_row, m_row=None, details=\"\"):\n            m_row = m_row or {}\n            writer.writerow([\n                cat,\n                f_row.get('merchant_order_id'),\n                f_row.get('provider_txn_id'),\n                f_row.get('amount_cents'),\n                m_row.get('amount_cents', ''),\n                f_row.get('status'),\n                m_row"
+        }
+      }
+    ],
+    "created": 1773052073,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-viVM7jrXnrJCf5hDz64Rj76hPw3GoXRe",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 305.937,
+      "prompt_per_token_ms": 0.5133171140939597,
+      "prompt_per_second": 1948.113500491931,
+      "predicted_n": 1300,
+      "predicted_ms": 30420.937,
+      "predicted_per_token_ms": 23.40072076923077,
+      "predicted_per_second": 42.733726446361594
+    }
+  }
+}

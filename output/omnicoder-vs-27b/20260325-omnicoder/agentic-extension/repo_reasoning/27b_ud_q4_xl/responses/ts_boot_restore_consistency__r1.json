@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 48404.44241699879,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Looking at the project snapshot, I need to identify the highest-risk restore consistency bug related to boot-time restore exposing an inconsistent running state before threads are restored.\n\nLet me analyze the `restoreSession()` method in `GameRuntimeServer.ts`:\n\n```typescript\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n    }\n    this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n  } else if (typeof saved.seed === \"number\") {\n    // ...\n  } else {\n    return;\n  }\n\n  this.phase = \"running\";\n  this.preparedSeed = null;\n  this.threadIds = { gameplayByAgentId: {} };\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  await this.logReplay(\"session.restored\", {\n    seed: this.seed,\n    tick: this.simulation.getState().tick\n  });\n}\n```\n\nThe critical issue: **`restoreSession()` sets `this.phase = \"running\"` BEFORE restoring the threads from the saved session.** \n\nLooking at the saved `SessionSnapshot` type:\n```typescript\nexport type SessionSnapshot = {\n  seed: number;\n  tick: number;\n  threadIds: ThreadIds;  // <-- This is saved!\n  metrics: RuntimeMetrics;\n  simulation: SimulationState;\n};\n```\n\nThe `threadIds` are persisted in the snapshot but never restored in `restoreSession()`. This means:\n\n\n- `this.threadIds` gets reset to an empty object\n- `this.threadToAgentId` gets cleared\n- Yet `this.phase` is set to `\"running\"`\n\nThis creates a dangerous inconsistency where the scheduler and other logic will attempt to use threads that don't exist yet. When `runScheduler()` executes, it tries to access `this.threadIds.gameplayByAgentId[agent.id]` which will be empty, and `requestGameplayTurn()` will fail silently or error because no valid thread exists.\n\nThe real problem is that `restoreSession()` restores the simulation state but not the thread mappings. The solution is to restore `threadIds` from the saved snapshot and rebuild the `threadToAgentId` map, then verify the threads are actually available (either by resuming existing ones or creating new ones if they're stale).\n\nLooking at the code flow, `primeCodexModelCatalog()` tries to start threads only if `threadIds` are empty, but since `restoreSession()` already sets `phase = \"running\"`, the scheduler can run before threads are properly initialized. The fix should restore the saved `threadIds` and `threadToAgentId` mappings, then attempt to resume the threads rather than creating new ones.\n\nThe critical issue is that `restoreSession()` marks the session as running without verifying the threads actually exist. If the threads were from a previous process, they're likely stale and won't respond. I need to restore the thread IDs from the snapshot, rebuild the agent-to-thread mapping, and either resume existing threads or create fresh ones—without prematurely setting the phase to running until the threads are confirmed active. The core issue is that `restoreSession()` sets `phase = \"running\"` before threads are actually restored, which allows the scheduler to execute prematurely. I need to restore the saved `threadIds` and `threadToAgentId` mappings first, then ensure threads are resumed or created before transitioning to the running phase.\n\nThe fix involves restoring the thread mappings from the snapshot, then calling `startThreadsForExistingSession()` to handle thread restoration. However, I should verify this method doesn't create duplicate threads by checking if the thread IDs already exist in the saved state before attempting to create new ones. I need to reconsider the approach. Looking at `startThreadsForExistingSession()`, it unconditionally creates new threads via `thread/start` requests without checking if threads already exist. This means restoring from a snapshot would create duplicate threads instead of resuming the existing ones.\n\nThe real fix is to restore the thread IDs from the snapshot and attempt to resume them first, only creating new threads if the resume fails. I should modify `restoreSession()` to preserve the saved `threadIds` and `threadToAgentId` mappings, then add logic to attempt resuming those threads before falling back to thread creation.\n\nHowever, there's a critical issue: `restoreSession()` sets `this.phase = \"running\"` immediately, which allows the scheduler to execute before threads are actually restored. This creates a race condition where the scheduler might try to use threads that haven't been resumed yet. The safest approach is to defer setting the phase to \"running\" until after thread restoration succeeds, or ensure thread restoration happens synchronously before the phase change.\n\nLooking at the execution flow, `restoreSession()` is called from `start()` before `startTimers()` begins the scheduler, so there's a brief window where the phase is \"running\" but threads aren't ready. The fix should restore thread mappings from the snapshot and ensure threads are actually available before allowing the scheduler to proceed.\n\nThe core issue is that `restoreSession()` resets `threadIds` to empty, which then triggers `startThreadsForExistingSession()` to create fresh threads instead of resuming the ones from the snapshot. I need to preserve the saved thread IDs and attempt to resume them first, only creating new ones if that fails. This prevents losing the existing thread state and avoids the unnecessary recreation.\n\nThe fix"
+        }
+      }
+    ],
+    "created": 1774450393,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21366,
+      "total_tokens": 22616
+    },
+    "id": "chatcmpl-aXyVktr99x6aozJrQrp44r482w1HLGDo",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21366,
+      "prompt_ms": 9092.316,
+      "prompt_per_token_ms": 0.42555068800898627,
+      "prompt_per_second": 2349.8963300439623,
+      "predicted_n": 1250,
+      "predicted_ms": 31231.373,
+      "predicted_per_token_ms": 24.9850984,
+      "predicted_per_second": 40.02385678016781
+    }
+  }
+}

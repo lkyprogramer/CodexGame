@@ -1,0 +1,39 @@
+{
+  "task_id": "java_path_body_id_mismatch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 18698.173208045773,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Critical API Contract Violation\n\n**Severity:** Critical (Security/Data Integrity)\n**Root Cause:** The `AccountController` ignores the `pathAccountId` (the resource identifier in the URL) and blindly trusts the `accountId` provided in the request body.\n\n**Impact:**\nThis is a classic **Insecure Direct Object Reference (IDOR)** vulnerability.\n1.  **Bypass Authorization:** A malicious client can request `PUT /accounts/123` (intending to update account 123) but send a body containing `{\"accountId\": 999, \"displayName\": \"Hacked\"}`.\n2.  **Result:** The system updates account **999** instead of 123. If the client is not authorized to modify account 999, they have successfully escalated privileges or modified data they shouldn't touch.\n3.  **Data Loss:** If the body `accountId` is `null` or invalid, the service might throw an exception or behave unpredictably, even if the path ID was valid.\n\n### Minimal Fix\n\nThe fix must enforce that the `accountId` in the request body matches the `pathAccountId`. If they differ, the request must be rejected.\n\n**File to Change:** `src/main/java/com/example/account/AccountController.java`\n\n**Changes:**\n1.  Add a validation check comparing `pathAccountId` and `request.getAccountId()`.\n2.  Throw an exception (e.g., `IllegalArgumentException` or a custom `BadRequestException`) if they do not match.\n3.  Pass the `pathAccountId` to the service, not the body ID.\n\n```java\n// src/main/java/com/example/account/AccountController.java\npackage com.example.account;\n\npublic class AccountController {\n    private final AccountService accountService;\n\n    public AccountController(AccountService accountService) {\n        this.accountService = accountService;\n    }\n\n    public AccountDto update(long pathAccountId, UpdateAccountRequest request) {\n        // FIX: Validate that the body ID matches the path ID\n        Long bodyAccountId = request.getAccountId();\n        \n        if (bodyAccountId == null || bodyAccountId != pathAccountId) {\n            throw new IllegalArgumentException(\n                \"Request body accountId must match the path accountId\"\n            );\n        }\n\n        // Use the path ID (which is now verified to match the body)\n        return accountService.update(pathAccountId, request.getDisplayName());\n    }\n}\n```\n\n### Regression Checks\n\n1.  **Happy Path:** Send a request to `/accounts/123` with body `{\"accountId\": 123, \"displayName\": \"NewName\"}`.\n    *   *Expected:* Account 123 is updated successfully.\n2.  **Mismatch Attack:** Send a request to `/accounts/123` with body `{\"accountId\": 999, \"displayName\": \"Hacked\"}`.\n    *   *Expected:* Request fails with `IllegalArgumentException` (or 400 Bad Request). Account 999 remains unchanged.\n3.  **Null Body ID:** Send a request to `/accounts/123` with body `{\"accountId\": null, \"displayName\": \"NewName\"}`.\n    *   *Expected:* Request fails.\n4.  **Service Integrity:** Verify `AccountService.update` is still receiving the correct ID (the path ID) and not the body ID directly."
+        }
+      }
+    ],
+    "created": 1776916149,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 731,
+      "prompt_tokens": 473,
+      "total_tokens": 1204
+    },
+    "id": "chatcmpl-dtWrTzl2U0mb8LWSjakAyM439q2eI4Hq",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 473,
+      "prompt_ms": 200.116,
+      "prompt_per_token_ms": 0.42307822410147994,
+      "prompt_per_second": 2363.6290951248275,
+      "predicted_n": 731,
+      "predicted_ms": 17087.404,
+      "predicted_per_token_ms": 23.37538166894665,
+      "predicted_per_second": 42.78005014688013
+    }
+  }
+}

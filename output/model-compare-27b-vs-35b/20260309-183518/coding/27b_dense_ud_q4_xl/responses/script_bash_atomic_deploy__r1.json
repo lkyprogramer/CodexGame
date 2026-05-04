@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 25725.16812500544,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script adhering to your constraints.\n\n### File: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Configuration\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_ROOT}/releases\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly HEALTH_TIMEOUT=5\nreadonly HEALTH_RETRIES=5\nreadonly HEALTH_INTERVAL=2\n\n# Arguments\nif [[ $# -lt 1 ]]; then\n    echo \"Usage: $0 <release_timestamp>\"\n    exit 1\nfi\n\nRELEASE_TIMESTAMP=\"$1\"\nNEW_RELEASE_PATH=\"${RELEASES_DIR}/${RELEASE_TIMESTAMP}\"\n\n# Helper: Log with timestamp\nlog() {\n    local msg=\"$1\"\n    local ts\n    ts=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${ts}] ${msg}\" | tee -a \"${LOG_FILE}\"\n}\n\n# Helper: Health check\ncheck_health() {\n    local retries=0\n    while [[ $retries -lt $HEALTH_RETRIES ]]; do\n        if curl -sf --max-time \"${HEALTH_TIMEOUT}\" \"${HEALTH_URL}\" > /dev/null 2>&1; then\n            return 0\n        fi\n        retries=$((retries + 1))\n        log \"Health check failed (attempt $retries/$HEALTH_RETRIES). Retrying in ${HEALTH_INTERVAL}s...\"\n        sleep \"${HEALTH_INTERVAL}\"\n    done\n    return 1\n}\n\n# Helper: Rollback\nrollback() {\n    local prev_target=\"$1\"\n    log \"ROLLBACK: Restoring symlink to previous release: ${prev_target}\"\n    ln -sfn \"${prev_target}\" \"${CURRENT_LINK}\"\n    log \"ROLLBACK: Symlink restored. Deployment aborted.\"\n    exit 1\n}\n\n# --- Pre-flight Checks ---\n\nlog \"Starting deployment for release: ${RELEASE_TIMESTAMP}\"\n\n# 1. Check if current symlink exists\nif [[ ! -L \"${CURRENT_LINK}\" ]]; then\n    log \"ERROR: Current symlink ${CURRENT_LINK} is missing. Aborting.\"\n    exit 1\nfi\n\n# 2. Get previous target for rollback safety\nPREV_TARGET=$(readlink -f \"${CURRENT_LINK}\")\nif [[ ! -d \"${PREV_TARGET}\" ]]; then\n    log \"ERROR: Previous release directory ${PREV_TARGET} is missing. Aborting.\"\n    exit 1\nfi\n\n# 3. Check if new release exists\nif [[ ! -d \"${NEW_RELEASE_PATH}\" ]]; then\n    log \"ERROR: New release directory ${NEW_RELEASE_PATH} does not exist. Aborting.\"\n    exit 1\nfi\n\n# --- Atomic Swap ---\n\nlog \"Swapping symlink from ${PREV_TARGET} to ${NEW_RELEASE_PATH}...\"\nln -sfn \"${NEW_RELEASE_PATH}\" \"${CURRENT_LINK}\"\n\n# --- Health Check ---\n\nlog \"Performing health check on ${HEALTH_URL}...\"\nif ! check_health; then\n    log \"ERROR: Health check failed after ${HEALTH_RETRIES} attempts.\"\n    rollback \"${PREV_TARGET}\"\nfi\n\n# --- Success ---\n\nlog \"Deployment successful. Active release: ${NEW_RELEASE_PATH}\"\nexit 0\n```\n\n### Verification Checks\n\n1.  **Safety Constraints**:\n    *   Verify `set -euo pipefail` is present at the top.\n    *   Verify the script exits immediately if `readlink -f \"${CURRENT_LINK}\"` fails or if the directory is missing.\n    *   Verify `ln -sfn` is used for the atomic swap (no intermediate file creation).\n\n2.  **Rollback Logic**:\n    *   Confirm `PREV_TARGET` is captured *before* the symlink swap.\n    *   Confirm the `rollback` function restores `PREV_TARGET` and exits with code 1.\n\n3.  **Health Check**:\n    *   Verify `curl -sf` is used (silent, fail on HTTP errors).\n    *   Verify the loop retries up to `HEALTH_RETRIES` before triggering rollback.\n\n4.  **Logging**:\n    *   Ensure all critical steps (start, swap, health check attempts, success, rollback) append to `/srv/myapp/deploy.log`.\n\n5.  **Execution Test (Dry Run)**:\n    *   Run `./deploy.sh invalid_timestamp` -> Should fail with \"directory does not exist\".\n    *   Run `./deploy.sh` (no args) -> Should fail with usage message.\n    *   Temporarily remove `/srv/myapp/current` -> Script should refuse to run."
+        }
+      }
+    ],
+    "created": 1773053125,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1029,
+      "prompt_tokens": 292,
+      "total_tokens": 1321
+    },
+    "id": "chatcmpl-ju48yz3ZS5rBSl3kZKiSkugxXolU3F74",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 130.697,
+      "prompt_per_token_ms": 0.6283509615384616,
+      "prompt_per_second": 1591.46728693084,
+      "predicted_n": 1029,
+      "predicted_ms": 24056.466,
+      "predicted_per_token_ms": 23.378489795918366,
+      "predicted_per_second": 42.77436261834968
+    }
+  }
+}

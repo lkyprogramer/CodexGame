@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_ts_restore_bootstrap_patch",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 6048.62554371357,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Fix the restore flow by setting the phase to 'restoring' initially, then only switching to 'running' after all threads are restored. This prevents exposing a 'running' state before thread restoration completes.\",\n  \"files\": [\n    {\n      \"path\": \"apps/game-runtime/src/runtime/restore.ts\",\n      \"content\": \"import type { RuntimeState } from \\\"./types\\\";\\nimport { ThreadBootstrapper } from \\\"./bootstrap\\\";\\n\\nexport type Snapshot = {\\n  agentIds: string[];\\n  threadIds: Record<string, string>;\\n};\\n\\nexport function restoreRuntime(\\n  snapshot: Snapshot,\\n  state: RuntimeState,\\n  bootstrapper: ThreadBootstrapper,\\n): RuntimeState {\\n  state.phase = \\\"restoring\\\";\\n  state.threadIds = {};\\n  for (const agentId of snapshot.agentIds) {\\n    state.threadIds[agentId] = bootstrapper.ensureThread(agentId);\\n  }\\n  state.phase = \\\"running\\\";\\n  return state;\\n}\\n\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1775549657,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 248,
+      "prompt_tokens": 777,
+      "total_tokens": 1025
+    },
+    "id": "chatcmpl-bG2GbVsFHKzpPlOmibuCtTzjG0hvBadr",
+    "timings": {
+      "cache_n": 265,
+      "prompt_n": 512,
+      "prompt_ms": 230.34,
+      "prompt_per_token_ms": 0.4498828125,
+      "prompt_per_second": 2222.8010766692714,
+      "predicted_n": 248,
+      "predicted_ms": 5776.316,
+      "predicted_per_token_ms": 23.291596774193547,
+      "predicted_per_second": 42.93393920969697
+    }
+  },
+  "validation_results": [
+    {
+      "command": "node --experimental-strip-types --test tests/test_restore_runtime.mjs",
+      "returncode": 9,
+      "stdout": "",
+      "stderr": "node: bad option: --experimental-strip-types\n",
+      "success": false
+    }
+  ],
+  "files_written": [
+    "apps/game-runtime/src/runtime/restore.ts"
+  ],
+  "json_error": ""
+}

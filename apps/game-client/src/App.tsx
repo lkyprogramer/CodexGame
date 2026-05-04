@@ -66,6 +66,7 @@ type AgentConfigDraft = {
   id: string;
   model: string;
   effort: string;
+  personaPrompt: string;
 };
 
 type HudSectionKey = "selectedAgent" | "score" | "social" | "agents" | "inventory" | "crafting" | "buildables";
@@ -84,7 +85,8 @@ function defaultAgentConfig(index: number): AgentConfigDraft {
   return {
     id,
     model: "",
-    effort: "low"
+    effort: "low",
+    personaPrompt: ""
   };
 }
 
@@ -459,12 +461,17 @@ export default function App() {
 
   function startSession(seed?: number): void {
     const sanitized = agentConfigs
-      .map((config, index) => ({
-        id: config.id.trim() || `agent-${index + 1}`,
-        name: config.id.trim() || `agent-${index + 1}`,
-        model: config.model.trim() || undefined,
-        effort: config.effort.trim() || undefined
-      }))
+      .map((config, index) => {
+        const normalizedId = config.id.trim() || `agent-${index + 1}`;
+        const normalizedPersonaPrompt = config.personaPrompt.trim();
+        return {
+          id: normalizedId,
+          name: normalizedId,
+          model: config.model.trim() || undefined,
+          effort: config.effort.trim() || undefined,
+          personaPrompt: normalizedPersonaPrompt || undefined
+        };
+      })
       .slice(0, 4);
 
     send({

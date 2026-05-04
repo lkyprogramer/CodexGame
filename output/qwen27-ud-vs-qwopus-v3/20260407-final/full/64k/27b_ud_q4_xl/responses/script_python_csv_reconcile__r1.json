@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 30914.20117020607,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script designed to handle the specific edge cases (duplicates, blank rows, BOMs) and matching rules defined in your project snapshot.\n\n### Script: `reconcile_exports.py`\n\nThis script uses the standard library only (`csv`, `io`, `pathlib`) to ensure portability. It implements a two-pass matching strategy and robust data cleaning.\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReconciliation Script for Finance Exports.\nMatches two CSVs by merchant_order_id (primary) and provider_txn_id (fallback).\nHandles duplicates, blank rows, BOMs, and stale data.\n\"\"\"\n\nimport csv\nimport sys\nfrom pathlib import Path\nfrom collections import defaultdict\nfrom datetime import datetime\n\n# Configuration\nINPUT_FINANCE = Path(\"samples/finance_export.csv\")\nINPUT_MERCHANT = Path(\"samples/merchant_statement.csv\")\nOUTPUT_CSV = Path(\"reconcile_report.csv\")\nOUTPUT_SUMMARY = Path(\"reconcile_summary.txt\")\n\n# Matching Keys\nKEY_PRIMARY = \"merchant_order_id\"\nKEY_FALLBACK = \"provider_txn_id\"\n\ndef clean_and_read_csv(filepath):\n    \"\"\"\n    Reads CSV, handling BOM, blank lines, and duplicate headers.\n    Returns a list of dicts.\n    \"\"\"\n    rows = []\n    seen_headers = False\n    \n    # 'utf-8-sig' handles BOM automatically\n    with open(filepath, mode='r', encoding='utf-8-sig', newline='') as f:\n        # Read all lines to filter blanks and duplicate headers manually\n        lines = [line for line in f if line.strip() and not line.strip().startswith('#')]\n        \n        if not lines:\n            return []\n\n        # Detect header row\n        header_line = lines[0]\n        reader = csv.DictReader([header_line] + lines[1:])\n        \n        for row in reader:\n            # Skip if row is effectively empty (all values None or empty string)\n            if not any(v.strip() for v in row.values()):\n                continue\n            \n            # Normalize keys to lowercase for safety, though input seems consistent\n            clean_row = {k.strip(): v.strip() if v else \"\" for k, v in row.items()}\n            rows.append(clean_row)\n            \n    return rows\n\ndef get_match_key(row):\n    \"\"\"\n    Returns a tuple (primary_key, fallback_key) for matching.\n    \"\"\"\n    return (row.get(KEY_PRIMARY, \"\"), row.get(KEY_FALLBACK, \"\"))\n\ndef reconcile(finance_rows, merchant_rows):\n    \"\"\"\n    Core reconciliation logic.\n    Returns: (matches, finance_only, merchant_only, mismatches, duplicates)\n    \"\"\"\n    # Index merchant rows by key\n    # We use a list of rows per key to detect duplicates in the source\n    merchant_index = defaultdict(list)\n    for row in merchant_rows:\n        key = get_match_key(row)\n        merchant_index[key].append(row)\n\n    matches = []\n    finance_only = []\n    merchant_only = []\n    mismatches = []\n    duplicates = []\n\n    # Track processed keys to handle duplicates in Finance file\n    processed_finance_keys = set()\n\n    for f_row in finance_rows:\n        key = get_match_key(f_row)\n        \n        # 1. Check for duplicates in Finance file\n        if key in processed_finance_keys:\n            duplicates.append({\n                \"source\": \"finance\",\n                \"row\": f_row,\n                \"reason\": \"Duplicate entry in finance export\"\n            })\n            continue\n        processed_finance_keys.add(key)\n\n        # 2. Check for duplicates in Merchant file (multiple statements for same order)\n        m_candidates = merchant_index.get(key, [])\n        \n        if not m_candidates:\n            finance_only.append(f_row)\n            continue\n\n        # If multiple candidates in merchant, flag as duplicate in merchant\n        if len(m_candidates) > 1:\n            for m_row in m_candidates:\n                duplicates.append({\n                    \"source\": \"merchant\",\n                    \"row\": m_row,\n                    \"reason\": \"Duplicate entry in merchant statement\"\n                })\n            # We still try to match the first one, but flag the rest\n            m_row = m_candidates[0]\n        else:\n            m_row = m_candidates[0]\n\n        # 3. Compare fields\n        f_amt = f_row.get(\"amount_cents\", \"\")\n        m_amt = m_row.get(\"amount_cents\", \"\")\n        f_status = f_row.get(\"status\", \"\")\n        m_status = m_row.get(\"status\", \"\")\n\n        if f_amt != m_amt:\n            mismatches.append({\n                \"type\": \"amount_mismatch\",\n                \"finance\": f_row,\n                \"merchant\": m_row,\n                \"details\": f\"Finance: {f_amt} vs Merchant: {m_amt}\"\n            })\n        elif f_status != m_status:\n            # Check for stale refunds (e.g., Finance says REFUNDED, Merchant says SETTLED)\n            mismatches.append({\n                \"type\": \"status_mismatch\",\n                \"finance\": f_row,\n                \"merchant\": m_row,\n                \"details\": f\"Finance: {f_status} vs Merchant: {m_status}\"\n            })\n        else:\n            matches.append({\n                \"finance\": f_row,\n                \"merchant\": m_row,\n                \"status\": \"OK\"\n            })\n\n    # 4. Find rows in Merchant not in Finance (Missing in Finance)\n    matched_merchant_keys = set()\n    for m_row in merchant_rows:\n        key = get_match_key(m_row)\n        if key not in processed_finance_keys:\n            # Check if this specific key was already flagged as duplicate in merchant\n            # (Simple check: if we haven't seen this key in the 'matches' or 'mismatches' logic above)\n            # Since we iterate finance, we know which keys were touched.\n            # If a key"
+        }
+      }
+    ],
+    "created": 1775547485,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-BDU9P8hWH5RSoXm8Sm0kqXAQKYwrZf0S",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 339.172,
+      "prompt_per_token_ms": 0.5690805369127517,
+      "prompt_per_second": 1757.2205252792094,
+      "predicted_n": 1300,
+      "predicted_ms": 30409.25,
+      "predicted_per_token_ms": 23.39173076923077,
+      "predicted_per_second": 42.75015003658426
+    }
+  }
+}

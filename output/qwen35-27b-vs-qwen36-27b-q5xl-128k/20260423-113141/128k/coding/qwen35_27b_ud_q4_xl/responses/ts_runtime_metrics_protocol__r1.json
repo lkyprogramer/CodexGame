@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 45023.80937500857,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To expose runtime metrics to the client HUD in a protocol-first way while maintaining simulation authority in the runtime, we need to:\n\n1.  **Extend the Protocol**: Add `RuntimeMetrics` to the `session.state` payload in `packages/protocol/src/messages.ts`.\n2.  **Update the Runtime**: Modify `GameRuntimeServer` to include the metrics snapshot in the `sendSessionState` method.\n3.  **Update the Client**: Modify `App.tsx` to consume the new metrics field and display them in the HUD.\n4.  **Add Contract Tests**: Update `apps/game-runtime/test/ui-contract.integration.test.ts` to verify the new protocol shape.\n\nHere is the smallest safe fix set:\n\n### 1. Extend Protocol (`packages/protocol/src/messages.ts`)\n\nAdd the `RuntimeMetrics` type and include it in the `session.state` payload definition.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports\n\n// Add this type definition near the top with other types\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types\n\n// Update the ServerMessage union type for \"session.state\"\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n        };\n        metrics: RuntimeMetrics; // <-- Added\n      };\n    }\n  // ... rest of ServerMessage union\n```\n\n### 2. Update Runtime (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`)\n\nModify `sendSessionState` to include the metrics snapshot.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports\n\n// ... inside GameRuntimeServer class\n\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: this.phase,\n        paused: this.paused,\n        preparedSeed: this.preparedSeed,\n        threadIds: this.threadIds,\n        connected: this.connected,\n        runtime: {\n          model: this.turnModel,\n          effort: this.turnEffort,\n          tickMs: runtimeConfig.tickMs,\n          schedulerMs: runtimeConfig.schedulerMs,\n          maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n          availableModels: this.availableModels\n        },\n        metrics: this.metrics.snapshot() // <-- Added\n      }\n    });\n  }\n```\n\n### 3. Update Client (`apps/game-client/src/App.tsx`)\n\nUpdate the state to hold metrics and display them in the HUD.\n\n```typescript\n// apps/game-client/src/App.tsx\n\n// ... existing imports\n\n// Add type import\nimport type { RuntimeMetrics, ... } from \"@codexgame/protocol\";\n\n// ... inside App component\n\n  const [metrics, setMetrics] = useState<RuntimeMetrics>({\n    turnsTotal: 0,\n    invalidOutputCount: 0,\n    actionAppliedCount: 0,\n    actionRejectedCount: 0,\n    queuedActions: 0\n  });\n\n  // ... inside ws.onmessage handler\n\n      switch (message.type) {\n        case \"session.state\":\n          setPhase(message.payload.phase);\n          setPaused(message.payload.paused);\n          setPreparedSeed(message.payload.preparedSeed);\n          setThreadIds(message.payload.threadIds);\n          setRuntimeModel(message.payload.runtime.model);\n          setRuntimeEffort(message.payload.runtime.effort);\n          setRuntimeSchedulerMs(message.payload.runtime.schedulerMs);\n          setRuntimeQueueAhead(message.payload.runtime.maxQueuedActionsBeforeTurn);\n          setAvailableModels(message.payload.runtime.availableModels);\n          setMetrics(message.payload.metrics); // <-- Added\n          if (message.payload.phase === \"idle\") {\n            setTick(0);\n            setRuntimeAgents([]);\n            setCatalog({ prefabs: [], recipes: [] });\n            sceneRef.current?.clearSnapshot();\n          }\n          return;\n        // ... rest of switch\n```\n\nAdd a new HUD section for metrics in the render:\n\n```typescript\n// ... inside the return statement, within <div className=\"game-hud\">\n\n            <div className=\"hud-card\">\n              <button\n                type=\"button\"\n                className=\"hud-card-toggle\"\n                onClick={() => toggleHudSection(\"metrics\")}\n                aria-expanded={!collapsedHudSections.metrics}\n              >\n                <span>Runtime Metrics</span>\n                <span className=\"hud-card-toggle-icon\">{collapsedHudSections.metrics ? \"+\" : \"-\"}</span>\n              </button>\n              {!collapsedHudSections.metrics ? (\n                <div className=\"hud-grid\">\n                  <p>Turns</p>\n                  <p>{metrics.turnsTotal}</p>\n                  <p>Applied</p>\n                  <p>{metrics.actionAppliedCount}</p>\n                  <p>Rejected</p>\n                  <p>{metrics.actionRejectedCount}</p>\n                  <p>Invalid</p>\n                  <p>{metrics.invalidOutputCount}</p>\n                  <p>Queued</p>\n                  <p>{metrics.queuedActions}</p"
+        }
+      }
+    ],
+    "created": 1776916325,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-HAdT5rqZDQCA7981cMkXfNk2ykdVRBSH",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 10664.235,
+      "prompt_per_token_ms": 0.4388393481749722,
+      "prompt_per_second": 2278.7382311061224,
+      "predicted_n": 1250,
+      "predicted_ms": 31574.736,
+      "predicted_per_token_ms": 25.2597888,
+      "predicted_per_second": 39.58861287074578
+    }
+  }
+}

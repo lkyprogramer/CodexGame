@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 40456.16841700394,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Looking at this code review task, I need to identify the highest-risk build-flow consistency bug related to atomic writes and schema-first validation under partial failure.\n\nLet me trace through the build flow:\n\n1. `runBuildRequest` in `GameRuntimeServer.ts` calls `contentStore.parseBuildOutput(turn.text)` to parse the builder's output\n2. Then it calls `contentStore.applyOperations(parsed.operations)` to apply the operations\n3. `applyOperations` in `ContentStore` validates operations with `contentOperationSchema.parse(operation)` for each operation\n4. Then it modifies the content in memory\n5. Finally it writes all three files atomically using `Promise.all([writeJsonAtomic(...)])`\n\nThe key issue I see:\n\nIn `applyOperations`, the validation happens **before** any writes, which is good. However, there's a critical problem:\n\n```typescript\npublic async applyOperations(operations: ContentOperation[]): Promise<BuildApplyResult> {\n  if (!this.content) {\n    throw new Error(\"content not loaded\");\n  }\n\n  operations.forEach((operation) => contentOperationSchema.parse(operation));\n  const next: ContentSet = {\n    prefabs: [...this.content.prefabs],\n    recipes: [...this.content.recipes],\n    biomeRules: [...this.content.biomeRules],\n    spawnRules: [...this.content.spawnRules]\n  };\n\n  for (const operation of operations) {\n    // ... apply operations to next\n  }\n\n  const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n  const recipesPath = path.join(this.contentDir, RECIPES_FILE);\n  const worldRulesPath = path.join(this.contentDir, WORLD_RULES_FILE);\n\n  await Promise.all([\n    writeJsonAtomic(prefabsPath, next.prefabs),\n    writeJsonAtomic(recipesPath, next.recipes),\n    writeJsonAtomic(worldRulesPath, {\n      biomeRules: next.biomeRules,\n      spawnRules: next.spawnRules\n    })\n  ]);\n\n  this.content = next;  // ← BUG: This happens AFTER Promise.all, but could fail mid-write\n```\n\nThe problem is that `this.content = next` happens **after** the `Promise.all` completes. If one of the atomic writes fails partway through, the in-memory state gets updated anyway, leaving the runtime in an inconsistent state where memory doesn't match disk. The test expects invalid operations to fail without any writes, but the current code updates `this.content` regardless of whether the disk writes succeed.\n\nThe fix is to only update `this.content` after confirming all writes completed successfully. I should also check what happens when `writeJsonAtomic` fails—it just throws an error, which means the Promise.all will reject and the function exits without updating the in-memory state.\n\nActually, looking more carefully at the flow: `writeJsonAtomic` writes to a temp file then renames it atomically. If the rename fails, the temp file might be orphaned. But the bigger issue is that if any write fails, the error propagates up and the in-memory state never gets updated, which is correct behavior.\n\nWait, I need to re-read the code more carefully. The `this.content = next` line comes after the `Promise.all`, so if any write fails, that assignment never happens. The test expects that invalid operations don't result in partial writes, and the current implementation handles this correctly by throwing before any writes occur.\n\nBut there's a subtle issue: if the first two files write successfully but the third fails, the temp files for the first two might be left behind. The atomic write function creates a temp file, writes to it, then renames it. If the rename fails on the third file, the first two temp files have already been renamed to their final names, leaving them in a partially committed state.\n\nThe real problem is that `Promise.all` doesn't guarantee all-or-nothing semantics across multiple files. I need to validate all operations first, compute the new state, then write all files atomically with proper cleanup of any temp files if anything fails.\n\nLooking at the test case, it expects that invalid operations throw without any writes occurring. The current code validates operations upfront with `contentOperationSchema.parse()`, so invalid operations should fail before reaching the write phase. The issue might be in how `normalizeBuildOperation` handles malformed data—it could be silently correcting things that should fail validation instead.\n\nWhen `parseBuildOutput` processes the builder's output, it tries the schema directly first, then falls back to normalization if that fails. This means malformed operations might get normalized and pass through to `applyOperations`, where they'd only fail if they violate the schema. The real problem is that normalization could be masking validation issues that should have been caught earlier.\n\nLooking at the actual test case, it's testing `applyOperations` directly with an invalid operation (empty ID), which should fail the schema validation. The test expects this to throw without writing anything to disk. The flow validates operations first, then applies them, so the schema check should catch the empty ID before any writes occur.\n\nThe real vulnerability is in how `writeJsonAtomic` handles failures. When writing to a temporary file and then renaming it, if the rename fails midway, we could end up with orphaned temp files or partial state. The current implementation doesn't clean up after a failed rename, which could leave the system in an inconsistent state.\n\nLooking at the actual flow: `applyOperations` validates all operations first, computes the new state, then writes all three files atomically. If any write fails, the error propagates and `this.content` never updates. But there's a subtle issue—if the rename fails on one file, the temp file for that operation is left behind, and we don't know if the other files were successfully written before the failure.\n\nThe real problem is that `Promise.all` means all three writes start simultaneously. If one fails during the rename phase, the"
+        }
+      }
+    ],
+    "created": 1774450578,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14462,
+      "total_tokens": 15712
+    },
+    "id": "chatcmpl-IJNYOPdBfdYduH5qFO1xYK7YrEDIQEWu",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14462,
+      "prompt_ms": 6054.726,
+      "prompt_per_token_ms": 0.4186645000691467,
+      "prompt_per_second": 2388.547392565741,
+      "predicted_n": 1250,
+      "predicted_ms": 30567.872,
+      "predicted_per_token_ms": 24.4542976,
+      "predicted_per_second": 40.89260776805138
+    }
+  }
+}

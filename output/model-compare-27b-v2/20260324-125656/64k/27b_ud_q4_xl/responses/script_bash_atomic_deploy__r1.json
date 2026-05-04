@@ -1,0 +1,40 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 34654.449541994836,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```bash\n#!/bin/bash\nset -euo pipefail\n\n# =============================================================================\n# Atomic Deployment Script with Health Check and Rollback\n# =============================================================================\n\n# Configuration\nAPP_DIR=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_DIR}/releases\"\nCURRENT_LINK=\"${APP_DIR}/current\"\nLOG_FILE=\"${APP_DIR}/deploy.log\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nHEALTH_TIMEOUT=30\nHEALTH_RETRIES=3\nHEALTH_INTERVAL=2\n\n# Logging function\nlog() {\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] $*\" | tee -a \"${LOG_FILE}\"\n}\n\n# Rollback function\nrollback() {\n    local previous_target=\"$1\"\n    log \"ROLLBACK: Restoring previous symlink target: ${previous_target}\"\n    ln -sf \"${previous_target}\" \"${CURRENT_LINK}\"\n    log \"ROLLBACK: Symlink restored to ${previous_target}\"\n}\n\n# Health check function\ncheck_health() {\n    local retries=\"${HEALTH_RETRIES}\"\n    local interval=\"${HEALTH_INTERVAL}\"\n    local timeout=\"${HEALTH_TIMEOUT}\"\n    \n    log \"Running health checks (up to ${retries} attempts)...\"\n    \n    for ((i=1; i<=retries; i++)); do\n        if curl -sf --max-time \"${timeout}\" \"${HEALTH_URL}\" >",
+          "reasoning_content": "The user wants a Bash deployment script for atomic release swap with health check and rollback capabilities. Let me analyze the requirements:\n\n**Requirements from docs/deploy_requirements.md:**\n1. New release unpacked under `/srv/myapp/releases/<timestamp>`\n2. Current live symlink is `/srv/myapp/current`\n3. Health check endpoint: `http://127.0.0.1:8080/healthz`\n4. On failure, restore previous symlink target\n5. Keep logs under `/srv/myapp/deploy.log`\n\n**Constraints from docs/ops_constraints.md:**\n1. Use `set -euo pipefail`\n2. Refuse to run if current symlink is missing\n3. Do not delete previous release before health check succeeds\n4. Print clear rollback messages\n\n**Key features needed:**\n- Atomic swap via symlink\n- Health check after swap\n- Rollback on failure\n- Logging\n- Safety checks (symlink exists, etc.)\n- Idempotent/safe to abort\n\nLet me write a production-safe script:\n\n```bash\n#!/bin/bash\nset -euo pipefail\n\n# Configuration\nAPP_DIR=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_DIR}/releases\"\nCURRENT_LINK=\"${APP_DIR}/current\"\nLOG_FILE=\"${APP_DIR}/deploy.log\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nHEALTH_TIMEOUT=30\nHEALTH_RETRIES=3\nHEALTH_INTERVAL=2\n\n# Logging function\nlog() {\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] $*\" | tee -a \"${LOG_FILE}\"\n}\n\n# Error handler for rollback\ncleanup() {\n    local exit_code=$?\n    if [[ ${exit_code} -ne 0 ]]; then\n        log \"ERROR: Deployment failed with exit code ${exit_code}\"\n    fi\n}\n\ntrap cleanup EXIT\n\n# Validate arguments and prerequisites\nmain() {\n    # Check for release path argument\n    if [[ $# -lt 1 ]]; then\n        log \"ERROR: Usage: $0 <release_timestamp>\"\n        exit 1\n    fi\n\n    local new_release=\"${RELEASES_DIR}/$1\"\n    local previous_target=\"\"\n\n    # Verify release directory exists\n    if [[ ! -d \"${new_release}\" ]]; then\n        log \"ERROR: Release directory not found: ${new_release}\"\n        exit 1\n    fi\n\n    # Ensure current symlink exists and is valid\n    if [[ ! -L \"${CURRENT_LINK}\" ]]; then\n        log \"ERROR: Current symlink missing: ${CURRENT_LINK}\"\n        exit 1\n    fi\n\n    # Store previous target for rollback\n    previous_target=$(readlink \"${CURRENT_LINK}\")\n    log \"Previous release target: ${previous_target}\"\n    log \"New release target: ${new_release}\"\n\n    # Perform atomic symlink swap\n    log \"Performing atomic swap...\"\n    ln -sf \"${new_release}\" \"${CURRENT_LINK}\"\n\n    # Health check loop\n    log \"Running health checks...\"\n    local health_passed=false\n    for ((i=1; i<=HEALTH_RETRIES; i++)); do\n        if curl -sf --max-time \"${HEALTH_TIMEOUT}\" \"${HEALTH_URL}\" > /dev/null 2>&1; then\n            log \"Health check passed (attempt ${i}/${HEALTH_RETRIES})\"\n            health_passed=true\n            break\n        else\n            log \"Health check failed (attempt ${i}/${HEALTH_RETRIES})\"\n            sleep \"${HEALTH_INTERVAL}\"\n        fi\n    done\n\n    if [[ \"${health_passed}\" != true ]]; then\n        log \"ERROR: Health check failed after ${HEALTH_RETRIES} attempts\"\n        log \"ROLLBACK: Restoring previous symlink target\"\n        ln -sf \"${previous_target}\" \"${CURRENT_LINK}\"\n        log \"ROLLBACK: Previous target restored: ${previous_target}\"\n        exit 1\n    fi\n\n    log \"Deployment successful!\"\n}\n\nmain \"$@\"\n```\n\nThis script handles the atomic swap, validates prerequisites, performs health checks with retries, and rolls back on failure. It logs all actions and uses proper error handling with `set -euo pipefail`.\n"
+        }
+      }
+    ],
+    "created": 1774358383,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 290,
+      "total_tokens": 1540
+    },
+    "id": "chatcmpl-0UasPRFhGtthXFAV5m90jX8BKahdmqPy",
+    "timings": {
+      "cache_n": 82,
+      "prompt_n": 208,
+      "prompt_ms": 153.896,
+      "prompt_per_token_ms": 0.7398846153846154,
+      "prompt_per_second": 1351.5620938815823,
+      "predicted_n": 1250,
+      "predicted_ms": 29383.857,
+      "predicted_per_token_ms": 23.5070856,
+      "predicted_per_second": 42.54036493575367
+    }
+  }
+}

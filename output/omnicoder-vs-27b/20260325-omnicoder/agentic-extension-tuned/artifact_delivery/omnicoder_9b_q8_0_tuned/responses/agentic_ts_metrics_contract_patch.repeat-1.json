@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_ts_metrics_contract_patch",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 5764.85291600693,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"summary\":\"Moved metrics from worldSnapshot to sessionState runtime and updated client state reducer to read from sessionState.\",\"files\":[{\"path\":\"apps/game-runtime/src/runtime/sessionState.ts\",\"content\":\"import type { SessionStateMessage, WorldSnapshotMessage } from \\\"@codexgame/protocol\\\";\\nimport type { RuntimeMetrics } from \\\"./metrics\\\";\\n\\nexport function buildMessages(metrics: RuntimeMetrics): {\\n  sessionState: SessionStateMessage;\\n  worldSnapshot: WorldSnapshotMessage;\\n} {\\n  return {\\n    sessionState: {\\n      type: \\\"session.state\\\",\\n      payload: {\\n        phase: \\\"running\\\",\\n        runtime: {\\n          model: \\\"local-qwen\\\",\\n          tickMs: 200,\\n          metrics,\\n        },\\n      },\\n    },\\n    worldSnapshot: {\\n      type: \\\"world.snapshot\\\",\\n      payload: {\\n        tick: 42,\\n        world: {},\\n      },\\n    } as unknown as WorldSnapshotMessage,\\n  };\\n}\",\"path\":\"apps/game-client/src/state.ts\",\"content\":\"export type ClientState = {\\n  phase?: string;\\n  runtime?: Record<string, unknown>;\\n  world?: Record<string, unknown>;\\n};\\n\\nexport function reduceClientState(state: ClientState, message: any): ClientState {\\n  if (message.type === \\\"session.state\\\") {\\n    return {\\n      ...state,\\n      phase: message.payload.phase,\\n      runtime: message.payload.runtime,\\n    };\\n  }\\n  if (message.type === \\\"world.snapshot\\\") {\\n    return {\\n      ...state,\\n      world: message.payload.world,\\n    };\\n  }\\n  return state;\\n}\"}]}"
+        }
+      }
+    ],
+    "created": 1774452216,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 384,
+      "prompt_tokens": 1078,
+      "total_tokens": 1462
+    },
+    "id": "chatcmpl-GbMynBxqqIiF4guNDJq9YLTeD70wZLjU",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 1078,
+      "prompt_ms": 233.689,
+      "prompt_per_token_ms": 0.21678014842300555,
+      "prompt_per_second": 4612.968517987582,
+      "predicted_n": 384,
+      "predicted_ms": 4531.338,
+      "predicted_per_token_ms": 11.800359375,
+      "predicted_per_second": 84.74318181517248
+    }
+  },
+  "validation_results": [
+    {
+      "command": "node --experimental-strip-types --test tests/test_metrics_contract.mjs",
+      "returncode": 1,
+      "stdout": "TAP version 13\n# (node:20796) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time\n# (Use `node --trace-warnings ...` to show where the warning was created)\n# Subtest: metrics live in session.state runtime\nnot ok 1 - metrics live in session.state runtime\n  ---\n  duration_ms: 1.401125\n  type: 'test'\n  location: '/Users/luo/Documents/github/CodexGame/output/omnicoder-vs-27b/20260325-omnicoder/agentic-extension-tuned/artifact_delivery/workspaces/agentic_ts_metrics_contract_patch/omnicoder_9b_q8_0_tuned/repeat-1/tests/test_metrics_contract.mjs:6:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    + actual - expected\n    \n    + {\n    +   actionAppliedCount: 3,\n    +   actionRejectedCount: 1,\n    +   invalidOutputCount: 4,\n    +   queuedActions: 2,\n    +   turnsTotal: 9\n    + }\n    - undefined\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  actual:\n    turnsTotal: 9\n    invalidOutputCount: 4\n    actionAppliedCount: 3\n    actionRejectedCount: 1\n    queuedActions: 2\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///Users/luo/Documents/github/CodexGame/output/omnicoder-vs-27b/20260325-omnicoder/agentic-extension-tuned/artifact_delivery/workspaces/agentic_ts_metrics_contract_patch/omnicoder_9b_q8_0_tuned/repeat-1/tests/test_metrics_contract.mjs:15:10)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n# Subtest: client reads metrics from session.state\nnot ok 2 - client reads metrics from session.state\n  ---\n  duration_ms: 0.121125\n  type: 'test'\n  location: '/Users/luo/Documents/github/CodexGame/output/omnicoder-vs-27b/20260325-omnicoder/agentic-extension-tuned/artifact_delivery/workspaces/agentic_ts_metrics_contract_patch/omnicoder_9b_q8_0_tuned/repeat-1/tests/test_metrics_contract.mjs:19:1'\n  failureType: 'testCodeFailure'\n  error: \"Cannot read properties of undefined (reading 'queuedActions')\"\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (file:///Users/luo/Documents/github/CodexGame/output/omnicoder-vs-27b/20260325-omnicoder/agentic-extension-tuned/artifact_delivery/workspaces/agentic_ts_metrics_contract_patch/omnicoder_9b_q8_0_tuned/repeat-1/tests/test_metrics_contract.mjs:29:37)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n    Test.postRun (node:internal/test_runner/test:1173:19)\n    Test.run (node:internal/test_runner/test:1101:12)\n    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)\n  ...\n1..2\n# tests 2\n# suites 0\n# pass 0\n# fail 2\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 121.221834\n",
+      "stderr": "",
+      "success": false
+    }
+  ],
+  "files_written": [
+    "apps/game-client/src/state.ts"
+  ],
+  "json_error": ""
+}

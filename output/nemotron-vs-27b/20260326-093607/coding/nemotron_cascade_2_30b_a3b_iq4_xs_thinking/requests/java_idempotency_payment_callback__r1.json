@@ -1,0 +1,19 @@
+{
+  "task_id": "java_idempotency_payment_callback",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_idempotency_payment_callback\nScenario: Payment callback handler applies duplicate provider events more than once.\n\nInstructions:\nFind the highest-risk business correctness bug and give the smallest safe fix. Prefer an idempotency fix over a broad architecture rewrite.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/payment/PaymentCallbackService.java ===\npackage com.example.payment;\n\nimport java.time.Instant;\n\npublic class PaymentCallbackService {\n    private final PaymentRepository paymentRepository;\n    private final OutboxRepository outboxRepository;\n\n    public PaymentCallbackService(\n            PaymentRepository paymentRepository,\n            OutboxRepository outboxRepository) {\n        this.paymentRepository = paymentRepository;\n        this.outboxRepository = outboxRepository;\n    }\n\n    public void onCallback(PaymentCallback payload) {\n        Payment payment = paymentRepository.requireByOrderId(payload.getOrderId());\n        payment.markPaid(payload.getProviderTxnId(), Instant.parse(payload.getPaidAt()));\n        paymentRepository.save(payment);\n        outboxRepository.insert(\"PAYMENT_PAID\", payload.getOrderId(), payload.getProviderTxnId());\n    }\n}\n\n=== File: src/main/java/com/example/payment/PaymentCallback.java ===\npackage com.example.payment;\n\npublic class PaymentCallback {\n    private String orderId;\n    private String providerTxnId;\n    private String paidAt;\n\n    public String getOrderId() {\n        return orderId;\n    }\n\n    public String getProviderTxnId() {\n        return providerTxnId;\n    }\n\n    public String getPaidAt() {\n        return paidAt;\n    }\n}\n\n=== File: src/main/java/com/example/payment/Payment.java ===\npackage com.example.payment;\n\nimport java.time.Instant;\n\npublic class Payment {\n    private String orderId;\n    private String providerTxnId;\n    private String status;\n    private Instant paidAt;\n\n    public void markPaid(String providerTxnId, Instant paidAt) {\n        this.providerTxnId = providerTxnId;\n        this.paidAt = paidAt;\n        this.status = \"PAID\";\n    }\n}\n\n=== File: src/main/java/com/example/payment/PaymentRepository.java ===\npackage com.example.payment;\n\npublic interface PaymentRepository {\n    Payment requireByOrderId(String orderId);\n    void save(Payment payment);\n}\n\n=== File: src/main/java/com/example/payment/OutboxRepository.java ===\npackage com.example.payment;\n\npublic interface OutboxRepository {\n    void insert(String topic, String orderId, String providerTxnId);\n}\n"
+      }
+    ],
+    "max_tokens": 1050,
+    "stream": false
+  }
+}

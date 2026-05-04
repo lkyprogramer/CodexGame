@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 33209.6704589203,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script designed to be minimal, explicit, and robust against the specified edge cases.\n\n### Strategy Overview\n\n1.  **Matching Logic**:\n    *   **Primary Key**: `merchant_order_id`.\n    *   **Secondary Key**: `provider_txn_id` (used if `merchant_order_id` is missing or empty).\n    *   **Composite Key**: `(merchant_order_id, provider_txn_id)` is used for deduplication within a single file.\n2.  **Edge Case Guards**:\n    *   **BOM/Encoding**: Explicitly reads with `utf-8-sig` to handle Byte Order Marks.\n    *   **Blank/Duplicate Rows**: Filters out rows where all values are empty or where the header row is repeated in the body.\n    *   **Deduplication**: Collapses exact duplicate rows within a source file before comparison.\n3.  **Outputs**:\n    *   `reconcile_details.csv`: Machine-readable list of all discrepancies.\n    *   `reconcile_summary.txt`: Human-readable count of issues.\n\n### Implementation\n\nSave the following as `reconcile.py`.\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nProduction Reconciliation Script for Finance Exports.\nHandles BOM, blank lines, duplicate headers, and duplicate data rows.\n\"\"\"\n\nimport csv\nimport sys\nfrom collections import defaultdict\nfrom pathlib import Path\n\n# Configuration\nINPUT_A = \"samples/finance_export.csv\"\nINPUT_B = \"samples/merchant_statement.csv\"\nOUTPUT_DETAILS = \"reconcile_details.csv\"\nOUTPUT_SUMMARY = \"reconcile_summary.txt\"\n\n# Expected columns based on snapshot\nEXPECTED_COLS = [\"merchant_order_id\", \"provider_txn_id\", \"amount_cents\", \"status\", \"updated_at\"]\n\ndef clean_and_load_csv(filepath: str) -> list[dict]:\n    \"\"\"\n    Loads CSV, handling BOM, blank lines, and duplicate header rows.\n    Returns a list of unique row dictionaries.\n    \"\"\"\n    rows = []\n    seen_keys = set()\n    \n    try:\n        with open(filepath, \"r\", encoding=\"utf-8-sig\", newline=\"\") as f:\n            reader = csv.DictReader(f)\n            \n            # Validate header\n            if not reader.fieldnames:\n                raise ValueError(f\"Empty header in {filepath}\")\n            \n            # Normalize header names (strip whitespace)\n            reader.fieldnames = [h.strip() for h in reader.fieldnames]\n            \n            for row in reader:\n                # 1. Filter blank rows (all values empty/whitespace)\n                if not any(v.strip() for v in row.values()):\n                    continue\n                \n                # 2. Filter duplicate header rows (if a row matches the header names exactly)\n                # This handles cases where the header is repeated in the body\n                if set(row.keys()) == set(reader.fieldnames) and \\\n                   all(k in row and row[k].strip() == k for k in reader.fieldnames):\n                    continue\n\n                # 3. Normalize values (strip whitespace)\n                clean_row = {k: v.strip() for k, v in row.items()}\n                \n                # 4. Deduplication within file based on composite key\n                # Key: (merchant_order_id, provider_txn_id)\n                # If merchant_order_id is empty, rely on provider_txn_id\n                mid = clean_row.get(\"merchant_order_id\", \"\")\n                pid = clean_row.get(\"provider_txn_id\", \"\")\n                \n                dedup_key = (mid, pid) if mid else (pid, mid) # Fallback logic for key\n                \n                if dedup_key in seen_keys:\n                    continue\n                seen_keys.add(dedup_key)\n                \n                rows.append(clean_row)\n                \n    except FileNotFoundError:\n        print(f\"Error: File not found: {filepath}\", file=sys.stderr)\n        sys.exit(1)\n        \n    return rows\n\ndef reconcile(rows_a: list[dict], rows_b: list[dict]) -> tuple[list[dict], dict]:\n    \"\"\"\n    Compares two lists of rows.\n    Returns: (list of discrepancy records, summary stats dict)\n    \"\"\"\n    # Index by primary key (merchant_order_id), fallback to provider_txn_id\n    # We use a dict where key is the matching ID, value is the row\n    idx_a = {}\n    idx_b = {}\n    \n    def get_match_key(row):\n        mid = row.get(\"merchant_order_id\", \"\")\n        pid = row.get(\"provider_txn_id\", \"\")\n        return mid if mid else pid\n\n    for r in rows_a:\n        k = get_match_key(r)\n        if k: idx_a[k] = r\n        \n    for r in rows_b:\n        k = get_match_key(r)\n        if k: idx_b[k] = r\n\n    discrepancies = []\n    stats = {\n        \"total_a\": len(rows_a),\n        \"total_b\": len(rows_b),\n        \"matched\": 0,\n        \"missing_in_b\": 0,\n        \"missing_in_a\": 0,\n        \"amount_mismatch\": 0,\n        \"status_mismatch\": 0,\n    }\n\n    all_keys = set(idx_a.keys()) | set(idx_b.keys())\n\n    for k in all_keys:\n        row_a = idx_a.get(k)\n        row_b = idx_b.get(k)\n\n        if row_a and row_b:\n            # Both exist: Check for mismatches\n            # Compare Amount\n            amt_a = row_a.get(\"amount_cents\", \"0\")\n            amt_b = row_b.get(\"amount_cents\", \"0\")\n            \n            # Compare Status\n            stat_a = row_a.get(\"status\", \"\")\n            stat_b = row_b.get(\"status\", \"\")\n\n            if amt_a != amt_b:\n                discrepancies.append({\n                    \"type\": \"AMOUNT_MISMATCH\",\n                    \"key\": k,\n                    \"source_a\": row_a,\n                    \"source_b\": row_b"
+        }
+      }
+    ],
+    "created": 1773051144,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-5RiZlUOm4vMGkiJdCoyja9NVfwf69lRd",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 350.584,
+      "prompt_per_token_ms": 0.5882281879194631,
+      "prompt_per_second": 1700.0205371608515,
+      "predicted_n": 1300,
+      "predicted_ms": 30390.647,
+      "predicted_per_token_ms": 23.37742076923077,
+      "predicted_per_second": 42.77631864829991
+    }
+  }
+}

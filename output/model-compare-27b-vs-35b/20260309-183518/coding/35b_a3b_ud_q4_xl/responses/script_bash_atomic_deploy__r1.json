@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 10374.197916011326,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script based on your requirements.\n\n### File: `deploy.sh`\n\nThis script implements an atomic swap using a temporary symlink, validates the new release via a health check, and handles rollback if the check fails. It strictly adheres to `set -euo pipefail` and includes safety guards.\n\n```bash\n#!/usr/bin/env bash\n#\n# deploy.sh - Atomic release deployment with health check and rollback\n#\n# Usage: ./deploy.sh <release_timestamp>\n# Example: ./deploy.sh 20231027_143000\n#\n\nset -euo pipefail\n\n# --- Configuration ---\nAPP_ROOT=\"/srv/myapp\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nRELEASES_DIR=\"${APP_ROOT}/releases\"\nDEPLOY_LOG=\"${APP_ROOT}/deploy.log\"\nHEALTH_ENDPOINT=\"http://127.0.0.1:8080/healthz\"\nHEALTH_CHECK_RETRIES=5\nHEALTH_CHECK_INTERVAL=2\n\n# --- Logging ---\nlog() {\n    local msg=\"[$(date '+%Y-%m-%d %H:%M:%S')] $1\"\n    echo \"$msg\" | tee -a \"$DEPLOY_LOG\"\n}\n\n# --- Error Handling ---\ncleanup_on_failure() {\n    local exit_code=$?\n    local target=\"$1\"\n    \n    log \"ERROR: Deployment failed. Initiating rollback.\"\n    \n    # Identify the previous target to restore\n    local prev_target\n    if [[ -L \"$CURRENT_LINK\" ]]; then\n        prev_target=$(readlink \"$CURRENT_LINK\")\n        log \"Rolling back to: $prev_target\"\n        \n        # Perform atomic restore\n        if ln -sfn \"$prev_target\" \"$CURRENT_LINK\"; then\n            log \"SUCCESS: Rollback completed. Restored symlink to $prev_target.\"\n        else\n            log \"CRITICAL: Failed to restore symlink. Manual intervention required.\"\n        fi\n    else\n        log \"CRITICAL: Current symlink missing. Cannot rollback. Manual intervention required.\"\n    fi\n    \n    exit $exit_code\n}\n\ntrap 'cleanup_on_failure \"$NEW_RELEASE\"' ERR\n\n# --- Main Logic ---\n\n# 1. Validate Arguments\nif [[ $# -ne 1 ]]; then\n    echo \"Usage: $0 <release_timestamp>\" >&2\n    exit 1\nfi\n\nNEW_RELEASE=\"$1\"\nNEW_RELEASE_PATH=\"${RELEASES_DIR}/${NEW_RELEASE}\"\n\nlog \"Starting deployment for release: ${NEW_RELEASE}\"\n\n# 2. Safety Checks\nif [[ ! -d \"$NEW_RELEASE_PATH\" ]]; then\n    log \"ERROR: Release directory not found: ${NEW_RELEASE_PATH}\"\n    exit 1\nfi\n\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    log \"ERROR: Current symlink missing at ${CURRENT_LINK}. Refusing to run.\"\n    exit 1\nfi\n\n# 3. Atomic Swap Preparation\n# We create a temporary link to the new release first.\n# This ensures we don't overwrite the live symlink until we are ready.\nTEMP_LINK=\"${CURRENT_LINK}.tmp\"\n\nif [[ -L \"$TEMP_LINK\" ]]; then\n    rm -f \"$TEMP_LINK\"\nfi\n\nln -s \"$NEW_RELEASE_PATH\" \"$TEMP_LINK\"\nlog \"Created temporary symlink to ${NEW_RELEASE_PATH}\"\n\n# 4. Health Check\nlog \"Performing health check on ${HEALTH_ENDPOINT}...\"\nhealth_ok=false\n\nfor i in $(seq 1 \"$HEALTH_CHECK_RETRIES\"); do\n    if curl -sf --max-time 5 \"$HEALTH_ENDPOINT\" > /dev/null 2>&1; then\n        health_ok=true\n        log \"Health check passed on attempt $i.\"\n        break\n    else\n        log \"Health check failed (attempt $i/$HEALTH_CHECK_RETRIES). Retrying in ${HEALTH_CHECK_INTERVAL}s...\"\n        sleep \"$HEALTH_CHECK_INTERVAL\"\n    fi\ndone\n\nif [[ \"$health_ok\" == \"false\" ]]; then\n    log \"ERROR: Health check failed after ${HEALTH_CHECK_RETRIES} attempts.\"\n    # The trap will trigger cleanup_on_failure\n    exit 1\nfi\n\n# 5. Atomic Commit\n# Only swap the live symlink after health check passes.\n# -sfn: -s (symbolic), -f (force), -n (don't dereference existing)\nif ln -sfn \"$NEW_RELEASE_PATH\" \"$CURRENT_LINK\"; then\n    log \"SUCCESS: Deployment complete. Symlink updated to ${NEW_RELEASE_PATH}.\"\n    \n    # Cleanup temporary link\n    rm -f \"$TEMP_LINK\"\n    \n    # Optional: Log previous target for audit\n    # (Already handled by the fact that we overwrote it, but we could log it before)\n    exit 0\nelse\n    log \"CRITICAL: Failed to update symlink.\"\n    exit 1\nfi\n```\n\n### Changes & Implementation Details\n\n1.  **Safety Guards (`set -euo pipefail`)**:\n    *   The script exits immediately on any command failure (`-e`), undefined variable (`-u`), or pipe failure (`-o pipefail`).\n    *   **Constraint Check**: Explicitly checks if `/srv/myapp/current` exists as a symlink before proceeding.\n\n2.  **Atomic Swap Strategy**:\n    *   Instead of swapping the symlink immediately, the script creates a temporary link (`current.tmp`).\n    *   The actual swap (`ln -sfn`) only happens *after* the health check passes.\n    *   This prevents a scenario where the symlink points to a broken release while the health check is running.\n\n3.  **Health Check Logic**:\n    *   Uses `curl -sf` (silent, fail on HTTP errors).\n    *   Implements a retry loop (5"
+        }
+      }
+    ],
+    "created": 1773053912,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 292,
+      "total_tokens": 1542
+    },
+    "id": "chatcmpl-P5v0ntYHNOGkA0iBgCg0FfDIJ1qtjHPb",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 81.867,
+      "prompt_per_token_ms": 0.39359134615384617,
+      "prompt_per_second": 2540.7062674826243,
+      "predicted_n": 1250,
+      "predicted_ms": 9042.248,
+      "predicted_per_token_ms": 7.2337983999999995,
+      "predicted_per_second": 138.23995979760784
+    }
+  }
+}

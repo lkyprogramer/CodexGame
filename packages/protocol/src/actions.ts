@@ -87,6 +87,43 @@ export type Direction = z.infer<typeof directionSchema>;
 export type AgentAction = z.infer<typeof agentActionSchema>;
 export type AgentTurnOutput = z.infer<typeof agentTurnOutputSchema>;
 
+const actionItemJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "type",
+    "direction",
+    "steps",
+    "targetId",
+    "recipeId",
+    "prefabId",
+    "x",
+    "y",
+    "ticks",
+    "toAgentId",
+    "message",
+    "targetAgentId",
+    "relation"
+  ],
+  properties: {
+    type: {
+      enum: ["move", "interact", "gather", "attack", "craft", "place", "wait", "talk", "set_relation", "inspect_agent", "loot_agent"]
+    },
+    direction: { enum: ["N", "NE", "E", "SE", "S", "SW", "W", "NW", null] },
+    steps: { enum: [1, 2, 3, null] },
+    targetId: { type: ["string", "null"] },
+    recipeId: { type: ["string", "null"] },
+    prefabId: { type: ["string", "null"] },
+    x: { type: ["integer", "null"] },
+    y: { type: ["integer", "null"] },
+    ticks: { type: ["integer", "null"] },
+    toAgentId: { type: ["string", "null"] },
+    message: { type: ["string", "null"] },
+    targetAgentId: { type: ["string", "null"] },
+    relation: { enum: ["ally", "enemy", "neutral", null] }
+  }
+} as const;
+
 export const agentTurnOutputJsonSchema = {
   type: "object",
   additionalProperties: false,
@@ -97,42 +134,7 @@ export const agentTurnOutputJsonSchema = {
       type: "array",
       minItems: 1,
       maxItems: 4,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "type",
-          "direction",
-          "steps",
-          "targetId",
-          "recipeId",
-          "prefabId",
-          "x",
-          "y",
-          "ticks",
-          "toAgentId",
-          "message",
-          "targetAgentId",
-          "relation"
-        ],
-        properties: {
-          type: {
-            enum: ["move", "interact", "gather", "attack", "craft", "place", "wait", "talk", "set_relation", "inspect_agent", "loot_agent"]
-          },
-          direction: { enum: ["N", "NE", "E", "SE", "S", "SW", "W", "NW", null] },
-          steps: { enum: [1, 2, 3, null] },
-          targetId: { type: ["string", "null"] },
-          recipeId: { type: ["string", "null"] },
-          prefabId: { type: ["string", "null"] },
-          x: { type: ["integer", "null"] },
-          y: { type: ["integer", "null"] },
-          ticks: { type: ["integer", "null"] },
-          toAgentId: { type: ["string", "null"] },
-          message: { type: ["string", "null"] },
-          targetAgentId: { type: ["string", "null"] },
-          relation: { enum: ["ally", "enemy", "neutral", null] }
-        }
-      }
+      items: actionItemJsonSchema
     }
   }
 } as const;

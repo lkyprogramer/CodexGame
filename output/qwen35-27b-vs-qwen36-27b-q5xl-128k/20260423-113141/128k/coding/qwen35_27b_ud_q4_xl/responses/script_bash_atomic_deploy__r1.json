@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 25994.45683299564,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script based on your requirements.\n\n### File: `deploy.sh`\n\nSave this file in your project root or deployment directory.\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Configuration\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_ROOT}/releases\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_TIMEOUT=5\nreadonly HEALTH_RETRIES=3\n\n# Arguments\nif [[ $# -lt 1 ]]; then\n    echo \"Usage: $0 <release_timestamp>\"\n    echo \"Example: $0 20231027-143000\"\n    exit 1\nfi\n\nRELEASE_TIMESTAMP=\"$1\"\nRELEASE_PATH=\"${RELEASES_DIR}/${RELEASE_TIMESTAMP}\"\n\n# Logging helper\nlog() {\n    local msg=\"[$(date '+%Y-%m-%d %H:%M:%S')] $1\"\n    echo \"$msg\" | tee -a \"$LOG_FILE\"\n}\n\n# Pre-flight checks\nlog \"Starting deployment for release: ${RELEASE_TIMESTAMP}\"\n\n# 1. Verify current symlink exists (Ops Constraint)\nif [[ ! -L \"${CURRENT_LINK}\" ]]; then\n    log \"ERROR: Current symlink '${CURRENT_LINK}' is missing. Aborting.\"\n    exit 1\nfi\n\n# 2. Verify new release directory exists\nif [[ ! -d \"${RELEASE_PATH}\" ]]; then\n    log \"ERROR: Release directory '${RELEASE_PATH}' does not exist.\"\n    exit 1\nfi\n\n# 3. Capture previous release for rollback\nPREVIOUS_RELEASE=$(readlink -f \"${CURRENT_LINK}\")\nlog \"Current live release: ${PREVIOUS_RELEASE}\"\n\n# Perform Atomic Swap\nlog \"Swapping symlink to new release: ${RELEASE_PATH}\"\nln -sfn \"${RELEASE_PATH}\" \"${CURRENT_LINK}\"\n\n# Health Check Loop\nlog \"Performing health check on ${HEALTH_URL}...\"\nHEALTH_SUCCESS=false\n\nfor ((i=1; i<=HEALTH_RETRIES; i++)); do\n    if curl -sf --max-time \"${HEALTH_TIMEOUT}\" \"${HEALTH_URL}\" > /dev/null 2>&1; then\n        log \"Health check passed on attempt ${i}.\"\n        HEALTH_SUCCESS=true\n        break\n    else\n        log \"Health check failed on attempt ${i}. Retrying...\"\n        sleep 2\n    fi\ndone\n\n# Final Decision\nif [[ \"${HEALTH_SUCCESS}\" == true ]]; then\n    log \"SUCCESS: Deployment of ${RELEASE_TIMESTAMP} completed.\"\n    # Note: We do NOT delete the previous release here per constraints.\n    # Cleanup of old releases should be handled by a separate retention policy script.\n    exit 0\nelse\n    log \"FAILURE: Health checks failed. Initiating rollback.\"\n    \n    # Rollback\n    log \"Rolling back to previous release: ${PREVIOUS_RELEASE}\"\n    ln -sfn \"${PREVIOUS_RELEASE}\" \"${CURRENT_LINK}\"\n    \n    log \"Rollback completed. Symlink restored to ${PREVIOUS_RELEASE}.\"\n    exit 1\nfi\n```\n\n### Verification Checks\n\nBefore running in production, verify the following:\n\n1.  **Permissions**: Ensure the script is executable.\n    ```bash\n    chmod +x deploy.sh\n    ```\n2.  **Directory Structure**: Verify the target paths exist and are writable.\n    ```bash\n    ls -ld /srv/myapp\n    ls -ld /srv/myapp/releases\n    ```\n3.  **Symlink Integrity**: Confirm the current symlink exists before the first run.\n    ```bash\n    readlink -f /srv/myapp/current\n    ```\n4.  **Dry Run (Logic Check)**: Run the script with a non-existent timestamp to verify the \"Release directory does not exist\" error handling.\n    ```bash\n    ./deploy.sh 99999999-000000\n    ```\n\n### Key Safety Features Implemented\n*   **`set -euo pipefail`**: Ensures the script exits immediately on any command failure, undefined variable usage, or pipe failure.\n*   **Pre-flight Symlink Check**: Explicitly refuses to run if `/srv/myapp/current` is missing, preventing orphaned state.\n*   **Atomic Swap**: Uses `ln -sfn` to atomically switch the symlink. The old release directory remains untouched until the new one is verified.\n*   **Rollback Logic**: If health checks fail, the script immediately restores the `PREVIOUS_RELEASE` path to the symlink.\n*   **Logging**: All actions are timestamped and appended to `/srv/myapp/deploy.log` for audit trails."
+        }
+      }
+    ],
+    "created": 1776916558,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1042,
+      "prompt_tokens": 292,
+      "total_tokens": 1334
+    },
+    "id": "chatcmpl-7yN15ndCOlHLn6n472f3fseWHwl6rykW",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 139.84,
+      "prompt_per_token_ms": 0.6723076923076923,
+      "prompt_per_second": 1487.4141876430206,
+      "predicted_n": 1042,
+      "predicted_ms": 24399.234,
+      "predicted_per_token_ms": 23.415771593090213,
+      "predicted_per_second": 42.70625872926995
+    }
+  }
+}

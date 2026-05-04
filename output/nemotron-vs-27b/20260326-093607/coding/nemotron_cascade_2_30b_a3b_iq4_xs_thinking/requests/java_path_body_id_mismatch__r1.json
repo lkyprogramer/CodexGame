@@ -1,0 +1,19 @@
+{
+  "task_id": "java_path_body_id_mismatch",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_path_body_id_mismatch\nScenario: Controller trusts request body identifier over path identifier.\n\nInstructions:\nFind the most dangerous API contract bug and give the minimal fix. Assume this endpoint is public and used by multiple clients.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/account/UpdateAccountRequest.java ===\npackage com.example.account;\n\npublic class UpdateAccountRequest {\n    private Long accountId;\n    private String displayName;\n\n    public Long getAccountId() {\n        return accountId;\n    }\n\n    public void setAccountId(Long accountId) {\n        this.accountId = accountId;\n    }\n\n    public String getDisplayName() {\n        return displayName;\n    }\n\n    public void setDisplayName(String displayName) {\n        this.displayName = displayName;\n    }\n}\n\n=== File: src/main/java/com/example/account/AccountController.java ===\npackage com.example.account;\n\npublic class AccountController {\n    private final AccountService accountService;\n\n    public AccountController(AccountService accountService) {\n        this.accountService = accountService;\n    }\n\n    public AccountDto update(long pathAccountId, UpdateAccountRequest request) {\n        return accountService.update(request.getAccountId(), request.getDisplayName());\n    }\n}\n\n=== File: src/main/java/com/example/account/AccountService.java ===\npackage com.example.account;\n\npublic class AccountService {\n    private final AccountRepository accountRepository;\n\n    public AccountService(AccountRepository accountRepository) {\n        this.accountRepository = accountRepository;\n    }\n\n    public AccountDto update(long accountId, String displayName) {\n        Account account = accountRepository.require(accountId);\n        account.setDisplayName(displayName);\n        accountRepository.save(account);\n        return new AccountDto(account.getId(), account.getDisplayName());\n    }\n}\n"
+      }
+    ],
+    "max_tokens": 900,
+    "stream": false
+  }
+}

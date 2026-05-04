@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 42430.610749986954,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Build Flow Consistency & Atomicity\n\n**Highest-Risk Bug:**\nThe `applyOperations` method in `ContentStore` violates atomicity guarantees. It uses `Promise.all` to write three separate files (`prefabs.json`, `recipes.json`, `world_rules.json`) concurrently.\n\nIf one write succeeds and another fails (e.g., disk full, permission error, or unexpected I/O failure), the content store ends up in a **partially updated state**. The in-memory `this.content` is then updated to reflect the new state, causing a divergence between the in-memory model and the persisted files. On restart, `load()` will fail or load inconsistent data.\n\nAdditionally, the current implementation updates `this.content = next` *after* the writes. If the process crashes between the writes and the assignment, the in-memory state is lost, but the files are updated. If an error occurs during `Promise.all`, the error is thrown, but the files are already partially written.\n\n**Root Cause:**\n`Promise.all` does not provide transactional semantics for file systems. There is no rollback mechanism if one of the `writeJsonAtomic` calls fails.\n\n**Smallest Safe Fix:**\n1.  **Sequential Writes with Rollback:** Write files sequentially. If any write fails, attempt to restore the previous state from the old in-memory content (or simply do not update the in-memory state and let the caller handle the error, ensuring files remain in the previous consistent state).\n2.  **Pre-validation:** Ensure all operations are valid *before* touching the disk. The current code does validate operations via `contentOperationSchema.parse`, which is good.\n3.  **Atomic State Update:** Only update `this.content` after all files are successfully written.\n\nHowever, a simpler and more robust approach for \"smallest safe fix\" without rewriting the entire persistence layer is to **ensure that if any write fails, the process exits or the error is propagated without updating the in-memory state**, and crucially, **to make the writes sequential so that a failure stops further writes**. But even sequential writes don't rollback previous ones.\n\nGiven the constraints of Node.js `fs` and the requirement for \"smallest safe fix\", the best approach is to **write to temporary files first, then rename them all, and if any step fails, clean up**. But `writeJsonAtomic` already does temp+rename. The issue is the *group* atomicity.\n\nA practical fix for this specific codebase:\n1.  Keep `writeJsonAtomic` as is (it's atomic per file).\n2.  Change `Promise.all` to sequential `await` calls.\n3.  **Crucially:** If an error occurs, the in-memory state `this.content` must **not** be updated. The current code does this correctly (assignment is after the await).\n4.  **Missing:** If the second write fails, the first file is already updated. This is the inconsistency.\n\nTo truly fix this with minimal changes, we should **validate the entire operation set against the schema first** (already done), then **write all files**. If we cannot guarantee group atomicity easily, we must at least ensure that the in-memory state is only updated on success. The current code does this.\n\nHowever, there is a more subtle bug: **`normalizeBuildOperation`** in `contentStore.ts` is used in `parseBuildOutput`, but `applyOperations` receives `ContentOperation[]` which are already validated by `contentOperationSchema.parse`. The `normalizeBuildOperation` function is only used for parsing raw JSON from the builder. This is fine.\n\nLet's look closer at `applyOperations`:\n```typescript\n    operations.forEach((operation) => contentOperationSchema.parse(operation));\n    // ... compute next ...\n    await Promise.all([\n      writeJsonAtomic(prefabsPath, next.prefabs),\n      writeJsonAtomic(recipesPath, next.recipes),\n      writeJsonAtomic(worldRulesPath, { ... })\n    ]);\n    this.content = next;\n```\n\nIf `writeJsonAtomic` for `prefabsPath` succeeds, and `recipesPath` fails, `prefabs.json` is updated, `recipes.json` is not. `this.content` is not updated. The system is in an inconsistent state on disk.\n\n**Proposed Fix:**\nImplement a simple rollback mechanism or use a transactional write pattern. Since we want the *smallest* fix, and full rollback is complex, we can change the strategy to **write to a temporary directory, then rename the directory** (atomic directory rename). This is a standard pattern for atomic multi-file updates.\n\nHowever, renaming a directory containing 3 files is atomic on POSIX systems.\n\n**Alternative Smallest Fix (Sequential + Validation):**\nIf we assume disk failures are rare, the biggest risk is logical inconsistency. The current code validates inputs. The main risk is partial write.\n\nLet's look at the test: `rejects invalid operations without partial writes`. The test checks that invalid operations throw. It does *not* check for partial writes on I/O failure.\n\nI will propose a fix that ensures **group atomicity** by writing to a temporary directory and renaming it. This is the standard way to achieve atomic multi-file updates in Node.js.\n\n**File to Change:** `apps/game-runtime/src/runtime/contentStore.ts`\n\n**Changes:**\n1.  Modify `applyOperations` to write to a temporary directory.\n2.  Rename the temporary directory to the target directory (or swap files atomically).\n\nActually, swapping files one by one is not atomic. Renaming a directory is.\n\nLet's refine the \"smallest safe fix\".\nThe current `writeJsonAtomic` writes to `file.tmp` then renames.\nIf we write all 3 files to a `tmp/` folder, then rename `tmp/` to `contentDir/`, that is atomic.\n\n**Implementation Plan:**\n1"
+        }
+      }
+    ],
+    "created": 1776917448,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14464,
+      "total_tokens": 15714
+    },
+    "id": "chatcmpl-KP1uq4s1ah0UYywdyHA5KQIUTLHZy2sw",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6295.166,
+      "prompt_per_token_ms": 0.43522995022123895,
+      "prompt_per_second": 2297.635995619496,
+      "predicted_n": 1250,
+      "predicted_ms": 33632.531,
+      "predicted_per_token_ms": 26.9060248,
+      "predicted_per_second": 37.16639702197851
+    }
+  }
+}

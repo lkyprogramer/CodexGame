@@ -1,0 +1,997 @@
+{
+  "session_id": "20260314_131036_d69314",
+  "model": "openclaw/Qwen3.5-27B-UD-Q4_K_XL",
+  "base_url": "http://127.0.0.1:18343/v1",
+  "platform": "cli",
+  "session_start": "2026-03-14T13:10:37.002493",
+  "last_updated": "2026-03-14T13:10:51.188136",
+  "system_prompt": "You are Hermes Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.\n\nYou have persistent memory across sessions. Proactively save important things you learn (user preferences, environment details, useful approaches) and do (like a diary!) using the memory tool -- don't wait to be asked. When the user references something from a past conversation or you suspect relevant prior context exists, use session_search to recall it before asking them to repeat themselves. After completing a complex task (5+ tool calls), fixing a tricky error, or discovering a non-trivial workflow, consider saving the approach as a skill with skill_manage so you can reuse it next time.\n\n## Skills (mandatory)\nBefore replying, scan the skills below. If one clearly matches your task, load it with skill_view(name) and follow its instructions. If a skill has issues, fix it with skill_manage(action='patch').\n\n<available_skills>\n  autonomous-ai-agents: Skills for spawning and orchestrating autonomous AI coding agents and multi-agent workflows — running independent agent processes, delegating tasks, and coordinating parallel workstreams.\n    - claude-code: Delegate coding tasks to Claude Code (Anthropic's CLI age...\n    - codex: Delegate coding tasks to OpenAI Codex CLI agent. Use for ...\n    - hermes-agent: Spawn additional Hermes Agent instances as autonomous sub...\n    - opencode: Delegate coding tasks to OpenCode CLI agent for feature i...\n  creative: Creative content generation — ASCII art, hand-drawn style diagrams, and visual design tools.\n    - ascii-art: Generate ASCII art using pyfiglet (571 fonts), cowsay, bo...\n    - ascii-video: Production pipeline for ASCII art video — any format. Con...\n    - excalidraw: Create hand-drawn style diagrams using Excalidraw JSON fo...\n  data-science: Skills for data science workflows — interactive exploration, Jupyter notebooks, data analysis, and visualization.\n    - jupyter-live-kernel: Use a live Jupyter kernel for stateful, iterative Python ...\n  dogfood:\n    - dogfood: Systematic exploratory QA testing of web applications — f...\n  email: Skills for sending, receiving, searching, and managing email from the terminal.\n    - himalaya: CLI to manage emails via IMAP/SMTP. Use himalaya to list,...\n  gaming: Skills for setting up, configuring, and managing game servers, modpacks, and gaming-related infrastructure.\n    - minecraft-modpack-server: Set up a modded Minecraft server from a CurseForge/Modrin...\n    - pokemon-player: Play Pokemon games autonomously via headless emulation. S...\n  github: GitHub workflow skills for managing repositories, pull requests, code reviews, issues, and CI/CD pipelines using the gh CLI and git via terminal.\n    - codebase-inspection: Inspect and analyze codebases using pygount for LOC count...\n    - github-auth: Set up GitHub authentication for the agent using git (uni...\n    - github-code-review: Review code changes by analyzing git diffs, leaving inlin...\n    - github-issues: Create, manage, triage, and close GitHub issues. Search e...\n    - github-pr-workflow: Full pull request lifecycle — create branches, commit cha...\n    - github-repo-management: Clone, create, fork, configure, and manage GitHub reposit...\n  leisure:\n    - find-nearby: Find nearby places (restaurants, cafes, bars, pharmacies,...\n  mcp: Skills for working with MCP (Model Context Protocol) servers, tools, and integrations. Includes the built-in native MCP client (configure servers in config.yaml for automatic tool discovery) and the mcporter CLI bridge for ad-hoc server interaction.\n    - mcporter: Use the mcporter CLI to list, configure, auth, and call M...\n    - native-mcp: Built-in MCP (Model Context Protocol) client that connect...\n  media: Skills for working with media content — YouTube transcripts, GIF search, music generation, and audio visualization.\n    - gif-search: Search and download GIFs from Tenor using curl. No depend...\n    - heartmula: Set up and run HeartMuLa, the open-source music generatio...\n    - songsee: Generate spectrograms and audio feature visualizations (m...\n    - youtube-content: Fetch YouTube video transcripts and transform them into s...\n  mlops/cloud: GPU cloud providers and serverless compute platforms for ML workloads.\n    - lambda-labs: Reserved and on-demand GPU cloud instances for ML trainin...\n    - modal: Serverless GPU cloud platform for running ML workloads. U...\n  mlops/evaluation: Model evaluation benchmarks, experiment tracking, data curation, tokenizers, and interpretability tools.\n    - huggingface-tokenizers: Fast tokenizers optimized for research and production. Ru...\n    - lm-evaluation-harness: Evaluates LLMs across 60+ academic benchmarks (MMLU, Huma...\n    - nemo-curator: GPU-accelerated data curation for LLM training. Supports ...\n    - saelens: Provides guidance for training and analyzing Sparse Autoe...\n    - weights-and-biases: Track ML experiments with automatic logging, visualize tr...\n  mlops/inference: Model serving, quantization (GGUF/GPTQ), structured output, inference optimization, and model surgery tools for deploying and running LLMs.\n    - gguf: GGUF format and llama.cpp quantization for efficient CPU/...\n    - guidance: Control LLM output with regex and grammars, guarantee val...\n    - instructor: Extract structured data from LLM responses with Pydantic ...\n    - llama-cpp: Runs LLM inference on CPU, Apple Silicon, and consumer GP...\n    - obliteratus: Remove refusal behaviors from open-weight LLMs using OBLI...\n    - outlines: Guarantee valid JSON/XML/code structure during generation...\n    - tensorrt-llm: Optimizes LLM inference with NVIDIA TensorRT for maximum ...\n    - vllm: Serves LLMs with high throughput using vLLM's PagedAttent...\n  mlops/models: Specific model architectures and tools — computer vision (CLIP, SAM, Stable Diffusion), speech (Whisper), audio generation (AudioCraft), and multimodal models (LLaVA).\n    - audiocraft: PyTorch library for audio generation including text-to-mu...\n    - clip: OpenAI's model connecting vision and language. Enables ze...\n    - llava: Large Language and Vision Assistant. Enables visual instr...\n    - segment-anything: Foundation model for image segmentation with zero-shot tr...\n    - stable-diffusion: State-of-the-art text-to-image generation with Stable Dif...\n    - whisper: OpenAI's general-purpose speech recognition model. Suppor...\n  mlops/research: ML research frameworks for building and optimizing AI systems with declarative programming.\n    - dspy: Build complex AI systems with declarative programming, op...\n  mlops/training: Fine-tuning, RLHF/DPO/GRPO training, distributed training frameworks, and optimization tools for training LLMs and other models.\n    - accelerate: Simplest distributed training API. 4 lines to add distrib...\n    - axolotl: Expert guidance for fine-tuning LLMs with Axolotl - YAML ...\n    - flash-attention: Optimizes transformer attention with Flash Attention for ...\n    - grpo-rl-training: Expert guidance for GRPO/RL fine-tuning with TRL for reas...\n    - hermes-atropos-environments: Build, test, and debug Hermes Agent RL environments for A...\n    - peft: Parameter-efficient fine-tuning for LLMs using LoRA, QLoR...\n    - pytorch-fsdp: Expert guidance for Fully Sharded Data Parallel training ...\n    - pytorch-lightning: High-level PyTorch framework with Trainer class, automati...\n    - simpo: Simple Preference Optimization for LLM alignment. Referen...\n    - slime: Provides guidance for LLM post-training with RL using sli...\n    - torchtitan: Provides PyTorch-native distributed LLM pretraining using...\n    - trl-fine-tuning: Fine-tune LLMs using reinforcement learning with TRL - SF...\n    - unsloth: Expert guidance for fast fine-tuning with Unsloth - 2-5x ...\n  mlops/vector-databases: Vector similarity search and embedding databases for RAG, semantic search, and AI application backends.\n    - chroma: Open-source embedding database for AI applications. Store...\n    - faiss: Facebook's library for efficient similarity search and cl...\n    - pinecone: Managed vector database for production AI applications. F...\n    - qdrant: High-performance vector similarity search engine for RAG ...\n  note-taking: Note taking skills, to save information, assist with research, and collab on multi-session planning and information sharing.\n    - obsidian: Read, search, and create notes in the Obsidian vault.\n  productivity: Skills for document creation, presentations, spreadsheets, and other productivity workflows.\n    - google-workspace: Gmail, Calendar, Drive, Contacts, Sheets, and Docs integr...\n    - linear: Manage Linear issues, projects, and teams via the GraphQL...\n    - nano-pdf: Edit PDFs with natural-language instructions using the na...\n    - notion: Notion API for creating and managing pages, databases, an...\n    - ocr-and-documents: Extract text from PDFs and scanned documents. Use web_ext...\n    - powerpoint: Use this skill any time a .pptx file is involved in any w...\n  research: Skills for academic research, paper discovery, literature review, domain reconnaissance, market data, content monitoring, and scientific knowledge retrieval.\n    - arxiv: Search and retrieve academic papers from arXiv using thei...\n    - blogwatcher: Monitor blogs and RSS/Atom feeds for updates using the bl...\n    - domain-intel: Passive domain reconnaissance using Python stdlib. Subdom...\n    - duckduckgo-search: Free web search via DuckDuckGo — text, news, images, vide...\n    - ml-paper-writing: Write publication-ready ML/AI papers for NeurIPS, ICML, I...\n    - parallel-cli: Optional vendor skill for Parallel CLI — agent-native web...\n    - polymarket: Query Polymarket prediction market data — search markets,...\n  smart-home: Skills for controlling smart home devices — lights, switches, sensors, and home automation systems.\n    - openhue: Control Philips Hue lights, rooms, and scenes via the Ope...\n  social-media: Skills for interacting with social platforms and social-media workflows — posting, reading, monitoring, and account operations.\n    - xitter: Interact with X/Twitter via the x-cli terminal client usi...\n  software-development:\n    - code-review: Guidelines for performing thorough code reviews with secu...\n    - requesting-code-review: Use when completing tasks, implementing major features, o...\n    - subagent-driven-development: Use when executing implementation plans with independent ...\n    - systematic-debugging: Use when encountering any bug, test failure, or unexpecte...\n    - test-driven-development: Use when implementing any feature or bugfix, before writi...\n    - writing-plans: Use when you have a spec or requirements for a multi-step...\n</available_skills>\n\nIf none match, proceed normally without loading a skill.\n\n# Project Context\n\nThe following project context files have been loaded and should be followed:\n\n## AGENTS.md\n\n# CodexGame\n\nIn this repository:\n\n- Runtime authority lives in `apps/game-runtime`; the client must stay presentation-only.\n- Keep gameplay model output schema-constrained (`AgentTurnOutput`) and JSON-only.\n- Keep builder output schema-constrained (`BuildOutput`) and content-only.\n- Do not add code-mutation operations to builder flow unless explicitly requested.\n- Protocol changes must be made in `packages/protocol` first, then runtime/client wiring.\n\n## Core Rules\n\n- Use `@codexgame/protocol` types everywhere for WS message contracts.\n- Use `@codexgame/simulation` as the single source of game-state transitions.\n- Preserve determinism for same seed + same action stream.\n- Runtime protocol version is `v1` in `packages/protocol/src/messages.ts`.\n- Tick cadence and scheduler defaults are intentional:\n  - `tickMs = 200` (5 Hz)\n  - `schedulerMs = 500`\n  - `turnTimeoutMs = 45000`\n- Reconnect circuit breaker (`maxReconnectAttempts`) is a hard safety guard.\n- Build writes must remain atomic (tmp + rename), as implemented in `contentStore.ts`.\n\n## Repository Structure\n\n- `apps/game-runtime`\n  - `src/runtime/GameRuntimeServer.ts`: session lifecycle, autoplay loop, build flow, WS broadcast\n  - `src/codex/CodexAppServerClient.ts`: app-server stdio JSON-RPC transport\n  - `src/runtime/contentStore.ts`: load/validate/apply content operations atomically\n  - `src/runtime/prompting.ts`: gameplay/build prompts and retry prompt\n  - `src/runtime/replay.ts`: JSONL replay logging\n  - `src/runtime/stateStore.ts`: persisted runtime snapshot\n- `apps/game-client`\n  - `src/App.tsx`: WS client, controls, feed, state wiring\n  - `src/game/IsometricScene.ts`: placeholder isometric renderer\n- `packages/protocol`\n  - `src/messages.ts`: envelope + message contract\n  - `src/actions.ts`: gameplay action schemas + JSON schema\n  - `src/build.ts`: build operation schemas + JSON schema\n- `packages/simulation`\n  - `src/simulation.ts`: action application + actor/world updates\n  - `src/world.ts`: seeded world generation + blocking logic\n  - `src/snapshot.ts`: compact snapshot + prompt context\n\n## Runtime/Agent Conventions\n\n- Runtime starts two Codex threads per session:\n  - gameplay thread (`thread/start`)\n  - builder thread (`thread/start`)\n- Gameplay turns use `turn/start` with:\n  - `approvalPolicy: \"never\"`\n  - output schema `agentTurnOutputJsonSchema`\n  - prompt from `buildGameplayPrompt(...)`\n- Build turns use `turn/start` with:\n  - `approvalPolicy: \"never\"`\n  - output schema `buildOutputJsonSchema`\n  - prompt from `buildContentPrompt(...)`\n- Invalid gameplay outputs:\n  - one retry with `buildValidationRetryPrompt(...)`\n  - then fallback `wait` action + temporary backoff\n\n## WebSocket API Rules\n\nClient -> Runtime:\n- `session.start { seed? }`\n- `god.send { text }`\n- `build.request { goal }`\n- `agent.pause {}`\n- `agent.resume {}`\n\nRuntime -> Client:\n- `session.state`\n- `world.snapshot`\n- `agent.turn`\n- `agent.action`\n- `agent.feed`\n- `build.result`\n- `error`\n\nWhen changing API shape:\n1. Update `packages/protocol/src/messages.ts`.\n2. Update runtime parsing/emits.\n3. Update client handling.\n4. Add or update tests.\n\n## Prompting Rules\n\n- Prompts must request strict JSON-only output (no markdown wrappers).\n- Keep prompts grounded in compact world state (`buildPromptContext`).\n- God messages are injected as highest-priority context for the next gameplay turn.\n- Builder prompt must remain content-only and include current content snapshot.\n\n## Testing\n\nRun these before finalizing:\n\n```bash\npnpm typecheck\npnpm lint\npnpm test\npnpm test:integration\npnpm build\n```\n\nCurrent key tests:\n- `packages/simulation/test/simulation_determinism.test.ts`\n- `apps/game-runtime/test/agentOutput.test.ts`\n- `apps/game-runtime/test/contentStore.test.ts`\n- `apps/game-runtime/test/ui-contract.integration.test.ts`\n\nWhen changing simulation or protocol behavior, add/adjust tests first.\n\n## Safety and Persistence\n\n- Keep replay logs enabled (`data/replay/*.jsonl`) for debugging regressions.\n- Keep periodic session snapshot persistence (`data/runtime/session.json`).\n- Do not remove runtime error emission (`type: \"error\"`) paths; client depends on them.\n\n## Performance and Build Notes\n\n- Client build currently emits a large Phaser chunk warning; that is expected for now.\n- Prefer incremental changes over broad refactors in runtime loop code.\n- If changing render performance, do not move simulation authority into client.\n\n## Common Tasks\n\nAdd a new gameplay action:\n1. Update `packages/protocol/src/actions.ts` Zod + JSON schema.\n2. Update `packages/simulation/src/simulation.ts` action handling.\n3. Update prompt guidance if needed.\n4. Add tests for validation + simulation behavior.\n\nAdd a new content operation:\n1. Update `packages/protocol/src/build.ts` Zod + JSON schema.\n2. Update `apps/game-runtime/src/runtime/contentStore.ts` apply logic.\n3. Add write/atomicity tests.\n\nAdjust runtime timing/safety:\n1. Change `apps/game-runtime/src/runtime/config.ts`.\n2. Validate scheduler + timeout behavior via runtime integration tests.\n\n## Known Gaps (Next Agent Priorities)\n\n1. Implement boot-time restore from `data/runtime/session.json`.\n2. Add reconnect fault-injection integration tests.\n3. Expose metrics snapshots to client (queue depth, invalid outputs, action success ratios).\n4. Tighten app-server event correlation for all turn/item variants.\n\n\n\nConversation started: Saturday, March 14, 2026 01:10 PM\n\nYou are a CLI AI Agent. Try not to use markdown but simple text renderable inside a terminal.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_back",
+        "description": "Navigate back to the previous page in browser history. Requires browser_navigate to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_click",
+        "description": "Click on an element identified by its ref ID from the snapshot (e.g., '@e5'). The ref IDs are shown in square brackets in the snapshot output. Requires browser_navigate and browser_snapshot to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "description": "The element reference from the snapshot (e.g., '@e5', '@e12')"
+            }
+          },
+          "required": [
+            "ref"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_close",
+        "description": "Close the browser session and release resources. Call this when done with browser tasks to free up Browserbase session quota.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_get_images",
+        "description": "Get a list of all images on the current page with their URLs and alt text. Useful for finding images to analyze with the vision tool. Requires browser_navigate to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_navigate",
+        "description": "Navigate to a URL in the browser. Initializes the session and loads the page. Must be called before other browser tools. For simple information retrieval, prefer web_search or web_extract (faster, cheaper). Use browser tools when you need to interact with a page (click, fill forms, dynamic content).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The URL to navigate to (e.g., 'https://example.com')"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_press",
+        "description": "Press a keyboard key. Useful for submitting forms (Enter), navigating (Tab), or keyboard shortcuts. Requires browser_navigate to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Key to press (e.g., 'Enter', 'Tab', 'Escape', 'ArrowDown')"
+            }
+          },
+          "required": [
+            "key"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_scroll",
+        "description": "Scroll the page in a direction. Use this to reveal more content that may be below or above the current viewport. Requires browser_navigate to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "direction": {
+              "type": "string",
+              "enum": [
+                "up",
+                "down"
+              ],
+              "description": "Direction to scroll"
+            }
+          },
+          "required": [
+            "direction"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_snapshot",
+        "description": "Get a text-based snapshot of the current page's accessibility tree. Returns interactive elements with ref IDs (like @e1, @e2) for browser_click and browser_type. full=false (default): compact view with interactive elements. full=true: complete page content. Snapshots over 8000 chars are truncated or LLM-summarized. Requires browser_navigate first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "full": {
+              "type": "boolean",
+              "description": "If true, returns complete page content. If false (default), returns compact view with interactive elements only.",
+              "default": false
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_type",
+        "description": "Type text into an input field identified by its ref ID. Clears the field first, then types the new text. Requires browser_navigate and browser_snapshot to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "description": "The element reference from the snapshot (e.g., '@e3')"
+            },
+            "text": {
+              "type": "string",
+              "description": "The text to type into the field"
+            }
+          },
+          "required": [
+            "ref",
+            "text"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browser_vision",
+        "description": "Take a screenshot of the current page and analyze it with vision AI. Use this when you need to visually understand what's on the page - especially useful for CAPTCHAs, visual verification challenges, complex layouts, or when the text snapshot doesn't capture important visual information. Returns both the AI analysis and a screenshot_path that you can share with the user by including MEDIA:<screenshot_path> in your response. Requires browser_navigate to be called first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "What you want to know about the page visually. Be specific about what you're looking for."
+            },
+            "annotate": {
+              "type": "boolean",
+              "default": false,
+              "description": "If true, overlay numbered [N] labels on interactive elements. Each [N] maps to ref @eN for subsequent browser commands. Useful for QA and spatial reasoning about page layout."
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "clarify",
+        "description": "Ask the user a question when you need clarification, feedback, or a decision before proceeding. Supports two modes:\n\n1. **Multiple choice** — provide up to 4 choices. The user picks one or types their own answer via a 5th 'Other' option.\n2. **Open-ended** — omit choices entirely. The user types a free-form response.\n\nUse this tool when:\n- The task is ambiguous and you need the user to choose an approach\n- You want post-task feedback ('How did that work out?')\n- You want to offer to save a skill or update memory\n- A decision has meaningful trade-offs the user should weigh in on\n\nDo NOT use this tool for simple yes/no confirmation of dangerous commands (the terminal tool handles that). Prefer making a reasonable default choice yourself when the decision is low-stakes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "The question to present to the user."
+            },
+            "choices": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "description": "Up to 4 answer choices. Omit this parameter entirely to ask an open-ended question. When provided, the UI automatically appends an 'Other (type your answer)' option."
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delegate_task",
+        "description": "Spawn one or more subagents to work on tasks in isolated contexts. Each subagent gets its own conversation, terminal session, and toolset. Only the final summary is returned -- intermediate tool results never enter your context window.\n\nTWO MODES (one of 'goal' or 'tasks' is required):\n1. Single task: provide 'goal' (+ optional context, toolsets)\n2. Batch (parallel): provide 'tasks' array with up to 3 items. All run concurrently and results are returned together.\n\nWHEN TO USE delegate_task:\n- Reasoning-heavy subtasks (debugging, code review, research synthesis)\n- Tasks that would flood your context with intermediate data\n- Parallel independent workstreams (research A and B simultaneously)\n\nWHEN NOT TO USE (use these instead):\n- Mechanical multi-step work with no reasoning needed -> use execute_code\n- Single tool call -> just call the tool directly\n- Tasks needing user interaction -> subagents cannot use clarify\n\nIMPORTANT:\n- Subagents have NO memory of your conversation. Pass all relevant info (file paths, error messages, constraints) via the 'context' field.\n- Subagents CANNOT call: delegate_task, clarify, memory, send_message, execute_code.\n- Each subagent gets its own terminal session (separate working directory and state).\n- Results are always returned as an array, one entry per task.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "goal": {
+              "type": "string",
+              "description": "What the subagent should accomplish. Be specific and self-contained -- the subagent knows nothing about your conversation history."
+            },
+            "context": {
+              "type": "string",
+              "description": "Background information the subagent needs: file paths, error messages, project structure, constraints. The more specific you are, the better the subagent performs."
+            },
+            "toolsets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Toolsets to enable for this subagent. Default: inherits your enabled toolsets. Common patterns: ['terminal', 'file'] for code work, ['web'] for research, ['terminal', 'file', 'web'] for full-stack tasks."
+            },
+            "tasks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "goal": {
+                    "type": "string",
+                    "description": "Task goal"
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "Task-specific context"
+                  },
+                  "toolsets": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Toolsets for this specific task"
+                  }
+                },
+                "required": [
+                  "goal"
+                ]
+              },
+              "maxItems": 3,
+              "description": "Batch mode: up to 3 tasks to run in parallel. Each gets its own subagent with isolated context and terminal session. When provided, top-level goal/context/toolsets are ignored."
+            },
+            "max_iterations": {
+              "type": "integer",
+              "description": "Max tool-calling turns per subagent (default: 50). Only set lower for simple tasks."
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "execute_code",
+        "description": "Run a Python script that can call Hermes tools programmatically. Use this when you need 3+ tool calls with processing logic between them, need to filter/reduce large tool outputs before they enter your context, need conditional branching (if X then Y else Z), or need to loop (fetch N pages, process N files, retry on failure).\n\nUse normal tool calls instead when: single tool call with no processing, you need to see the full result and apply complex reasoning, or the task requires interactive user input.\n\nAvailable via `from hermes_tools import ...`:\n\n  web_search(query: str, limit: int = 5) -> dict\n    Returns {\"data\": {\"web\": [{\"url\", \"title\", \"description\"}, ...]}}\n  web_extract(urls: list[str]) -> dict\n    Returns {\"results\": [{\"url\", \"title\", \"content\", \"error\"}, ...]} where content is markdown\n  read_file(path: str, offset: int = 1, limit: int = 500) -> dict\n    Lines are 1-indexed. Returns {\"content\": \"...\", \"total_lines\": N}\n  write_file(path: str, content: str) -> dict\n    Always overwrites the entire file.\n  search_files(pattern: str, target=\"content\", path=\".\", file_glob=None, limit=50) -> dict\n    target: \"content\" (search inside files) or \"files\" (find files by name). Returns {\"matches\": [...]}\n  patch(path: str, old_string: str, new_string: str, replace_all: bool = False) -> dict\n    Replaces old_string with new_string in the file.\n  terminal(command: str, timeout=None, workdir=None) -> dict\n    Foreground only (no background/pty). Returns {\"output\": \"...\", \"exit_code\": N}\n\nLimits: 5-minute timeout, 50KB stdout cap, max 50 tool calls per script. terminal() is foreground-only (no background or pty).\n\nPrint your final result to stdout. Use Python stdlib (json, re, math, csv, datetime, collections, etc.) for processing between tool calls.\n\nAlso available (no import needed — built into hermes_tools):\n  json_parse(text: str) — json.loads with strict=False; use for terminal() output with control chars\n  shell_quote(s: str) — shlex.quote(); use when interpolating dynamic strings into shell commands\n  retry(fn, max_attempts=3, delay=2) — retry with exponential backoff for transient failures",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Python code to execute. Import tools with `from hermes_tools import web_search, terminal, ...` and print your final result to stdout."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_cronjobs",
+        "description": "List all scheduled cronjobs with their IDs, schedules, and status.\n\nUse this to:\n- See what jobs are currently scheduled\n- Find job IDs for removal with remove_cronjob\n- Check job status and next run times\n\nReturns job_id, name, schedule, repeat status, next/last run times.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "include_disabled": {
+              "type": "boolean",
+              "description": "Include disabled/completed jobs in the list (default: false)"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "memory",
+        "description": "Save important information to persistent memory that survives across sessions. Your memory appears in your system prompt at session start -- it's how you remember things about the user and your environment between conversations.\n\nWHEN TO SAVE (do this proactively, don't wait to be asked):\n- User shares a preference, habit, or personal detail (name, role, timezone, coding style)\n- You discover something about the environment (OS, installed tools, project structure)\n- User corrects you or says 'remember this' / 'don't do that again'\n- You learn a convention, API quirk, or workflow specific to this user's setup\n- You completed something - log it like a diary entry\n- After completing a complex task, save a brief note about what was done\n\n- If you've discovered a new way to do something, solved a problem that could be necessary later, save it as a skill with the skill tool\n\nTWO TARGETS:\n- 'user': who the user is -- name, role, preferences, communication style, pet peeves\n- 'memory': your notes -- environment facts, project conventions, tool quirks, lessons learned\n\nACTIONS: add (new entry), replace (update existing -- old_text identifies it), remove (delete -- old_text identifies it).\nCapacity shown in system prompt. When >80%, consolidate entries before adding new ones.\n\nSKIP: trivial/obvious info, things easily re-discovered, raw data dumps.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "add",
+                "replace",
+                "remove"
+              ],
+              "description": "The action to perform."
+            },
+            "target": {
+              "type": "string",
+              "enum": [
+                "memory",
+                "user"
+              ],
+              "description": "Which memory store: 'memory' for personal notes, 'user' for user profile."
+            },
+            "content": {
+              "type": "string",
+              "description": "The entry content. Required for 'add' and 'replace'."
+            },
+            "old_text": {
+              "type": "string",
+              "description": "Short unique substring identifying the entry to replace or remove."
+            }
+          },
+          "required": [
+            "action",
+            "target"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "patch",
+        "description": "Targeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing.\n\nReplace mode (default): find a unique string and replace it.\nPatch mode: apply V4A multi-file patches for bulk changes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "replace",
+                "patch"
+              ],
+              "description": "Edit mode: 'replace' for targeted find-and-replace, 'patch' for V4A multi-file patches",
+              "default": "replace"
+            },
+            "path": {
+              "type": "string",
+              "description": "File path to edit (required for 'replace' mode)"
+            },
+            "old_string": {
+              "type": "string",
+              "description": "Text to find in the file (required for 'replace' mode). Must be unique in the file unless replace_all=true. Include enough surrounding context to ensure uniqueness."
+            },
+            "new_string": {
+              "type": "string",
+              "description": "Replacement text (required for 'replace' mode). Can be empty string to delete the matched text."
+            },
+            "replace_all": {
+              "type": "boolean",
+              "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+              "default": false
+            },
+            "patch": {
+              "type": "string",
+              "description": "V4A format patch content (required for 'patch' mode). Format:\n*** Begin Patch\n*** Update File: path/to/file\n@@ context hint @@\n context line\n-removed line\n+added line\n*** End Patch"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "process",
+        "description": "Manage background processes started with terminal(background=true). Actions: 'list' (show all), 'poll' (check status + new output), 'log' (full output with pagination), 'wait' (block until done or timeout), 'kill' (terminate), 'write' (send raw stdin data without newline), 'submit' (send data + Enter, for answering prompts).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "list",
+                "poll",
+                "log",
+                "wait",
+                "kill",
+                "write",
+                "submit"
+              ],
+              "description": "Action to perform on background processes"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Process session ID (from terminal background output). Required for all actions except 'list'."
+            },
+            "data": {
+              "type": "string",
+              "description": "Text to send to process stdin (for 'write' and 'submit' actions)"
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Max seconds to block for 'wait' action. Returns partial output on timeout.",
+              "minimum": 1
+            },
+            "offset": {
+              "type": "integer",
+              "description": "Line offset for 'log' action (default: last 200 lines)"
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max lines to return for 'log' action",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "action"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. NOTE: Cannot read images or binary files — use vision_analyze for images.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to the file to read (absolute, relative, or ~/path)"
+            },
+            "offset": {
+              "type": "integer",
+              "description": "Line number to start reading from (1-indexed, default: 1)",
+              "default": 1,
+              "minimum": 1
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum number of lines to read (default: 500, max: 2000)",
+              "default": 500,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "remove_cronjob",
+        "description": "Remove a scheduled cronjob by its ID.\n\nUse list_cronjobs first to find the job_id of the job you want to remove.\nJobs that have completed their repeat count are auto-removed, but you can\nuse this to cancel a job before it completes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "description": "The ID of the cronjob to remove (from list_cronjobs output)"
+            }
+          },
+          "required": [
+            "job_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "schedule_cronjob",
+        "description": "Schedule an automated task to run the agent on a schedule.\n\n⚠️ CRITICAL: The cronjob runs in a FRESH SESSION with NO CONTEXT from this conversation.\nThe prompt must be COMPLETELY SELF-CONTAINED with ALL necessary information including:\n- Full context and background\n- Specific file paths, URLs, server addresses\n- Clear instructions and success criteria\n- Any credentials or configuration details\n\nThe future agent will NOT remember anything from the current conversation.\n\nSCHEDULE FORMATS:\n- One-shot: \"30m\", \"2h\", \"1d\" (runs once after delay)\n- Interval: \"every 30m\", \"every 2h\" (recurring)  \n- Cron: \"0 9 * * *\" (cron expression for precise scheduling)\n- Timestamp: \"2026-02-03T14:00:00\" (specific date/time)\n\nREPEAT BEHAVIOR:\n- One-shot schedules: run once by default\n- Intervals/cron: run forever by default\n- Set repeat=N to run exactly N times then auto-delete\n\nDELIVERY OPTIONS (where output goes):\n- \"origin\": Back to current chat (default if in messaging platform)\n- \"local\": Save to local files only (default if in CLI)\n- \"telegram\": Send to Telegram home channel\n- \"discord\": Send to Discord home channel\n- \"telegram:123456\": Send to specific chat (if user provides ID)\n\nNOTE: The agent's final response is auto-delivered to the target — do NOT use\nsend_message in the prompt. Just have the agent compose its response normally.\n\nUse for: reminders, periodic checks, scheduled reports, automated maintenance.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "prompt": {
+              "type": "string",
+              "description": "Complete, self-contained instructions. Must include ALL context - the future agent will have NO memory of this conversation."
+            },
+            "schedule": {
+              "type": "string",
+              "description": "When to run: '30m' (once in 30min), 'every 30m' (recurring), '0 9 * * *' (cron), or ISO timestamp"
+            },
+            "name": {
+              "type": "string",
+              "description": "Optional human-friendly name for the job"
+            },
+            "repeat": {
+              "type": "integer",
+              "description": "How many times to run. Omit for default (once for one-shot, forever for recurring). Set to N for exactly N runs."
+            },
+            "deliver": {
+              "type": "string",
+              "description": "Where to send output: 'origin' (back to this chat), 'local' (files only), 'telegram', 'discord', 'signal', or 'platform:chat_id'"
+            }
+          },
+          "required": [
+            "prompt",
+            "schedule"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "search_files",
+        "description": "Search file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls — results sorted by modification time.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search"
+            },
+            "target": {
+              "type": "string",
+              "enum": [
+                "content",
+                "files"
+              ],
+              "description": "'content' searches inside file contents, 'files' searches for files by name",
+              "default": "content"
+            },
+            "path": {
+              "type": "string",
+              "description": "Directory or file to search in (default: current working directory)",
+              "default": "."
+            },
+            "file_glob": {
+              "type": "string",
+              "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)"
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50
+            },
+            "offset": {
+              "type": "integer",
+              "description": "Skip first N results for pagination (default: 0)",
+              "default": 0
+            },
+            "output_mode": {
+              "type": "string",
+              "enum": [
+                "content",
+                "files_only",
+                "count"
+              ],
+              "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+              "default": "content"
+            },
+            "context": {
+              "type": "integer",
+              "description": "Number of context lines before and after each match (grep mode only)",
+              "default": 0
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "session_search",
+        "description": "Search your long-term memory of past conversations. This is your recall -- every past session is searchable, and this tool summarizes what happened.\n\nUSE THIS PROACTIVELY when:\n- The user says 'we did this before', 'remember when', 'last time', 'as I mentioned'\n- The user asks about a topic you worked on before but don't have in current context\n- The user references a project, person, or concept that seems familiar but isn't in memory\n- You want to check if you've solved a similar problem before\n- The user asks 'what did we do about X?' or 'how did we fix Y?'\n\nDon't hesitate to search -- it's fast and cheap. Better to search and confirm than to guess or ask the user to repeat themselves.\n\nSearch syntax: keywords joined with OR for broad recall (elevenlabs OR baseten OR funding), phrases for exact match (\"docker networking\"), boolean (python NOT java), prefix (deploy*). IMPORTANT: Use OR between keywords for best results — FTS5 defaults to AND which misses sessions that only mention some terms. If a broad OR query returns nothing, try individual keyword searches in parallel. Returns summaries of the top matching sessions.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query — keywords, phrases, or boolean expressions to find in past sessions."
+            },
+            "role_filter": {
+              "type": "string",
+              "description": "Optional: only search messages from specific roles (comma-separated). E.g. 'user,assistant' to skip tool outputs."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max sessions to summarize (default: 3, max: 5).",
+              "default": 3
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill_manage",
+        "description": "Manage skills (create, update, delete). Skills are your procedural memory — reusable approaches for recurring task types. New skills go to ~/.hermes/skills/; existing skills can be modified wherever they live.\n\nActions: create (full SKILL.md + optional category), patch (old_string/new_string — preferred for fixes), edit (full SKILL.md rewrite — major overhauls only), delete, write_file, remove_file.\n\nCreate when: complex task succeeded (5+ calls), errors overcome, user-corrected approach worked, non-trivial workflow discovered, or user asks you to remember a procedure.\nUpdate when: instructions stale/wrong, OS-specific failures, missing steps or pitfalls found during use.\n\nAfter difficult/iterative tasks, offer to save as a skill. Skip for simple one-offs. Confirm with user before creating/deleting.\n\nGood skills: trigger conditions, numbered steps with exact commands, pitfalls section, verification steps. Use skill_view() to see format examples.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "create",
+                "patch",
+                "edit",
+                "delete",
+                "write_file",
+                "remove_file"
+              ],
+              "description": "The action to perform."
+            },
+            "name": {
+              "type": "string",
+              "description": "Skill name (lowercase, hyphens/underscores, max 64 chars). Must match an existing skill for patch/edit/delete/write_file/remove_file."
+            },
+            "content": {
+              "type": "string",
+              "description": "Full SKILL.md content (YAML frontmatter + markdown body). Required for 'create' and 'edit'. For 'edit', read the skill first with skill_view() and provide the complete updated text."
+            },
+            "old_string": {
+              "type": "string",
+              "description": "Text to find in the file (required for 'patch'). Must be unique unless replace_all=true. Include enough surrounding context to ensure uniqueness."
+            },
+            "new_string": {
+              "type": "string",
+              "description": "Replacement text (required for 'patch'). Can be empty string to delete the matched text."
+            },
+            "replace_all": {
+              "type": "boolean",
+              "description": "For 'patch': replace all occurrences instead of requiring a unique match (default: false)."
+            },
+            "category": {
+              "type": "string",
+              "description": "Optional category/domain for organizing the skill (e.g., 'devops', 'data-science', 'mlops'). Creates a subdirectory grouping. Only used with 'create'."
+            },
+            "file_path": {
+              "type": "string",
+              "description": "Path to a supporting file within the skill directory. For 'write_file'/'remove_file': required, must be under references/, templates/, scripts/, or assets/. For 'patch': optional, defaults to SKILL.md if omitted."
+            },
+            "file_content": {
+              "type": "string",
+              "description": "Content for the file. Required for 'write_file'."
+            }
+          },
+          "required": [
+            "action",
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skill_view",
+        "description": "Skills allow for loading information about specific tasks and workflows, as well as scripts and templates. Load a skill's full content or access its linked files (references, templates, scripts). First call returns SKILL.md content plus a 'linked_files' dict showing available references/templates/scripts. To access those, call again with file_path parameter.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The skill name (use skills_list to see available skills)"
+            },
+            "file_path": {
+              "type": "string",
+              "description": "OPTIONAL: Path to a linked file within the skill (e.g., 'references/api.md', 'templates/config.yaml', 'scripts/validate.py'). Omit to get the main SKILL.md content."
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "skills_list",
+        "description": "List available skills (name + description). Use skill_view(name) to load full content.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "description": "Optional category filter to narrow results"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "terminal",
+        "description": "Execute shell commands on a Linux environment. Filesystem persists between calls.\n\nDo NOT use cat/head/tail to read files — use read_file instead.\nDo NOT use grep/rg/find to search — use search_files instead.\nDo NOT use ls to list directories — use search_files(target='files') instead.\nDo NOT use sed/awk to edit files — use patch instead.\nDo NOT use echo/cat heredoc to create files — use write_file instead.\nReserve terminal for: builds, installs, git, processes, scripts, network, package managers, and anything that needs a shell.\n\nForeground (default): Commands return INSTANTLY when done, even if the timeout is high. Set timeout=300 for long builds/scripts — you'll still get the result in seconds if it's fast. Prefer foreground for everything that finishes.\nBackground: ONLY for long-running servers, watchers, or processes that never exit. Set background=true to get a session_id, then use process(action=\"wait\") to block until done — it returns instantly on completion, same as foreground. Use process(action=\"poll\") only when you need a progress check without blocking.\nDo NOT use background for scripts, builds, or installs — foreground with a generous timeout is always better (fewer tool calls, instant results).\nWorking directory: Use 'workdir' for per-command cwd.\nPTY mode: Set pty=true for interactive CLI tools (Codex, Claude Code, Python REPL).\n\nDo NOT use vim/nano/interactive tools without pty=true — they hang without a pseudo-terminal. Pipe git output to cat if it might page.\n",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "The command to execute on the VM"
+            },
+            "background": {
+              "type": "boolean",
+              "description": "ONLY for servers/watchers that never exit. For scripts, builds, installs — use foreground with timeout instead (it returns instantly when done).",
+              "default": false
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Max seconds to wait (default: 180). Returns INSTANTLY when command finishes — set high for long tasks, you won't wait unnecessarily.",
+              "minimum": 1
+            },
+            "workdir": {
+              "type": "string",
+              "description": "Working directory for this command (absolute path). Defaults to the session working directory."
+            },
+            "check_interval": {
+              "type": "integer",
+              "description": "Seconds between automatic status checks for background processes (gateway/messaging only, minimum 30). When set, I'll proactively report progress.",
+              "minimum": 30
+            },
+            "pty": {
+              "type": "boolean",
+              "description": "Run in pseudo-terminal (PTY) mode for interactive CLI tools like Codex, Claude Code, or Python REPL. Only works with local and SSH backends. Default: false.",
+              "default": false
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "text_to_speech",
+        "description": "Convert text to speech audio. Returns a MEDIA: path that the platform delivers as a voice message. On Telegram it plays as a voice bubble, on Discord/WhatsApp as an audio attachment. In CLI mode, saves to ~/voice-memos/. Voice and provider are user-configured, not model-selected.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "The text to convert to speech. Keep under 4000 characters."
+            },
+            "output_path": {
+              "type": "string",
+              "description": "Optional custom file path to save the audio. Defaults to ~/.hermes/audio_cache/<timestamp>.mp3"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todo",
+        "description": "Manage your task list for the current session. Use for complex tasks with 3+ steps or when the user provides multiple tasks. Call with no parameters to read the current list.\n\nWriting:\n- Provide 'todos' array to create/update items\n- merge=false (default): replace the entire list with a fresh plan\n- merge=true: update existing items by id, add any new ones\n\nEach item: {id: string, content: string, status: pending|in_progress|completed|cancelled}\nList order is priority. Only ONE item in_progress at a time.\nMark items completed immediately when done. If something fails, cancel it and add a revised item.\n\nAlways returns the full current list.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "todos": {
+              "type": "array",
+              "description": "Task items to write. Omit to read current list.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique item identifier"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Task description"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "in_progress",
+                      "completed",
+                      "cancelled"
+                    ],
+                    "description": "Current status"
+                  }
+                },
+                "required": [
+                  "id",
+                  "content",
+                  "status"
+                ]
+              }
+            },
+            "merge": {
+              "type": "boolean",
+              "description": "true: update existing items by id, add new ones. false (default): replace the entire list.",
+              "default": false
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "vision_analyze",
+        "description": "Analyze images using AI vision. Provides a comprehensive description and answers a specific question about the image content.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "image_url": {
+              "type": "string",
+              "description": "Image URL (http/https) or local file path to analyze."
+            },
+            "question": {
+              "type": "string",
+              "description": "Your specific question or request about the image to resolve. The AI will automatically provide a complete image description AND answer your specific question."
+            }
+          },
+          "required": [
+            "image_url",
+            "question"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write_file",
+        "description": "Write content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)"
+            },
+            "content": {
+              "type": "string",
+              "description": "Complete content to write to the file"
+            }
+          },
+          "required": [
+            "path",
+            "content"
+          ]
+        }
+      }
+    }
+  ],
+  "message_count": 10,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Use terminal tools to inspect the current repository first.\nDo not modify files.\n\nReturn strict JSON only with this schema:\n{\n  \"runtime_authority\": \"string\",\n  \"runtime_entrypoint\": \"string\",\n  \"client_entrypoint\": \"string\",\n  \"protocol_source\": \"string\"\n}"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning": null,
+      "finish_reason": "tool_calls",
+      "tool_calls": [
+        {
+          "id": "30Ztptg2CgmVJZ8usd8W1s6CEBLHqz9b",
+          "call_id": "30Ztptg2CgmVJZ8usd8W1s6CEBLHqz9b",
+          "response_item_id": "fc_30Ztptg2CgmVJZ8usd8W1s6CEBLHqz9b",
+          "type": "function",
+          "function": {
+            "name": "terminal",
+            "arguments": "{\"command\": \"find . -maxdepth 3 -type f -name \\\"*.ts\\\" | grep -E \\\"(GameRuntimeServer|App\\\\.tsx|messages\\\\.ts)\\\" | head -20\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "{\"output\": \"\", \"exit_code\": 0, \"error\": null}",
+      "tool_call_id": "30Ztptg2CgmVJZ8usd8W1s6CEBLHqz9b"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning": null,
+      "finish_reason": "tool_calls",
+      "tool_calls": [
+        {
+          "id": "Z9X0Kx9jiGtLpWUCXCAzLSvqpo4TZS4c",
+          "call_id": "Z9X0Kx9jiGtLpWUCXCAzLSvqpo4TZS4c",
+          "response_item_id": "fc_Z9X0Kx9jiGtLpWUCXCAzLSvqpo4TZS4c",
+          "type": "function",
+          "function": {
+            "name": "terminal",
+            "arguments": "{\"command\": \"ls -la\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "{\"output\": \"total 32\\ndrwxr-xr-x 4 hhtele hhtele 4096 Mar 14 12:52 .\\ndrwxr-xr-x 6 hhtele hhtele 4096 Mar 14 13:10 ..\\n-rw-r--r-- 1 hhtele hhtele 5358 Feb 14 03:03 AGENTS.md\\n-rw-r--r-- 1 hhtele hhtele 1806 Feb 14 20:17 README.md\\ndrwxr-xr-x 4 hhtele hhtele 4096 Mar 14 12:52 apps\\n-rw-r--r-- 1 hhtele hhtele  671 Feb 14 03:03 package.json\\ndrwxr-xr-x 4 hhtele hhtele 4096 Mar 14 12:52 packages\", \"exit_code\": 0, \"error\": null}",
+      "tool_call_id": "Z9X0Kx9jiGtLpWUCXCAzLSvqpo4TZS4c"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning": null,
+      "finish_reason": "tool_calls",
+      "tool_calls": [
+        {
+          "id": "ZXl56Xeti6fcyltaCFF7d5EaYfRNuh7k",
+          "call_id": "ZXl56Xeti6fcyltaCFF7d5EaYfRNuh7k",
+          "response_item_id": "fc_ZXl56Xeti6fcyltaCFF7d5EaYfRNuh7k",
+          "type": "function",
+          "function": {
+            "name": "terminal",
+            "arguments": "{\"command\": \"find apps packages -type f -name \\\"*.ts\\\" | head -30\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "{\"output\": \"apps/game-runtime/src/runtime/prompting.ts\\napps/game-runtime/src/runtime/stateStore.ts\\napps/game-runtime/src/runtime/contentStore.ts\\napps/game-runtime/src/runtime/replay.ts\\napps/game-runtime/src/runtime/GameRuntimeServer.ts\\napps/game-runtime/src/runtime/config.ts\\napps/game-runtime/src/codex/CodexAppServerClient.ts\\npackages/protocol/src/actions.ts\\npackages/protocol/src/build.ts\\npackages/protocol/src/messages.ts\\npackages/simulation/src/simulation.ts\\npackages/simulation/src/world.ts\\npackages/simulation/src/snapshot.ts\", \"exit_code\": 0, \"error\": null}",
+      "tool_call_id": "ZXl56Xeti6fcyltaCFF7d5EaYfRNuh7k"
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "reasoning": null,
+      "finish_reason": "tool_calls",
+      "tool_calls": [
+        {
+          "id": "xBLiV9GOWtjN9ougFMKeiFIjdDQPnhOz",
+          "call_id": "xBLiV9GOWtjN9ougFMKeiFIjdDQPnhOz",
+          "response_item_id": "fc_xBLiV9GOWtjN9ougFMKeiFIjdDQPnhOz",
+          "type": "function",
+          "function": {
+            "name": "terminal",
+            "arguments": "{\"command\": \"find apps/game-client -type f -name \\\"*.tsx\\\" -o -name \\\"*.ts\\\" 2>/dev/null | head -10\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "{\"output\": \"apps/game-client/src/App.tsx\", \"exit_code\": 0, \"error\": null}",
+      "tool_call_id": "xBLiV9GOWtjN9ougFMKeiFIjdDQPnhOz"
+    },
+    {
+      "role": "assistant",
+      "content": "```json\n{\n  \"runtime_authority\": \"apps/game-runtime\",\n  \"runtime_entrypoint\": \"apps/game-runtime/src/runtime/GameRuntimeServer.ts\",\n  \"client_entrypoint\": \"apps/game-client/src/App.tsx\",\n  \"protocol_source\": \"packages/protocol/src/messages.ts\"\n}\n```",
+      "reasoning": null,
+      "finish_reason": "stop"
+    }
+  ]
+}

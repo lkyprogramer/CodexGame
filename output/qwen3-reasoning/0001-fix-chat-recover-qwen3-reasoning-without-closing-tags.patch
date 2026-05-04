@@ -1,0 +1,618 @@
+From 1a640aa075ddb348bce482c1b12a7ace4a71e5ef Mon Sep 17 00:00:00 2001
+From: "kaiyao.luo" <luokaiyao@hhtele.com>
+Date: Sun, 8 Mar 2026 01:23:33 +0800
+Subject: [PATCH] fix(chat): recover qwen3 reasoning without closing tags
+
+---
+ common/chat-auto-parser-generator.cpp           |   4 +
+ common/chat-auto-parser.h                       |   1 +
+ common/chat-diff-analyzer.cpp                   |   8 ++
+ common/chat.cpp                                 | 141 +++++++++++++++++++++-
+ common/chat.h                                   |   7 ++
+ tests/test-chat-auto-parser.cpp                 |  13 +-
+ tests/test-chat.cpp                             | 150 +++++++++++++++++++++---
+ tools/server/server-common.cpp                  |   1 +
+ tools/server/server-task.cpp                    |   6 +
+ tools/server/tests/unit/test_qwen3_reasoning.py |  63 ++++++++++
+ 10 files changed, 375 insertions(+), 19 deletions(-)
+ create mode 100644 tools/server/tests/unit/test_qwen3_reasoning.py
+
+diff --git a/common/chat-auto-parser-generator.cpp b/common/chat-auto-parser-generator.cpp
+index 01787cc..59e2321 100644
+--- a/common/chat-auto-parser-generator.cpp
++++ b/common/chat-auto-parser-generator.cpp
+@@ -50,6 +50,10 @@ common_chat_params peg_generator::generate_parser(const common_chat_template &
+     // Build grammar if tools are present
+     bool has_tools =
+         autoparser.tools.format.mode != tool_format::NONE && inputs.tools.is_array() && !inputs.tools.empty();
++    bool has_response_format = inputs.json_schema.is_object() && !inputs.json_schema.empty();
++    data.qwen3_reasoning_fallback =
++        autoparser.qwen3_reasoning_fallback && !has_tools && !has_response_format &&
++        inputs.reasoning_format != COMMON_REASONING_FORMAT_NONE && inputs.enable_thinking;
+     std::string trigger_marker = !autoparser.tools.format.section_start.empty() ? autoparser.tools.format.section_start :
+                                                                                 autoparser.tools.format.per_call_start;
+     bool        include_grammar =
+diff --git a/common/chat-auto-parser.h b/common/chat-auto-parser.h
+index 52c6488..de61ee7 100644
+--- a/common/chat-auto-parser.h
++++ b/common/chat-auto-parser.h
+@@ -370,6 +370,7 @@ struct autoparser {
+     analyze_reasoning    reasoning;
+     analyze_content      content;
+     analyze_tools        tools;
++    bool                 qwen3_reasoning_fallback = false;
+     bool                 analysis_complete = false;
+ 
+     // Preserved tokens for tokenizer (union of all non-empty markers)
+diff --git a/common/chat-diff-analyzer.cpp b/common/chat-diff-analyzer.cpp
+index 4068340..2a2c65b 100644
+--- a/common/chat-diff-analyzer.cpp
++++ b/common/chat-diff-analyzer.cpp
+@@ -40,6 +40,13 @@ static std::vector<std::function<void(const common_chat_template & tmpl, autopar
+               LOG_DBG(ANSI_ORANGE "[Patch: old Qwen/Deepseek thinking template]\n" ANSI_RESET);
+           }
+       },
++      [](const common_chat_template & tmpl, autoparser & analysis) -> void {
++          if (tmpl.src.find("message.content.split('</think>')") != std::string::npos &&
++              tmpl.src.find("enable_thinking is defined and enable_thinking is false") != std::string::npos) {
++              analysis.qwen3_reasoning_fallback = true;
++              LOG_DBG(ANSI_ORANGE "[Patch: Qwen3 reasoning fallback]\n" ANSI_RESET);
++          }
++      },
+       // Granite 3.3, with separate reasoning and content markers
+       [](const common_chat_template & tmpl, autoparser & analysis) -> void {
+           if (tmpl.src.find("Write your thoughts between <think></think> and write your response between "
+@@ -170,6 +177,7 @@ void autoparser::analyze_template(const common_chat_template & tmpl) {
+     LOG_DBG("reasoning_mode: %s\n", mode_to_str(reasoning.mode).c_str());
+     LOG_DBG("reasoning_start: '%s'\n", reasoning.start.c_str());
+     LOG_DBG("reasoning_end: '%s'\n", reasoning.end.c_str());
++    LOG_DBG("qwen3_reasoning_fallback: %s\n", qwen3_reasoning_fallback ? "true" : "false");
+     LOG_DBG("content_mode: %s\n", mode_to_str(content.mode).c_str());
+     LOG_DBG("content_start: '%s'\n", content.start.c_str());
+     LOG_DBG("content_end: '%s'\n", content.end.c_str());
+diff --git a/common/chat.cpp b/common/chat.cpp
+index 81c2343..6dab26b 100644
+--- a/common/chat.cpp
++++ b/common/chat.cpp
+@@ -66,6 +66,135 @@ static bool has_content_or_tool_calls(const common_chat_msg & msg) {
+     return !msg.content.empty() || !msg.tool_calls.empty();
+ }
+ 
++static std::string trim_left_chars(const std::string & input, const char * chars) {
++    const auto pos = input.find_first_not_of(chars);
++    return pos == std::string::npos ? "" : input.substr(pos);
++}
++
++static std::string trim_right_chars(const std::string & input, const char * chars) {
++    const auto pos = input.find_last_not_of(chars);
++    return pos == std::string::npos ? "" : input.substr(0, pos + 1);
++}
++
++static size_t find_first_of(const std::string & input, const std::vector<std::string> & needles) {
++    size_t found = std::string::npos;
++    for (const auto & needle : needles) {
++        const auto pos = input.find(needle);
++        if (pos == std::string::npos) {
++            continue;
++        }
++        found = found == std::string::npos ? pos : std::min(found, pos);
++    }
++    return found;
++}
++
++static size_t find_qwen3_inferred_content_boundary(const std::string & input) {
++    static const std::vector<std::string> answer_markers = {
++        "\n# ",
++        "\n## ",
++        "\n### ",
++        "\nFinal Answer",
++        "\n**Final Answer",
++        "\nRecommended Fix",
++        "\n## Recommendation",
++        "\n## Recommended Fix",
++        "\nThe smallest production-safe fix",
++        "\nThe minimal fix",
++        "\nHere is the minimal fix",
++        "\nHere is a concise",
++    };
++
++    return find_first_of(input, answer_markers);
++}
++
++static bool looks_like_qwen3_reasoning_only(const std::string & input) {
++    static const std::vector<std::string> reasoning_prefixes = {
++        "Thinking Process:",
++        "Here's a thinking process",
++        "The user wants me to ",
++        "I need to ",
++        "1.  **Analyze the Request:**",
++        "1. **Analyze the Request:**",
++    };
++
++    for (const auto & prefix : reasoning_prefixes) {
++        if (string_starts_with(input, prefix)) {
++            return true;
++        }
++    }
++
++    if (input.find("\n1.  **Analyze the Request:**") != std::string::npos &&
++        input.find("\n2.  **") != std::string::npos) {
++        return true;
++    }
++
++    return false;
++}
++
++static bool should_try_qwen3_reasoning_fallback(const std::string & input,
++                                                const common_chat_parser_params & params) {
++    if (params.reasoning_format == COMMON_REASONING_FORMAT_NONE) {
++        return false;
++    }
++
++    return params.qwen3_reasoning_fallback ||
++           input.find("</think>") != std::string::npos ||
++           find_qwen3_inferred_content_boundary(input) != std::string::npos ||
++           looks_like_qwen3_reasoning_only(input);
++}
++
++static common_chat_msg common_chat_parse_qwen3_reasoning_fallback(const std::string &               input,
++                                                                  bool                              is_partial,
++                                                                  const common_chat_parser_params & params) {
++    static constexpr std::string_view close_tag = "</think>";
++    static constexpr std::string_view open_tag  = "<think>";
++
++    common_chat_msg msg;
++    msg.role = "assistant";
++
++    const auto first_close = input.find(close_tag);
++    if (first_close == std::string::npos) {
++        if (is_partial || params.streaming) {
++            msg.reasoning_content = input;
++            return msg;
++        }
++
++        const auto inferred_boundary = find_qwen3_inferred_content_boundary(input);
++        if (inferred_boundary != std::string::npos) {
++            msg.reasoning_content = trim_right_chars(input.substr(0, inferred_boundary), "\r\n");
++            msg.content           = trim_left_chars(input.substr(inferred_boundary), "\r\n");
++            return msg;
++        }
++
++        if (looks_like_qwen3_reasoning_only(input)) {
++            msg.reasoning_content = input;
++            return msg;
++        }
++
++        msg.content = input;
++        return msg;
++    }
++
++    const auto last_close = input.rfind(close_tag);
++
++    std::string reasoning = input.substr(0, first_close);
++    std::string content   = input.substr(last_close + close_tag.size());
++
++    if (!is_partial && !params.streaming) {
++        const auto last_open = reasoning.rfind(open_tag);
++        if (last_open != std::string::npos) {
++            reasoning = reasoning.substr(last_open + open_tag.size());
++        }
++        reasoning = trim_left_chars(reasoning, "\r\n");
++        reasoning = trim_right_chars(reasoning, "\r\n");
++        content   = trim_left_chars(content, "\r\n");
++    }
++
++    msg.reasoning_content = reasoning;
++    msg.content           = content;
++    return msg;
++}
++
+ json common_chat_msg::to_json_oaicompat(bool concat_typed_text) const {
+     if (!content.empty() && !content_parts.empty()) {
+         throw std::runtime_error("Cannot specify both content and content_parts");
+@@ -1508,7 +1637,16 @@ common_chat_params common_chat_templates_apply(const struct common_chat_template
+ common_chat_msg common_chat_parse(const std::string &               input,
+                                   bool                              is_partial,
+                                   const common_chat_parser_params & params) {
+-    return common_chat_peg_parse(params.parser, input, is_partial, params);
++    try {
++        return common_chat_peg_parse(params.parser, input, is_partial, params);
++    } catch (const std::runtime_error & e) {
++        if (string_starts_with(e.what(), "Failed to parse input at pos ") &&
++            should_try_qwen3_reasoning_fallback(input, params)) {
++            LOG_DBG("%s: falling back to reasoning split after parse failure: %s\n", __func__, e.what());
++            return common_chat_parse_qwen3_reasoning_fallback(input, is_partial, params);
++        }
++        throw;
++    }
+ }
+ 
+ common_chat_msg common_chat_peg_parse(const common_peg_arena &          src_parser,
+@@ -1571,4 +1709,3 @@ std::map<std::string, bool> common_chat_templates_get_caps(const common_chat_tem
+     GGML_ASSERT(chat_templates->template_default != nullptr);
+     return chat_templates->template_default->caps.to_map();
+ }
+-
+diff --git a/common/chat.h b/common/chat.h
+index 005cc5c..af9cf84 100644
+--- a/common/chat.h
++++ b/common/chat.h
+@@ -212,6 +212,7 @@ struct common_chat_params {
+     std::string                         grammar;
+     bool                                grammar_lazy         = false;
+     bool                                thinking_forced_open = false;
++    bool                                qwen3_reasoning_fallback = false;
+     bool                                supports_thinking    = false;
+     std::vector<common_grammar_trigger> grammar_triggers;
+     std::vector<std::string>            preserved_tokens;
+@@ -226,7 +227,9 @@ struct common_chat_parser_params {
+     common_reasoning_format reasoning_format     = COMMON_REASONING_FORMAT_NONE; // TODO: refactor this to "bool parse_reasoning"
+     // Whether reasoning_content should be inlined in the content (e.g. for reasoning_format=deepseek in stream mode)
+     bool                    reasoning_in_content = false;
++    bool                    streaming            = false;
+     bool                    thinking_forced_open = false;
++    bool                    qwen3_reasoning_fallback = false;
+     bool                    parse_tool_calls     = true;
+     bool                    debug                = false;  // Enable debug output for PEG parser
+     common_peg_arena        parser               = {};
+@@ -234,6 +237,10 @@ struct common_chat_parser_params {
+     common_chat_parser_params(const common_chat_params & chat_params) {
+         format               = chat_params.format;
+         thinking_forced_open = chat_params.thinking_forced_open;
++        qwen3_reasoning_fallback = chat_params.qwen3_reasoning_fallback;
++        if (!chat_params.parser.empty()) {
++            parser.load(chat_params.parser);
++        }
+     }
+ };
+ 
+diff --git a/tests/test-chat-auto-parser.cpp b/tests/test-chat-auto-parser.cpp
+index f236486..e8f6cc3 100644
+--- a/tests/test-chat-auto-parser.cpp
++++ b/tests/test-chat-auto-parser.cpp
+@@ -60,6 +60,7 @@ static void test_nemotron_tool_format(testing & t);
+ // CohereForAI template analysis tests
+ static void test_cohere_reasoning_detection(testing & t);
+ static void test_cohere_analysis(testing & t);
++static void test_qwen3_reasoning_fallback_detection(testing & t);
+ 
+ // Marker separation
+ static void test_marker_separation(testing & t);
+@@ -94,6 +95,7 @@ int main(int argc, char * argv[]) {
+     t.test("segments", test_marker_separation);
+     t.test("seed_oss_diffs", test_seed_oss_tool_analysis);
+     t.test("cohere", test_cohere_analysis);
++    t.test("qwen3_reasoning_fallback", test_qwen3_reasoning_fallback_detection);
+     t.test("nemotron", test_nemotron_analysis);
+     t.test("standard_json_tools", test_standard_json_tools_formats);
+     t.test("normalize_quotes_to_json", test_normalize_quotes_to_json);
+@@ -1340,6 +1342,16 @@ static common_chat_template load_cohere_template(testing & t) {
+     return load_template(t, "models/templates/CohereForAI-c4ai-command-r7b-12-2024-tool_use.jinja");
+ }
+ 
++static void test_qwen3_reasoning_fallback_detection(testing & t) {
++    common_chat_template tmpl = load_template(t, "models/templates/Qwen-Qwen3-0.6B.jinja");
++
++    struct autoparser analysis;
++    analysis.analyze_template(tmpl);
++
++    t.assert_true("Qwen3 template should enable qwen3 reasoning fallback", analysis.qwen3_reasoning_fallback);
++    t.assert_true("Qwen3 template should expose reasoning markers", analysis.reasoning.mode != reasoning_mode::NONE);
++}
++
+ static void test_cohere_analysis(testing & t) {
+     t.test("Cohere reasoning detection", test_cohere_reasoning_detection);
+ }
+@@ -1886,4 +1898,3 @@ static void test_tagged_args_with_embedded_quotes(testing & t) {
+         }
+     }
+ }
+-
+diff --git a/tests/test-chat.cpp b/tests/test-chat.cpp
+index 0bd95af..e5eda38 100644
+--- a/tests/test-chat.cpp
++++ b/tests/test-chat.cpp
+@@ -874,12 +874,6 @@ static void test_templates(const struct common_chat_templates *  tmpls,
+     user_message.role    = "user";
+     user_message.content = "Hello, world!";
+ 
+-    common_chat_templates_inputs inputs_tools;
+-    inputs_tools.messages = { message_user };
+-    inputs_tools.tools    = { special_function_tool };
+-
+-    common_chat_params params = common_chat_templates_apply(tmpls, inputs_tools);
+-
+     for (const auto & tool_choice :
+          std::vector<common_chat_tool_choice>{ COMMON_CHAT_TOOL_CHOICE_AUTO, COMMON_CHAT_TOOL_CHOICE_REQUIRED }) {
+         auto data = init_delta(tmpls, end_tokens, user_message, test_message, tools, tool_choice);
+@@ -893,13 +887,8 @@ static void test_templates(const struct common_chat_templates *  tmpls,
+ 
+         if (expect_grammar_triggered) {
+             // TODO @ngxson : refactor common_chat_parse to avoid passing format/reasoning_format every time
+-            common_chat_parser_params parser_params;
+-            parser_params.format           = data.params.format;
++            common_chat_parser_params parser_params(data.params);
+             parser_params.reasoning_format = reasoning_format;
+-            if (!parser_params.parser.empty()) {
+-                parser_params.parser = common_peg_arena();
+-                parser_params.parser.load(params.parser);
+-            }
+             const auto msg = common_chat_parse(data.delta, /* is_partial= */ false, parser_params);
+             assert_msg_equals(test_message, msg, ignore_whitespace_differences);
+         }
+@@ -1052,6 +1041,132 @@ static void test_parser_with_streaming(const common_chat_msg & expected, const s
+     assert_msg_equals(expected, merged, true);
+ }
+ 
++static void test_qwen3_reasoning_fallback(bool detailed_debug) {
++    static const std::string explicit_close = R"(Thinking Process:
++
++1.  **Analyze the Request:** The user is asking a simple arithmetic question: "What is 2+2?"
++
++2.  **Identify the Core Task:** Perform the addition of 2 and 2.
++
++3.  **Calculate:** 2 + 2 = 4.
++
++4.  **Formulate the Output:** State the answer clearly and concisely.
++
++5.  **Review:** Is there any trick or context? No, it's a straightforward math question.
++
++6.  **Final Answer:** 4.cw
++</think>
++
++2 + 2 equals **4**.)";
++
++    static const std::string missing_close = R"(Here's a thinking process that leads to the suggested fix:
++
++1.  **Analyze the Request:**
++    *   **Input:** A Java method snippet: `public String url(Config c){return c.getDb().getUrl();}`
++    *   **Task:** Review the method and provide the *smallest production-safe null handling fix*.
++    *   **Constraints:** "Smallest" (minimal code change), "Production-safe" (handles potential `NullPointerException`s gracefully or explicitly), "Null handling" (focus on null checks).
++
++2.  **Analyze the Code:**
++    *   `public String url(Config c)`: Takes a `Config` object.
++    *   `return c.getDb().getUrl();`: Chains method calls.
++    *   **Potential Null Points:**
++        1.  `c` itself could be `null`.
++        2.  `c.getDb()` could return `null`.
++        3.  `c.getDb().getUrl()` could return `null` (though this is usually acceptable for a `String` return type, unless the contract says otherwise).
++
++3.  **Evaluate "Production-Safe":**
++    *   In production, throwing a)";
++
++    static const std::string missing_close_with_answer = R"(The user wants me to review this Java method and provide the smallest production-safe null handling fix.
++
++I should first identify the null risks:
++1. `c` may be null.
++2. `c.getDb()` may be null.
++
++# Smallest Production-Safe Null Handling Fix
++
++```java
++public String url(Config c) {
++    return c != null && c.getDb() != null ? c.getDb().getUrl() : null;
++}
++```)";
++
++    auto tmpls = read_templates("models/templates/Qwen-Qwen3-0.6B.jinja");
++
++    common_chat_templates_inputs inputs;
++    inputs.messages              = { message_user };
++    inputs.add_generation_prompt = true;
++    inputs.enable_thinking       = true;
++    inputs.reasoning_format      = COMMON_REASONING_FORMAT_AUTO;
++
++    const auto params = common_chat_templates_apply(tmpls.get(), inputs);
++    assert_equals(true, params.qwen3_reasoning_fallback);
++
++    common_chat_parser_params parser_params(params);
++    parser_params.reasoning_format = COMMON_REASONING_FORMAT_AUTO;
++    parser_params.debug            = detailed_debug;
++    parser_params.parse_tool_calls = false;
++
++    const auto explicit_msg   = common_chat_parse(explicit_close, /* is_partial= */ false, parser_params);
++
++    common_chat_msg explicit_expected;
++    explicit_expected.role = "assistant";
++    explicit_expected.reasoning_content =
++        "Thinking Process:\n\n"
++        "1.  **Analyze the Request:** The user is asking a simple arithmetic question: \"What is 2+2?\"\n\n"
++        "2.  **Identify the Core Task:** Perform the addition of 2 and 2.\n\n"
++        "3.  **Calculate:** 2 + 2 = 4.\n\n"
++        "4.  **Formulate the Output:** State the answer clearly and concisely.\n\n"
++        "5.  **Review:** Is there any trick or context? No, it's a straightforward math question.\n\n"
++        "6.  **Final Answer:** 4.cw";
++    explicit_expected.content = "2 + 2 equals **4**.";
++    assert_msg_equals(explicit_expected, explicit_msg, /* ignore_whitespace_differences= */ true);
++
++    const auto non_stream_msg = common_chat_parse(missing_close, /* is_partial= */ false, parser_params);
++    common_chat_msg non_stream_expected;
++    non_stream_expected.role              = "assistant";
++    non_stream_expected.reasoning_content = missing_close;
++    assert_msg_equals(non_stream_expected, non_stream_msg, /* ignore_whitespace_differences= */ false);
++
++    const auto split_msg = common_chat_parse(missing_close_with_answer, /* is_partial= */ false, parser_params);
++    common_chat_msg split_expected;
++    split_expected.role = "assistant";
++    split_expected.reasoning_content =
++        "The user wants me to review this Java method and provide the smallest production-safe null handling fix.\n\n"
++        "I should first identify the null risks:\n"
++        "1. `c` may be null.\n"
++        "2. `c.getDb()` may be null.";
++    split_expected.content =
++        "# Smallest Production-Safe Null Handling Fix\n\n"
++        "```java\n"
++        "public String url(Config c) {\n"
++        "    return c != null && c.getDb() != null ? c.getDb().getUrl() : null;\n"
++        "}\n"
++        "```";
++    assert_msg_equals(split_expected, split_msg, /* ignore_whitespace_differences= */ false);
++
++    auto streaming_params = parser_params;
++    streaming_params.streaming = true;
++
++    const auto streaming_msg = common_chat_parse(missing_close, /* is_partial= */ false, streaming_params);
++    common_chat_msg streaming_expected;
++    streaming_expected.role              = "assistant";
++    streaming_expected.reasoning_content = missing_close;
++    assert_msg_equals(streaming_expected, streaming_msg, /* ignore_whitespace_differences= */ false);
++
++    const auto partial_input = missing_close.substr(0, std::min<size_t>(missing_close.size(), 240));
++    const auto partial_msg   = common_chat_parse(partial_input, /* is_partial= */ true, streaming_params);
++    auto diffs = common_chat_msg_diff::compute_diffs(partial_msg, streaming_msg);
++
++    common_chat_msg merged = partial_msg;
++    for (const auto & diff : diffs) {
++        merged.reasoning_content += diff.reasoning_content_delta;
++        merged.content += diff.content_delta;
++    }
++
++    assert_msg_equals(streaming_msg, merged, /* ignore_whitespace_differences= */ false);
++}
++
+ // Use for PEG parser implementations
+ struct peg_test_case {
+     common_chat_templates_inputs params;
+@@ -1074,10 +1189,10 @@ struct make_peg_parser {
+     }
+ 
+     common_chat_msg parse(const std::string & msg, bool is_partial) const {
+-        common_chat_parser_params parser_params;
+-        parser_params.format = params_.format;
+-        parser_params.debug = detailed_debug_;
+-        return common_chat_peg_parse(arena_, msg, is_partial, parser_params);
++        common_chat_parser_params parser_params(params_);
++        parser_params.debug  = detailed_debug_;
++        parser_params.parser = arena_;
++        return common_chat_parse(msg, is_partial, parser_params);
+     }
+ };
+ 
+@@ -1738,6 +1853,9 @@ static void test_template_output_peg_parsers(bool detailed_debug) {
+ 
+         tst.test("Hello, world!").expect(simple_assist_msg("Hello, world!")).run();
+     }
++
++    test_qwen3_reasoning_fallback(detailed_debug);
++
+     {
+         // NousResearch-Hermes-2-Pro and Hermes-3 (tool calling models)
+         auto tst = peg_tester("models/templates/NousResearch-Hermes-2-Pro-Llama-3-8B-tool_use.jinja", detailed_debug);
+diff --git a/tools/server/server-common.cpp b/tools/server/server-common.cpp
+index 13ea8c6..d7ebd10 100644
+--- a/tools/server/server-common.cpp
++++ b/tools/server/server-common.cpp
+@@ -1094,6 +1094,7 @@ json oaicompat_chat_params_parse(
+     llama_params["grammar_triggers"] = grammar_triggers;
+     llama_params["preserved_tokens"] = chat_params.preserved_tokens;
+     llama_params["thinking_forced_open"]     = chat_params.thinking_forced_open;
++    llama_params["qwen3_reasoning_fallback"] = chat_params.qwen3_reasoning_fallback;
+     for (const auto & stop : chat_params.additional_stops) {
+         llama_params["stop"].push_back(stop);
+     }
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+index 32c0d8f..130b6ab 100644
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -72,7 +72,9 @@ json task_params::to_json(bool only_metrics) const {
+             {"chat_format",               common_chat_format_name(chat_parser_params.format)},
+             {"reasoning_format",          common_reasoning_format_name(chat_parser_params.reasoning_format)},
+             {"reasoning_in_content",      chat_parser_params.reasoning_in_content},
++            {"streaming",                 chat_parser_params.streaming},
+             {"thinking_forced_open",      chat_parser_params.thinking_forced_open},
++            {"qwen3_reasoning_fallback",  chat_parser_params.qwen3_reasoning_fallback},
+             {"samplers",                  samplers},
+             {"speculative.n_max",         speculative.n_max},
+             {"speculative.n_min",         speculative.n_min},
+@@ -135,7 +137,9 @@ json task_params::to_json(bool only_metrics) const {
+         {"chat_format",               common_chat_format_name(chat_parser_params.format)},
+         {"reasoning_format",          common_reasoning_format_name(chat_parser_params.reasoning_format)},
+         {"reasoning_in_content",      chat_parser_params.reasoning_in_content},
++        {"streaming",                 chat_parser_params.streaming},
+         {"thinking_forced_open",      chat_parser_params.thinking_forced_open},
++        {"qwen3_reasoning_fallback",  chat_parser_params.qwen3_reasoning_fallback},
+         {"samplers",                  samplers},
+         {"speculative.n_max",         speculative.n_max},
+         {"speculative.n_min",         speculative.n_min},
+@@ -402,7 +406,9 @@ task_params server_task::params_from_json_cmpl(
+         }
+         params.chat_parser_params.reasoning_format = reasoning_format;
+         params.chat_parser_params.reasoning_in_content = params.stream && (reasoning_format == COMMON_REASONING_FORMAT_DEEPSEEK_LEGACY);
++        params.chat_parser_params.streaming = params.stream;
+         params.chat_parser_params.thinking_forced_open = json_value(data, "thinking_forced_open", false);
++        params.chat_parser_params.qwen3_reasoning_fallback = json_value(data, "qwen3_reasoning_fallback", false);
+         params.chat_parser_params.parse_tool_calls = json_value(data, "parse_tool_calls", false);
+         if (data.contains("chat_parser")) {
+             params.chat_parser_params.parser.load(data.at("chat_parser").get<std::string>());
+diff --git a/tools/server/tests/unit/test_qwen3_reasoning.py b/tools/server/tests/unit/test_qwen3_reasoning.py
+new file mode 100644
+index 0000000..90d1130
+--- /dev/null
++++ b/tools/server/tests/unit/test_qwen3_reasoning.py
+@@ -0,0 +1,63 @@
++#!/usr/bin/env python
++import os
++from pathlib import Path
++import sys
++
++import pytest
++
++path = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(path))
++
++from utils import ServerPreset
++
++server = None
++
++
++@pytest.fixture(autouse=True)
++def create_server():
++    global server
++    model_file = os.getenv("LLAMA_QWEN3_REASONING_MODEL_FILE", "").strip()
++    if not model_file:
++        pytest.skip("LLAMA_QWEN3_REASONING_MODEL_FILE is not configured")
++
++    server = ServerPreset.tinyllama2()
++    server.model_hf_repo = None
++    server.model_hf_file = None
++    server.model_file = model_file
++    server.model_alias = os.getenv("LLAMA_QWEN3_REASONING_MODEL_ALIAS", "qwen3-reasoning")
++    server.server_port = int(os.getenv("LLAMA_QWEN3_REASONING_PORT", "8082"))
++    server.n_slots = 1
++    server.n_ctx = int(os.getenv("LLAMA_QWEN3_REASONING_CTX", "16384"))
++    server.n_predict = 512
++    server.jinja = True
++    server.chat_template_file = "../../../models/templates/Qwen-Qwen3-0.6B.jinja"
++    server.reasoning_format = "deepseek"
++    server.start(timeout_seconds=15 * 60)
++
++
++@pytest.mark.slow
++@pytest.mark.parametrize("stream", [False, True])
++def test_qwen3_reasoning_coding_request_does_not_500(stream: bool):
++    global server
++    response = server.make_any_request("POST", "/v1/chat/completions", data={
++        "model": server.model_alias,
++        "stream": stream,
++        "max_tokens": 256,
++        "temperature": 0.6,
++        "top_k": 20,
++        "top_p": 0.95,
++        "messages": [
++            {
++                "role": "user",
++                "content": "Review this Java method and provide the smallest production-safe null handling fix: public String url(Config c){return c.getDb().getUrl();}",
++            }
++        ],
++        "chat_template_kwargs": {
++            "enable_thinking": True,
++        },
++    })
++
++    choice = response["choices"][0]
++    message = choice["message"]
++    assert message.get("tool_calls") in (None, []), message
++    assert message.get("content") or message.get("reasoning_content"), message
+-- 
+2.3.1
+

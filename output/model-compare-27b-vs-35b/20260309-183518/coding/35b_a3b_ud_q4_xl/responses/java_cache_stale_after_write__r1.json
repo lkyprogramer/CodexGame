@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 5715.646458906122,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\nThe bug is a **cache consistency violation** in `ProfileService.updateDisplayName`.\n\n1.  **Write Path**: The method updates the database via `profileRepository.save(profile)` but **does not interact with the cache**.\n2.  **Read Path**: The `get` method checks `profileCache` first. If the entry exists (which it does after the initial load), it returns the stale data from the cache, ignoring the database update.\n3.  **Result**: Subsequent reads return the old `displayName` until the cache entry naturally expires or is manually evicted, violating the \"write-through\" or \"cache-aside\" consistency contract.\n\n### Proposed Fix\nThe smallest safe fix is to **invalidate the cache entry** immediately after persisting the update. This ensures the next read misses the cache, fetches the fresh data from the DB, and repopulates the cache.\n\n**File to Change:** `src/main/java/com/example/profile/ProfileService.java`\n\n**Diff:**\n```java\n    public void updateDisplayName(long profileId, String displayName) {\n        Profile profile = profileRepository.require(profileId);\n        profile.setDisplayName(displayName);\n        profileRepository.save(profile);\n        // FIX: Invalidate cache to prevent stale reads\n        profileCache.evict(profileId);\n    }\n```\n\n### Regression Checks\n1.  **Write-Read Consistency**:\n    *   Call `updateDisplayName` for a known profile.\n    *   Immediately call `get` for the same profile.\n    *   **Assert**: The returned `displayName` matches the updated value.\n2.  **Cache Miss Behavior**:\n    *   Ensure `updateDisplayName` does not throw exceptions if the cache entry does not exist (the `evict` method should be idempotent or handle missing keys gracefully).\n3.  **Concurrency**:\n    *   If multiple threads update the same profile, ensure the DB transaction isolation combined with the cache eviction prevents race conditions where a stale value is written back to the cache (though the current logic writes to cache only on read miss, so the primary risk is just stale reads, which this fix resolves)."
+        }
+      }
+    ],
+    "created": 1773053826,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 456,
+      "prompt_tokens": 464,
+      "total_tokens": 920
+    },
+    "id": "chatcmpl-ok6Tv2rwqHQDYgKn9xJvYBITJB272m2i",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 464,
+      "prompt_ms": 104.248,
+      "prompt_per_token_ms": 0.22467241379310346,
+      "prompt_per_second": 4450.924717980201,
+      "predicted_n": 456,
+      "predicted_ms": 3323.169,
+      "predicted_per_token_ms": 7.287651315789473,
+      "predicted_per_second": 137.21842012849783
+    }
+  }
+}

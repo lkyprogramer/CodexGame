@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_metrics_contract",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 6566.235749982297,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Move metrics from world_snapshot payload to session_state runtime payload so that metrics travel through session state instead of ad-hoc world state.\",\n  \"files\": [\n    {\n      \"path\": \"runtime/server.py\",\n      \"content\": \"from __future__ import annotations\\n\\nfrom protocol.messages import make_session_state, make_world_snapshot\\n\\n\\ndef emit_state(phase: str, metrics_snapshot: dict) -> tuple[dict, dict]:\\n    session_state = make_session_state(\\n        phase,\\n        {\\n            \\\"model\\\": \\\"local-qwen\\\",\\n            \\\"tick_ms\\\": 200,\\n            \\\"metrics\\\": metrics_snapshot,\\n        },\\n    )\\n    world_snapshot = make_world_snapshot(10, {\\\"tiles\\\": []})\\n    return session_state, world_snapshot\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1776918119,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 190,
+      "prompt_tokens": 917,
+      "total_tokens": 1107
+    },
+    "id": "chatcmpl-jXUDCoi1ywHclZ71IpBt37DhMdSToodW",
+    "timings": {
+      "cache_n": 405,
+      "prompt_n": 512,
+      "prompt_ms": 244.115,
+      "prompt_per_token_ms": 0.476787109375,
+      "prompt_per_second": 2097.3721401798334,
+      "predicted_n": 190,
+      "predicted_ms": 4883.983,
+      "predicted_per_token_ms": 25.70517368421053,
+      "predicted_per_second": 38.902674313157924
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/server.py"
+  ],
+  "json_error": ""
+}

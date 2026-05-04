@@ -1,0 +1,19 @@
+{
+  "task_id": "java_pagination_boundary",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_pagination_boundary\nScenario: Pagination code has an index boundary bug and unstable empty-page behavior.\n\nInstructions:\nFind the concrete correctness bug in this pagination flow and propose the smallest patch. Be explicit about what happens on the last page and on out-of-range requests.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/user/UserQueryService.java ===\npackage com.example.user;\n\nimport java.util.List;\n\npublic class UserQueryService {\n    private final UserRepository userRepository;\n\n    public UserQueryService(UserRepository userRepository) {\n        this.userRepository = userRepository;\n    }\n\n    public List<User> list(int page, int size) {\n        int offset = page * size;\n        return userRepository.findRange(offset, offset + size);\n    }\n}\n\n=== File: src/main/java/com/example/user/UserRepository.java ===\npackage com.example.user;\n\nimport java.util.List;\n\npublic interface UserRepository {\n    List<User> findRange(int startInclusive, int endInclusive);\n}\n\n=== File: src/main/java/com/example/user/InMemoryUserRepository.java ===\npackage com.example.user;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class InMemoryUserRepository implements UserRepository {\n    private final List<User> users = new ArrayList<>();\n\n    @Override\n    public List<User> findRange(int startInclusive, int endInclusive) {\n        return users.subList(startInclusive, endInclusive);\n    }\n}\n"
+      }
+    ],
+    "max_tokens": 900,
+    "stream": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 33840.07766604191,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'll implement an atomic deployment script that follows the requirements and constraints precisely.\n\n## Design\n\n1. **Atomic swap**: Create a new symlink atomically using `ln -sfn` (no intermediate broken state).\n2. **Health check**: Poll `/healthz` with retries after the swap.\n3. **Rollback**: If health check fails, restore the previous symlink target.\n4. **Safety**: `set -euo pipefail`, validate preconditions, log everything, never delete the old release until success.\n\n## Script\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# ── Configuration ──────────────────────────────────────────────────────────\nRELEASES_DIR=\"/srv/myapp/releases\"\nCURRENT_LINK=\"/srv/myapp/current\"\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nDEPLOY_LOG=\"/srv/myapp/deploy.log\"\nHEALTH_RETRIES=10\nHEALTH_INTERVAL=3  # seconds between retries\n\n# ── Helpers ────────────────────────────────────────────────────────────────\nlog() {\n    local msg\n    msg=\"$(date '+%Y-%m-%d %H:%M:%S') $*\"\n    echo \"$msg\" | tee -a \"$DEPLOY_LOG\"\n}\n\ndie() {\n    log \"ERROR: $*\"\n    exit 1\n}\n\n# ── Pre-flight checks ─────────────────────────────────────────────────────\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    die \"Current symlink $CURRENT_LINK is missing or not a symlink. Aborting.\"\nfi\n\nPREVIOUS_RELEASE=\"$(readlink -f \"$CURRENT_LINK\")\"\nif [[ ! -d \"$PREVIOUS_RELEASE\" ]]; then\n    die \"Previous release directory $PREVIOUS_RELEASE does not exist. Aborting.\"\nfi\n\n# Determine the new release directory.\n# Accept as argument or pick the latest timestamped directory.\nNEW_RELEASE=\"${1:-}\"\nif [[ -z \"$NEW_RELEASE\" ]]; then\n    # Pick the most recent release directory (lexicographic sort on timestamps)\n    NEW_RELEASE=\"$(ls -1d \"$RELEASES_DIR\"/*/ 2>/dev/null | sort | tail -n1)\"\n    if [[ -z \"$NEW_RELEASE\" ]]; then\n        die \"No release directories found under $RELEASES_DIR. Aborting.\"\n    fi\n    # Strip trailing slash for consistency\n    NEW_RELEASE=\"${NEW_RELEASE%/}\"\nfi\n\nif [[ ! -d \"$NEW_RELEASE\" ]]; then\n    die \"New release directory $NEW_RELEASE does not exist. Aborting.\"\nfi\n\nif [[ \"$NEW_RELEASE\" == \"$PREVIOUS_RELEASE\" ]]; then\n    die \"New release $NEW_RELEASE is the same as current release. Nothing to do.\"\nfi\n\n# ── Deploy ─────────────────────────────────────────────────────────────────\nlog \"Starting deploy: $PREVIOUS_RELEASE -> $NEW_RELEASE\"\n\n# Atomic symlink swap\nln -sfn \"$NEW_RELEASE\" \"$CURRENT_LINK\"\nlog \"Symlink updated: $CURRENT_LINK -> $NEW_RELEASE\"\n\n# ── Health check ───────────────────────────────────────────────────────────\nlog \"Running health checks against $HEALTH_URL\"\nHEALTH_OK=false\nfor i in $(seq 1 \"$HEALTH_RETRIES\"); do\n    if curl -sf --max-time 5 \"$HEALTH_URL\" >/dev/null 2>&1; then\n        HEALTH_OK=true\n        break\n    fi\n    log \"Health check attempt $i/$HEALTH_RETRIES failed. Retrying in ${HEALTH_INTERVAL}s...\"\n    sleep \"$HEALTH_INTERVAL\"\ndone\n\nif [[ \"$HEALTH_OK\" == true ]]; then\n    log \"Health check passed. Deploy successful.\"\n    exit 0\nfi\n\n# ── Rollback ───────────────────────────────────────────────────────────────\nlog \"ROLLBACK: Health check failed after $HEALTH_RETRIES attempts. Restoring previous release.\"\nln -sfn \"$PREVIOUS_RELEASE\" \"$CURRENT_LINK\"\nlog \"ROLLBACK: Symlink restored: $CURRENT_LINK -> $PREVIOUS_RELEASE\"\ndie \"Deploy failed. Rolled back to $PREVIOUS_RELEASE.\"\n```\n\n## Key decisions\n\n| Requirement | Implementation |\n|---|---|\n| `set -euo pipefail` | First line after shebang |\n| Refuse if symlink missing | Pre-flight check with `die` |\n| Atomic swap | `ln -sfn` — no intermediate broken symlink |\n| Don't delete old release before health | Old release is never deleted; only the symlink changes |\n| Rollback on failure | Restore `PREVIOUS_RELEASE` symlink target |\n| Logging | All actions logged to `/srv/myapp/deploy.log` with timestamps |\n| Clear rollback messages | `ROLLBACK:` prefix in log lines |\n\n## Verification checks\n\n```bash\n# 1. Syntax check\nbash -n /path/to/deploy.sh\n\n# 2. Dry-run: verify pre-flight rejects missing symlink\nrm -f /srv/myapp/current\nbash /path/to/deploy.sh  # Should exit with error about missing symlink\n\n# 3. Create a test symlink and verify the script accepts it\nln -s /srv/myapp/releases/20250101000000 /srv/myapp/current\nbash /path/to/deploy.sh /srv/myapp/releases/20250102000000  # Should attempt deploy\n\n# 4. Verify rollback: simulate health check failure\n# (e.g., ensure nothing is listening on :8080, then run deploy)\nbash /path/to/deploy.sh /srv/myapp/releases/20250102000000\n# Should log ROLL"
+        }
+      }
+    ],
+    "created": 1776917366,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 292,
+      "total_tokens": 1542
+    },
+    "id": "chatcmpl-xuutt0HZLv52Yw2vhPHtzpqLjle1Pjr7",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 136.173,
+      "prompt_per_token_ms": 0.6546778846153847,
+      "prompt_per_second": 1527.4687346243381,
+      "predicted_n": 1250,
+      "predicted_ms": 32210.598,
+      "predicted_per_token_ms": 25.768478400000003,
+      "predicted_per_second": 38.807103177655996
+    }
+  }
+}

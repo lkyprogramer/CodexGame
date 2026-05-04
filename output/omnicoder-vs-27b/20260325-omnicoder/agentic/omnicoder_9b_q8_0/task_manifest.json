@@ -1,0 +1,84 @@
+[
+  {
+    "task_id": "agentic_python_reconcile_pkg",
+    "description": "Complete a multi-file Python reconciliation package so the business discrepancy tests pass.",
+    "max_tokens": 2200,
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "hidden_checklist": [
+      "Requires coordinated edits across matcher/report rather than one-file explanation only.",
+      "Must detect duplicate_left, missing_left, missing_right, and amount_mismatch.",
+      "Should keep implementation small and deterministic.",
+      "Passing tests is the primary success signal."
+    ],
+    "workspace_files": [
+      "reconcile/models.py",
+      "reconcile/matcher.py",
+      "reconcile/report.py",
+      "reconcile/cli.py",
+      "tests/test_reconcile.py"
+    ]
+  },
+  {
+    "task_id": "agentic_python_restore_bootstrap",
+    "description": "Fix a multi-file Python runtime restore flow so running state is not exposed before threads exist.",
+    "max_tokens": 2200,
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "hidden_checklist": [
+      "Should preserve existing thread ids instead of recreating them blindly.",
+      "Must not set running-visible state before thread restoration is effectively complete.",
+      "Requires multi-file coordination across restore/types/threads.",
+      "Passing tests should confirm idempotent bootstrap behavior."
+    ],
+    "workspace_files": [
+      "runtime/types.py",
+      "runtime/threads.py",
+      "runtime/session.py",
+      "runtime/restore.py",
+      "tests/test_restore.py"
+    ]
+  },
+  {
+    "task_id": "agentic_python_metrics_contract",
+    "description": "Fix a small runtime/protocol/client package so metrics travel through session state instead of ad-hoc world state.",
+    "max_tokens": 2200,
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "hidden_checklist": [
+      "Must move metrics into session.state/runtime rather than world snapshot.",
+      "Requires edits across protocol, runtime, and client.",
+      "Should use MetricsTracker.snapshot output as source of truth.",
+      "Passing tests confirm protocol placement and client reduction logic."
+    ],
+    "workspace_files": [
+      "protocol/messages.py",
+      "runtime/metrics.py",
+      "runtime/server.py",
+      "client/state.py",
+      "tests/test_metrics_contract.py"
+    ]
+  },
+  {
+    "task_id": "agentic_bash_log_triage",
+    "description": "Produce a working Bash triage script that groups noisy logs into stable error signatures.",
+    "max_tokens": 1800,
+    "validation_commands": [
+      "python3 -m unittest -q"
+    ],
+    "hidden_checklist": [
+      "Must produce an actually runnable shell script, not just a plan.",
+      "Should normalize volatile ids and suppress healthcheck noise.",
+      "Output should be stable and count-sorted.",
+      "Passing tests are the success criterion."
+    ],
+    "workspace_files": [
+      "logs/app.log",
+      "scripts/triage.sh",
+      "tests/test_triage.py"
+    ]
+  }
+]

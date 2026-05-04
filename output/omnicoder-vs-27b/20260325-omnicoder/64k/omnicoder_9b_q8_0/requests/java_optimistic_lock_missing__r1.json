@@ -1,0 +1,19 @@
+{
+  "task_id": "java_optimistic_lock_missing",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/omnicoder-9b-q8_0",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_optimistic_lock_missing\nScenario: Version field exists but update flow does not actually enforce optimistic locking.\n\nInstructions:\nFind the concurrency bug and propose the smallest production-safe fix. Assume this method is hit concurrently from two admin consoles.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/order/Order.java ===\npackage com.example.order;\n\npublic class Order {\n    private long id;\n    private int version;\n    private String status;\n\n    public long getId() { return id; }\n    public int getVersion() { return version; }\n    public void setVersion(int version) { this.version = version; }\n    public String getStatus() { return status; }\n    public void setStatus(String status) { this.status = status; }\n}\n\n=== File: src/main/java/com/example/order/OrderRepository.java ===\npackage com.example.order;\n\npublic interface OrderRepository {\n    Order require(long id);\n    void updateStatus(long id, String status, int nextVersion);\n}\n\n=== File: src/main/java/com/example/order/OrderService.java ===\npackage com.example.order;\n\npublic class OrderService {\n    private final OrderRepository orderRepository;\n\n    public OrderService(OrderRepository orderRepository) {\n        this.orderRepository = orderRepository;\n    }\n\n    public void approve(long orderId) {\n        Order order = orderRepository.require(orderId);\n        order.setStatus(\"APPROVED\");\n        orderRepository.updateStatus(order.getId(), order.getStatus(), order.getVersion() + 1);\n    }\n}\n\n=== File: src/main/java/com/example/order/JdbcOrderRepository.java ===\npackage com.example.order;\n\npublic class JdbcOrderRepository implements OrderRepository {\n    @Override\n    public Order require(long id) {\n        return null;\n    }\n\n    @Override\n    public void updateStatus(long id, String status, int nextVersion) {\n        // update orders set status = ?, version = ? where id = ?\n    }\n}\n"
+      }
+    ],
+    "max_tokens": 1050,
+    "stream": false
+  }
+}

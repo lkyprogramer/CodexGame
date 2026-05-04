@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 25992.126749944873,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe, dependency-free Python script designed to handle multi-GB JSONL files with malformed-line tolerance.\n\n### Implementation Details\n\n1.  **Streaming Processing**: The script reads the file line-by-line (`for line in f`), ensuring constant memory usage regardless of file size.\n2.  **Malformed Tolerance**: Uses `try/except` around `json.loads()` to skip invalid lines while incrementing a counter.\n3.  **Aggregation**: Uses `collections.defaultdict` to aggregate stats per session without loading the whole file into memory.\n4.  **Output**: Prints a structured summary to stdout, suitable for piping to logs or files.\n\n### File: `scripts/analyze_replay.py`\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReplay JSONL Analyzer\nAnalyzes replay logs to compute per-session turn counts, invalid-output counts,\nand malformed-line statistics.\n\"\"\"\n\nimport json\nimport sys\nfrom collections import defaultdict\nfrom typing import Dict, Any\n\ndef analyze_replay(input_path: str) -> None:\n    # Aggregation state\n    # session_id -> {\"turns\": int, \"invalid_outputs\": int}\n    session_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {\"turns\": 0, \"invalid_outputs\": 0})\n    \n    malformed_count = 0\n    total_lines = 0\n\n    try:\n        with open(input_path, \"r\", encoding=\"utf-8\") as f:\n            for line in f:\n                total_lines += 1\n                line = line.strip()\n                if not line:\n                    continue\n\n                try:\n                    data: Dict[str, Any] = json.loads(line)\n                except json.JSONDecodeError:\n                    malformed_count += 1\n                    continue\n\n                session_id = data.get(\"sessionId\")\n                event_type = data.get(\"type\")\n                error_code = data.get(\"code\")\n\n                if not session_id:\n                    # If no session ID, we can't attribute it to a session.\n                    # We count it as malformed for the purpose of session analysis,\n                    # or simply skip. Here we skip to keep session stats clean.\n                    continue\n\n                if event_type == \"agent.turn\":\n                    session_stats[session_id][\"turns\"] += 1\n                \n                if event_type == \"error\" and error_code == \"invalid_output\":\n                    session_stats[session_id][\"invalid_outputs\"] += 1\n\n    except FileNotFoundError:\n        print(f\"Error: File '{input_path}' not found.\", file=sys.stderr)\n        sys.exit(1)\n    except PermissionError:\n        print(f\"Error: Permission denied reading '{input_path}'.\", file=sys.stderr)\n        sys.exit(1)\n\n    # Output Results\n    print(\"--- Replay Analysis Summary ---\")\n    print(f\"Total Lines Processed: {total_lines}\")\n    print(f\"Malformed Lines: {malformed_count}\")\n    print(f\"Sessions Found: {len(session_stats)}\")\n    print(\"-\" * 40)\n\n    # Sort sessions for deterministic output\n    for sid in sorted(session_stats.keys()):\n        stats = session_stats[sid]\n        print(f\"Session: {sid}\")\n        print(f\"  Turns: {stats['turns']}\")\n        print(f\"  Invalid Outputs: {stats['invalid_outputs']}\")\n    \n    print(\"-\" * 40)\n    print(\"Analysis Complete.\")\n\nif __name__ == \"__main__\":\n    if len(sys.argv) < 2:\n        print(f\"Usage: {sys.argv[0]} <path_to_replay.jsonl>\", file=sys.stderr)\n        sys.exit(1)\n    \n    analyze_replay(sys.argv[1])\n```\n\n### Verification Checks\n\n1.  **Run against sample data**:\n    ```bash\n    python3 scripts/analyze_replay.py samples/replay.jsonl\n    ```\n    *Expected Output*:\n    - `s1`: 2 turns, 1 invalid output.\n    - `s2`: 1 turn, 0 invalid outputs.\n    - Malformed lines: 1 (the `not-json` line).\n\n2.  **Verify Memory Safety**:\n    The script uses a generator pattern (`for line in f`) and does not load the file content into a list or string buffer. It is safe for multi-GB files.\n\n3.  **Verify Dependency-Free**:\n    The script uses only `json`, `sys`, and `collections` (standard library). No `pip install` is required.\n\n4.  **Verify Error Handling**:\n    Run with a non-existent file:\n    ```bash\n    python3 scripts/analyze_replay.py nonexistent.jsonl\n    ```\n    *Expected*: Exits with code 1 and prints an error to stderr."
+        }
+      }
+    ],
+    "created": 1776910759,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1039,
+      "prompt_tokens": 518,
+      "total_tokens": 1557
+    },
+    "id": "chatcmpl-L1Q0ppCWU3vP5LG5G6RYW5aS9pkWqBXn",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 434,
+      "prompt_ms": 217.505,
+      "prompt_per_token_ms": 0.5011635944700461,
+      "prompt_per_second": 1995.3564285878485,
+      "predicted_n": 1039,
+      "predicted_ms": 24296.644,
+      "predicted_per_token_ms": 23.38464292589028,
+      "predicted_per_second": 42.76310753040625
+    }
+  }
+}

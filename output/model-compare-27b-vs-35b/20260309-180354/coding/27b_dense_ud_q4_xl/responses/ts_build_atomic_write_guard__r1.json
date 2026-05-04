@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 50838.67962495424,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\n\nThe highest-risk consistency bug is in `apps/game-runtime/src/runtime/contentStore.ts` within the `applyOperations` method.\n\n**The Bug:**\nThe method performs **schema validation** on the input operations *before* calculating the new state, but it performs **atomic file writes** *after* calculating the new state. Crucially, if the calculation of the new state (specifically the `upsertById` or `removeById` logic) encounters an unexpected error (e.g., a runtime exception in a helper function, or if the `content` object is in a corrupted state), the method throws an error **after** the validation has passed but **before** the atomic writes occur.\n\nHowever, the more critical failure mode is the **lack of atomicity across the entire transaction**.\nThe code currently does this:\n1. Validate operations.\n2. Calculate `next` state in memory.\n3. Write `prefabs.json` atomically.\n4. Write `recipes.json` atomically.\n5. Write `world_rules.json` atomically.\n6. Update `this.content`.\n\nIf step 3 succeeds, step 4 fails (e.g., disk full, permission error), and step 5 fails, the system is left in a **partially updated state**. `prefabs.json` is updated, but `recipes.json` and `world_rules.json` are not. The in-memory `this.content` is also not updated (due to the exception), but the disk state is inconsistent.\n\nFurthermore, the test `rejects invalid operations without partial writes` expects that if validation fails, no writes happen. The current code *does* satisfy this specific test because validation happens first. But the test does not cover the scenario where **validation passes, state calculation passes, but the write fails partway through**.\n\n**The Specific Risk:**\nThe `Promise.all` in `applyOperations` ensures that if *any* of the three file writes fail, the promise rejects. However, `Promise.all` does **not** provide rollback. If `writeJsonAtomic` for `prefabs.json` succeeds, and `writeJsonAtomic` for `recipes.json` fails, the `prefabs.json` file is permanently modified to the new state, while `recipes.json` remains in the old state. This violates the \"atomic writes\" requirement for the *builder flow* as a whole.\n\n### The Fix\n\nTo ensure atomicity across the entire content set (prefabs, recipes, world rules), we must write the **entire** new state to a **single temporary directory** (or a single temporary file representing the whole state, though the current file structure suggests keeping them separate), and then **atomically swap** the entire directory or use a transactional mechanism.\n\nGiven the constraint to keep changes minimal and the existing file structure (3 separate JSON files), the safest minimal fix is to:\n1.  Write all three files to a **temporary directory**.\n2.  If all writes succeed, **atomically rename** the temporary directory to the target directory (or rename the individual files in a way that guarantees atomicity, which is hard with 3 files).\n3.  Actually, the standard pattern for multi-file atomic updates without a transactional filesystem is:\n    *   Write all new files to a temp directory.\n    *   Rename the temp directory to the real directory (atomic on POSIX).\n    *   This requires the `contentDir` to be a directory that can be swapped.\n\n**Wait, looking closer at the code:**\nThe `ContentStore` uses `this.contentDir` as the directory containing the files.\nThe `writeJsonAtomic` function writes to `filePath.tmp` and renames to `filePath`. This is atomic *per file*.\n\nTo make the *set* of files atomic:\n1.  Create a temporary directory (e.g., `contentDir.tmp`).\n2.  Write all 3 files into this temporary directory.\n3.  If all writes succeed, rename the temporary directory to `contentDir` (replacing the old one).\n4.  Update `this.content`.\n\nThis ensures that either the old state remains entirely, or the new state is entirely present.\n\n**Refinement for Minimal Change:**\nThe current `contentDir` is passed in the constructor. We cannot easily rename the directory if it's a fixed path (e.g., `/data/content`).\nHowever, we can write to a temp directory *inside* the parent of `contentDir` or just use a temp directory and then copy/move.\nActually, the most robust \"minimal\" fix that doesn't require changing the directory structure logic significantly is to **write to a temp directory, then rename the files one by one, but ensure that if a rename fails, we clean up the temp files and restore the old state?** No, that's complex.\n\nThe standard solution for \"atomic multi-file update\" where the target directory cannot be swapped is:\n1.  Write all files to a temp directory.\n2.  Rename the temp directory to the target directory.\n    *   *Constraint:* This requires the target directory to be replaceable.\n    *   *Alternative:* If the target directory is fixed, we must write to a temp directory, then `mv` the files. But `mv` is atomic per file.\n\nLet's look at the `writeJsonAtomic` implementation again. It uses `fs.rename`.\nIf we write all 3 files to a temp directory `tmpDir`, and then rename `tmpDir` to `this.contentDir`, that is atomic.\nBut `this.contentDir` might contain other things? No, it seems to only contain these 3 files.\nThe `load` method creates `this.contentDir`.\nSo, we can:\n1.  Create `tmpDir = path.join(path.dirname(this.contentDir), `content.tmp.${Date.now()}`)`.\n2.  Write the "
+        }
+      }
+    ],
+    "created": 1773051319,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 14464,
+      "total_tokens": 15714
+    },
+    "id": "chatcmpl-8m2tzLqxH79511SFPzf9lZUFMQLb6APO",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 14464,
+      "prompt_ms": 6103.032,
+      "prompt_per_token_ms": 0.42194634955752214,
+      "prompt_per_second": 2369.969549561595,
+      "predicted_n": 1250,
+      "predicted_ms": 30639.414,
+      "predicted_per_token_ms": 24.5115312,
+      "predicted_per_second": 40.79712490584839
+    }
+  }
+}

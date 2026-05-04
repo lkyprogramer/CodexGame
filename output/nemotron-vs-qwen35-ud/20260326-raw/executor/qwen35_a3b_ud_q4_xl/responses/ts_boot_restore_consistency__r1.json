@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 16269.86712499638,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Analysis\n\n**Highest-Risk Bug:**\nIn `GameRuntimeServer.restoreSession()`, the code restores the `simulation` state and agent configurations but **fails to restore the `threadIds` mapping**.\n\n1.  **The Bug:**\n    *   The `SessionSnapshot` type includes `threadIds: ThreadIds`.\n    *   The `StateStore` correctly saves and loads this field.\n    *   However, in `restoreSession()`, after loading the snapshot, the code explicitly overwrites `this.threadIds` with an empty object:\n        ```typescript\n        this.threadIds = { gameplayByAgentId: {} };\n        ```\n    *   This discards the restored thread IDs from the snapshot.\n\n2.  **The Consequence:**\n    *   When the server attempts to run the scheduler (`runScheduler`) or handle notifications (`handleCodexNotification`) immediately after restore, it looks up `this.threadIds.gameplayByAgentId[agentId]`.\n    *   Since this map is empty, `threadId` is `undefined`.\n    *   `requestGameplayTurn` returns early: `if (!threadId) { return; }`.\n    *   **Result:** The runtime is in a \"running\" phase with a restored simulation state, but **no threads are active**. The agents cannot take turns, leading to a frozen or inconsistent state where the simulation exists but the agents are effectively dead until a new session is started.\n\n3.  **Root Cause:**\n    *   The `restoreSession` logic assumes that thread IDs must be regenerated (like in `startSession`), but it fails to check if valid thread IDs exist in the snapshot first. It blindly clears them.\n\n**Fix Strategy:**\nPreserve the `threadIds` from the loaded snapshot. Only initialize new threads if the snapshot does not contain them (or if they are invalid). This ensures atomic persistence of the running state.\n\n### Proposed Fix\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change:**\nModify `restoreSession()` to assign `this.threadIds` from the loaded `saved` object instead of overwriting it with an empty object.\n\n```typescript\n// File: apps/game-runtime/src/runtime/GameRuntimeServer.ts\n// Function: restoreSession\n\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n    }\n    this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n  } else if (typeof saved.seed === \"number\") {\n    this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n      { id: \"agent-1\", name: \"Agent 1\" }\n    ]);\n    this.seed = saved.seed;\n    this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n    this.resetAgentLoopState([\"agent-1\"]);\n  } else {\n    return;\n  }\n\n  this.phase = \"running\";\n  this.preparedSeed = null;\n  \n  // FIX: Preserve threadIds from the snapshot instead of clearing them.\n  // This ensures agents have valid thread IDs to resume turns immediately.\n  if (saved.threadIds) {\n    this.threadIds = saved.threadIds;\n  } else {\n    this.threadIds = { gameplayByAgentId: {} };\n  }\n\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  await this.logReplay(\"session.restored\", {\n    seed: this.seed,\n    tick: this.simulation.getState().tick\n  });\n}\n```\n\n### Regression Checks\n\n1.  **Boot Consistency:** Start the server with an existing `session.json` containing `threadIds`. Verify that `runScheduler` successfully calls `requestGameplayTurn` and that `handleCodexNotification` resolves pending turns without returning early due to missing `threadId`.\n2.  **No Duplicate Threads:** Ensure that `restoreSession` does not trigger `startThreadsForExistingSession` (which creates new threads) if valid `threadIds` are present in the snapshot. The `primeCodexModelCatalog` check `if (this.simulation && Object.keys(this.threadIds.gameplayByAgentId).length === 0 ...)` should evaluate to `false` after a successful restore.\n3.  **State Integrity:** Verify that `threadToAgentId` map is correctly rebuilt if needed (currently cleared, but `handleCodexNotification` uses `threadToAgentId.get(threadId)`). If `threadIds` are restored, `threadToAgentId` must be repopulated.\n    *   *Correction Note:* The current code clears `this.threadToAgentId` in `restoreSession`. If `threadIds` are restored, `threadToAgentId` will be empty, causing `handleCodexNotification` to fail to find the `gameplayAgentId`.\n    *   **Additional Fix Required:** We must also repopulate `threadToAgentId` from `threadIds` during restore.\n\n**Refined Fix for `threadToAgentId`:**\n\n```typescript\n// Inside restoreSession, after setting this.threadIds:\n  if (saved.threadIds) {\n    this.threadIds = saved.threadIds;\n    // Rebuild the reverse mapping for notifications"
+        }
+      }
+    ],
+    "created": 1774496603,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21368,
+      "total_tokens": 22618
+    },
+    "id": "chatcmpl-VrPot1OXNu9NV6a7QTf28plGzKMk0qym",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21368,
+      "prompt_ms": 4434.407,
+      "prompt_per_token_ms": 0.20752559902658183,
+      "prompt_per_second": 4818.68263332617,
+      "predicted_n": 1250,
+      "predicted_ms": 9821.25,
+      "predicted_per_token_ms": 7.857,
+      "predicted_per_second": 127.27504136438846
+    }
+  }
+}

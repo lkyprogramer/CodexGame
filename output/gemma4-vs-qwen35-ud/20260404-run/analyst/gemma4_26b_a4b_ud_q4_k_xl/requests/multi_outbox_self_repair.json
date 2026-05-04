@@ -1,0 +1,21 @@
+{
+  "task_id": "multi_outbox_self_repair",
+  "model": "bench/gemma4-26b-a4b-it-ud-q4_k_xl",
+  "rounds": [
+    {
+      "model": "bench/gemma4-26b-a4b-it-ud-q4_k_xl",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a senior software engineer.\n\nUse only the provided project snapshot.\nFocus on correctness, sequencing, smallest safe changes, and concrete file-level guidance.\nDo not invent files or APIs that are not present in the snapshot."
+        },
+        {
+          "role": "user",
+          "content": "Task ID: multi_outbox_self_repair\nScenario: Three-round repair refinement on publish-before-commit risk.\nRound: 1 / 3\n\nInstructions:\nRound 1: identify the highest-risk correctness bug and give the smallest safe patch plan.\n\nProject snapshot:\n=== File: src/main/java/com/example/invoice/InvoiceService.java ===\npackage com.example.invoice;\n\nimport java.time.Instant;\n\npublic class InvoiceService {\n    private final InvoiceRepository invoiceRepository;\n    private final DomainEventPublisher domainEventPublisher;\n\n    public InvoiceService(\n            InvoiceRepository invoiceRepository,\n            DomainEventPublisher domainEventPublisher) {\n        this.invoiceRepository = invoiceRepository;\n        this.domainEventPublisher = domainEventPublisher;\n    }\n\n    public void approve(long invoiceId, String approver) {\n        Invoice invoice = invoiceRepository.require(invoiceId);\n        invoice.approve(approver, Instant.now());\n        domainEventPublisher.publish(\"invoice.approved\", invoiceId);\n        invoiceRepository.save(invoice);\n    }\n}\n\n=== File: src/main/java/com/example/invoice/DomainEventPublisher.java ===\npackage com.example.invoice;\n\npublic interface DomainEventPublisher {\n    void publish(String eventType, long aggregateId);\n}\n\n=== File: src/main/java/com/example/invoice/InvoiceRepository.java ===\npackage com.example.invoice;\n\npublic interface InvoiceRepository {\n    Invoice require(long id);\n    void save(Invoice invoice);\n}\n"
+        }
+      ],
+      "max_tokens": 1000,
+      "stream": false
+    }
+  ]
+}

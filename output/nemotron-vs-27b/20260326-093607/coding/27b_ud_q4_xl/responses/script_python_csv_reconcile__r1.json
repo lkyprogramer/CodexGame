@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 31898.014959006105,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script. It is designed to be a single-file utility (`reconcile.py`) that handles the specific edge cases (BOM, duplicates, blank lines) and implements the matching logic defined in `docs/reconcile_rules.md`.\n\n### Script: `reconcile.py`\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nProduction Reconciliation Script for Finance Exports.\nHandles BOM, duplicates, blank lines, and specific matching rules.\n\"\"\"\n\nimport csv\nimport sys\nfrom collections import defaultdict\nfrom datetime import datetime\nfrom pathlib import Path\n\n# Configuration\nINPUT_FINANCE = \"samples/finance_export.csv\"\nINPUT_MERCHANT = \"samples/merchant_statement.csv\"\nOUTPUT_CSV = \"reconciliation_report.csv\"\nOUTPUT_SUMMARY = \"reconciliation_summary.txt\"\n\ndef clean_and_read_csv(filepath):\n    \"\"\"\n    Reads CSV, handling BOM, blank lines, and duplicate headers.\n    Returns a list of dicts.\n    \"\"\"\n    rows = []\n    seen_headers = False\n    \n    try:\n        with open(filepath, 'r', encoding='utf-8-sig') as f:\n            # Read all lines first to handle potential duplicate headers manually\n            lines = f.readlines()\n            \n            reader = csv.DictReader(lines)\n            fieldnames = reader.fieldnames\n            \n            if not fieldnames:\n                return []\n\n            for row in reader:\n                # Skip blank rows (all values empty or None)\n                if not any(row.values()):\n                    continue\n                \n                # Skip duplicate header rows (if a row matches fieldnames exactly)\n                if row == {k: k for k in fieldnames}:\n                    continue\n                \n                rows.append(row)\n    except FileNotFoundError:\n        print(f\"Error: File not found: {filepath}\", file=sys.stderr)\n        sys.exit(1)\n        \n    return rows\n\ndef normalize_amount(val):\n    \"\"\"Safely convert amount to integer, defaulting to 0 on error.\"\"\"\n    try:\n        return int(val) if val else 0\n    except (ValueError, TypeError):\n        return 0\n\ndef reconcile(finance_rows, merchant_rows):\n    \"\"\"\n    Core reconciliation logic.\n    Returns: (matches, discrepancies)\n    \"\"\"\n    # Index finance by primary key (merchant_order_id)\n    # We use a dict to handle duplicates: key -> list of rows\n    finance_index = defaultdict(list)\n    for row in finance_rows:\n        finance_index[row.get('merchant_order_id', '')].append(row)\n\n    # Index merchant by primary key\n    merchant_index = defaultdict(list)\n    for row in merchant_rows:\n        merchant_index[row.get('merchant_order_id', '')].append(row)\n\n    matches = []\n    discrepancies = []\n    \n    # Track processed keys to avoid double reporting\n    processed_finance_keys = set()\n    processed_merchant_keys = set()\n\n    # 1. Iterate through Finance (Source of Truth for \"Expected\")\n    for f_id, f_rows in finance_index.items():\n        if not f_id: continue # Skip blank IDs\n        \n        # Check for duplicates in Finance\n        if len(f_rows) > 1:\n            discrepancies.append({\n                'type': 'DUPLICATE_FINANCE',\n                'merchant_order_id': f_id,\n                'details': f\"Found {len(f_rows)} entries in Finance export.\"\n            })\n        \n        # Get matching Merchant rows\n        m_rows = merchant_index.get(f_id, [])\n        \n        # If no match in Merchant, check fallback (provider_txn_id)\n        if not m_rows:\n            # Fallback: Try to match by provider_txn_id across all merchant rows\n            # (Optimized: only if primary key failed)\n            for f_row in f_rows:\n                p_id = f_row.get('provider_txn_id', '')\n                if not p_id: continue\n                \n                # Search merchant for this provider_txn_id\n                found_m = None\n                for m_row in merchant_rows:\n                    if m_row.get('provider_txn_id') == p_id:\n                        found_m = m_row\n                        break\n                \n                if found_m:\n                    m_rows = [found_m]\n                    break\n        \n        # Process Matches\n        if m_rows:\n            for f_row in f_rows:\n                # Find the specific matching merchant row (simple 1:1 logic for this scope)\n                # In complex scenarios, we might need to pair by amount or timestamp\n                matched_m = None\n                for m_row in m_rows:\n                    # Basic heuristic: match by amount if IDs align, or just take first\n                    if normalize_amount(f_row.get('amount_cents')) == normalize_amount(m_row.get('amount_cents')):\n                        matched_m = m_row\n                        break\n                \n                if not matched_m and m_rows:\n                    matched_m = m_rows[0] # Fallback to first match\n\n                if matched_m:\n                    # Check Amount Mismatch\n                    f_amt = normalize_amount(f_row.get('amount_cents'))\n                    m_amt = normalize_amount(matched_m.get('amount_cents'))\n                    \n                    if f_amt != m_amt:\n                        discrepancies.append({\n                            'type': 'AMOUNT_MISMATCH',\n                            'merchant_order_id': f_id,\n                            'finance_amount': f_amt,\n                            'merchant_amount': m_amt,\n                            'provider_txn_id': f_row.get('provider_txn_id')\n                        })\n                    else:\n                        matches.append({\n                            'merchant_order_id': f_id,\n                            'provider_txn_id': f_row.get('provider_txn_id'),\n                            'amount': f_amt,\n                            'status': f_row.get('status'),\n                            'finance_updated': f_row.get('updated_at'),\n                            'merchant_updated': matched_m.get('updated_at')\n                        })\n                    \n                    processed_merchant_keys.add(matched_m.get('merchant_order_id'))\n        \n        else:\n            # Missing in Merchant\n            for f_row in f_rows:\n                discrepancies.append({\n                    'type': '"
+        }
+      }
+    ],
+    "created": 1774490224,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-r4VJYMZwORtezeNEr4pCYWehVFPEwn2C",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 338.058,
+      "prompt_per_token_ms": 0.5672114093959731,
+      "prompt_per_second": 1763.011080938774,
+      "predicted_n": 1300,
+      "predicted_ms": 30426.22,
+      "predicted_per_token_ms": 23.404784615384617,
+      "predicted_per_second": 42.72630645541904
+    }
+  }
+}

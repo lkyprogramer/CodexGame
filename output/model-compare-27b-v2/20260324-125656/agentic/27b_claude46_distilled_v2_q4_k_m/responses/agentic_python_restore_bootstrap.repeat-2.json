@@ -1,0 +1,53 @@
+{
+  "task_id": "agentic_python_restore_bootstrap",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 13974.929917007103,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"summary\":\"Move `state.phase = 'running'` to after thread creation to prevent exposing running state before threads exist.\",\"files\":[{\"path\":\"runtime/restore.py\",\"content\":\"from __future__ import annotations\\n\\nfrom .session import Snapshot\\nfrom .threads import ThreadBootstrapper\\nfrom .types import RuntimeState\\n\\n\\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\\n    state.thread_ids = {}\\n    for agent_id in snapshot.agent_ids:\\n        if agent_id not in state.thread_ids:\\n            state.thread_ids[agent_id] = bootstrapper.ensure_thread(agent_id)\\n    state.phase = \\\"running\\\"\\n    state.connected = True\\n    return state\\n\"}]}",
+          "reasoning_content": "Let me analyze this task carefully.\n\nThe issue is that the `restore` function sets `state.phase = \"running\"` before ensuring that threads exist. This means the runtime state is exposed as \"running\" before threads are properly created, which is a race condition / visibility bug.\n\nLooking at the `restore` function:\n```python\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\n    state.phase = \"running\"  # <-- Problem: sets running before threads exist\n    state.thread_ids = {}\n    for agent_id in snapshot.agent_ids:\n        if agent_id not in state.thread_ids:\n            state.thread_ids[agent_id] = bootstrapper.ensure_thread(agent_id)\n    state.connected = True\n    return state\n```\n\nThe fix should be to move `state.phase = \"running\"` to AFTER all threads have been created. The proper order should be:\n1. Create all threads\n2. Then set phase to \"running\"\n3. Then set connected to True\n\nLet me verify with the tests:\n- Test 1: `test_does_not_expose_running_before_threads_exist` - expects phase to be \"running\" and thread_ids to contain both agents\n- Test 2: `test_existing_threads_are_not_recreated` - expects existing thread to be preserved, new one created\n\nBoth tests check the final state, so moving the phase assignment should not break them.\n\nThe smallest safe fix is to move `state.phase = \"running\"` to after the loop that creates threads.\n\nActually, wait - let me re-read the problem. The issue is \"running state is not exposed before threads exist\". This means we should NOT set phase to \"running\" until after threads are created.\n\nLooking at the code again:\n```python\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\n"
+        }
+      }
+    ],
+    "created": 1774361937,
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 569,
+      "prompt_tokens": 747,
+      "total_tokens": 1316
+    },
+    "id": "chatcmpl-derbaBLS2iSWDgoc6a6AaE0463zqeZjm",
+    "timings": {
+      "cache_n": 235,
+      "prompt_n": 512,
+      "prompt_ms": 242.407,
+      "prompt_per_token_ms": 0.473451171875,
+      "prompt_per_second": 2112.150226684873,
+      "predicted_n": 569,
+      "predicted_ms": 12717.213,
+      "predicted_per_token_ms": 22.35011072056239,
+      "predicted_per_second": 44.74250765478254
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/restore.py"
+  ],
+  "json_error": ""
+}

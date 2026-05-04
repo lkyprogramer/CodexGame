@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 4978.706541005522,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\nThe bug is in `ProfileService.updateDisplayName`. The method updates the database via `profileRepository.save(profile)` but **fails to invalidate or update the cache**.\n\nConsequently:\n1.  The database holds the new `displayName`.\n2.  The cache (`profileCache`) still holds the old `ProfileView`.\n3.  Subsequent calls to `get(profileId)` will return the stale cached data, ignoring the database update.\n\nThis is a classic \"Cache-Aside\" pattern violation where the write path does not synchronize with the cache.\n\n### Proposed Fix\n**File to Change:** `src/main/java/com/example/profile/ProfileService.java`\n\n**Change:** Add a call to `profileCache.evict(profileId)` immediately after `profileRepository.save(profile)`.\n\n**Reasoning:**\n- **Minimal Change:** Only one line added.\n- **Correctness:** Evicting the entry ensures the next read misses the cache, fetches the fresh data from the DB, and repopulates the cache with the correct state.\n- **Safety:** Eviction is safer than attempting to update the cache in-place (which might require reconstructing the `ProfileView` or holding locks) and avoids the risk of the cache and DB diverging if the update logic changes later.\n\n### Code Diff\n\n```java\n// File: src/main/java/com/example/profile/ProfileService.java\n\n    public void updateDisplayName(long profileId, String displayName) {\n        Profile profile = profileRepository.require(profileId);\n        profile.setDisplayName(displayName);\n        profileRepository.save(profile);\n        // FIX: Invalidate cache to ensure next read fetches fresh data from DB\n        profileCache.evict(profileId); \n    }\n```\n\n### Regression Checks\n1.  **Write-Read Consistency:** Verify that after calling `updateDisplayName`, a subsequent `get(profileId)` returns the updated `displayName` (not the old one).\n2.  **Cache Miss Behavior:** Verify that the cache entry is removed (or effectively null) immediately after the update, forcing a DB read on the next access.\n3.  **Concurrency Safety:** If multiple threads update the same profile, ensure no race conditions occur where a stale value is written back to the cache (though eviction handles this by forcing a fresh read).\n4.  **Non-Existent Profile:** Ensure `updateDisplayName` still throws the appropriate exception (via `require`) if the profile ID does not exist, and does not crash the cache layer."
+        }
+      }
+    ],
+    "created": 1774496640,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 525,
+      "prompt_tokens": 464,
+      "total_tokens": 989
+    },
+    "id": "chatcmpl-rgxGdKoVAdww2L21D17WURbMnCtCIQyK",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 464,
+      "prompt_ms": 95.43,
+      "prompt_per_token_ms": 0.20566810344827588,
+      "prompt_per_second": 4862.202661636802,
+      "predicted_n": 525,
+      "predicted_ms": 3832.802,
+      "predicted_per_token_ms": 7.300575238095238,
+      "predicted_per_second": 136.97550773559394
+    }
+  }
+}

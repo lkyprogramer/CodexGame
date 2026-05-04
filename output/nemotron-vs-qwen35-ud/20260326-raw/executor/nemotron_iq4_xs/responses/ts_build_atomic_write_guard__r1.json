@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_build_atomic_write_guard",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 9804.30575000355,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**\n\n`ContentStore.applyOperations` builds a new `ContentSet` in memory, writes the three JSON files with `writeJsonAtomic`, and **only after all three writes succeed** does it replace `this.content`.  \nIf any one of the three writes fails (e.g. a malformed operation, a disk‑full error, or a schema‑validation error that is caught only after the write), the in‑memory `this.content` is left unchanged **but the on‑disk files may be partially updated**.  \n\nBecause the three files are written *independently* (prefabs, recipes, world_rules) there is no coordination between them – a failure after the first or second write leaves the on‑disk state out‑of‑sync with the in‑memory state.  A subsequent load will read the partially‑written files, causing schema validation to fail or, worse, silently load a corrupted world state.  This breaks the guarantee that “builder flow must preserve atomic writes and schema‑first validation under partial failure”.\n\n**Root cause**\n\n`applyOperations` performs the three atomic writes *sequentially* with `await Promise.all([...])`.  \n`Promise.all` starts the three `writeFile` + `rename` operations in parallel, but the `await` returns only after **all** have finished.  \nIf any write throws, the `catch` path is *outside* the function (the caller will reject), yet the already‑completed writes have already renamed their temporary files to the production files.  The function does not roll back those successful writes, so the on‑disk state is inconsistent with the in‑memory `next`.\n\n**Smallest safe fix**\n\nAdd a *transactional* step that writes the three files to temporary locations **first**, then atomically replace the whole content directory in a single `fs.rename` (or a single `fs.rename` per file but with a rollback on error).  The simplest, minimal change is to:\n\n1. Write each file to a *single* temporary directory (e.g. `contentDir/.tmp`) instead of per‑file temp files.\n2. After all three JSON blobs are written, atomically move the whole temporary directory over the existing `contentDir` with `fs.rename`.\n3. If any write fails, delete the temporary directory and leave the original `contentDir` untouched.\n\nBecause the existing `writeJsonAtomic` already does a per‑file atomic rename, we can reuse it but we must *delay* the rename until we know that *all* three writes succeeded.  The easiest way is to write the three files to a temporary sub‑directory and then rename the sub‑directory.\n\n**Exact files to change**\n\n- `apps/game-runtime/src/runtime/contentStore.ts`\n\n**Patch (minimal, safe)**\n\n```diff\n@@\n-    const prefabsPath = path.join(this.contentDir, PREFABS_FILE);\n-    const recipesPath = path.join(this.contentDir, RECIPES_FILE);\n-    const worldRulesPath = path.join(this.contentDir, WORLD_RULES_FILE);\n-\n-    await Promise.all([\n-      writeJsonAtomic(prefabsPath, next.prefabs),\n-      writeJsonAtomic(recipesPath, next.recipes),\n-      writeJsonAtomic(worldRulesPath, {\n-        biomeRules: next.biomeRules,\n-        spawnRules: next.spawnRules\n-      })\n-    ]);\n-\n-    this.content = next;\n-\n-    return {\n-      changedFiles: [prefabsPath, recipesPath, worldRulesPath],\n-      content: next,\n-      operations\n-    };\n+    // Write all three files into a temporary sub‑directory and atomically replace\n+    // the whole content directory on success.\n+    const tmpDir = `${this.contentDir}.tmp`;\n+    await fs.mkdir(tmpDir, { recursive: true });\n+\n+    const prefabsTmp = path.join(tmpDir, PREFABS_FILE);\n+    const recipesTmp = path.join(tmpDir, RECIPES_FILE);\n+    const worldRulesTmp = path.join(tmpDir, WORLD_RULES_FILE);\n+\n+    try {\n+      // Write each file to the temp directory (still using the existing atomic helper)\n+      await Promise.all([\n+        writeJsonAtomic(prefabsTmp, next.prefabs),\n+        writeJsonAtomic(recipesTmp, next.recipes),\n+        writeJsonAtomic(worldRulesTmp, {\n+          biomeRules: next.biomeRules,\n+          spawnRules: next.spawnRules\n+        })\n+      ]);\n+\n+      // Atomically replace the whole content directory\n+      await fs.rename(tmpDir, this.contentDir);\n+\n+      // Update in‑memory cache after the rename succeeded\n+      this.content = next;\n+\n+      return {\n+        changedFiles: [prefabsTmp, recipesTmp, worldRulesTmp],\n+        content: next,\n+        operations\n+      };\n+    } finally {\n+      // If anything went wrong, clean up the temp directory so we don't leave stray files.\n+      // `fs.rm` is safe to call even if the dir does not exist.\n+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});\n+    }\n```\n\n**Why this fixes the bug**\n\n* All three JSON blobs are written to a *single* temporary directory.  \n* Only when every write succeeds do we rename the whole directory over the existing one – a single POSIX rename is atomic, so the on‑disk state is either the old complete set or the new complete set, never a mixture.  \n* If any write fails, the `finally` block removes the temporary directory, leaving the original `contentDir` untouched, so the next load will read the previously‑validated files.  \n* The in‑memory `this.content` is"
+        }
+      }
+    ],
+    "created": 1774496124,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 13517,
+      "total_tokens": 14767
+    },
+    "id": "chatcmpl-2TF18AgOkMkwmivM2VKFG3plhHmfWGpv",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 13517,
+      "prompt_ms": 1735.306,
+      "prompt_per_token_ms": 0.1283795220833025,
+      "prompt_per_second": 7789.404289502831,
+      "predicted_n": 1250,
+      "predicted_ms": 6259.859,
+      "predicted_per_token_ms": 5.0078872,
+      "predicted_per_second": 199.68500887959297
+    }
+  }
+}

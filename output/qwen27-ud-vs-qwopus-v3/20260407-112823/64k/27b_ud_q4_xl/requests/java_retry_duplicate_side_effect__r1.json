@@ -1,0 +1,19 @@
+{
+  "task_id": "java_retry_duplicate_side_effect",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_retry_duplicate_side_effect\nScenario: Retry wrapper around a remote call duplicates the user-visible side effect.\n\nInstructions:\nReview the flow and identify the highest-risk bug. Propose the smallest safe fix and call out what must not be retried blindly.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/invoice/InvoiceNotificationService.java ===\npackage com.example.invoice;\n\npublic class InvoiceNotificationService {\n    private final RetryExecutor retryExecutor;\n    private final InvoiceGateway invoiceGateway;\n    private final EmailGateway emailGateway;\n\n    public InvoiceNotificationService(\n            RetryExecutor retryExecutor,\n            InvoiceGateway invoiceGateway,\n            EmailGateway emailGateway) {\n        this.retryExecutor = retryExecutor;\n        this.invoiceGateway = invoiceGateway;\n        this.emailGateway = emailGateway;\n    }\n\n    public void send(long invoiceId) {\n        retryExecutor.run(() -> {\n            invoiceGateway.markSent(invoiceId);\n            emailGateway.sendInvoice(invoiceId);\n        });\n    }\n}\n\n=== File: src/main/java/com/example/invoice/RetryExecutor.java ===\npackage com.example.invoice;\n\npublic interface RetryExecutor {\n    void run(Runnable action);\n}\n\n=== File: src/main/java/com/example/invoice/InvoiceGateway.java ===\npackage com.example.invoice;\n\npublic interface InvoiceGateway {\n    void markSent(long invoiceId);\n}\n\n=== File: src/main/java/com/example/invoice/EmailGateway.java ===\npackage com.example.invoice;\n\npublic interface EmailGateway {\n    void sendInvoice(long invoiceId);\n}\n"
+      }
+    ],
+    "max_tokens": 1050,
+    "stream": false
+  }
+}

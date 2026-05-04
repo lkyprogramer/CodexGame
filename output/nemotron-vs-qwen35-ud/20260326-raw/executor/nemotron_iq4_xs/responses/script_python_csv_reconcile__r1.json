@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 7336.920875008218,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Reconciliation script – `reconcile.py` (Python 3.9+)**\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nreconcile.py – reconcile two daily business CSV exports.\n\nMatching order:\n    1️⃣  merchant_order_id\n    2️⃣  provider_txn_id (used only when the order id is identical)\n\nOutputs (written to the current working directory):\n    • reconcile_report.csv   – machine‑readable, one row per unique merchant_order_id\n    • reconcile_summary.txt  – human‑readable summary (counts, mismatches, stale refunds)\n\nThe script is deliberately tiny, production‑safe and tolerant:\n    • Handles UTF‑8 BOM, duplicate header rows and completely blank lines.\n    • Ignores rows that are missing any of the required fields.\n    • Detects duplicate provider_txn_id for the same order (flags as duplicate).\n    • Detects stale refunds (REFUNDED status that is *newer* than the latest SETTLED\n      for the same order).\n\"\"\"\n\nimport csv\nimport sys\nfrom collections import defaultdict\nfrom datetime import datetime, timezone\nfrom pathlib import Path\n\n# ----------------------------------------------------------------------\n# Configuration – paths to the two input files (adjust as needed)\n# ----------------------------------------------------------------------\nFINANCE_EXPORT = Path(\"samples/finance_export.csv\")\nMERCHANT_STATEMENT = Path(\"samples/merchant_statement.csv\")\n\n# ----------------------------------------------------------------------\n# Helper: robust CSV reader – skips BOM, duplicate headers, blank rows\n# ----------------------------------------------------------------------\ndef csv_reader(path: Path):\n    \"\"\"Yield dict rows, tolerant of BOM, duplicate headers and blank lines.\"\"\"\n    with path.open(\"r\", encoding=\"utf-8-sig\") as f:   # utf‑8‑sig strips BOM automatically\n        reader = csv.DictReader(line for line in f if line.strip())\n        for row in reader:\n            # Guard against rows that are missing required columns\n            if all(row.get(col) for col in (\"merchant_order_id\", \"provider_txn_id\",\n                                            \"amount_cents\", \"status\", \"updated_at\")):\n                yield row\n\n# ----------------------------------------------------------------------\n# Core reconciliation logic\n# ----------------------------------------------------------------------\ndef reconcile():\n    # Load both exports into dicts keyed by (merchant_order_id, provider_txn_id)\n    # The key is a tuple because provider_txn_id can be duplicated across orders.\n    finance = {}\n    for row in csv_reader(FINANCE_EXPORT):\n        key = (row[\"merchant_order_id\"], row[\"provider_txn_id\"])\n        finance[key] = {\n            \"order_id\": row[\"merchant_order_id\"],\n            \"txn_id\": row[\"provider_txn_id\"],\n            \"amount\": int(row[\"amount_cents\"]),\n            \"status\": row[\"status\"],\n            \"updated\": datetime.fromisoformat(row[\"updated_at\"].replace(\"Z\", \"+00:00\")),\n        }\n\n    statement = {}\n    for row in csv_reader(MERCHANT_STATEMENT):\n        key = (row[\"merchant_order_id\"], row[\"provider_txn_id\"])\n        statement[key] = {\n            \"order_id\": row[\"merchant_order_id\"],\n            \"txn_id\": row[\"provider_txn_id\"],\n            \"amount\": int(row[\"amount_cents\"]),\n            \"status\": row[\"status\"],\n            \"updated\": datetime.fromisoformat(row[\"updated_at\"].replace(\"Z\", \"+00:00\")),\n        }\n\n    # ------------------------------------------------------------------\n    # Build the report – one row per unique merchant_order_id (first match wins)\n    # ------------------------------------------------------------------\n    report_rows = []\n    # Helper: keep the *latest* settled transaction per order for stale‑refund detection\n    latest_settled = {}\n\n    # Track provider_txn_id usage to spot duplicate txn ids inside the same order\n    duplicate_txn_in_order = set()\n\n    for (order_id, txn_id), stmt_rec in statement.items():\n        fin_rec = finance.get((order_id, txn_id))\n\n        # ---- duplicate provider_txn_id for the same order (fallback match) ----\n        # If we have already seen another txn for the same order, flag it.\n        if order_id in latest_settled and latest_settled[order_id][\"txn_id\"] != txn_id:\n            duplicate_txn_in_order.add((order_id, txn_id))\n\n        # ---- stale refund detection ----\n        # Keep the newest SETTLED transaction per order (by updated timestamp)\n        if fin_rec and fin_rec[\"status\"] == \"SETTLED\":\n            # If we have not recorded a settled yet, or this one is newer, store it\n            if (order_id not in latest_settled or\n                fin_rec[\"updated\"] > latest_settled[order_id][\"updated\"]):\n                latest_settled[order_id] = fin_rec\n\n        # ---- decide which record wins for the report (order‑first matching) ----\n        if fin_rec:\n            # Exact match on both fields – use finance record as primary\n            report_rows.append({\n                \"merchant_order_id\": order_id,\n                \"provider_txn_id\": txn_id,\n                \"amount_cents\": fin_rec[\"amount\"],\n                \"status\": fin_rec[\"status\"],\n                \"updated_at\": fin_rec[\"updated\"].isoformat(),\n                \"source\": \"finance_export\",\n                \"matched\": True,\n                \"duplicate_txn\": (order_id, txn_id) in duplicate_txn_in_order,\n                \"stale_refund\": False,  # will be overridden below if needed\n            })\n        else:\n            # No finance record – this is a missing order\n            report_rows.append({\n                \"merchant_order_id\": order_id,\n                \"provider_txn_id\": txn_id,\n                \"amount_cents\": stmt_rec[\"amount\"],\n                \"status\": stmt_rec[\"status\"],\n                \"updated_at\": stmt_rec[\"updated\"].isoformat(),\n                \"source\": \"merchant_statement\",\n                \"matched\": False,\n                \"duplicate_txn\": False,\n                \"stale_refund\": False,\n            })\n\n   "
+        }
+      }
+    ],
+    "created": 1774496084,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 593,
+      "total_tokens": 1893
+    },
+    "id": "chatcmpl-yfr69VbrmW7ANPUi8yPxLuGZfNebiARo",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 593,
+      "prompt_ms": 106.194,
+      "prompt_per_token_ms": 0.17907925801011804,
+      "prompt_per_second": 5584.119630110929,
+      "predicted_n": 1300,
+      "predicted_ms": 6134.341,
+      "predicted_per_token_ms": 4.718723846153846,
+      "predicted_per_second": 211.92170438519798
+    }
+  }
+}

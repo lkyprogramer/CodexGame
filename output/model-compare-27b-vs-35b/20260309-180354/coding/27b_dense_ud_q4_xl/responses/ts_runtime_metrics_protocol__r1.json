@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 63446.67170802131,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To expose runtime metrics to the client HUD in a protocol-first way while maintaining simulation authority in the runtime, we need to:\n\n1.  **Extend the Protocol**: Add a new `runtime.metrics` server message type to `packages/protocol/src/messages.ts`.\n2.  **Update Runtime Server**: Modify `apps/game-runtime/src/runtime/GameRuntimeServer.ts` to include metrics in the `session.state` payload and emit a dedicated `runtime.metrics` message when metrics change (or include them in the state update).\n3.  **Update Client**: Modify `apps/game-client/src/App.tsx` to consume the new metrics and display them in the HUD.\n4.  **Add Contract Tests**: Add tests to `apps/game-runtime/test/ui-contract.integration.test.ts` to verify the new message structure.\n\nHere is the smallest safe fix set:\n\n### 1. Extend Protocol (`packages/protocol/src/messages.ts`)\n\nAdd the `RuntimeMetrics` type and the `runtime.metrics` message variant.\n\n```typescript\n// packages/protocol/src/messages.ts\n\n// ... existing imports ...\n\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// ... existing types ...\n\nexport type ServerMessage =\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n          metrics?: RuntimeMetrics; // Add metrics here for initial state\n        };\n      };\n    }\n  | {\n      version: Version;\n      type: \"runtime.metrics\"; // New message type\n      payload: RuntimeMetrics;\n    }\n  | {\n      version: Version;\n      type: \"world.snapshot\";\n      // ... existing world.snapshot payload ...\n    }\n  | {\n      version: Version;\n      type: \"agent.turn\";\n      // ... existing agent.turn payload ...\n    }\n  | {\n      version: Version;\n      type: \"agent.action\";\n      // ... existing agent.action payload ...\n    }\n  | {\n      version: Version;\n      type: \"agent.feed\";\n      // ... existing agent.feed payload ...\n    }\n  | {\n      version: Version;\n      type: \"build.result\";\n      // ... existing build.result payload ...\n    }\n  | {\n      version: Version;\n      type: \"error\";\n      // ... existing error payload ...\n    };\n\n// ... existing schemas ...\n```\n\n### 2. Update Runtime Server (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`)\n\nUpdate `sendSessionState` to include metrics and emit `runtime.metrics` when they change.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... existing imports ...\n\n// ... inside GameRuntimeServer class ...\n\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"session.state\",\n      payload: {\n        phase: this.phase,\n        paused: this.paused,\n        preparedSeed: this.preparedSeed,\n        threadIds: this.threadIds,\n        connected: this.connected,\n        runtime: {\n          model: this.turnModel,\n          effort: this.turnEffort,\n          tickMs: runtimeConfig.tickMs,\n          schedulerMs: runtimeConfig.schedulerMs,\n          maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n          availableModels: this.availableModels,\n          metrics: this.metrics.snapshot() // Include current metrics\n        }\n      }\n    });\n  }\n\n  // Add a helper to emit metrics updates\n  private emitMetricsUpdate(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"runtime.metrics\",\n      payload: this.metrics.snapshot()\n    });\n  }\n\n  // Update methods that change metrics to also emit the update\n  public onTurnCompleted(): void {\n    this.metrics.onTurnCompleted();\n    this.emitMetricsUpdate();\n  }\n\n  public onInvalidOutput(): void {\n    this.metrics.onInvalidOutput();\n    this.emitMetricsUpdate();\n  }\n\n  public onActionApplied(): void {\n    this.metrics.onActionApplied();\n    this.emitMetricsUpdate();\n  }\n\n  public onActionRejected(): void {\n    this.metrics.onActionRejected();\n    this.emitMetricsUpdate();\n  }\n\n  public setQueueDepth(depth: number): void {\n    this.metrics.setQueueDepth(depth);\n    this.emitMetricsUpdate();\n  }\n\n  // ... rest of the class ...\n```\n\n*Note: Since `MetricsTracker` is a separate class, we need to either pass a callback to it or call `emitMetricsUpdate` from the `GameRuntimeServer` methods that call the tracker. The cleanest approach without refactoring `MetricsTracker` is to call `emitMetricsUpdate` immediately after calling the tracker methods in `GameRuntimeServer`.*\n\n**Revised approach for `GameRuntimeServer.ts` to minimize changes to `MetricsTracker`:**\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n// ... inside GameRuntimeServer class ...\n\n  private sendSessionState(): void {\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n     "
+        }
+      }
+    ],
+    "created": 1773050987,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24301,
+      "total_tokens": 25551
+    },
+    "id": "chatcmpl-N1TZJhf8xuze3iHOV1KYtna12mipqZCO",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24301,
+      "prompt_ms": 10461.475,
+      "prompt_per_token_ms": 0.4304956586148718,
+      "prompt_per_second": 2322.9037970267095,
+      "predicted_n": 1250,
+      "predicted_ms": 31522.445,
+      "predicted_per_token_ms": 25.217956,
+      "predicted_per_second": 39.654284431299665
+    }
+  }
+}

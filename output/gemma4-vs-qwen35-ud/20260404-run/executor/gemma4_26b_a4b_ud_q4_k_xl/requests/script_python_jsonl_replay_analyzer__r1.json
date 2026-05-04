@@ -1,0 +1,19 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/gemma4-26b-a4b-it-ud-q4_k_xl",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer solving a real production task.\n\nUse only the provided project snapshot and operational context.\nPrefer the smallest safe script or patch over a broad rewrite.\nIf you propose a script, make it production-safe, explicit, and reviewable.\nCall out exact files, commands, or script sections that should change.\nEnd with concise verification checks."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: script_python_jsonl_replay_analyzer\nScenario: Write a small Python analyzer for replay JSONL files with malformed-line tolerance.\n\nInstructions:\nWrite the smallest production-safe Python script or skeleton to analyze replay JSONL files. Compute per-session turn counts, invalid-output counts, and malformed-line stats.\n\nProject snapshot:\n\n=== File: samples/replay.jsonl ===\n{\"sessionId\":\"s1\",\"type\":\"agent.turn\",\"tick\":10}\n{\"sessionId\":\"s1\",\"type\":\"agent.turn\",\"tick\":11}\n{\"sessionId\":\"s1\",\"type\":\"error\",\"code\":\"invalid_output\"}\n{\"sessionId\":\"s2\",\"type\":\"agent.turn\",\"tick\":3}\nnot-json\n{\"sessionId\":\"s2\",\"type\":\"error\",\"code\":\"runtime_fault\"}\n\n=== File: apps/game-runtime/src/runtime/replay.ts ===\nimport { promises as fs } from \"node:fs\";\nimport path from \"node:path\";\nimport type { RuntimeEvent } from \"./types\";\n\nfunction timestampId(): string {\n  return new Date().toISOString().replaceAll(\":\", \"-\");\n}\n\nexport class ReplayLogger {\n  private filePath: string | null = null;\n\n  public async start(directory: string): Promise<void> {\n    await fs.mkdir(directory, { recursive: true });\n    this.filePath = path.join(directory, `${timestampId()}.jsonl`);\n  }\n\n  public async append(event: RuntimeEvent): Promise<void> {\n    if (!this.filePath) {\n      return;\n    }\n    await fs.appendFile(this.filePath, `${JSON.stringify(event)}\\n`, \"utf8\");\n  }\n\n  public getPath(): string | null {\n    return this.filePath;\n  }\n}\n\n=== File: docs/analyzer_requirements.md ===\n- Input may be multi-GB; do not assume it fits in memory.\n- Skip malformed lines but count them.\n- Output one summary per session and one global footer.\n- Keep the script dependency-free if possible.\n"
+      }
+    ],
+    "max_tokens": 1300,
+    "stream": false
+  }
+}

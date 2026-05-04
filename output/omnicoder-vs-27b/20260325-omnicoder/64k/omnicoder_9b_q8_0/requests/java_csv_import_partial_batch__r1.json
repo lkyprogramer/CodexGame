@@ -1,0 +1,19 @@
+{
+  "task_id": "java_csv_import_partial_batch",
+  "repeat_index": 1,
+  "payload": {
+    "model": "bench/omnicoder-9b-q8_0",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior software engineer performing a real coding review.\n\nUse only the provided project snapshot.\nFocus on correctness, root cause, and the smallest safe fix.\nPrefer minimal changes over rewrites.\nCall out exact files that should change.\nEnd with concise regression checks.\nIf the snapshot is insufficient, say exactly what is missing instead of inventing APIs."
+      },
+      {
+        "role": "user",
+        "content": "Task ID: java_csv_import_partial_batch\nScenario: CSV batch import persists rows incrementally before the full batch is validated.\n\nInstructions:\nFind the highest-risk data consistency bug and propose the smallest safe fix. Avoid a full importer rewrite unless the snapshot forces it.\n\nProject snapshot:\n\n=== File: src/main/java/com/example/importer/UserImportService.java ===\npackage com.example.importer;\n\nimport java.util.List;\n\npublic class UserImportService {\n    private final CsvParser csvParser;\n    private final UserRepository userRepository;\n\n    public UserImportService(CsvParser csvParser, UserRepository userRepository) {\n        this.csvParser = csvParser;\n        this.userRepository = userRepository;\n    }\n\n    public void importCsv(String csvText) {\n        List<UserRow> rows = csvParser.parse(csvText);\n        for (UserRow row : rows) {\n            if (row.getEmail() == null || row.getEmail().isBlank()) {\n                throw new IllegalArgumentException(\"email required\");\n            }\n            userRepository.insert(row.getEmail(), row.getDisplayName());\n        }\n    }\n}\n\n=== File: src/main/java/com/example/importer/CsvParser.java ===\npackage com.example.importer;\n\nimport java.util.List;\n\npublic interface CsvParser {\n    List<UserRow> parse(String csvText);\n}\n\n=== File: src/main/java/com/example/importer/UserRepository.java ===\npackage com.example.importer;\n\npublic interface UserRepository {\n    void insert(String email, String displayName);\n}\n"
+      }
+    ],
+    "max_tokens": 1100,
+    "stream": false
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 15910.790166002698,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "# Atomic Release Deployment Script\n\nBased on the requirements, here's a production-safe deployment script skeleton:\n\n## File: `scripts/deploy.sh`\n\n```bash\n#!/bin/bash\nset -euo pipefail\n\n# === Configuration ===\nreadonly APP_DIR=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_DIR}/releases\"\nreadonly CURRENT_LINK=\"${APP_DIR}/current\"\nreadonly HEALTH_ENDPOINT=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${APP_DIR}/deploy.log\"\nreadonly HEALTH_TIMEOUT=30\nreadonly HEALTH_INTERVAL=2\n\n# === Logging ===\nlog() {\n    local level=\"$1\"\n   ",
+          "reasoning_content": "The user wants me to write a Bash deployment script for atomic release swapping with health checks and rollback capability. Let me analyze the requirements:\n\n1. **Atomic release swap**: New release under `/srv/myapp/releases/<timestamp>`, current live at `/srv/myapp/current`\n2. **Health check**: `http://127.0.0.1:8080/healthz`\n3. **Rollback**: Restore previous symlink target on failure\n4. **Constraints**:\n   - Use `set -euo pipefail`\n   - Refuse if current symlink is missing\n   - Don't delete previous release before health check succeeds\n   - Print clear rollback messages\n   - Keep logs under `/srv/myapp/deploy.log`\n\nI need to write a safe, production-ready script that:\n- Is safe to review (clear logic, no surprises)\n- Is safe to abort (can be interrupted without data loss)\n- Logs operations\n- Handles failures gracefully\n\nLet me write a complete script with proper structure:\n\n```bash\n#!/bin/bash\nset -euo pipefail\n\n# Configuration\nreadonly APP_DIR=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_DIR}/releases\"\nreadonly CURRENT_LINK=\"${APP_DIR}/current\"\nreadonly HEALTH_ENDPOINT=\"http://127.0.0.1:8080/healthz\"\nreadonly LOG_FILE=\"${APP_DIR}/deploy.log\"\nreadonly HEALTH_TIMEOUT=30\nreadonly HEALTH_INTERVAL=2\n\n# Logging function\nlog() {\n    local level=\"$1\"\n    shift\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] [${level}] $*\" | tee -a \"$LOG_FILE\"\n}\n\n# Health check function\ncheck_health() {\n    local max_attempts=\"$1\"\n    local attempt=0\n    \n    while [ \"$attempt\" -lt \"$max_attempts\" ]; do\n        if curl -sf --max-time 10 \"$HEALTH_ENDPOINT\" > /dev/null 2>&1; then\n            log \"INFO\" \"Health check passed\"\n            return 0\n        fi\n        attempt=$((attempt + 1))\n        sleep \"$HEALTH_INTERVAL\"\n    done\n    \n    log \"ERROR\" \"Health check failed after ${max_attempts} attempts\"\n    return 1\n}\n\n# Rollback function\nrollback() {\n    local failed_release=\"$1\"\n    log \"WARN\" \"Initiating rollback from ${failed_release}\"\n    \n    if [ -L \"$CURRENT_LINK\" ]; then\n        local current_target\n        current_target=$(readlink \"$CURRENT_LINK\")\n        \n        if [ \"$current_target\" = \"$failed_release\" ]; then\n            log \"INFO\" \"Current symlink points to failed release\"\n            \n            # Find previous release\n            local prev_release\n            prev_release=$(ls -1t \"${RELEASES_DIR}\" 2>/dev/null | tail -1)\n            \n            if [ -n \"$prev_release\" ] && [ -d \"${RELEASES_DIR}/${prev_release}\" ]; then\n                ln -sfn \"${RELEASES_DIR}/${prev_release}\" \"$CURRENT_LINK\"\n                log \"INFO\" \"Rolled back to ${prev_release}\"\n            else\n                log \"ERROR\" \"No previous release found for rollback\"\n                return 1\n            fi\n        fi\n    fi\n    \n    log \"INFO\" \"Rollback completed\"\n}\n\n# Main deployment function\ndeploy() {\n    local timestamp=\"$1\"\n    local release_dir=\"${RELEASES_DIR}/${timestamp}\"\n    local prev_release=\"\"\n    \n    log \"INFO\" \"Starting deployment of release ${timestamp}\"\n    \n    # Verify current symlink exists\n    if [ ! -L \"$CURRENT_LINK\" ]; then\n        log \"ERROR\" \"Current symlink does not exist - aborting\"\n        exit 1\n    fi\n    \n    # Store current target for potential rollback\n    if [ -L \"$CURRENT_LINK\" ]; then\n        prev_release=$(readlink \"$CURRENT_LINK\")\n    fi\n    \n    # Activate new release\n    ln -sfn \"$release_dir\" \"$CURRENT_LINK\"\n    log \"INFO\" \"Switched to release ${timestamp}\"\n    \n    # Run health check\n    if ! check_health \"$HEALTH_TIMEOUT\"; then\n        # Rollback on failure\n        rollback \"$timestamp\"\n        exit 1\n    fi\n    \n    log \"INFO\" \"Deployment of ${timestamp} completed successfully\"\n}\n\n# Cleanup function\ncleanup() {\n    log \"INFO\" \"Deployment script terminated\"\n}\n\n# Set up trap for cleanup\ntrap cleanup EXIT\n\n# Main execution\nif [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then\n    if [ -z \"$1\" ]; then\n        log \"ERROR\" \"Usage: $0 <timestamp>\"\n        exit 1\n    fi\n    \n    deploy \"$1\"\nfi\n```\n\nI'll focus on creating a robust deployment script that handles atomic releases with careful health checking and rollback mechanisms. The script ensures safe deployment by verifying the current symlink, performing health checks, and providing a clear rollback path if something goes wrong.\n"
+        }
+      }
+    ],
+    "created": 1774446503,
+    "model": "bench/omnicoder-9b-q8_0",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 290,
+      "total_tokens": 1540
+    },
+    "id": "chatcmpl-MY0KZW4vZta7vJm6ZeI2C4IXSLgzidUW",
+    "timings": {
+      "cache_n": 82,
+      "prompt_n": 208,
+      "prompt_ms": 51.52,
+      "prompt_per_token_ms": 0.2476923076923077,
+      "prompt_per_second": 4037.267080745342,
+      "predicted_n": 1250,
+      "predicted_ms": 14735.589,
+      "predicted_per_token_ms": 11.7884712,
+      "predicted_per_second": 84.82864173261075
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 32236.40641599195,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script designed to be minimal, robust, and self-contained.\n\n### Strategy Overview\n1.  **Matching Logic**: Primary key is `merchant_order_id`. If that fails to find a match, fallback to `provider_txn_id`.\n2.  **Edge Case Guards**:\n    *   **BOM/Encoding**: Explicitly handles UTF-8 BOM.\n    *   **Dirty Data**: Skips blank lines and duplicate header rows during parsing.\n    *   **Duplicates**: Detects internal duplicates within a single file (e.g., `O-1003` appearing twice in `finance_export.csv`).\n    *   **Type Safety**: Converts `amount_cents` to integers to avoid string comparison errors (e.g., \"100\" vs \"100.0\").\n3.  **Outputs**:\n    *   `reconcile_details.csv`: Machine-readable row-by-row status.\n    *   `reconcile_summary.txt`: Human-readable aggregate report.\n\n### The Script: `reconcile.py`\n\nSave this file in the project root (same directory as `samples/`).\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReconciliation Script for Finance Export vs Merchant Statement.\nHandles BOM, blank lines, duplicate headers, and internal duplicates.\n\"\"\"\n\nimport csv\nimport sys\nfrom collections import defaultdict\nfrom pathlib import Path\n\n# Configuration\nINPUT_DIR = Path(\"samples\")\nFINANCE_FILE = INPUT_DIR / \"finance_export.csv\"\nMERCHANT_FILE = INPUT_DIR / \"merchant_statement.csv\"\nOUTPUT_DETAILS = Path(\"reconcile_details.csv\")\nOUTPUT_SUMMARY = Path(\"reconcile_summary.txt\")\n\n# Expected columns\nEXPECTED_COLS = [\"merchant_order_id\", \"provider_txn_id\", \"amount_cents\", \"status\", \"updated_at\"]\n\ndef clean_csv_reader(filepath):\n    \"\"\"\n    Generator that yields valid rows, skipping BOM, blank lines, and duplicate headers.\n    \"\"\"\n    seen_headers = False\n    with open(filepath, \"r\", encoding=\"utf-8-sig\") as f:\n        reader = csv.DictReader(f)\n        for row in reader:\n            # Skip blank rows (all values empty or None)\n            if not any(row.values()):\n                continue\n            \n            # Skip duplicate header rows (if data looks like headers)\n            if not seen_headers and set(row.keys()) == set(EXPECTED_COLS):\n                # Check if the first row is actually data or a duplicate header\n                # We assume the first row from DictReader is the header, \n                # but if the file has a duplicate header row as data, \n                # the values will match the keys.\n                if row.get(\"merchant_order_id\") == \"merchant_order_id\":\n                    continue\n                seen_headers = True\n                yield row\n                continue\n            \n            seen_headers = True\n            yield row\n\ndef load_data(filepath):\n    \"\"\"\n    Loads CSV into a list of dicts.\n    Returns: (list_of_rows, list_of_duplicate_keys)\n    \"\"\"\n    rows = []\n    duplicates = []\n    seen_keys = set()\n    \n    for row in clean_csv_reader(filepath):\n        # Normalize amount to int for safe comparison\n        try:\n            row[\"amount_cents\"] = int(row[\"amount_cents\"])\n        except (ValueError, TypeError):\n            row[\"amount_cents\"] = 0 # Fallback for bad data\n        \n        # Check for internal duplicates based on primary key\n        key = row[\"merchant_order_id\"]\n        if key in seen_keys:\n            duplicates.append(key)\n        else:\n            seen_keys.add(key)\n            rows.append(row)\n            \n    return rows, duplicates\n\ndef reconcile(finance_rows, merchant_rows, finance_dups, merchant_dups):\n    \"\"\"\n    Performs the matching logic and generates discrepancy records.\n    \"\"\"\n    # Index merchant data for O(1) lookup\n    merchant_by_order = {r[\"merchant_order_id\"]: r for r in merchant_rows}\n    merchant_by_txn = {r[\"provider_txn_id\"]: r for r in merchant_rows}\n    \n    results = []\n    matched_finance_ids = set()\n    \n    # 1. Iterate Finance (Source of Truth for \"Expected\")\n    for f_row in finance_rows:\n        f_id = f_row[\"merchant_order_id\"]\n        f_txn = f_row[\"provider_txn_id\"]\n        f_amt = f_row[\"amount_cents\"]\n        f_status = f_row[\"status\"]\n        \n        # Check for internal duplicates in finance\n        if f_id in finance_dups:\n            results.append({\n                \"source\": \"finance\",\n                \"merchant_order_id\": f_id,\n                \"provider_txn_id\": f_txn,\n                \"status\": \"DUPLICATE_IN_FINANCE\",\n                \"amount_mismatch\": False,\n                \"details\": f\"Duplicate ID found in finance export\"\n            })\n            continue\n\n        # Matching Strategy: Order ID first, then Txn ID\n        m_row = merchant_by_order.get(f_id)\n        \n        if not m_row:\n            # Fallback to Txn ID\n            m_row = merchant_by_txn.get(f_txn)\n            if m_row:\n                results.append({\n                    \"source\": \"finance\",\n                    \"merchant_order_id\": f_id,\n                    \"provider_txn_id\": f_txn,\n                    \"status\": \"MATCHED_VIA_TXN_ID\",\n                    \"amount_mismatch\": False,\n                    \"details\": \"Matched using provider_txn_id fallback\"\n                })\n            else:\n                results.append({\n                    \"source\": \"finance\",\n                    \"merchant_order_id\": f_id,\n                    \"provider_txn_id\": f_txn,\n                    \"status\": \"MISSING_IN_MERCHANT\",\n                    \"amount_mismatch\": False,\n                    \"details\": \"No match found in merchant statement\"\n                })\n                continue\n        \n        matched_finance_ids.add(f_id)\n        \n        # Compare fields\n        m_amt = m_row[\"amount_c"
+        }
+      }
+    ],
+    "created": 1776910704,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-HsIVrp6BdwCgLFbmoRo22Hck3SjSORLZ",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 345.075,
+      "prompt_per_token_ms": 0.578984899328859,
+      "prompt_per_second": 1727.1607621531552,
+      "predicted_n": 1300,
+      "predicted_ms": 30425.558,
+      "predicted_per_token_ms": 23.404275384615385,
+      "predicted_per_second": 42.72723609539059
+    }
+  }
+}

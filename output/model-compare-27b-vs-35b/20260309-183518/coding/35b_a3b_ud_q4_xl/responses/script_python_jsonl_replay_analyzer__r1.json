@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_jsonl_replay_analyzer",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 10652.197874966078,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Analysis\nThe task requires a Python script to analyze JSONL replay files with specific constraints:\n1.  **Memory Efficiency**: Must handle multi-GB files (streaming line-by-line, no bulk loading).\n2.  **Robustness**: Must skip malformed JSON lines but count them.\n3.  **Output**: Per-session summary + global footer.\n4.  **Dependencies**: None (standard library only).\n\nThe existing `replay.ts` shows the data structure (`sessionId`, `type`, `tick`, `code`), which informs the parsing logic.\n\n### Solution\nI will create a single Python script `analyze_replay.py` in the project root. It will use `json` for parsing and `sys` for I/O. It will maintain a dictionary of session stats and a global counter for malformed lines, updating them incrementally as it reads the file.\n\n### Implementation\n\n**File to Create:** `analyze_replay.py`\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nAnalyze replay JSONL files.\n- Streaming: Processes line-by-line to handle multi-GB files.\n- Tolerance: Skips malformed JSON lines but counts them.\n- Output: Per-session summary and global footer.\n\"\"\"\n\nimport json\nimport sys\nfrom collections import defaultdict\nfrom typing import Dict, Any, Optional\n\ndef analyze_replay_file(filepath: str) -> None:\n    # Session stats: { sessionId: { 'turns': int, 'errors': int, 'malformed': int } }\n    # Global stats: { 'total_malformed': int }\n    session_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {\"turns\": 0, \"errors\": 0, \"malformed\": 0})\n    global_malformed = 0\n\n    try:\n        with open(filepath, \"r\", encoding=\"utf-8\") as f:\n            for line_num, line in enumerate(f, start=1):\n                line = line.strip()\n                if not line:\n                    continue\n\n                try:\n                    event: Dict[str, Any] = json.loads(line)\n                except json.JSONDecodeError:\n                    # Malformed line handling\n                    global_malformed += 1\n                    # We cannot attribute malformed lines to a specific session without parsing,\n                    # so we count them globally. If strict per-session malformed counts are needed,\n                    # we would need to attempt partial parsing or assume they belong to the last seen session.\n                    # Per requirements: \"count them\". Global count is safest for unknown structure.\n                    continue\n\n                session_id = event.get(\"sessionId\")\n                event_type = event.get(\"type\")\n\n                if not session_id:\n                    # Event without session ID is effectively global noise or malformed for this schema\n                    global_malformed += 1\n                    continue\n\n                if event_type == \"agent.turn\":\n                    session_stats[session_id][\"turns\"] += 1\n                elif event_type == \"error\":\n                    session_stats[session_id][\"errors\"] += 1\n                else:\n                    # Unknown types are ignored for specific counts but counted as valid events\n                    pass\n\n    except FileNotFoundError:\n        print(f\"Error: File not found: {filepath}\", file=sys.stderr)\n        sys.exit(1)\n    except PermissionError:\n        print(f\"Error: Permission denied: {filepath}\", file=sys.stderr)\n        sys.exit(1)\n\n    # Output Per-Session Summary\n    print(\"--- Per-Session Summary ---\")\n    for session_id, stats in sorted(session_stats.items()):\n        print(f\"Session: {session_id}\")\n        print(f\"  Turns: {stats['turns']}\")\n        print(f\"  Errors: {stats['errors']}\")\n        # Note: Malformed lines are counted globally as they cannot be reliably attributed without parsing\n        print(f\"  Malformed (Global): {global_malformed}\")\n        print()\n\n    # Output Global Footer\n    print(\"--- Global Footer ---\")\n    total_sessions = len(session_stats)\n    total_turns = sum(s[\"turns\"] for s in session_stats.values())\n    total_errors = sum(s[\"errors\"] for s in session_stats.values())\n    \n    print(f\"Total Sessions: {total_sessions}\")\n    print(f\"Total Turns: {total_turns}\")\n    print(f\"Total Errors: {total_errors}\")\n    print(f\"Total Malformed Lines: {global_malformed}\")\n\nif __name__ == \"__main__\":\n    if len(sys.argv) < 2:\n        print(\"Usage: python analyze_replay.py <path_to_jsonl>\", file=sys.stderr)\n        sys.exit(1)\n    \n    target_file = sys.argv[1]\n    analyze_replay_file(target_file)\n```\n\n### Verification Checks\n\n1.  **Syntax Check**:\n    ```bash\n    python3 -m py_compile analyze_replay.py\n    ```\n2.  **Execution on Sample**:\n    ```bash\n    python3 analyze_replay.py samples/replay.jsonl\n    ```\n    *Expected Output:*\n    ```text\n    --- Per-Session Summary ---\n    Session: s1\n      Turns: 2\n      Errors: 1\n      Malformed (Global): 1\n\n    Session: s2\n      Turns: 1\n      Errors: 1\n      Malformed (Global): 1\n\n    --- Global Footer ---\n    Total Sessions: 2\n    Total Turns: 3\n    Total Errors: 2\n    Total Malformed Lines: 1\n    ```\n    *(Note: The malformed line `not-json` is counted once globally.)*\n\n3.  **Memory Check**:\n    The script uses `for line in f` which is a generator, ensuring O(1) memory usage relative to file size.\n\n4.  **Dependency Check**:\n    Imports are limited to `json`, `sys`, `collections`, and `typing` (standard library)."
+        }
+      }
+    ],
+    "created": 1773053902,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1287,
+      "prompt_tokens": 518,
+      "total_tokens": 1805
+    },
+    "id": "chatcmpl-F4Z6hBOF06lpLcXFo9DgkqAemrMJvte2",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 434,
+      "prompt_ms": 102.803,
+      "prompt_per_token_ms": 0.2368732718894009,
+      "prompt_per_second": 4221.666682878905,
+      "predicted_n": 1287,
+      "predicted_ms": 9293.621,
+      "predicted_per_token_ms": 7.221150738150738,
+      "predicted_per_second": 138.48208357108604
+    }
+  }
+}

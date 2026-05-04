@@ -1,0 +1,40 @@
+{
+  "task_id": "ts_runtime_metrics_protocol",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 57357.390666002175,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Analysis\n\n**Root Cause:** Runtime metrics (`turnsTotal`, `invalidOutputCount`, `actionAppliedCount`, `actionRejectedCount`, `queuedActions`) exist server-side in `MetricsTracker` but are never exposed to clients. They're only used internally and persisted in `SessionSnapshot`.\n\n**Protocol-First Fix:** Add `RuntimeMetrics` to the protocol, embed in `session.state` (already sent on state changes), server emits, client displays.\n\n---\n\n## Changes\n\n### 1. `packages/protocol/src/messages.ts`\n\nAdd `RuntimeMetrics` type and embed in `session.state` payload:\n\n```typescript\n// Add after line ~20 (after RuntimeModelOption)\nexport type RuntimeMetrics = {\n  turnsTotal: number;\n  invalidOutputCount: number;\n  actionAppliedCount: number;\n  actionRejectedCount: number;\n  queuedActions: number;\n};\n\n// Update session.state payload (around line ~80)\n  | {\n      version: Version;\n      type: \"session.state\";\n      payload: {\n        phase: SessionPhase;\n        paused: boolean;\n        preparedSeed: number | null;\n        threadIds: { gameplayByAgentId: Record<string, string>; builder?: string };\n        connected: boolean;\n        runtime: {\n          model: string | null;\n          effort: TurnEffort;\n          tickMs: number;\n          schedulerMs: number;\n          maxQueuedActionsBeforeTurn: number;\n          availableModels: RuntimeModelOption[];\n          metrics: RuntimeMetrics;\n        };\n      };\n    }\n```\n\n### 2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\nInclude metrics in `sendSessionState`:\n\n```typescript\n// Find sendSessionState method (around line ~720) and update runtime object:\nprivate sendSessionState(): void {\n  this.emitMessage({\n    version: PROTOCOL_VERSION,\n    type: \"session.state\",\n    payload: {\n      phase: this.phase,\n      paused: this.paused,\n      preparedSeed: this.preparedSeed,\n      threadIds: this.threadIds,\n      connected: this.connected,\n      runtime: {\n        model: this.turnModel,\n        effort: this.turnEffort,\n        tickMs: runtimeConfig.tickMs,\n        schedulerMs: runtimeConfig.schedulerMs,\n        maxQueuedActionsBeforeTurn: runtimeConfig.maxQueuedActionsBeforeTurn,\n        availableModels: this.availableModels,\n        metrics: this.metrics.snapshot()\n      }\n    }\n  });\n}\n```\n\n### 3. `apps/game-client/src/App.tsx`\n\nConsume and display metrics in topbar:\n\n```typescript\n// Add state (around line ~100)\nconst [runtimeMetrics, setRuntimeMetrics] = useState<{\n  turnsTotal: number;\n  invalidOutputCount: number;\n  action",
+          "reasoning_content": "Let me analyze this task carefully.\n\n**Understanding the Problem:**\nThe task is to expose runtime metrics to the client HUD in a \"protocol-first\" way. Looking at the code:\n\n1. **Server-side metrics exist** in `apps/game-runtime/src/runtime/metrics.ts`:\n   - `turnsTotal`\n   - `invalidOutputCount`\n   - `actionAppliedCount`\n   - `actionRejectedCount`\n   - `queuedActions`\n\n2. **These metrics are NOT exposed to clients** - they're only used internally and persisted in `SessionSnapshot`\n\n3. **Protocol-first approach** means:\n   - Define the message contract in the protocol package first\n   - Then update server to emit\n   - Then update client to consume\n\n**What needs to change:**\n\n1. **Protocol package** (`packages/protocol/src/messages.ts`):\n   - Add a new server message type `runtime.metrics` (or embed in existing message)\n   - Add `RuntimeMetrics` type to protocol exports\n\n2. **Server** (`apps/game-runtime/src/runtime/GameRuntimeServer.ts`):\n   - Emit metrics in a server message (likely `session.state` or a new `runtime.metrics` message)\n   - Or send metrics with `world.snapshot`\n\n3. **Client** (`apps/game-client/src/App.tsx`):\n   - Consume and display the metrics\n\n**Minimal change strategy:**\n\nThe smallest change would be to:\n1. Add `RuntimeMetrics` to the protocol types\n2. Embed metrics in an existing server message (like `session.state` or add a new `runtime.metrics` message)\n3. Update server to include metrics in that message\n4. Update client to consume and display\n\nLet me check what messages are already sent:\n- `session.state` - sent on state changes\n- `world.snapshot` - sent on tick\n\n\n- `agent.feed` - for agent output\n- `agent.action` - for actions\n- `agent.turn` - for turn status\n\n**Best approach:**\nAdd metrics to `session.state` payload since it's already sent on state changes and the HUD needs to display these metrics. The protocol package needs the `RuntimeMetrics` type added, then the server can include it in `session.state` responses, and the client can extract and display them in the HUD.\n\n**Files to modify:**\n1. `packages/protocol/src/messages.ts` - Add `RuntimeMetrics` type and include in `session.state` payload\n2. `apps/game-runtime/src/runtime/GameRuntimeServer.ts` - Include metrics in `sendSessionState`\n3. `apps/game-client/src/App.tsx` - Consume and display metrics\n4. `apps/game-runtime/test/ui-contract.integration.test.ts` - Add contract test\n\nI'll start by defining the `RuntimeMetrics` type in the protocol package, then wire it through the server state and client display.\n"
+        }
+      }
+    ],
+    "created": 1774359064,
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 24300,
+      "total_tokens": 25550
+    },
+    "id": "chatcmpl-oMUAa5c0ocGDpe2cNFrZe6XW3V75IKAV",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 24300,
+      "prompt_ms": 10884.102,
+      "prompt_per_token_ms": 0.4479054320987655,
+      "prompt_per_second": 2232.614137574234,
+      "predicted_n": 1250,
+      "predicted_ms": 30266.632,
+      "predicted_per_token_ms": 24.2133056,
+      "predicted_per_second": 41.29960677488001
+    }
+  }
+}

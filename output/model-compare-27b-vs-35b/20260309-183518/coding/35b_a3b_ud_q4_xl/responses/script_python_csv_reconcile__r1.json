@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11861.68016702868,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Reconciliation Strategy & Edge-Case Guards\n\n**Matching Strategy:**\n1.  **Primary Key:** `merchant_order_id`.\n2.  **Secondary Key (Fallback):** `provider_txn_id` (used only if `merchant_order_id` is missing or ambiguous, though in this schema, `merchant_order_id` is the primary business key).\n3.  **Normalization:**\n    *   Strip BOM (Byte Order Mark) from UTF-8 files.\n    *   Ignore blank lines and lines containing only whitespace.\n    *   Ignore duplicate header rows (e.g., if a header appears mid-file).\n    *   Trim whitespace from all cell values.\n\n**Edge-Case Guards:**\n*   **Duplicates:** If a `merchant_order_id` appears multiple times in a single file with identical data, it is flagged as a \"Duplicate Row\" but treated as a single logical record for matching. If data differs, it is flagged as \"Data Conflict\".\n*   **Missing Rows:** Rows present in one file but not the other are flagged as \"Missing in Source\" or \"Missing in Target\".\n*   **Stale Refunds:** If `status` is `REFUNDED` in one file but `SETTLED` (or missing) in the other, it is flagged as a \"Status Mismatch\".\n*   **Amount Mismatches:** Numeric comparison of `amount_cents`.\n\n**Output Files:**\n1.  `output/reconciliation_report.csv`: Machine-readable, one row per unique `merchant_order_id` with columns for status, discrepancies, and source counts.\n2.  `output/reconciliation_summary.txt`: Human-readable text summary of counts and critical issues.\n\n---\n\n### Production-Safe Python Script\n\nSave this as `scripts/reconcile_csv.py`. It uses only the Python standard library (`csv`, `io`, `os`, `collections`) to ensure zero external dependencies.\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nReconciliation Script for Finance and Merchant CSV Exports.\nHandles duplicates, BOM, blank lines, and header anomalies.\n\"\"\"\n\nimport csv\nimport os\nimport sys\nfrom collections import defaultdict\nfrom datetime import datetime\nfrom typing import Dict, List, Tuple, Any\n\n# Configuration\nINPUT_DIR = \"samples\"\nOUTPUT_DIR = \"output\"\nFILE_FINANCE = \"finance_export.csv\"\nFILE_MERCHANT = \"merchant_statement.csv\"\n\n# Expected columns (normalized)\nEXPECTED_COLS = [\"merchant_order_id\", \"provider_txn_id\", \"amount_cents\", \"status\", \"updated_at\"]\n\ndef clean_line(line: str) -> str:\n    \"\"\"Remove BOM, strip whitespace, handle empty lines.\"\"\"\n    if line.startswith('\\ufeff'):\n        line = line[1:]\n    return line.strip()\n\ndef parse_csv_file(filepath: str) -> List[Dict[str, str]]:\n    \"\"\"\n    Parse CSV with guards for BOM, blank lines, and duplicate headers.\n    Returns a list of normalized row dictionaries.\n    \"\"\"\n    rows = []\n    if not os.path.exists(filepath):\n        raise FileNotFoundError(f\"File not found: {filepath}\")\n\n    with open(filepath, 'r', encoding='utf-8-sig', newline='') as f:\n        # Read all lines to handle potential header duplication manually\n        raw_lines = f.readlines()\n    \n    clean_lines = [clean_line(l) for l in raw_lines if clean_line(l)]\n    if not clean_lines:\n        return rows\n\n    # Detect header row (first non-empty line)\n    header_line = clean_lines[0]\n    # Simple heuristic: if it matches expected columns, it's a header\n    # We assume the first line is always the header based on the snapshot\n    reader = csv.DictReader([header_line] + clean_lines[1:])\n    \n    for row in reader:\n        # Guard against duplicate header rows appearing later\n        if row.get('merchant_order_id') == 'merchant_order_id':\n            continue\n        \n        # Normalize keys and values\n        clean_row = {k.strip(): v.strip() for k, v in row.items() if k}\n        if not clean_row.get('merchant_order_id'):\n            continue # Skip rows with no ID\n            \n        rows.append(clean_row)\n    \n    return rows\n\ndef reconcile(fin_rows: List[Dict], merchant_rows: List[Dict]) -> List[Dict]:\n    \"\"\"\n    Perform reconciliation logic.\n    Returns a list of reconciliation result records.\n    \"\"\"\n    # Index by merchant_order_id\n    finance_map = defaultdict(list)\n    merchant_map = defaultdict(list)\n\n    for r in finance_rows:\n        finance_map[r['merchant_order_id']].append(r)\n    for r in merchant_rows:\n        merchant_map[r['merchant_order_id']].append(r)\n\n    all_ids = set(finance_map.keys()) | set(merchant_map.keys())\n    results = []\n\n    for oid in sorted(all_ids):\n        fin_records = finance_map.get(oid, [])\n        mer_records = merchant_map.get(oid, [])\n\n        # Deduplicate within source for comparison (if exact duplicates exist)\n        # We treat exact duplicates as one logical record but flag them\n        fin_unique = []\n        fin_dup_count = 0\n        for r in fin_records:\n            if r in fin_unique:\n                fin_dup_count += 1\n            else:\n                fin_unique.append(r)\n        \n        mer_unique = []\n        mer_dup_count = 0\n        for r in mer_records:\n            if r in mer_unique:\n                mer_dup_count += 1\n            else:\n                mer_unique.append(r)\n\n        # Determine status\n        status = \"MATCH\"\n        discrepancies = []\n\n        # 1. Missing in one side\n        if not fin_unique and mer_unique:\n            status = \"MISSING_IN_FINANCE\"\n            discrepancies.append(\"Missing in finance_export.csv\")\n        elif fin_unique and not mer_unique:\n            status = \"MISSING_IN_MERCHANT\"\n            discrepancies.append(\"Missing in merchant_statement.csv\")\n        \n       "
+        }
+      }
+    ],
+    "created": 1773053874,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-BvNFFFhsfu1TsSQsmNmxiNrTozL6lvu4",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 192.929,
+      "prompt_per_token_ms": 0.3237063758389262,
+      "prompt_per_second": 3089.2193501236206,
+      "predicted_n": 1300,
+      "predicted_ms": 9488.951,
+      "predicted_per_token_ms": 7.299193076923077,
+      "predicted_per_second": 137.00144515447494
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "java_audit_success_on_failure",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 11606.098084012046,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Code Review: Audit Log Consistency Bug\n\n**Severity:** High (Data Integrity / Compliance)\n**Root Cause:** The `changeStatus` method in `ProfileService` records a successful audit event in the `finally` block. This block executes regardless of whether the `try` block completes successfully or throws an exception (e.g., if `profileRepository.save()` fails). Consequently, the system logs a \"success\" even when the profile update fails.\n\n**Location:** `src/main/java/com/example/profile/ProfileService.java`\n\n### Smallest Safe Patch Plan\n\nMove the `auditRepository.recordSuccess` call from the `finally` block to the end of the `try` block, immediately after the successful `save` operation. This ensures the audit log is only written if the transaction completes without error.\n\n**File to Change:** `src/main/java/com/example/profile/ProfileService.java`\n\n**Diff:**\n\n```diff\n--- a/src/main/java/com/example/profile/ProfileService.java\n+++ b/src/main/java/com/example/profile/ProfileService.java\n@@ -14,9 +14,8 @@ public class ProfileService {\n     public void changeStatus(long profileId, String newStatus) {\n         try {\n             Profile profile = profileRepository.require(profileId);\n             profile.setStatus(newStatus);\n             profileRepository.save(profile);\n-        } finally {\n-            auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n+            auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n         }\n     }\n }\n```\n\n### Regression Checks\n\n1.  **Success Path:** Verify that when `profileRepository.save()` succeeds, the audit log contains a `PROFILE_STATUS_CHANGED` entry.\n2.  **Failure Path:** Simulate a failure in `profileRepository.save()` (e.g., throw an exception). Verify that the audit log **does not** contain a `PROFILE_STATUS_CHANGED` entry.\n3.  **Pre-Save Failure:** Simulate a failure in `profileRepository.require()` (e.g., profile not found). Verify that no audit entry is created."
+        }
+      }
+    ],
+    "created": 1773052705,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 440,
+      "prompt_tokens": 384,
+      "total_tokens": 824
+    },
+    "id": "chatcmpl-yNdIeHDcQJ4KFukEbjzIGIurmKs1HEC8",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 384,
+      "prompt_ms": 157.279,
+      "prompt_per_token_ms": 0.40958072916666666,
+      "prompt_per_second": 2441.5211185218623,
+      "predicted_n": 440,
+      "predicted_ms": 10265.515,
+      "predicted_per_token_ms": 23.33071590909091,
+      "predicted_per_second": 42.86195091040245
+    }
+  }
+}

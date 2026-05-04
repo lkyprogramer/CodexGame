@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_metrics_contract",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 6786.3779999897815,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"summary\": \"Move metrics from world_snapshot to session_state runtime payload so tests pass.\",\n  \"files\": [\n    {\n      \"path\": \"runtime/server.py\",\n      \"content\": \"from __future__ import annotations\\n\\nfrom protocol.messages import make_session_state, make_world_snapshot\\n\\n\\ndef emit_state(phase: str, metrics_snapshot: dict) -> tuple[dict, dict]:\\n    session_state = make_session_state(\\n        phase,\\n        {\\n            \\\"model\\\": \\\"local-qwen\\\",\\n            \\\"tick_ms\\\": 200,\\n            \\\"metrics\\\": metrics_snapshot,\\n        },\\n    )\\n    world_snapshot = make_world_snapshot(10, {\\\"tiles\\\": []})\\n    return session_state, world_snapshot\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1776913822,
+    "model": "bench/qwen36-27b-ud-q5_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 178,
+      "prompt_tokens": 917,
+      "total_tokens": 1095
+    },
+    "id": "chatcmpl-d6un2eQLPDZAE0wKKkjg11hLmCjw9oJ0",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 917,
+      "prompt_ms": 427.766,
+      "prompt_per_token_ms": 0.46648418756815707,
+      "prompt_per_second": 2143.695384859947,
+      "predicted_n": 178,
+      "predicted_ms": 4569.044,
+      "predicted_per_token_ms": 25.66878651685393,
+      "predicted_per_second": 38.95782137357399
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/server.py"
+  ],
+  "json_error": ""
+}

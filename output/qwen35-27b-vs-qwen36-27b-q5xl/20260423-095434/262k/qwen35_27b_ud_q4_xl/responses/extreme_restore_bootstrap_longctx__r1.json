@@ -1,0 +1,39 @@
+{
+  "task_id": "extreme_restore_bootstrap_longctx",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 195934.1637910111,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Highest-Risk Correctness Bug\n\n**Root Cause:**  \nIn `restoreSession()` (line ~450 in `GameRuntimeServer.ts`), the runtime restores the `Simulation` state and agent configs from the persisted snapshot, but **it never restores the `threadIds`** (gameplay threads and builder thread) from the snapshot.\n\nThe `SessionSnapshot` type includes `threadIds`, and the logs confirm they are saved:\n```\nINFO restoreSession loaded simulation tick=1245 agents=3\nINFO phase=running preparedSeed=null connected=false threadIds={}\n```\n\nHowever, `restoreSession()` explicitly resets `this.threadIds` to an empty object:\n```typescript\nthis.threadIds = { gameplayByAgentId: {} };\n```\n\nThis causes:\n1. The scheduler to skip all agent turns (`scheduler skipped agent turn because gameplay thread missing`).\n2. The client to see `phase=running` but with no thread IDs, leading to a broken game state where agents cannot act.\n3. The system to attempt to bootstrap new threads for existing agents, which is incorrect behavior for a restore.\n\n**Why it's critical:**  \nA restored session is functionally dead. Agents cannot take turns, the game cannot progress, and the UI shows an inconsistent state (`running` but no threads).\n\n---\n\n## Smallest Safe Fix\n\n**File to change:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change location:** Inside `private async restoreSession(): Promise<void>`\n\n**Current code (lines ~465-475):**\n```typescript\nthis.phase = \"running\";\nthis.preparedSeed = null;\nthis.threadIds = { gameplayByAgentId: {} };\nthis.threadToAgentId.clear();\nthis.activeTurn = null;\nthis.schedulerIndex = 0;\nawait this.logReplay(\"session.restored\", {\n  seed: this.seed,\n  tick: this.simulation.getState().tick\n});\n```\n\n**Fixed code:**\n```typescript\nthis.phase = \"running\";\nthis.preparedSeed = null;\n// Restore threadIds from snapshot if present\nif (saved.threadIds) {\n  this.threadIds = saved.threadIds;\n  // Rebuild threadToAgentId map\n  this.threadToAgentId.clear();\n  for (const [agentId, threadId] of Object.entries(saved.threadIds.gameplayByAgentId)) {\n    this.threadToAgentId.set(threadId, agentId);\n  }\n} else {\n  this.threadIds = { gameplayByAgentId: {} };\n}\nthis.activeTurn = null;\nthis.schedulerIndex = 0;\nawait this.logReplay(\"session.restored\", {\n  seed: this.seed,\n  tick: this.simulation.getState().tick\n});\n```\n\n**Rationale:**  \n- Restores the exact thread IDs from the snapshot, allowing the scheduler to immediately resume agent turns.\n- Rebuilds the `threadToAgentId` map to ensure notification handlers can correctly route messages.\n- Falls back to empty thread IDs only if the snapshot lacks them (defensive).\n- No changes to `startThreadsForExistingSession()` or other bootstrap logic are needed.\n\n---\n\n## Regression Checks\n\n1. **Restore with existing threads:**  \n   - Start a session, let it run for a few ticks, then restart the runtime.  \n   - Verify: `threadIds` in `session.state` match the pre-crash values, and agents immediately resume taking turns without re-bootstrapping threads.\n\n2. **Restore without threads (old snapshot):**  \n   - Manually create a `session.json` with `simulation` but no `threadIds`.  \n   - Verify: Runtime starts in `running` phase with empty `threadIds`, and `startThreadsForExistingSession()` is triggered (via `primeCodexModelCatalog()` logic) to bootstrap new threads.\n\n3. **New session (no restore):**  \n   - Start a fresh session.  \n   - Verify: `threadIds` are populated correctly, and no restore logic interferes.\n\n4. **Scheduler behavior:**  \n   - After restore, verify no \"scheduler skipped agent turn because gameplay thread missing\" warnings appear.\n\n5. **Thread-to-agent mapping:**  \n   - After restore, send a `god.send` message and verify it routes to the correct agent via `threadToAgentId`."
+        }
+      }
+    ],
+    "created": 1776912137,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 931,
+      "prompt_tokens": 195118,
+      "total_tokens": 196049
+    },
+    "id": "chatcmpl-h9FjJY4oChNv4NvX89UHTco2JICL7mUw",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 195118,
+      "prompt_ms": 147441.326,
+      "prompt_per_token_ms": 0.7556520977049785,
+      "prompt_per_second": 1323.3603175815172,
+      "predicted_n": 931,
+      "predicted_ms": 35210.846,
+      "predicted_per_token_ms": 37.82045757250268,
+      "predicted_per_second": 26.440716590564172
+    }
+  }
+}

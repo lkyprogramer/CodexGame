@@ -1,0 +1,39 @@
+{
+  "task_id": "java_permission_scope_trust_bug",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 3769.332416995894,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**\n\n`ReportController.generate()` trusts the `orgId` that comes from the request payload (`GenerateReportRequest#getOrgId()`) instead of using the `orgId` that belongs to the authenticated operator (`UserSession#getOrgId()`).  \nAn attacker can craft a request with any `orgId` and obtain reports for organisations they do not own.\n\n**Root cause**\n\nThe controller does not enforce that the `orgId` supplied by the client matches the operator’s own organisation. The controller should rely on the operator’s context (the `UserSession`) for the trust boundary.\n\n**Smallest safe fix**\n\nReplace the call that passes `request.getOrgId()` with `session.getOrgId()`.  \nNo other class needs to change; the `UserSession` already contains the correct organisation for the logged‑in user.\n\n**Exact file change**\n\n*File: `src/main/java/com/example/report/ReportController.java`*  \n\n```diff\n@@\n public ReportDto generate(UserSession session, GenerateReportRequest request) {\n-        return reportService.generate(request.getOrgId(), session.getUserId(), request.getRange());\n+        // Use the operator's own organisation, not the one supplied by the client.\n+        return reportService.generate(session.getOrgId(), session.getUserId(), request.getRange());\n }\n```\n\n**Why this is the right fix**\n\n* **Scope‑limited** – only the single line that supplies the organisation is altered.  \n* **No API breakage** – the method signature stays the same, and `ReportService` continues to receive the same three arguments.  \n* **Security‑first** – the trust boundary is now the authenticated operator (`UserSession#getOrgId()`), which cannot be overridden by the client.  \n* **Maintainable** – the comment clarifies the intent, making future reviewers aware that the orgId comes from the session, not the request.\n\n**Regression checks (concise)**  \n\n1. **Happy path** – a request with a valid payload and a matching `session.getOrgId()` still produces the expected report.  \n2. **Mismatched orgId** – sending a request where `request.getOrgId() != session.getOrgId()` now fails (or is handled by `ReportService` as an unauthorised request) instead of silently returning data from the wrong organisation.  \n3. **Unauthenticated request** – if `session` is null or lacks an `orgId`, the controller should still behave as before (e.g., throw an authentication exception) – unchanged.  \n\nThese checks confirm that the functional behaviour for legitimate calls is unchanged while the security flaw is closed."
+        }
+      }
+    ],
+    "created": 1774496076,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 558,
+      "prompt_tokens": 378,
+      "total_tokens": 936
+    },
+    "id": "chatcmpl-ORGC017uGVxWohuLpZcYrfHDl9MXJdqg",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 378,
+      "prompt_ms": 57.195,
+      "prompt_per_token_ms": 0.1513095238095238,
+      "prompt_per_second": 6608.969315499608,
+      "predicted_n": 558,
+      "predicted_ms": 2613.196,
+      "predicted_per_token_ms": 4.683146953405018,
+      "predicted_per_second": 213.53162946828328
+    }
+  }
+}

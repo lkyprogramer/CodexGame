@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 25759.267750079744,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script implementing the atomic release swap with health checks and rollback logic.\n\n### File: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Configuration\nreadonly APP_ROOT=\"/srv/myapp\"\nreadonly RELEASES_DIR=\"${APP_ROOT}/releases\"\nreadonly CURRENT_LINK=\"${APP_ROOT}/current\"\nreadonly LOG_FILE=\"${APP_ROOT}/deploy.log\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly HEALTH_TIMEOUT=5\nreadonly HEALTH_RETRIES=5\nreadonly HEALTH_INTERVAL=2\n\n# Arguments\nif [[ $# -lt 1 ]]; then\n    echo \"Usage: $0 <release_timestamp>\"\n    echo \"Example: $0 20231027_143000\"\n    exit 1\nfi\n\nRELEASE_TIMESTAMP=\"$1\"\nNEW_RELEASE_PATH=\"${RELEASES_DIR}/${RELEASE_TIMESTAMP}\"\n\n# Logging helper\nlog() {\n    local msg=\"[$(date '+%Y-%m-%d %H:%M:%S')] $*\"\n    echo \"$msg\" | tee -a \"$LOG_FILE\"\n}\n\n# 1. Pre-flight Checks\nlog \"Starting deployment for release: ${RELEASE_TIMESTAMP}\"\n\n# Check if release directory exists\nif [[ ! -d \"$NEW_RELEASE_PATH\" ]]; then\n    log \"ERROR: Release directory not found: ${NEW_RELEASE_PATH}\"\n    exit 1\nfi\n\n# Check if current symlink exists (Refuse to run if missing)\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    log \"ERROR: Current symlink is missing: ${CURRENT_LINK}. Aborting.\"\n    exit 1\nfi\n\n# Get previous release path for potential rollback\nPREVIOUS_RELEASE=$(readlink -f \"$CURRENT_LINK\")\nlog \"Current live release: ${PREVIOUS_RELEASE}\"\n\n# 2. Atomic Swap\nlog \"Performing atomic symlink swap to ${NEW_RELEASE_PATH}...\"\nln -sfn \"$NEW_RELEASE_PATH\" \"$CURRENT_LINK\"\n\n# 3. Health Check\nlog \"Performing health checks against ${HEALTH_URL}...\"\nHEALTH_SUCCESS=false\n\nfor ((i=1; i<=HEALTH_RETRIES; i++)); do\n    log \"Health check attempt ${i}/${HEALTH_RETRIES}...\"\n    \n    if curl -sf --connect-timeout \"${HEALTH_TIMEOUT}\" --max-time \"${HEALTH_TIMEOUT}\" \"${HEALTH_URL}\" > /dev/null 2>&1; then\n        log \"Health check passed.\"\n        HEALTH_SUCCESS=true\n        break\n    else\n        log \"Health check failed (attempt ${i}). Retrying in ${HEALTH_INTERVAL}s...\"\n        sleep \"$HEALTH_INTERVAL\"\n    fi\ndone\n\n# 4. Rollback or Success\nif [[ \"$HEALTH_SUCCESS\" == true ]]; then\n    log \"SUCCESS: Deployment of ${RELEASE_TIMESTAMP} completed successfully.\"\n    # Note: We do NOT delete the previous release here per constraints.\n    # Cleanup of old releases should be handled by a separate retention policy script.\n    exit 0\nelse\n    log \"CRITICAL: Health checks failed after ${HEALTH_RETRIES} attempts.\"\n    log \"ROLLBACK: Restoring symlink to previous release: ${PREVIOUS_RELEASE}\"\n    \n    # Restore previous symlink\n    ln -sfn \"$PREVIOUS_RELEASE\" \"$CURRENT_LINK\"\n    \n    log \"ROLLBACK: Symlink restored. Previous release is now live.\"\n    log \"ERROR: Deployment of ${RELEASE_TIMESTAMP} failed. Manual intervention may be required.\"\n    exit 1\nfi\n```\n\n### Verification Checks\n\n1.  **Safety Constraints**:\n    *   Verify `set -euo pipefail` is present at the top.\n    *   Verify the script exits with code 1 if `ln -sfn` fails or if the `current` symlink is missing.\n    *   Verify the script does **not** contain `rm -rf` on the previous release directory.\n\n2.  **Atomicity**:\n    *   Confirm the swap uses `ln -sfn` (atomic on most POSIX systems) rather than `rm` + `ln`.\n\n3.  **Rollback Logic**:\n    *   Simulate a failure by pointing `HEALTH_URL` to a non-existent port.\n    *   Run the script.\n    *   Verify the log contains \"ROLLBACK\" and that `readlink /srv/myapp/current` points to the *original* release path, not the new one.\n\n4.  **Logging**:\n    *   Ensure `/srv/myapp/deploy.log` is created and contains timestamps and clear status messages.\n\n### Usage\n```bash\nchmod +x deploy.sh\n./deploy.sh 20231027_143000\n```"
+        }
+      }
+    ],
+    "created": 1773051226,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1038,
+      "prompt_tokens": 292,
+      "total_tokens": 1330
+    },
+    "id": "chatcmpl-klZg7Nfi7T1XOMWE6dvjgUshYQ8phkqT",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 131.449,
+      "prompt_per_token_ms": 0.6319663461538462,
+      "prompt_per_second": 1582.3627414434495,
+      "predicted_n": 1038,
+      "predicted_ms": 24242.551,
+      "predicted_per_token_ms": 23.355058766859344,
+      "predicted_per_second": 42.81727611916749
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 22949.187499994878,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\n\n**Bug Location:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n**Method:** `restoreSession()`\n\n**Issue:**\nWhen restoring a session from disk, the code correctly restores the `Simulation` state and `agentConfigs`. However, it **fails to restore the WebSocket threads** (LLM agents) that were running in the Codex server.\n\nThe current logic:\n1. Loads `saved.simulation`.\n2. Sets `this.simulation` and `this.agentConfigs`.\n3. Clears `this.threadIds` and `this.threadToAgentId`.\n4. Sets `this.phase = \"running\"`.\n\n**Consequence:**\nThe runtime believes it is running with active threads, but the underlying WebSocket connections to the LLM agents are dead (or non-existent). The next time `runScheduler()` is called, it attempts to invoke `requestGameplayTurn()`, which calls `this.codexClient.request(\"turn/start\", { threadId: ... })`. Since `this.threadIds` is empty/cleared, the code might try to start a *new* thread for an agent that was supposed to be restored, or worse, if the logic were to rely on existing thread IDs (which are cleared), it would create a mismatch between the persisted simulation state (which expects a specific world state at tick X) and a brand new LLM context (which has no memory of the previous turn).\n\nSpecifically, `restoreSession` clears `this.threadIds` and then immediately sets `this.phase = \"running\"`. The scheduler will then try to schedule a turn. If the code attempts to use the old thread IDs (which are gone), it fails. If it starts new threads (which it doesn't explicitly do in `restoreSession`), the simulation state is desynchronized from the agent's context.\n\nThe critical missing step is **resuming** the existing threads if they were saved, or **re-initializing** them if the Codex server does not support thread persistence across restarts. Given the `thread/resume` API exists in `reconnect()`, the restore logic should attempt to resume threads if they can be identified, or at least ensure the `threadIds` map is populated before the scheduler runs.\n\nHowever, looking closer at `startThreadsForExistingSession` vs `restoreSession`:\n- `startThreadsForExistingSession` (used in `startSession`): Creates *new* threads for agents.\n- `restoreSession`: Clears `threadIds` and does *not* call `startThreadsForExistingSession`.\n\nThis leaves the runtime in a state where `this.simulation` is active, but `this.threadIds` is empty. The scheduler (`runScheduler`) checks `if (!this.connected) return;` and then tries to schedule a turn. `requestGameplayTurn` looks up `threadId` from `this.threadIds.gameplayByAgentId[agentId]`. Since this is empty, `threadId` is undefined, and the function returns early.\n\n**Wait, is that a bug?**\nIf `requestGameplayTurn` returns early, no turns are generated. The game is \"running\" but frozen. This is a **consistency bug**: the state is restored, but the execution loop is deadlocked because the thread mapping is lost.\n\n**The Fix:**\nThe `restoreSession` method must re-establish the mapping between agents and threads. Since the Codex server likely does not persist thread IDs across a full process restart (unless explicitly designed to do so via a separate DB, which isn't shown), the safest and most consistent approach is to **re-initialize the threads** for the restored agents, just like `startSession` does, but ensuring the simulation state is preserved.\n\nCurrently, `restoreSession` clears `threadIds` and does nothing else. It should call a helper to re-bind threads to the restored agents.\n\n### Proposed Fix\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change:**\nModify `restoreSession` to re-initialize the thread-to-agent mapping after restoring the simulation state.\n\n```typescript\n  private async restoreSession(): Promise<void> {\n    const saved = await this.stateStore.load();\n    if (!saved) {\n      return;\n    }\n\n    const content = this.contentStore.getContent();\n    if (saved.simulation) {\n      this.simulation = Simulation.fromState(saved.simulation, content);\n      this.seed = saved.simulation.seed;\n      for (const agent of saved.simulation.agents ?? []) {\n        this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n      }\n      this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n    } else if (typeof saved.seed === \"number\") {\n      this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n        { id: \"agent-1\", name: \"Agent 1\" }\n      ]);\n      this.seed = saved.seed;\n      this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n      this.resetAgentLoopState([\"agent-1\"]);\n    } else {\n      return;\n    }\n\n    // FIX: Re-initialize thread mappings for restored agents\n    // This ensures the scheduler can find valid thread IDs for the restored simulation state.\n    // We reuse the logic from startThreadsForExistingSession but scoped to the restored agents.\n    const gameplayByAgentId: Record<string, string> = {};\n    for (const agent of this.simulation.getState().agents) {\n      this.ensureAgentState(agent.id);\n      if (!this.agentConfigs.has(agent.id)) {\n        this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n      }\n      // Attempt to resume or start the"
+        }
+      }
+    ],
+    "created": 1774451941,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21368,
+      "total_tokens": 22618
+    },
+    "id": "chatcmpl-TmUaLt89gJJ4mnPnDR1YsSfccAZZ0BcO",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21368,
+      "prompt_ms": 3068.92,
+      "prompt_per_token_ms": 0.1436222388618495,
+      "prompt_per_second": 6962.7100087327135,
+      "predicted_n": 1250,
+      "predicted_ms": 15423.046,
+      "predicted_per_token_ms": 12.3384368,
+      "predicted_per_second": 81.0475440454499
+    }
+  }
+}

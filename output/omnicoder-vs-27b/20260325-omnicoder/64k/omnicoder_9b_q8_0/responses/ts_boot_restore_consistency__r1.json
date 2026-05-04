@@ -1,0 +1,40 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 21990.379583003232,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "The user wants me to identify the highest-risk restore consistency bug in the provided project snapshot and propose the smallest maintainable fix.\n\nLet me analyze the `GameRuntimeServer.ts` file, specifically focusing on the `restoreSession` method and the overall state restoration flow.\n\nLooking at the `restoreSession` method:\n\n```typescript\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n    }\n    this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n  } else if (typeof saved.seed === \"number\") {\n    this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n      { id: \"agent-1\", name: \"Agent 1\" }\n    ]);\n    this.seed = saved.seed;\n    this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n    this.resetAgentLoopState([\"agent-1\"]);\n  } else {\n    return;\n  }\n\n  this.phase = \"running\";\n  this.preparedSeed = null;\n  this.threadIds = { gameplayByAgentId: {} };\n  this.threadToAgentId.clear();\n  this.activeTurn = null;\n  this.schedulerIndex = 0;\n  await this.logReplay(\"session.restored\", {\n    seed: this.seed,\n    tick: this.simulation.getState().tick\n  });\n}\n```\n\nI notice a critical issue here. The method restores the simulation state and sets the phase to \"running\", but it completely clears the `threadIds` and `threadToAgentId` mappings. These are essential for knowing which LLM threads correspond to which agents. Without them, the system loses track of which threads to use for gameplay turns.\n\nThis is the root cause of the consistency bug. When the runtime restores from a saved state, it doesn't restore the thread IDs that were created during the previous session. This means the system won't be able to properly communicate with the LLM threads that were active before the crash.\n\nThe fix should be to restore the thread IDs from the saved state if they exist. Let me check if `SessionSnapshot` includes `threadIds`:\n\nLooking at the `SessionSnapshot` type:\n```typescript\nexport type SessionSnapshot = {\n  seed: number;\n  tick: number;\n  threadIds: ThreadIds;\n  metrics: RuntimeMetrics;\n  simulation: SimulationState;\n};\n```\n\nYes, `threadIds` is part of the snapshot. So the fix is to restore `threadIds` from the saved state in `restoreSession`.\n\nHowever, there's another issue. Looking at the `startThreadsForExistingSession` method (used in the `startSession` flow), it creates NEW threads every time:\n\n```typescript\nprivate async startThreadsForExistingSession(): Promise<void> {\n  if (!this.simulation) {\n    return;\n  }\n  const gameplayByAgentId: Record<string, string> = {};\n  for (const agent of this.simulation.getState().agents) {\n    // ...\n    const gameplay = await this.codexClient.request(\"thread/start\", {\n      cwd: runtimeConfig.codexCwd,\n      approvalPolicy: \"never\"\n    });\n    // ...\n  }\n  // ...\n}\n```\n\nThis creates new threads each time, which is incorrect for restoration. For restoration, we should use the saved thread IDs instead of creating new ones.\n\nWait, let me check `startSession`:\n\n```typescript\nprivate async startSession(payload: SessionStartPayload): Promise<void> {\n  // ...\n  const gameplayByAgentId: Record<string, string> = {};\n  for (const agent of agents) {\n    const gameplay = await this.codexClient.request(\"thread/start\", {\n      cwd: runtimeConfig.codexCwd,\n      approvalPolicy: \"never\"\n    });\n    // ...\n  }\n  // ...\n}\n```\n\nThis is for starting a NEW session, so creating new threads is correct there.\n\nBut `restoreSession` should restore the existing thread IDs from the saved snapshot, not create new ones.\n\nThe bug is that `restoreSession` clears `threadIds` and doesn't restore them from the saved state.\n\nAdditionally, I notice that `restoreSession` doesn't handle the case where the thread IDs might not match the current agent configuration. If agents were added/removed, we'd need to handle that.\n\nBut the primary issue is the missing thread ID restoration.\n\nLet me also check if there are any other consistency issues:\n\n1. `threadIds` is cleared but not restored from saved state\n2. `threadToAgentId` is cleared but not restored from saved state\n\nThese two need to be restored from `saved.threadIds`.\n\nThe fix should be:\n\n```typescript\nprivate async restoreSession(): Promise<void> {\n  const saved = await this.stateStore.load();\n  if (!saved) {\n    return;\n  }\n\n  const content = this.contentStore.getContent();\n  if (saved.simulation) {\n    this.simulation = Simulation.fromState(saved.simulation, content);\n    this.seed = saved.simulation.seed;\n    for (const agent of saved.simulation.agents ?? []) {\n      this.agentConfigs.set(agent.id, { id:"
+        }
+      }
+    ],
+    "created": 1774446331,
+    "model": "bench/omnicoder-9b-q8_0",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21366,
+      "total_tokens": 22616
+    },
+    "id": "chatcmpl-cnNEVHjq8ORfgkhPvXCVp1iJh773Nv6e",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21366,
+      "prompt_ms": 3116.657,
+      "prompt_per_token_ms": 0.145869933539268,
+      "prompt_per_second": 6855.42233232595,
+      "predicted_n": 1250,
+      "predicted_ms": 15429.723,
+      "predicted_per_token_ms": 12.3437784,
+      "predicted_per_second": 81.01247183763441
+    }
+  }
+}

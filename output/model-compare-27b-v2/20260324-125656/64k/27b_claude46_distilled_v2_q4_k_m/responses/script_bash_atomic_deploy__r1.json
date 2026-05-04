@@ -1,0 +1,40 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 31789.03725001146,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "# Atomic Deployment Script\n\n## Script: `/usr/local/bin/atomic-deploy.sh`\n\n```bash\n#!/usr/bin/env bash\n#\n# atomic-deploy.sh - Atomic release swap with health check and rollback\n#\n# Usage: ./atomic-deploy.sh <release-path>\n# Example: ./atomic-deploy.sh /srv/myapp/releases/20240115-123456\n#\n\nset -euo pipefail\n\n# =============================================================================\n# Configuration\n# =============================================================================\nreadonly RELEASE_DIR=\"/srv/myapp/releases\"\nreadonly CURRENT_LINK=\"/srv/myapp/current\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly DEPLOY_LOG=\"/srv/myapp/deploy.log\"\nreadonly HEALTH_CHECK_RETRIES=5\nreadonly HEALTH_CHECK_INTERVAL=2\nreadonly HEALTH_CHECK_WAIT=3\n\n# =============================================================================\n# State tracking (for trap cleanup)\n# =============================================================================\nRELEASE_PATH=\"\"\nPREVIOUS_RELEASE=\"\"\nROLLBACK_NEEDED=false\n\n# =============================================================================\n# Logging functions\n# =============================================================================\nlog() {\n    local level=\"$1\"\n    shift\n    local msg=\"$*\"\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] [${level}] ${msg}\" | tee -a \"${DEPLOY_LOG}\"\n}\n\nlog_info()  { log \"INFO\" \"$@\"; }\nlog_warn()  { log \"WARN\" \"$@\"; }\nlog_error() { log \"ERROR\" \"$@\"; }\n\n# =============================================================================\n# Cleanup / Rollback handler\n# =============================================================================\ncleanup() {\n    local exit_code=$?\n    \n    if [[ \"${ROLLBACK_NEEDED}\" == \"true\" && -n \"${PREVIOUS_RELEASE}\" ]]; then\n        log_warn \"ROLLBACK: Restoring symlink to ${PREVIOUS_RELEASE}\"\n        \n        if ! ln -sfn \"${PREVIOUS_RELEASE}\" \"${CURRENT_LINK}\"; then\n            log_error \"ROLLBACK FAILED: Could not restore symlink\"\n            exit 1\n        fi\n        \n        log_info \"ROLLBACK: Symlink restored to ${PREVIOUS_RELEASE}\"\n        log_warn \"ROLLBACK: Previous release ${RELEASE_PATH} preserved for investigation\"\n    fi\n    \n    exit \"${exit_code}\"\n}\n\ntrap cleanup EXIT\n\n# =============================================================================\n# Validation functions\n# =============================================================================\nvalidate_release_path() {\n    local path=\"$1\"\n    \n    if [[ -z \"${path}\" ]]; then\n        log_error \"Usage: $0 <release-path>\"\n        exit 1\n    fi\n    \n    if [[ ! -d \"${path}\" ]]; then\n        log_error \"Release directory does not exist: ${path}\"\n        exit 1\n    fi\n    \n    if [[ ! -d \"${path}/bin\" && ! -d \"${path}/app\" ]]; then\n        log_warn \"Release may be incomplete (no bin/ or app/ directory)\"\n    fi\n    \n    log_info \"Release path validated: ${path}\"\n}\n\nvalidate_current_symlink() {\n    if [[ ! -L \"${CURRENT_LINK}\" ]]; then\n        log_error \"Current symlink missing or invalid: ${CURRENT_LINK}\"\n        log_error \"Deployment aborted - no active release to rollback to\"\n        exit 1\n    fi\n    \n    local target\n    target=$(readlink -f \"${CURRENT_LINK}\")\n    \n    if [[ ! -d \"${target}\" ]]; then\n        log_error \"Current symlink target does not exist: ${target}\"\n        log_error \"Deployment aborted - broken symlink detected\"\n        exit 1\n    fi\n    \n    log_info \"Current symlink validated: ${CURRENT",
+          "reasoning_content": "I need to write a production-safe Bash deployment script that performs atomic release swaps with health checks and rollback capability.\n\nLet me analyze the requirements:\n\n1. **Release unpacking**: New release goes to `/srv/myapp/releases/<timestamp>`\n2. **Live symlink**: `/srv/myapp/current` points to active release\n3. **Health check**: `http://127.0.0.1:8080/healthz`\n4. **Rollback**: Restore previous symlink on failure\n5. **Logging**: `/srv/myapp/deploy.log`\n6. **Safety requirements**:\n   - `set -euo pipefail`\n   - Refuse if current symlink missing\n   - Don't delete previous release until health check passes\n   - Clear rollback messages\n\nKey design decisions:\n- Use `trap` for cleanup on errors\n- Atomic swap via symlink\n- Health check with retries\n- Log all actions with timestamps\n- Validate state before proceeding\n- Preserve previous release for rollback\n\nLet me write a production-ready script:\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Configuration\nreadonly RELEASE_DIR=\"/srv/myapp/releases\"\nreadonly CURRENT_LINK=\"/srv/myapp/current\"\nreadonly HEALTH_URL=\"http://127.0.0.1:8080/healthz\"\nreadonly DEPLOY_LOG=\"/srv/myapp/deploy.log\"\nreadonly HEALTH_CHECK_RETRIES=5\nreadonly HEALTH_CHECK_INTERVAL=2\n\n# State tracking\nRELEASE_PATH=\"\"\nPREVIOUS_RELEASE=\"\"\n```\n\nThe script needs to:\n1. Accept a release path as argument\n2. Validate the release exists\n3. Validate current symlink exists\n4. Record previous release for rollback\n5. Swap symlink atomically\n6. Wait for service to start\n7. Health check with retries\n8. On success: keep new release, optionally clean up old\n9. On failure: restore previous symlink, log rollback\n\nKey safety features:\n- `trap` for error handling and rollback\n- All operations logged\n- Explicit validation before each step\n- No deletion until health check passes\n- Clear error messages\n\nLet me write the complete script:\n"
+        }
+      }
+    ],
+    "created": 1774359324,
+    "model": "bench/qwen35-27b-claude46-opus-distilled-v2-q4_k_m",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 291,
+      "total_tokens": 1541
+    },
+    "id": "chatcmpl-KTaGPYHqWkqb3V14rxymrUmJIa8dBxtp",
+    "timings": {
+      "cache_n": 83,
+      "prompt_n": 208,
+      "prompt_ms": 133.185,
+      "prompt_per_token_ms": 0.6403125000000001,
+      "prompt_per_second": 1561.7374328940946,
+      "predicted_n": 1250,
+      "predicted_ms": 27934.884,
+      "predicted_per_token_ms": 22.347907199999998,
+      "predicted_per_second": 44.746919299897584
+    }
+  }
+}

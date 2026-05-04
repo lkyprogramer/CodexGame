@@ -1,0 +1,39 @@
+{
+  "task_id": "script_python_csv_reconcile",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 31967.931916937232,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe reconciliation script designed to be minimal, explicit, and robust against the specified edge cases.\n\n### Strategy Overview\n1.  **Matching Logic**: Primary key is `merchant_order_id`. If duplicates exist in a single file, the script uses the **latest `updated_at`** timestamp to resolve the \"truth\" for that file before comparing.\n2.  **Edge Case Guards**:\n    *   **BOM/Encoding**: Uses `utf-8-sig` to strip Byte Order Marks.\n    *   **Blank Lines**: `csv.DictReader` naturally skips empty lines, but we add an explicit check for empty rows during iteration.\n    *   **Duplicate Headers**: We enforce reading the header only once by using the standard `csv` module which expects a single header row. If the file contains duplicate header rows (data rows that look like headers), they are treated as data and will likely fail validation or be flagged as mismatches (which is safer than silently skipping).\n    *   **Duplicates**: Aggregated by key, keeping the latest record.\n3.  **Outputs**:\n    *   `reconcile_details.csv`: Machine-readable row-by-row status.\n    *   `reconcile_summary.txt`: Human-readable summary of counts and critical errors.\n\n### The Script\n\nSave this as `reconcile.py` in the project root (same directory as `samples/`).\n\n```python\n#!/usr/bin/env python3\n\"\"\"\nProduction-safe CSV Reconciliation Script.\nMatches finance_export.csv against merchant_statement.csv.\n\"\"\"\n\nimport csv\nimport sys\nfrom datetime import datetime\nfrom pathlib import Path\nfrom collections import defaultdict\n\n# Configuration\nINPUT_DIR = Path(\"samples\")\nFINANCE_FILE = INPUT_DIR / \"finance_export.csv\"\nMERCHANT_FILE = INPUT_DIR / \"merchant_statement.csv\"\nOUTPUT_DETAILS = \"reconcile_details.csv\"\nOUTPUT_SUMMARY = \"reconcile_summary.txt\"\n\n# Keys for matching\nPRIMARY_KEY = \"merchant_order_id\"\nFALLBACK_KEY = \"provider_txn_id\"\nTIMESTAMP_KEY = \"updated_at\"\n\ndef parse_timestamp(ts_str):\n    \"\"\"Safely parse ISO timestamp, returning None if invalid.\"\"\"\n    if not ts_str:\n        return None\n    try:\n        # Handle 'Z' suffix by replacing with +00:00 for fromisoformat\n        return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))\n    except ValueError:\n        return None\n\ndef load_and_dedup(filepath, key_col=PRIMARY_KEY):\n    \"\"\"\n    Loads CSV, handles BOM, skips blank rows, and deduplicates by key.\n    Returns a dict: {key: {row_data}} keeping the latest updated_at.\n    \"\"\"\n    records = {}\n    \n    try:\n        with open(filepath, 'r', encoding='utf-8-sig', newline='') as f:\n            reader = csv.DictReader(f)\n            \n            # Validate required columns exist\n            if not reader.fieldnames:\n                raise ValueError(f\"Empty file or missing header: {filepath}\")\n            \n            for row in reader:\n                # Guard: Skip completely blank rows (all values empty or None)\n                if not any(row.values()):\n                    continue\n                \n                key = row.get(key_col, \"\").strip()\n                if not key:\n                    continue # Skip rows with missing primary key\n\n                # Deduplication Strategy: Keep latest updated_at\n                current_ts = parse_timestamp(row.get(TIMESTAMP_KEY, \"\"))\n                \n                if key in records:\n                    existing_ts = parse_timestamp(records[key].get(TIMESTAMP_KEY, \"\"))\n                    # If current is newer, or existing is None, replace\n                    if current_ts and (not existing_ts or current_ts > existing_ts):\n                        records[key] = row\n                else:\n                    records[key] = row\n                    \n    except FileNotFoundError:\n        print(f\"Error: File not found: {filepath}\", file=sys.stderr)\n        sys.exit(1)\n    except Exception as e:\n        print(f\"Error reading {filepath}: {e}\", file=sys.stderr)\n        sys.exit(1)\n\n    return records\n\ndef reconcile(finance_data, merchant_data):\n    \"\"\"\n    Compares two datasets.\n    Returns: (matches, mismatches, missing_in_finance, missing_in_merchant)\n    \"\"\"\n    matches = []\n    mismatches = []\n    missing_in_finance = [] # In Merchant but not Finance\n    missing_in_merchant = [] # In Finance but not Merchant\n\n    # 1. Check Finance records against Merchant\n    for key, f_row in finance_data.items():\n        if key in merchant_data:\n            m_row = merchant_data[key]\n            \n            # Check Amount\n            f_amt = int(f_row.get(\"amount_cents\", 0) or 0)\n            m_amt = int(m_row.get(\"amount_cents\", 0) or 0)\n            \n            # Check Status\n            f_status = f_row.get(\"status\", \"\")\n            m_status = m_row.get(\"status\", \"\")\n\n            if f_amt != m_amt or f_status != m_status:\n                mismatches.append({\n                    \"merchant_order_id\": key,\n                    \"provider_txn_id\": f_row.get(\"provider_txn_id\", \"\"),\n                    \"finance_amount\": f_amt,\n                    \"merchant_amount\": m_amt,\n                    \"finance_status\": f_status,\n                    \"merchant_status\": m_status,\n                    \"issue\": \"AMOUNT_OR_STATUS_MISMATCH\"\n                })\n            else:\n                matches.append({\n                    \"merchant_order_id\": key,\n                    \"provider_txn_id\": f_row.get(\"provider_txn_id\", \"\"),\n                    \"amount_cents\": f_amt,\n                    \"status\": f_status,\n                    \"issue\": \"MATCH\"\n                })\n        else:\n            missing_in_merchant.append({\n                \"merchant_order_id\": key,\n                \"provider_txn_id\": f_row.get(\"provider_txn_id\", \"\"),\n                \"amount_cents\": f_row.get(\"amount_cents"
+        }
+      }
+    ],
+    "created": 1773053040,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1300,
+      "prompt_tokens": 596,
+      "total_tokens": 1896
+    },
+    "id": "chatcmpl-9vxKkT8jhwBoDTrPch0y95xnv39IFLqK",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 596,
+      "prompt_ms": 305.636,
+      "prompt_per_token_ms": 0.5128120805369127,
+      "prompt_per_second": 1950.0320642856207,
+      "predicted_n": 1300,
+      "predicted_ms": 30405.011,
+      "predicted_per_token_ms": 23.388469999999998,
+      "predicted_per_second": 42.756110168813954
+    }
+  }
+}

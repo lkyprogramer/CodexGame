@@ -1,0 +1,840 @@
+[
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_audit_success_on_failure",
+    "description": "Audit log currently records a successful change even when the write fails.",
+    "hidden_checklist": [
+      "Identify that finally always records success even if save throws.",
+      "Move success audit after successful persistence or separate success/failure events.",
+      "Preserve minimal change rather than redesigning audit subsystem.",
+      "Mention regression test for repository save failure."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "12255.848",
+    "predicted_per_second": "42.864283331224506",
+    "content_preview": "### Code Review: Audit Log Consistency Bug\\n\\n**Severity:** Critical (Data Integrity / Compliance)\\n**Root Cause:** The `changeStatus` method in `ProfileService` records a successful audit event in the `finally` block. This block executes regardless of whether the `try` block completes successfully or throws an exception (e.g., if `profileRepository.save()` fails). Consequently, the system logs a \"su",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_audit_success_on_failure__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_audit_success_on_failure__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_audit_success_on_failure",
+    "description": "Audit log currently records a successful change even when the write fails.",
+    "hidden_checklist": [
+      "Identify that finally always records success even if save throws.",
+      "Move success audit after successful persistence or separate success/failure events.",
+      "Preserve minimal change rather than redesigning audit subsystem.",
+      "Mention regression test for repository save failure."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "15883.055",
+    "predicted_per_second": "38.84224132866174",
+    "content_preview": "### Code Review: Audit Log Consistency Bug\\n\\n**Severity:** High\\n**Issue:** The audit log records a \"success\" event regardless of whether the underlying database operation succeeded or failed.\\n\\n#### Root Cause\\nIn `ProfileService.java`, the `auditRepository.recordSuccess(...)` call is placed inside the `finally` block.\\n\\n```java\\ntry {\\n    // ... DB operations ...\\n} finally {\\n    // This executes even ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_audit_success_on_failure__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_audit_success_on_failure__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_cache_stale_after_write",
+    "description": "Profile update writes to DB but leaves the cache stale on the read path.",
+    "hidden_checklist": [
+      "Identify stale cache after write as the bug.",
+      "Prefer evict or write-through in the update path, not a TTL-only workaround.",
+      "Keep the change minimal in ProfileService/cache contract.",
+      "Mention regression for immediate read-after-write."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "15059.014",
+    "predicted_per_second": "42.783492536289515",
+    "content_preview": "### Code Review: `java_cache_stale_after_write`\\n\\n#### 1. Root Cause Analysis\\nThe bug is located in `ProfileService.updateDisplayName()`.\\n- **Current Behavior**: The method updates the database (`profileRepository.save`) but **never invalidates or updates the cache**.\\n- **Consequence**: Any subsequent call to `get(profileId)` will return the stale `ProfileView` from the cache (the old display name)",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_cache_stale_after_write__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_cache_stale_after_write__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_cache_stale_after_write",
+    "description": "Profile update writes to DB but leaves the cache stale on the read path.",
+    "hidden_checklist": [
+      "Identify stale cache after write as the bug.",
+      "Prefer evict or write-through in the update path, not a TTL-only workaround.",
+      "Keep the change minimal in ProfileService/cache contract.",
+      "Mention regression for immediate read-after-write."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "17395.347",
+    "predicted_per_second": "38.786114929274866",
+    "content_preview": "### Code Review: Stale Cache After Write\\n\\n**Highest-Risk Correctness Bug:**\\nThe `updateDisplayName` method in `ProfileService` updates the database but **never invalidates or updates the cache**.\\n\\nIf a profile is currently cached (via a prior `get` call), subsequent reads will return the stale `ProfileView` with the old display name, even though the database has been updated. This violates data co",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_cache_stale_after_write__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_cache_stale_after_write__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_csv_import_partial_batch",
+    "description": "CSV batch import persists rows incrementally before the full batch is validated.",
+    "hidden_checklist": [
+      "Identify partial batch writes when a later row fails validation.",
+      "Prefer upfront validation or transaction boundary over silent continue.",
+      "Keep the fix localized to import flow.",
+      "Mention regression for invalid row in the middle of the batch."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "16602.464",
+    "predicted_per_second": "42.78036606778826",
+    "content_preview": "### Code Review: `java_csv_import_partial_batch`\\n\\n#### 1. Highest-Risk Data Consistency Bug\\n**Location:** `src/main/java/com/example/importer/UserImportService.java`, method `importCsv`.\\n\\n**Root Cause:**\\nThe service performs **immediate persistence** inside the iteration loop (`userRepository.insert(...)`) before validating the entire batch.\\n*   If the CSV contains 100 rows and row 50 has a missin",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_csv_import_partial_batch__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_csv_import_partial_batch__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_csv_import_partial_batch",
+    "description": "CSV batch import persists rows incrementally before the full batch is validated.",
+    "hidden_checklist": [
+      "Identify partial batch writes when a later row fails validation.",
+      "Prefer upfront validation or transaction boundary over silent continue.",
+      "Keep the fix localized to import flow.",
+      "Mention regression for invalid row in the middle of the batch."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "27406.962",
+    "predicted_per_second": "38.79039725447942",
+    "content_preview": "### Code Review: `UserImportService`\\n\\n**Highest-Risk Bug:** **Partial Persistence on Failure (Data Consistency)**\\n\\n**Root Cause:**\\nThe `importCsv` method in `UserImportService` iterates through parsed rows and inserts them into the `UserRepository` one by one *before* validating the entire batch. If an exception occurs (e.g., `IllegalArgumentException` for a missing email, or a database constraint",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_csv_import_partial_batch__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_csv_import_partial_batch__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_enum_db_compat",
+    "description": "Database enum values no longer match Java enum names after a migration.",
+    "hidden_checklist": [
+      "Identify migration changed DB values to lowercase while valueOf expects enum constant names.",
+      "Recommend explicit fromDb mapping or stable code-based mapping.",
+      "Keep fix localized to mapper/enum instead of rewriting migration history.",
+      "Mention regression coverage for old and new DB values."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "13053.313",
+    "predicted_per_second": "42.81075871061334",
+    "content_preview": "### Root Cause Analysis\\n\\nThe migration script `V42__payment_state_lowercase.sql` converts all existing database values to lowercase (e.g., `PENDING` → `pending`).\\n\\nHowever, `PaymentMapper.toDomain()` uses `PaymentState.valueOf(record.getState())`.\\nIn Java, `Enum.valueOf(String)` is **case-sensitive** and expects the exact name of the enum constant (e.g., `PENDING`).\\n\\n**Result:** When the applicati",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_enum_db_compat__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_enum_db_compat__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_enum_db_compat",
+    "description": "Database enum values no longer match Java enum names after a migration.",
+    "hidden_checklist": [
+      "Identify migration changed DB values to lowercase while valueOf expects enum constant names.",
+      "Recommend explicit fromDb mapping or stable code-based mapping.",
+      "Keep fix localized to mapper/enum instead of rewriting migration history.",
+      "Mention regression coverage for old and new DB values."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "18509.635",
+    "predicted_per_second": "38.81303953217035",
+    "content_preview": "### Code Review: `java_enum_db_compat`\\n\\n**Verdict:** Critical Bug. The application will crash with `IllegalArgumentException` on any existing record after migration.\\n\\n#### Root Cause\\n1.  **Database Migration (`V42__payment_state_lowercase.sql`)**: Converts all existing `state` values in the database to lowercase (e.g., `\"PENDING\"` $\\rightarrow$ `\"pending\"`).\\n2.  **Java Enum (`PaymentState.java`)**",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_enum_db_compat__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_enum_db_compat__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_idempotency_payment_callback",
+    "description": "Payment callback handler applies duplicate provider events more than once.",
+    "hidden_checklist": [
+      "Identify duplicate callback / duplicate providerTxnId replays as the core bug.",
+      "Prefer idempotency guard on providerTxnId or payment state before save/outbox.",
+      "Keep the fix localized to callback flow or repository contract.",
+      "Mention regression for replayed callbacks and outbox duplication."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "27215.821",
+    "predicted_per_second": "42.741414806774",
+    "content_preview": "### Code Review: Idempotency Bug in Payment Callback\\n\\n**Highest-Risk Bug:**\\nThe `PaymentCallbackService.onCallback` method lacks idempotency checks. If a payment provider sends the same callback event multiple times (a common occurrence in distributed systems due to network retries or \"at-least-once\" delivery guarantees), the service will:\\n1.  Re-mark the payment as paid (overwriting `providerTxnI",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_idempotency_payment_callback__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_idempotency_payment_callback__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_idempotency_payment_callback",
+    "description": "Payment callback handler applies duplicate provider events more than once.",
+    "hidden_checklist": [
+      "Identify duplicate callback / duplicate providerTxnId replays as the core bug.",
+      "Prefer idempotency guard on providerTxnId or payment state before save/outbox.",
+      "Keep the fix localized to callback flow or repository contract.",
+      "Mention regression for replayed callbacks and outbox duplication."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "30382.735",
+    "predicted_per_second": "38.78500397398538",
+    "content_preview": "### Code Review: Payment Callback Idempotency\\n\\n**Highest-Risk Bug:**\\nThe `onCallback` method in `PaymentCallbackService` is **not idempotent**. If the payment provider retries the callback (a standard behavior for reliability), the service will:\\n1.  Overwrite the `providerTxnId` and `paidAt` on the `Payment` entity (potentially with stale or duplicate data).\\n2.  Insert a **duplicate** record into ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_idempotency_payment_callback__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_idempotency_payment_callback__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_null_nested_config",
+    "description": "Optional nested config causes startup-time null handling bug.",
+    "hidden_checklist": [
+      "Identify null handling risk in config.getDatabase() / getJdbcUrl().",
+      "Keep the fix in DataSourceFactory or immediate caller instead of broad rewrites.",
+      "Mention trim safety and missing optional config path.",
+      "Include startup regression checks for missing database config."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "18541.98",
+    "predicted_per_second": "42.71919038590381",
+    "content_preview": "### Highest-Risk Correctness Bug\\n\\n**Location:** `src/main/java/com/example/config/DataSourceFactory.java`, line 6 (`buildJdbcUrl` method).\\n\\n**Issue:** `NullPointerException` (NPE) during application startup.\\n\\n**Root Cause:**\\nThe method `buildJdbcUrl` performs a chained method call on potentially null objects without validation:\\n1. `config.getDatabase()` can return `null` if the `AppConfig` was not",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_null_nested_config__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_null_nested_config__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_null_nested_config",
+    "description": "Optional nested config causes startup-time null handling bug.",
+    "hidden_checklist": [
+      "Identify null handling risk in config.getDatabase() / getJdbcUrl().",
+      "Keep the fix in DataSourceFactory or immediate caller instead of broad rewrites.",
+      "Mention trim safety and missing optional config path.",
+      "Include startup regression checks for missing database config."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "19261.423",
+    "predicted_per_second": "38.863049846201605",
+    "content_preview": "## Highest-Risk Bug\\n\\n**`NullPointerException` in `DataSourceFactory.buildJdbcUrl()` at startup.**\\n\\n### Root Cause\\n\\n`DataSourceFactory.buildJdbcUrl()` performs a chained dereference without any null checks:\\n\\n```java\\nreturn config.getDatabase().getJdbcUrl().trim();\\n```\\n\\nThis chain has **three potential null points**:\\n\\n1. `config` itself could be `null` (passed into `onStartup`).\\n2. `config.getDataba",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_null_nested_config__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_null_nested_config__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_optimistic_lock_missing",
+    "description": "Version field exists but update flow does not actually enforce optimistic locking.",
+    "hidden_checklist": [
+      "Identify version field is ignored in the update predicate.",
+      "Recommend update where id and version match, then detect stale update failure.",
+      "Keep fix minimal in repository SQL/return contract rather than redesigning service.",
+      "Mention concurrent update regression test."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "22803.047",
+    "predicted_per_second": "42.79747770109542",
+    "content_preview": "### Code Review: Optimistic Locking Bypass\\n\\n**Severity:** High (Data Integrity / Lost Updates)\\n**Root Cause:** The `approve` method in `OrderService` reads the current version, increments it locally, and passes it to the repository. However, the `JdbcOrderRepository.updateStatus` implementation (currently a stub) does not include the version check in the SQL `WHERE` clause.\\n\\nIf two admin consoles ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_optimistic_lock_missing__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_optimistic_lock_missing__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_optimistic_lock_missing",
+    "description": "Version field exists but update flow does not actually enforce optimistic locking.",
+    "hidden_checklist": [
+      "Identify version field is ignored in the update predicate.",
+      "Recommend update where id and version match, then detect stale update failure.",
+      "Keep fix minimal in repository SQL/return contract rather than redesigning service.",
+      "Mention concurrent update regression test."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "28703.317",
+    "predicted_per_second": "38.78272047339444",
+    "content_preview": "### Code Review: Optimistic Locking Bypass\\n\\n**Severity:** High\\n**Type:** Concurrency Bug / Data Integrity\\n\\n#### 1. The Bug\\nThe `OrderService.approve()` method reads the current version, increments it in memory, and passes it to the repository. However, `JdbcOrderRepository.updateStatus()` does not include the **current version** in its `WHERE` clause.\\n\\n**Current Flow:**\\n1. Thread A reads Order (ve",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_optimistic_lock_missing__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_optimistic_lock_missing__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_outbox_publish_before_commit",
+    "description": "Domain event is published inline before the database write is durably committed.",
+    "hidden_checklist": [
+      "Identify publish-before-commit inconsistency as the core bug.",
+      "Prefer moving event creation to an outbox or after-commit boundary, not an async sleep/retry hack.",
+      "Keep the proposed change minimal and localized.",
+      "Mention regression where publish succeeds but save fails."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "26263.091",
+    "predicted_per_second": "42.76580382788157",
+    "content_preview": "### Code Review: `java_outbox_publish_before_commit`\\n\\n#### 1. Root Cause Analysis\\n**Highest-Risk Bug:** Data Consistency Violation (Event Published Before Commit).\\n\\nIn `InvoiceService.approve()`, the domain event is published **before** the `Invoice` entity is saved to the database:\\n```java\\ndomainEventPublisher.publish(\"invoice.approved\", invoiceId); // Line 19\\ninvoiceRepository.save(invoice);    ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_outbox_publish_before_commit__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_outbox_publish_before_commit__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_outbox_publish_before_commit",
+    "description": "Domain event is published inline before the database write is durably committed.",
+    "hidden_checklist": [
+      "Identify publish-before-commit inconsistency as the core bug.",
+      "Prefer moving event creation to an outbox or after-commit boundary, not an async sleep/retry hack.",
+      "Keep the proposed change minimal and localized.",
+      "Mention regression where publish succeeds but save fails."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "28725.054",
+    "predicted_per_second": "38.7828236119138",
+    "content_preview": "### Code Review: `java_outbox_publish_before_commit`\\n\\n#### 1. Highest-Risk Consistency Bug\\n**Bug:** **Double-Spend / Phantom Event Risk (Publish Before Commit)**\\n\\nIn `InvoiceService.approve()`, the domain event is published **before** the database transaction is committed:\\n\\n```java\\n// src/main/java/com/example/invoice/InvoiceService.java\\npublic void approve(long invoiceId, String approver) {\\n    I",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_outbox_publish_before_commit__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_outbox_publish_before_commit__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_pagination_boundary",
+    "description": "Pagination code has an index boundary bug and unstable empty-page behavior.",
+    "hidden_checklist": [
+      "Identify subList end index is exclusive and may throw when end exceeds size.",
+      "Handle offset >= size by returning empty list.",
+      "Use minimal boundary clamp such as min(offset + size, users.size()).",
+      "Mention tests for last page and out-of-range page."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "22664.656",
+    "predicted_per_second": "42.766500278053535",
+    "content_preview": "### Code Review: Pagination Boundary Bug\\n\\n#### 1. Root Cause Analysis\\nThere are two distinct issues in the provided snapshot:\\n\\n1.  **Index Boundary Bug (Critical):**\\n    *   **Location:** `UserQueryService.list()` and `InMemoryUserRepository.findRange()`.\\n    *   **The Bug:** `UserQueryService` calculates `end = offset + size`. It passes this to `findRange`, which the interface documentation impli",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_pagination_boundary__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_pagination_boundary__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_pagination_boundary",
+    "description": "Pagination code has an index boundary bug and unstable empty-page behavior.",
+    "hidden_checklist": [
+      "Identify subList end index is exclusive and may throw when end exceeds size.",
+      "Handle offset >= size by returning empty list.",
+      "Use minimal boundary clamp such as min(offset + size, users.size()).",
+      "Mention tests for last page and out-of-range page."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "24746.444",
+    "predicted_per_second": "38.806302609219365",
+    "content_preview": "### Code Review: Pagination Boundary Bug\\n\\n**Severity:** High (IndexOutOfBoundsException / Incorrect Data)\\n**Root Cause:** Mismatch between Java's `List.subList` contract and the pagination logic.\\n\\n#### 1. The Bug\\nThe `UserRepository` interface contract states `findRange(int startInclusive, int endInclusive)`. However, the implementation `InMemoryUserRepository` uses `List.subList(start, end)`.\\n\\nIn",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_pagination_boundary__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_pagination_boundary__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_path_body_id_mismatch",
+    "description": "Controller trusts request body identifier over path identifier.",
+    "hidden_checklist": [
+      "Identify path-vs-body identifier trust bug.",
+      "Recommend path variable as source of truth and mismatch validation/removal of body accountId.",
+      "Keep fix minimal in controller/request contract instead of wide service rewrite.",
+      "Mention regression test for mismatched IDs."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "13475.311",
+    "predicted_per_second": "42.86224429754615",
+    "content_preview": "### Code Review: Critical Security & Logic Flaw\\n\\n**Severity:** Critical (IDOR / Data Integrity)\\n**Root Cause:** The `AccountController` ignores the `pathAccountId` (which is typically secured by authentication/authorization filters based on the URL) and blindly trusts the `accountId` provided in the request body.\\n\\n**Impact:**\\n1.  **IDOR (Insecure Direct Object Reference):** An attacker can update ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_path_body_id_mismatch__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_path_body_id_mismatch__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_path_body_id_mismatch",
+    "description": "Controller trusts request body identifier over path identifier.",
+    "hidden_checklist": [
+      "Identify path-vs-body identifier trust bug.",
+      "Recommend path variable as source of truth and mismatch validation/removal of body accountId.",
+      "Keep fix minimal in controller/request contract instead of wide service rewrite.",
+      "Mention regression test for mismatched IDs."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "14375.425",
+    "predicted_per_second": "38.78456233384341",
+    "content_preview": "### Bug Analysis\\n\\n**The Bug:**\\nIn `AccountController.update`, the controller accepts a `pathAccountId` (from the URL path) but ignores it completely. Instead, it passes `request.getAccountId()` (from the JSON body) to the service.\\n\\n**Why it is dangerous:**\\n1.  **Authorization Bypass:** If authorization is enforced at the controller level based on the path variable (e.g., \"User A can only access `/",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_path_body_id_mismatch__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_path_body_id_mismatch__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_permission_scope_trust_bug",
+    "description": "Service trusts orgId from request payload instead of the authenticated operator context.",
+    "hidden_checklist": [
+      "Identify trust-boundary bug: request orgId is untrusted compared with session orgId.",
+      "Recommend session/context org as source of truth or explicit mismatch validation.",
+      "Keep fix at controller/service boundary instead of auth subsystem rewrite.",
+      "Mention regression for cross-org forged request payloads."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "17157.087",
+    "predicted_per_second": "42.78815064651027",
+    "content_preview": "### Security Bug Analysis\\n\\n**Highest-Risk Bug:** Insecure Direct Object Reference (IDOR) / Privilege Escalation via Trust Boundary Violation.\\n\\n**Location:** `src/main/java/com/example/report/ReportController.java`, line 12.\\n\\n**Root Cause:**\\nThe `ReportController` accepts `orgId` from the `GenerateReportRequest` (user-controlled input) and passes it directly to the service layer. It completely igno",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_permission_scope_trust_bug__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_permission_scope_trust_bug__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_permission_scope_trust_bug",
+    "description": "Service trusts orgId from request payload instead of the authenticated operator context.",
+    "hidden_checklist": [
+      "Identify trust-boundary bug: request orgId is untrusted compared with session orgId.",
+      "Recommend session/context org as source of truth or explicit mismatch validation.",
+      "Keep fix at controller/service boundary instead of auth subsystem rewrite.",
+      "Mention regression for cross-org forged request payloads."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "13644.709",
+    "predicted_per_second": "38.844315221618025",
+    "content_preview": "### Security Review: IDOR / Trust Boundary Violation\\n\\n**Highest-Risk Bug:**\\nThe `ReportController` trusts the `orgId` provided in the client-controlled `GenerateReportRequest` payload rather than deriving it from the authenticated `UserSession`. This allows an attacker to generate reports for any organization by simply changing the `orgId` in the request body, bypassing authorization checks (Insec",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_permission_scope_trust_bug__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_permission_scope_trust_bug__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_retry_duplicate_side_effect",
+    "description": "Retry wrapper around a remote call duplicates the user-visible side effect.",
+    "hidden_checklist": [
+      "Identify duplicate side effect under retry as the core bug.",
+      "Call out that email sending must not be retried blindly with state mutation in the same block.",
+      "Prefer moving the retry boundary or making one side idempotent.",
+      "Mention regression for gateway timeout after markSent but before email send completes."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "17217.149",
+    "predicted_per_second": "42.786812720007006",
+    "content_preview": "### Code Review: `java_retry_duplicate_side_effect`\\n\\n#### 1. Highest-Risk Bug\\n**Non-Idempotent Side Effects within Retry Block**\\n\\nIn `InvoiceNotificationService.java`, the `send` method wraps **both** `invoiceGateway.markSent(invoiceId)` and `emailGateway.sendInvoice(invoiceId)` inside the `retryExecutor.run()` block.\\n\\n*   **The Problem:** If `emailGateway.sendInvoice(invoiceId)` throws a transien",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_retry_duplicate_side_effect__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_retry_duplicate_side_effect__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_retry_duplicate_side_effect",
+    "description": "Retry wrapper around a remote call duplicates the user-visible side effect.",
+    "hidden_checklist": [
+      "Identify duplicate side effect under retry as the core bug.",
+      "Call out that email sending must not be retried blindly with state mutation in the same block.",
+      "Prefer moving the retry boundary or making one side idempotent.",
+      "Mention regression for gateway timeout after markSent but before email send completes."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "23699.663",
+    "predicted_per_second": "38.78337902415024",
+    "content_preview": "### Code Review: `InvoiceNotificationService`\\n\\n**Verdict:** Critical Bug (Data Integrity / Idempotency Violation)\\n\\n#### 1. The Highest-Risk Bug\\nThe `send` method wraps **both** `invoiceGateway.markSent(invoiceId)` and `emailGateway.sendInvoice(invoiceId)` inside the `retryExecutor.run()` lambda.\\n\\nIf `emailGateway.sendInvoice(invoiceId)` throws a transient exception (e.g., network timeout, SMTP ser",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_retry_duplicate_side_effect__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_retry_duplicate_side_effect__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_soft_delete_unique_email",
+    "description": "Soft-deleted rows still participate in uniqueness checks and block re-registration.",
+    "hidden_checklist": [
+      "Identify existsByEmail ignores soft delete state.",
+      "Recommend filtering active rows only, not a service-layer workaround.",
+      "Mention partial unique index or data-level follow-up as optional longer-term hardening.",
+      "Include regression for re-registering after soft delete."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "20023.553",
+    "predicted_per_second": "42.803108691342544",
+    "content_preview": "### Code Review: Soft Delete Uniqueness Bug\\n\\n**Highest-Risk Bug:**\\nThe `existsByEmail` check in `UserService` (and its implementation in `JdbcUserRepository`) does not account for the `deleted_at` column introduced in migration `V18__add_user_soft_delete.sql`.\\n\\nCurrently, if a user soft-deletes their account (setting `deleted_at`), the `existsByEmail` query (implied by the comment in `JdbcUserRepo",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_soft_delete_unique_email__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_soft_delete_unique_email__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_soft_delete_unique_email",
+    "description": "Soft-deleted rows still participate in uniqueness checks and block re-registration.",
+    "hidden_checklist": [
+      "Identify existsByEmail ignores soft delete state.",
+      "Recommend filtering active rows only, not a service-layer workaround.",
+      "Mention partial unique index or data-level follow-up as optional longer-term hardening.",
+      "Include regression for re-registering after soft delete."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "26038.103",
+    "predicted_per_second": "38.799095303116296",
+    "content_preview": "### Bug Analysis\\n\\n**Highest-Risk Bug:** The `existsByEmail` check in `UserService.register()` does not account for soft-deleted users.\\n\\n**Root Cause:**\\n1.  **Service Layer:** `UserService.register()` calls `userRepository.existsByEmail(email)`. If this returns `true`, registration is blocked.\\n2.  **Repository Layer:** The implementation of `existsByEmail` (currently stubbed, but implied by the sce",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_soft_delete_unique_email__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_soft_delete_unique_email__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "java_transaction_partial_commit",
+    "description": "Order update spans multiple repositories without a transaction boundary.",
+    "hidden_checklist": [
+      "Identify missing transaction boundary across inventory/order/audit DB writes.",
+      "Explain partial commit risk if markConfirmed fails after reserve/audit.",
+      "Prefer the minimal fix such as adding a transactional boundary to the service flow.",
+      "Mention regression checks for mid-flow failure rollback."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "21185.603",
+    "predicted_per_second": "42.79703151588777",
+    "content_preview": "### Code Review: Transactional Consistency in `OrderService`\\n\\n#### 1. Highest-Risk Data Consistency Bug\\n**Root Cause:** The `confirm` method in `OrderService` performs three distinct database operations across different repositories (`InventoryRepository`, `AuditRepository`, `OrderRepository`) without an explicit transaction boundary.\\n\\n**Risk Scenario:**\\nIf `inventoryRepository.reserve()` succeeds",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/java_transaction_partial_commit__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/java_transaction_partial_commit__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "java_transaction_partial_commit",
+    "description": "Order update spans multiple repositories without a transaction boundary.",
+    "hidden_checklist": [
+      "Identify missing transaction boundary across inventory/order/audit DB writes.",
+      "Explain partial commit risk if markConfirmed fails after reserve/audit.",
+      "Prefer the minimal fix such as adding a transactional boundary to the service flow.",
+      "Mention regression checks for mid-flow failure rollback."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "27289.981",
+    "predicted_per_second": "38.88171218885687",
+    "content_preview": "### Code Review: `OrderService.confirm`\\n\\n**Highest-Risk Bug:** **Partial Commit / Data Inconsistency**\\n\\nThe `confirm` method performs three distinct side-effects across different repositories (`Inventory`, `Audit`, `Order`) without any transactional boundary.\\n\\n**Scenario of Failure:**\\n1. `inventoryRepository.reserve()` succeeds (inventory is deducted).\\n2. `auditRepository.record()` succeeds (audit",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/java_transaction_partial_commit__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/java_transaction_partial_commit__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "script_bash_atomic_deploy",
+    "description": "Write a deploy script that performs atomic release swap with health check and rollback.",
+    "hidden_checklist": [
+      "Use set -euo pipefail and explicit variables.",
+      "Preserve previous symlink target for rollback.",
+      "Perform health check before deleting or finalizing.",
+      "Keep the rollout atomic with symlink swap or equivalent."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "24548.865",
+    "predicted_per_second": "42.7942004217737",
+    "content_preview": "Here is the production-safe Bash deployment script skeleton based on your requirements.\\n\\n### File: `deploy.sh`\\n\\n```bash\\n#!/usr/bin/env bash\\nset -euo pipefail\\n\\n# --- Configuration ---\\nAPP_ROOT=\"/srv/myapp\"\\nRELEASES_DIR=\"${APP_ROOT}/releases\"\\nCURRENT_LINK=\"${APP_ROOT}/current\"\\nHEALTH_URL=\"http://127.0.0.1:8080/healthz\"\\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\\nMAX_RETRIES=5\\nRETRY_DELAY=2\\n\\n# --- Helper Funct",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/script_bash_atomic_deploy__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/script_bash_atomic_deploy__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "script_bash_atomic_deploy",
+    "description": "Write a deploy script that performs atomic release swap with health check and rollback.",
+    "hidden_checklist": [
+      "Use set -euo pipefail and explicit variables.",
+      "Preserve previous symlink target for rollback.",
+      "Perform health check before deleting or finalizing.",
+      "Keep the rollout atomic with symlink swap or equivalent."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "33828.923",
+    "predicted_per_second": "38.81701272033507",
+    "content_preview": "I'll implement an atomic deployment script that follows all the specified requirements. Let me create a production-safe script with proper error handling, health checks, and rollback capabilities.\\n\\n```bash\\n#!/usr/bin/env bash\\n# deploy.sh - Atomic release deployment with health check and rollback\\n# Usage: ./deploy.sh <release_path>\\n#\\n# This script performs an atomic swap of the release symlink with",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/script_bash_atomic_deploy__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/script_bash_atomic_deploy__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "script_bash_log_triage",
+    "description": "Write a shell script to summarize recurring production errors from mixed application logs.",
+    "hidden_checklist": [
+      "Use grep/awk/sed/sort or equivalent safely and explicitly.",
+      "Normalize volatile ids before counting signatures.",
+      "Ignore health check noise.",
+      "Mention or implement .gz handling and deterministic descending sort."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "28643.771",
+    "predicted_per_second": "42.742587413237196",
+    "content_preview": "Here is the production-safe Bash script to triage and summarize recurring error signatures.\\n\\n### Solution: `scripts/log_triage.sh`\\n\\nThis script accepts one or more log files (plain or gzipped), filters out health checks and non-error levels, normalizes the error messages by stripping variable data (IDs, emails, timestamps), and outputs the top recurring signatures.\\n\\n```bash\\n#!/usr/bin/env bash\\n#\\n#",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/script_bash_log_triage__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/script_bash_log_triage__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "script_bash_log_triage",
+    "description": "Write a shell script to summarize recurring production errors from mixed application logs.",
+    "hidden_checklist": [
+      "Use grep/awk/sed/sort or equivalent safely and explicitly.",
+      "Normalize volatile ids before counting signatures.",
+      "Ignore health check noise.",
+      "Mention or implement .gz handling and deterministic descending sort."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "31345.715",
+    "predicted_per_second": "38.80503701528122",
+    "content_preview": "Here is the production-safe Bash script to summarize recurring production errors.\\n\\n### Solution: `scripts/log_triage.sh`\\n\\n```bash\\n#!/usr/bin/env bash\\n#\\n# log_triage.sh - Summarize top recurring error signatures from mixed application logs.\\n#\\n# Usage: ./scripts/log_triage.sh <log_file_or_glob>\\n#\\n# Features:\\n# - Handles both plain text (.log) and gzipped (.log.gz) files.\\n# - Filters out INFO/WARN he",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/script_bash_log_triage__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/script_bash_log_triage__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "script_python_csv_reconcile",
+    "description": "Write a Python reconciliation script for two daily business CSV exports with duplicate and blank-row edge cases.",
+    "hidden_checklist": [
+      "Use streaming/row-wise parsing instead of assuming tiny files.",
+      "State primary and fallback match keys correctly.",
+      "Handle BOM, blank lines, duplicate headers, and duplicate rows.",
+      "Emit both machine-readable discrepancy output and human summary."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "32236.406",
+    "predicted_per_second": "42.72723609539059",
+    "content_preview": "Here is the production-safe reconciliation script designed to be minimal, robust, and self-contained.\\n\\n### Strategy Overview\\n1.  **Matching Logic**: Primary key is `merchant_order_id`. If that fails to find a match, fallback to `provider_txn_id`.\\n2.  **Edge Case Guards**:\\n    *   **BOM/Encoding**: Explicitly handles UTF-8 BOM.\\n    *   **Dirty Data**: Skips blank lines and duplicate header rows dur",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/script_python_csv_reconcile__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/script_python_csv_reconcile__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "script_python_csv_reconcile",
+    "description": "Write a Python reconciliation script for two daily business CSV exports with duplicate and blank-row edge cases.",
+    "hidden_checklist": [
+      "Use streaming/row-wise parsing instead of assuming tiny files.",
+      "State primary and fallback match keys correctly.",
+      "Handle BOM, blank lines, duplicate headers, and duplicate rows.",
+      "Emit both machine-readable discrepancy output and human summary."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "35277.371",
+    "predicted_per_second": "38.77287084893917",
+    "content_preview": "Here is the production-safe reconciliation script. It uses only the Python standard library to minimize dependency risks in production environments.\\n\\n### Matching Strategy\\n1.  **Normalization**: Strips BOMs, ignores blank lines, and deduplicates rows based on the primary key (`merchant_order_id`). If `merchant_order_id` is missing or blank, it falls back to `provider_txn_id`.\\n2.  **Primary Key**: ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/script_python_csv_reconcile__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/script_python_csv_reconcile__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "script_python_jsonl_replay_analyzer",
+    "description": "Write a small Python analyzer for replay JSONL files with malformed-line tolerance.",
+    "hidden_checklist": [
+      "Prefer streaming file iteration, not full-file load.",
+      "Count malformed lines explicitly.",
+      "Aggregate per-session turn and invalid-output counts.",
+      "Keep the script simple and dependency-light."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "25992.127",
+    "predicted_per_second": "42.76310753040625",
+    "content_preview": "Here is the production-safe, dependency-free Python script designed to handle multi-GB JSONL files with malformed-line tolerance.\\n\\n### Implementation Details\\n\\n1.  **Streaming Processing**: The script reads the file line-by-line (`for line in f`), ensuring constant memory usage regardless of file size.\\n2.  **Malformed Tolerance**: Uses `try/except` around `json.loads()` to skip invalid lines while ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/script_python_jsonl_replay_analyzer__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/script_python_jsonl_replay_analyzer__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "script_python_jsonl_replay_analyzer",
+    "description": "Write a small Python analyzer for replay JSONL files with malformed-line tolerance.",
+    "hidden_checklist": [
+      "Prefer streaming file iteration, not full-file load.",
+      "Count malformed lines explicitly.",
+      "Aggregate per-session turn and invalid-output counts.",
+      "Keep the script simple and dependency-light."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "35581.419",
+    "predicted_per_second": "38.7940806320642",
+    "content_preview": "I'll implement a production-safe Python analyzer that processes replay JSONL files with malformed-line tolerance, computing per-session statistics and a global footer.\\n\\nLet me analyze the requirements:\\n1. Process JSONL files line-by-line (streaming, memory-efficient)\\n2. Count turns per session (type=\"agent.turn\")\\n3. Count invalid outputs per session (type=\"error\" with code=\"invalid_output\")\\n4. Tra",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/script_python_jsonl_replay_analyzer__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/script_python_jsonl_replay_analyzer__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "ts_boot_restore_consistency",
+    "description": "Boot-time restore can expose an inconsistent running state before threads are restored.",
+    "hidden_checklist": [
+      "Identify restore path sets a running-visible state before thread restoration is complete.",
+      "Mention threadIds restore/bootstrap ordering and idempotent thread recreation.",
+      "Respect protocol/client contract instead of patching runtime only.",
+      "Preserve stateStore atomic tmp+rename behavior.",
+      "Include contract/integration test updates."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "43327.261",
+    "predicted_per_second": "39.9757817120201",
+    "content_preview": "### Root Cause Analysis\\n\\nThe highest-risk bug is in `apps/game-runtime/src/runtime/GameRuntimeServer.ts` within the `restoreSession` method.\\n\\n**The Issue:**\\nWhen the runtime starts and finds a saved session (`stateStore.load()` returns data), `restoreSession` correctly restores the `Simulation` state, `threadIds`, and agent configurations. However, it **fails to restore the `phase` to `\"running\"` ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/ts_boot_restore_consistency__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/ts_boot_restore_consistency__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "ts_boot_restore_consistency",
+    "description": "Boot-time restore can expose an inconsistent running state before threads are restored.",
+    "hidden_checklist": [
+      "Identify restore path sets a running-visible state before thread restoration is complete.",
+      "Mention threadIds restore/bootstrap ordering and idempotent thread recreation.",
+      "Respect protocol/client contract instead of patching runtime only.",
+      "Preserve stateStore atomic tmp+rename behavior.",
+      "Include contract/integration test updates."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "46917.799",
+    "predicted_per_second": "36.470555832277924",
+    "content_preview": "### Bug Analysis\\n\\n**Highest-Risk Bug:** `restoreSession` creates an inconsistent state where the runtime believes it is `running` and exposes a `world.snapshot` to clients, but the external Codex threads (required for agent actions and builds) are not initialized.\\n\\n**Root Cause:**\\nIn `GameRuntimeServer.ts`, the `restoreSession` method restores the `Simulation` state and sets `this.phase = \"running",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/ts_boot_restore_consistency__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/ts_boot_restore_consistency__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "ts_build_atomic_write_guard",
+    "description": "Builder flow must preserve atomic writes and schema-first validation under partial failure.",
+    "hidden_checklist": [
+      "Preserve tmp + rename atomic write behavior.",
+      "Validate build operations against protocol schema before mutating content.",
+      "Keep builder flow content-only and avoid runtime/client side mutations.",
+      "Mention contentStore and integration test coverage."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "39458.568",
+    "predicted_per_second": "40.912343961138376",
+    "content_preview": "### Code Review: Build Flow Atomicity & Validation\\n\\n**Highest-Risk Bug:**\\nThe `ContentStore.applyOperations` method in `apps/game-runtime/src/runtime/contentStore.ts` violates the atomic write guarantee during partial failure scenarios.\\n\\n1.  **Race Condition / Partial State:** The method uses `Promise.all` to write three separate files (`prefabs.json`, `recipes.json`, `world_rules.json`) concurren",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/ts_build_atomic_write_guard__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/ts_build_atomic_write_guard__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "ts_build_atomic_write_guard",
+    "description": "Builder flow must preserve atomic writes and schema-first validation under partial failure.",
+    "hidden_checklist": [
+      "Preserve tmp + rename atomic write behavior.",
+      "Validate build operations against protocol schema before mutating content.",
+      "Keep builder flow content-only and avoid runtime/client side mutations.",
+      "Mention contentStore and integration test coverage."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "44155.303",
+    "predicted_per_second": "37.279634117987115",
+    "content_preview": "### Code Review: Build Flow Consistency & Atomicity\\n\\n**Highest-Risk Bug:**\\nThe `applyOperations` method in `ContentStore` violates atomicity guarantees. It uses `Promise.all` to write three separate files (`prefabs.json`, `recipes.json`, `world_rules.json`) concurrently. If one write succeeds and another fails (e.g., disk full, permission error, or race condition), the content store ends up in an ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/ts_build_atomic_write_guard__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/ts_build_atomic_write_guard__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "ts_reconnect_circuit_breaker",
+    "description": "Reconnect handling risks bypassing the circuit breaker that protects the runtime loop.",
+    "hidden_checklist": [
+      "Respect maxReconnectAttempts as a hard safety guard.",
+      "Keep reconnect authority in runtime, not client.",
+      "Call out the exact reconnect state machine bug rather than generic retry advice.",
+      "Mention integration or fault-injection coverage."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "42859.243",
+    "predicted_per_second": "40.02869128499497",
+    "content_preview": "### Code Review: Reconnect Safety Bug\\n\\n**Highest Risk Issue:**\\nIn `apps/game-runtime/src/runtime/GameRuntimeServer.ts`, the `reconnect()` method unconditionally sets `this.connected = true` upon a successful `codexClient.restart()`.\\n\\nThis bypasses the **circuit breaker** logic located in `handleDisconnect()`. If the `codexClient.restart()` succeeds (e.g., the process launches) but the underlying c",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/ts_reconnect_circuit_breaker__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/ts_reconnect_circuit_breaker__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "ts_reconnect_circuit_breaker",
+    "description": "Reconnect handling risks bypassing the circuit breaker that protects the runtime loop.",
+    "hidden_checklist": [
+      "Respect maxReconnectAttempts as a hard safety guard.",
+      "Keep reconnect authority in runtime, not client.",
+      "Call out the exact reconnect state machine bug rather than generic retry advice.",
+      "Mention integration or fault-injection coverage."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "45977.688",
+    "predicted_per_second": "36.537403471468394",
+    "content_preview": "### Bug Analysis\\n\\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\\n**Method:** `reconnect()`\\n\\n**The Bug:**\\nThe `reconnect()` method attempts to resume gameplay threads after a Codex restart. It iterates over `this.threadIds.gameplayByAgentId` to resume each agent's thread. However, it fails to check if the `Simulation` or the specific agent threads are still valid/active in the curre",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/ts_reconnect_circuit_breaker__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/ts_reconnect_circuit_breaker__r1.json"
+  },
+  {
+    "model_key": "qwen35_27b_ud_q4_xl",
+    "task_id": "ts_runtime_metrics_protocol",
+    "description": "Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.",
+    "hidden_checklist": [
+      "Start from protocol messages rather than ad-hoc runtime/client fields.",
+      "Use MetricsTracker.snapshot() as the source of truth.",
+      "Expose metrics through session-state-like runtime state, not world snapshot.",
+      "Keep client presentation-only and add contract test coverage."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "46849.496",
+    "predicted_per_second": "39.61679466853024",
+    "content_preview": "To expose runtime metrics to the client HUD in a protocol-first way while maintaining simulation authority in the runtime, we need to:\\n\\n1.  **Extend the Protocol**: Add a new `runtime.metrics` server message type to `packages/protocol/src/messages.ts`.\\n2.  **Update Runtime**: Modify `apps/game-runtime/src/runtime/GameRuntimeServer.ts` to emit these metrics whenever the state changes (specifically ",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/requests/ts_runtime_metrics_protocol__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen35_27b_ud_q4_xl/responses/ts_runtime_metrics_protocol__r1.json"
+  },
+  {
+    "model_key": "qwen36_27b_ud_q5_xl",
+    "task_id": "ts_runtime_metrics_protocol",
+    "description": "Runtime metrics exist server-side but are not exposed to the client in a protocol-first way.",
+    "hidden_checklist": [
+      "Start from protocol messages rather than ad-hoc runtime/client fields.",
+      "Use MetricsTracker.snapshot() as the source of truth.",
+      "Expose metrics through session-state-like runtime state, not world snapshot.",
+      "Keep client presentation-only and add contract test coverage."
+    ],
+    "http_status": "200",
+    "success": true,
+    "elapsed_ms": "49369.723",
+    "predicted_per_second": "36.17962180775619",
+    "content_preview": "### Review Summary\\n\\n**Root Cause:** The `RuntimeMetrics` type and data exist in the runtime (`apps/game-runtime`), but the protocol definition (`packages/protocol`) lacks a type for them, and the `session.state` server message does not include them. Consequently, the client HUD cannot display these metrics.\\n\\n**Strategy:**\\n1.  **Protocol First:** Define `RuntimeMetrics` in `packages/protocol/src/me",
+    "reasoning_preview": "",
+    "request_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/requests/ts_runtime_metrics_protocol__r1.json",
+    "response_file": "/Users/luo/Documents/github/CodexGame/output/qwen35-27b-vs-qwen36-27b-q5xl/20260423-095434/64k/qwen36_27b_ud_q5_xl/responses/ts_runtime_metrics_protocol__r1.json"
+  }
+]

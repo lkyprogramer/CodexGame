@@ -1,0 +1,53 @@
+[
+  {
+    "ctx": 32768,
+    "keep_ratio": 0.1,
+    "returncode": 1,
+    "elapsed_s": 18.58673357963562,
+    "accuracy": null,
+    "compressed_tokens": 3466,
+    "compression_ratio": 10.1,
+    "score_s": 4.8,
+    "gen_s": null,
+    "ttft_s": null,
+    "needle_hit": null,
+    "stdout_tail": "[init] spawning daemon: /home/hhtele/lucebox-hub-main-maxperf-qwen36/dflash/build/test_dflash\n[cfg] seq_verify=0 fast_rollback=1 ddtree=1 budget=16 temp=1.00 chain_seed=1 fa_window=0\n[target] target loaded: 851 tensors on GPU 14.99 GiB, tok_embd 682 MiB CPU-only (q4_K)\n[draft]  loaded\n[daemon] ready\n[park] draft released\n[case 0] src=35018 keep=0.1\n[compress] target parked\n[drafter] loaded /data/models/qwen/Qwen3-0.6B-BF16.gguf (n_layer=28 n_head=16 n_head_kv=8)\n[compress] 35018 -> 3466 tokens (keep_ratio=0.100)\n[compress] target restored\n[case 0] compressed=3466 ratio=10.1x score_s=4.8\n[drafter] freed\n",
+    "stderr_tail": "ggml_cuda_init: found 1 CUDA devices (Total VRAM: 24217 MiB):\n  Device 0: NVIDIA GeForce RTX 4090, compute capability 8.9, VMM: yes, VRAM: 24217 MiB\n[drafter] loaded Qwen3-0.6B BF16: n_layer=28 n_head=16 n_kv=8 n_embd=1024 n_ff=3072 head_dim=128 vocab=151936\n[qwen3-0.6b-fp] layer 1/28 done (A=0.115s FP=0.013s B=0.017s)\n[qwen3-0.6b-fp] layer 28/28 done (A=0.296s FP=0.349s B=0.328s)\n[qwen3-0.6b-fp] forward 0.98s (S=35018, A=0.30s FP=0.35s B=0.33s)  tail-score 0.36s  total 1.35s\n[drafter] forward+score in 1.44s S=35018\n[drafter] score_and_compress total 1.45s S=35018 kept=3466 (109/1095 chunks)\n[unpark] draft: safetensors: bad header length\nTraceback (most recent call last):\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/tests/bench_niah_cpp.py\", line 83, in <module>\n    main()\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/tests/bench_niah_cpp.py\", line 65, in main\n    dflash.park_draft()\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/pflash/dflash_client.py\", line 86, in park_draft\n    def park_draft(self):    self._send(\"park draft\\n\")\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/pflash/dflash_client.py\", line 76, in _send\n    self.proc.stdin.flush()\nBrokenPipeError: [Errno 32] Broken pipe\n",
+    "stdout_log": "/tmp/qwen36_maxperf_results3/logs/pflash_torch_32k_keep_0.1.stdout.log",
+    "stderr_log": "/tmp/qwen36_maxperf_results3/logs/pflash_torch_32k_keep_0.1.stderr.log"
+  },
+  {
+    "ctx": 65536,
+    "keep_ratio": 0.05,
+    "returncode": 1,
+    "elapsed_s": 18.152229070663452,
+    "accuracy": null,
+    "compressed_tokens": 3473,
+    "compression_ratio": 20.1,
+    "score_s": 6.1,
+    "gen_s": null,
+    "ttft_s": null,
+    "needle_hit": null,
+    "stdout_tail": "[init] spawning daemon: /home/hhtele/lucebox-hub-main-maxperf-qwen36/dflash/build/test_dflash\n[cfg] seq_verify=0 fast_rollback=1 ddtree=1 budget=16 temp=1.00 chain_seed=1 fa_window=0\n[target] target loaded: 851 tensors on GPU 14.99 GiB, tok_embd 682 MiB CPU-only (q4_K)\n[draft]  loaded\n[daemon] ready\n[park] draft released\n[case 0] src=69969 keep=0.05\n[compress] target parked\n[drafter] loaded /data/models/qwen/Qwen3-0.6B-BF16.gguf (n_layer=28 n_head=16 n_head_kv=8)\n[compress] 69969 -> 3473 tokens (keep_ratio=0.050)\n[compress] target restored\n[case 0] compressed=3473 ratio=20.1x score_s=6.1\n[drafter] freed\n",
+    "stderr_tail": "ggml_cuda_init: found 1 CUDA devices (Total VRAM: 24217 MiB):\n  Device 0: NVIDIA GeForce RTX 4090, compute capability 8.9, VMM: yes, VRAM: 24217 MiB\n[drafter] loaded Qwen3-0.6B BF16: n_layer=28 n_head=16 n_kv=8 n_embd=1024 n_ff=3072 head_dim=128 vocab=151936\n[qwen3-0.6b-fp] layer 1/28 done (A=0.095s FP=0.027s B=0.027s)\n[qwen3-0.6b-fp] layer 28/28 done (A=0.457s FP=0.800s B=0.650s)\n[qwen3-0.6b-fp] forward 1.92s (S=69969, A=0.46s FP=0.80s B=0.65s)  tail-score 0.73s  total 2.64s\n[drafter] forward+score in 2.76s S=69969\n[drafter] score_and_compress total 2.76s S=69969 kept=3473 (109/2187 chunks)\n[unpark] draft: safetensors: bad header length\nTraceback (most recent call last):\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/tests/bench_niah_cpp.py\", line 83, in <module>\n    main()\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/tests/bench_niah_cpp.py\", line 65, in main\n    dflash.park_draft()\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/pflash/dflash_client.py\", line 86, in park_draft\n    def park_draft(self):    self._send(\"park draft\\n\")\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/pflash/dflash_client.py\", line 76, in _send\n    self.proc.stdin.flush()\nBrokenPipeError: [Errno 32] Broken pipe\n",
+    "stdout_log": "/tmp/qwen36_maxperf_results3/logs/pflash_torch_64k_keep_0.05.stdout.log",
+    "stderr_log": "/tmp/qwen36_maxperf_results3/logs/pflash_torch_64k_keep_0.05.stderr.log"
+  },
+  {
+    "ctx": 131072,
+    "keep_ratio": 0.02,
+    "returncode": 1,
+    "elapsed_s": 22.89380669593811,
+    "accuracy": null,
+    "compressed_tokens": 2755,
+    "compression_ratio": 50.8,
+    "score_s": 11.3,
+    "gen_s": null,
+    "ttft_s": null,
+    "needle_hit": null,
+    "stdout_tail": "[init] spawning daemon: /home/hhtele/lucebox-hub-main-maxperf-qwen36/dflash/build/test_dflash\n[cfg] seq_verify=0 fast_rollback=1 ddtree=1 budget=16 temp=1.00 chain_seed=1 fa_window=0\n[target] target loaded: 851 tensors on GPU 14.99 GiB, tok_embd 682 MiB CPU-only (q4_K)\n[draft]  loaded\n[daemon] ready\n[park] draft released\n[case 0] src=139875 keep=0.02\n[compress] target parked\n[drafter] loaded /data/models/qwen/Qwen3-0.6B-BF16.gguf (n_layer=28 n_head=16 n_head_kv=8)\n[compress] 139875 -> 2755 tokens (keep_ratio=0.020)\n[compress] target restored\n[case 0] compressed=2755 ratio=50.8x score_s=11.3\n[drafter] freed\n",
+    "stderr_tail": "ggml_cuda_init: found 1 CUDA devices (Total VRAM: 24217 MiB):\n  Device 0: NVIDIA GeForce RTX 4090, compute capability 8.9, VMM: yes, VRAM: 24217 MiB\n[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (139875 > 131072). Running this sequence through the model will result in indexing errors\n[drafter] loaded Qwen3-0.6B BF16: n_layer=28 n_head=16 n_kv=8 n_embd=1024 n_ff=3072 head_dim=128 vocab=151936\n[qwen3-0.6b-fp] layer 1/28 done (A=0.091s FP=0.093s B=0.050s)\n[qwen3-0.6b-fp] layer 28/28 done (A=0.818s FP=2.651s B=1.304s)\n[qwen3-0.6b-fp] forward 4.79s (S=139875, A=0.82s FP=2.65s B=1.30s)  tail-score 2.73s  total 7.52s\n[drafter] forward+score in 7.69s S=139875\n[drafter] score_and_compress total 7.69s S=139875 kept=2755 (87/4372 chunks)\n[unpark] draft: safetensors: bad header length\nTraceback (most recent call last):\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/tests/bench_niah_cpp.py\", line 83, in <module>\n    main()\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/tests/bench_niah_cpp.py\", line 65, in main\n    dflash.park_draft()\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/pflash/dflash_client.py\", line 86, in park_draft\n    def park_draft(self):    self._send(\"park draft\\n\")\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/hhtele/lucebox-hub-main-maxperf-qwen36/pflash/pflash/dflash_client.py\", line 76, in _send\n    self.proc.stdin.flush()\nBrokenPipeError: [Errno 32] Broken pipe\n",
+    "stdout_log": "/tmp/qwen36_maxperf_results3/logs/pflash_torch_128k_keep_0.02.stdout.log",
+    "stderr_log": "/tmp/qwen36_maxperf_results3/logs/pflash_torch_128k_keep_0.02.stderr.log"
+  }
+]

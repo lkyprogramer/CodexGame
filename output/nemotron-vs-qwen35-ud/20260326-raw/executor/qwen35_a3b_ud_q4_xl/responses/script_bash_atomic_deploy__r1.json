@@ -1,0 +1,39 @@
+{
+  "task_id": "script_bash_atomic_deploy",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 10208.42049998464,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Here is the production-safe Bash deployment script adhering to your constraints.\n\n### File: `deploy.sh`\n\n```bash\n#!/usr/bin/env bash\nset -euo pipefail\n\n# --- Configuration ---\nAPP_ROOT=\"/srv/myapp\"\nRELEASES_DIR=\"${APP_ROOT}/releases\"\nCURRENT_LINK=\"${APP_ROOT}/current\"\nHEALTH_ENDPOINT=\"http://127.0.0.1:8080/healthz\"\nLOG_FILE=\"${APP_ROOT}/deploy.log\"\nTIMESTAMP=\"${1:-$(date +%Y%m%d%H%M%S)}\"\nNEW_RELEASE=\"${RELEASES_DIR}/${TIMESTAMP}\"\n\n# --- Helper Functions ---\n\nlog() {\n    local msg=\"[$(date '+%Y-%m-%d %H:%M:%S')] $1\"\n    echo \"$msg\" | tee -a \"$LOG_FILE\"\n}\n\nfail() {\n    log \"ERROR: $1\"\n    exit 1\n}\n\n# --- Pre-flight Checks ---\n\nif [[ ! -L \"$CURRENT_LINK\" ]]; then\n    fail \"CRITICAL: Current symlink '$CURRENT_LINK' is missing or not a symlink. Refusing to deploy.\"\nfi\n\nif [[ ! -d \"$NEW_RELEASE\" ]]; then\n    fail \"RELEASE NOT FOUND: Expected release directory '$NEW_RELEASE' does not exist. Ensure the release was unpacked first.\"\nfi\n\n# --- Deployment Logic ---\n\nlog \"Starting atomic deployment for release: $TIMESTAMP\"\n\n# 1. Verify current state\nCURRENT_TARGET=$(readlink \"$CURRENT_LINK\")\nlog \"Current live target: $CURRENT_TARGET\"\n\n# 2. Perform Atomic Swap\n# We use a temporary link to ensure we don't overwrite the symlink until we are ready.\n# However, standard atomic swap on Linux is: mv new_link current_link.\n# Since we are swapping the *target* of the symlink, we must be careful.\n# Strategy: Create a temporary symlink, then move it to the final location.\n# Actually, the standard pattern is:\n# 1. Ensure new release dir exists.\n# 2. mv (or ln -sf) the symlink to point to new release.\n# To be truly atomic and safe:\n#   - Create a temporary symlink at a safe location (e.g., .tmp).\n#   - mv .tmp -> current_link.\n\nTEMP_LINK=\"${CURRENT_LINK}.tmp\"\n\nlog \"Creating temporary symlink to new release...\"\nln -sfn \"$NEW_RELEASE\" \"$TEMP_LINK\"\n\nlog \"Swapping symlink...\"\nmv \"$TEMP_LINK\" \"$CURRENT_LINK\"\n\nlog \"Symlink swapped. New target: $(readlink \"$CURRENT_LINK\")\"\n\n# 3. Health Check\nlog \"Performing health check on $HEALTH_ENDPOINT...\"\nMAX_RETRIES=5\nRETRY_DELAY=2\n\nfor i in $(seq 1 \"$MAX_RETRIES\"); do\n    if curl -sf --max-time 5 \"$HEALTH_ENDPOINT\" > /dev/null 2>&1; then\n        log \"Health check passed.\"\n        log \"Deployment successful.\"\n        exit 0\n    fi\n    \n    log \"Health check attempt $i failed. Retrying in ${RETRY_DELAY}s...\"\n    sleep \"$RETRY_DELAY\"\ndone\n\n# --- Rollback Logic ---\n\nlog \"Health check failed after $MAX_RETRIES attempts. Initiating rollback...\"\n\n# Restore previous symlink target\nif [[ -n \"$CURRENT_TARGET\" && -d \"$CURRENT_TARGET\" ]]; then\n    log \"Restoring symlink to previous release: $CURRENT_TARGET\"\n    ln -sfn \"$CURRENT_TARGET\" \"$CURRENT_LINK\"\n    log \"Rollback complete. Previous release restored.\"\nelse\n    log \"WARNING: Could not restore previous release '$CURRENT_TARGET' (directory missing).\"\n    log \"Manual intervention required.\"\nfi\n\nfail \"Deployment failed and rollback completed.\"\n```\n\n### Key Implementation Details\n\n1.  **Safety First (`set -euo pipefail`)**: The script exits immediately on any error, undefined variable usage, or pipe failure, preventing partial states.\n2.  **Pre-flight Validation**:\n    *   Checks if `/srv/myapp/current` exists and is a symlink.\n    *   Checks if the target release directory exists before attempting deployment.\n3.  **Atomic Swap**:\n    *   Uses `ln -sfn` to create a temporary symlink (`current.tmp`).\n    *   Uses `mv` to atomically replace the live symlink. This ensures the application never sees a broken link during the transition.\n4.  **Health Check**:\n    *   Uses `curl -sf` to check the endpoint.\n    *   Implements a retry loop with a delay to handle transient startup issues.\n5.  **Rollback**:\n    *   Captures the `CURRENT_TARGET` (previous release path) *before* the swap.\n    *   If health checks fail, it restores the symlink to the captured previous path.\n    *   **Crucially**: It does *not* delete the new release directory, allowing for manual inspection if needed.\n6.  **Logging**: All actions are timestamped and appended to `/srv/myapp/deploy.log`.\n\n### Verification Checks\n\n1.  **Missing Symlink**: Run `rm /srv/myapp/current` then `./deploy.sh`.\n    *   *Expected*: Script exits immediately with \"CRITICAL: Current symlink... missing\".\n2.  **Missing Release**: Run `./deploy.sh 999999999999` (assuming that timestamp doesn't exist).\n    *   *Expected*: Script exits with \"RELEASE NOT FOUND\".\n3.  **Successful Deploy**: Ensure `/srv/myapp/releases/<timestamp>` exists and the app is running.\n    *   *Expected*: Symlink updates, health check passes, exit code 0.\n4.  **"
+        }
+      }
+    ],
+    "created": 1774496701,
+    "model": "bench/qwen35-35b-a3b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 292,
+      "total_tokens": 1542
+    },
+    "id": "chatcmpl-EN6p1y73gQGWj8FgB2zzokEV6RnAaDa2",
+    "timings": {
+      "cache_n": 84,
+      "prompt_n": 208,
+      "prompt_ms": 79.629,
+      "prompt_per_token_ms": 0.38283173076923077,
+      "prompt_per_second": 2612.1136771779125,
+      "predicted_n": 1250,
+      "predicted_ms": 9052.839,
+      "predicted_per_token_ms": 7.2422712,
+      "predicted_per_second": 138.07823159121685
+    }
+  }
+}

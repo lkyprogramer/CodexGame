@@ -1,0 +1,21 @@
+{
+  "restore_script": {
+    "label": "restore_run_script_and_restart",
+    "cmd": [
+      "bash",
+      "-lc",
+      "\nset -euo pipefail\nRUN=/opt/llama.cpp/run-qwen35-35b-a3b-uncensored.sh\nBAK=$(cat /tmp/qwen36_maxperf_service_backup_path)\ncp -p \"$BAK\" \"$RUN\"\nPID=$(systemctl show qwen35-35b-a3b-uncensored -p MainPID --value 2>/dev/null || true)\nif [ -n \"${PID:-}\" ] && [ \"$PID\" != \"0\" ]; then kill \"$PID\" 2>/dev/null || true; fi\nsleep 8\nsystemctl show qwen35-35b-a3b-uncensored -p ActiveState -p SubState -p MainPID\n"
+    ],
+    "returncode": 0,
+    "elapsed_s": 8.030924081802368,
+    "stdout_tail": "MainPID=2444006\nActiveState=active\nSubState=running\n",
+    "stderr_tail": "",
+    "stdout_log": "/tmp/qwen36_maxperf_results3/logs/restore_run_script_and_restart.stdout.log",
+    "stderr_log": "/tmp/qwen36_maxperf_results3/logs/restore_run_script_and_restart.stderr.log"
+  },
+  "backup_path": "/opt/llama.cpp/run-qwen35-35b-a3b-uncensored.sh.maxperf-20260504-001530.bak",
+  "qwen_service": "active",
+  "openclaw_service": "inactive",
+  "models_api": "{\"error\":{\"message\":\"Loading model\",\"type\":\"unavailable_error\",\"code\":503}}",
+  "nvidia_smi": "20300, 85, 68.70\n"
+}

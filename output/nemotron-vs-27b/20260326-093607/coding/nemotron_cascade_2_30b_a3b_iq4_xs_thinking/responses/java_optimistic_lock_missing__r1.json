@@ -1,0 +1,39 @@
+{
+  "task_id": "java_optimistic_lock_missing",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 6055.89124999824,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to find concurrency bug: version field exists but update flow does not enforce optimistic locking. In OrderService.approve, they read order, then call updateStatus with version+1 but repository's updateStatus likely does not check that version matches. The bug: updateStatus should include WHERE clause that checks version = oldVersion, else throw exception if stale. Currently repository implementation is stubbed, but we need to modify JdbcOrderRepository.updateStatus to include version check. Also OrderService should handle possible OptimisticLockException.\n\nWe need to propose smallest production-safe fix: modify JdbcOrderRepository.updateStatus to include version check and throw exception if update count == 0. Also maybe modify OrderService to catch exception and retry or throw appropriate exception.\n\nGiven snapshot, we have only interfaces and stub. We need to change JdbcOrderRepository.updateStatus to actually update with version check. Also maybe add a custom exception.\n\nWe need to list exact files to change: JdbcOrderRepository.java and maybe OrderService.java to handle exception.\n\nLet's propose: In JdbcOrderRepository.updateStatus, perform SQL: UPDATE orders SET status = ?, version = version + 1 WHERE id = ? AND version = ?. Use parameters: status, nextVersion, id, currentVersion (which is order.getVersion()). But we have nextVersion = order.getVersion() + 1, but we need to pass current version to WHERE clause. Actually we can compute currentVersion = nextVersion - 1. Use WHERE id = ? AND version = currentVersion. If update count == 0, throw OptimisticLockException.\n\nThus modify JdbcOrderRepository.updateStatus signature? It already takes nextVersion, but we need current version. Could compute inside: int currentVersion = nextVersion - 1; Then execute update with WHERE id = ? AND version = currentVersion. If rows affected == 0, throw new OptimisticLockException(\"Order version mismatch\").\n\nAdd import for exception.\n\nAlso modify OrderService.approve to catch OptimisticLockException and maybe retry or rethrow.\n\nBut minimal fix: just ensure repository checks version. So we need to change JdbcOrderRepository.updateStatus to include version check. Also maybe add a custom exception class (but not in snapshot). Could just throw IllegalStateException.\n\nGiven snapshot, we can modify JdbcOrderRepository.updateStatus to include version check using nextVersion and id.\n\nImplementation:\n\npublic void updateStatus(long id, String status, int nextVersion) {\n    String sql = \"UPDATE orders SET status = ?, version = ? WHERE id = ? AND version = ?\";\n    // version column should be set to nextVersion, but we need to match current version = nextVersion - 1\n    int currentVersion = nextVersion - 1;\n    jdbcTemplate.update(sql, status, nextVersion, id, currentVersion);\n    // check rows affected? Using JdbcTemplate.update returns int rowsAffected, we can check.\n    if (rowsAffected == 0) {\n        throw new OptimisticLockingFailureException(\"Order version mismatch\");\n    }\n}\n\nBut we need to know what JDBC utilities are available. Since snapshot only shows class stub, we can assume using JdbcTemplate.\n\nSimplify: Use java.sql.Connection etc.\n\nWe'll propose using try (PreparedStatement ps = conn.prepareStatement(...)) and check ps.executeUpdate().\n\nThus file changes: JdbcOrderRepository.java.\n\nAlso maybe OrderService.java to handle exception: wrap call in try-catch and rethrow as OptimisticLockingFailureException.\n\nBut minimal fix: repository ensures version check; service can let exception propagate.\n\nThus we need to add a new exception class? Not required; can use IllegalStateException.\n\nBut better to define OptimisticLockException in a new file? Not in snapshot; we can just throw IllegalStateException.\n\nThus propose modifications:\n\n- In JdbcOrderRepository.updateStatus, implement actual update with version check and throw IllegalStateException if stale.\n\n- In OrderService.approve, wrap repository.updateStatus in try-catch and if exception, rethrow as OptimisticLockException or simply propagate.\n\nGiven minimal safe fix, we can just let exception propagate; service does not need change.\n\nThus only JdbcOrderRepository.java changes.\n\nBut we need to ensure method signature includes nextVersion; we need to compute currentVersion = nextVersion - 1.\n\nEdge case: nextVersion may be 0? Not likely.\n\nThus final answer: modify JdbcOrderRepository.updateStatus to include version check.\n\nAlso maybe modify Order.java to have a method to get version safely? Already getVersion.\n\nThus answer: Provide code snippet.\n\nNow produce final answer with exact files to change, code changes, regression checks.\n</think>\n**Root cause**\n\n`OrderService.approve()` reads an `Order`, increments its `version` locally and then calls  \n`orderRepository.updateStatus(id, status, nextVersion)`.  \nThe repository implementation (`JdbcOrderRepository`) is only a stub – it does **not** contain a `WHERE … AND version = ?` clause, so the `UPDATE` will succeed even if another thread has already changed the row. In"
+        }
+      }
+    ],
+    "created": 1774491359,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1050,
+      "prompt_tokens": 481,
+      "total_tokens": 1531
+    },
+    "id": "chatcmpl-NKdIVynaRKXnt0KQsw8oEVQ8ahjMBOl4",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 481,
+      "prompt_ms": 63.361,
+      "prompt_per_token_ms": 0.13172765072765072,
+      "prompt_per_second": 7591.420589952811,
+      "predicted_n": 1050,
+      "predicted_ms": 4938.752,
+      "predicted_per_token_ms": 4.703573333333334,
+      "predicted_per_second": 212.60431785195934
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_reconnect_circuit_breaker",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 9363.580540986732,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Highest‑risk bug**\n\nThe reconnect logic in `GameRuntimeServer` (file `apps/game-runtime/src/runtime/GameRuntimeServer.ts`) does **not** re‑wire the pending‑turn collectors after a codex reconnect.  \nWhen the codex disconnects the server:\n\n1. `handleDisconnect()` schedules a reconnect and clears `this.pendingTurns` only for the *current* turn (via `interruptedTurnIds`).  \n2. The `pendingTurns` map still contains entries for **all other in‑flight turns** that were started before the disconnect.  \n3. After the reconnect succeeds (`reconnect()`), the codex threads are resumed, but the server never re‑queues those stale collectors.  \n4. When the codex later sends `turn/completed` notifications for those stale turns, the server looks them up in `this.pendingTurns`, finds nothing, and silently drops the notification.  \n5. The turn is considered “lost”, the agent’s turn never finishes, and the circuit‑breaker (`maxReconnectAttempts`) can be hit while the runtime is still in a partially‑started state – effectively bypassing the breaker.\n\nThe bug is a **missing state‑reset for pending turns** after a reconnect, which lets the server continue processing notifications for turns that were never properly cancelled.\n\n**Smallest safe fix**\n\nAdd a `resetPendingTurns()` method that clears `this.pendingTurns` and `this.interruptedTurnIds` and call it **right after a successful reconnect** (inside `reconnect()` before `await this.refreshModelCatalog()`). This preserves the hard reconnect guard (`maxReconnectAttempts`) while guaranteeing that no stale pending‑turn collectors survive a reconnect.\n\n```ts\n// ---- inside GameRuntimeServer ------------------------------------------------\nprivate async reconnect(): Promise<void> {\n  try {\n    await this.codexClient.restart({ codexBin: runtimeConfig.codexBin, cwd: runtimeConfig.codexCwd });\n    // <‑‑ NEW: discard any pending turns that were in‑flight when the disconnect happened\n    this.resetPendingTurns();\n\n    for (const threadId of Object.values(this.threadIds.gameplayByAgentId)) {\n      await this.codexClient.request(\"thread/resume\", { threadId });\n    }\n    if (this.threadIds.builder) {\n      await this.codexClient.request(\"thread/resume\", { threadId: this.threadIds.builder });\n    }\n    await this.refreshModelCatalog();\n    this.connected = true;\n    this.sendSessionState();\n    this.emitMessage({\n      version: PROTOCOL_VERSION,\n      type: \"agent.feed\",\n      payload: {\n        role: \"system\",\n        text: \"Codex reconnect complete.\"\n      }\n    });\n  } catch (error) {\n    this.connected = false;\n    this.sendSessionState();\n    this.emitError(\"reconnect_failed\", (error as Error).message, true);\n    await this.handleDisconnect();\n  }\n}\n\n// ------------------------------------------------------------------------------\n\nprivate resetPendingTurns(): void {\n  this.pendingTurns.clear();\n  this.interruptedTurnIds.clear();\n}\n```\n\n**Why this is the minimal, maintainable fix**\n\n* **Preserves the hard reconnect guard** – `maxReconnectAttempts` is still enforced in `handleDisconnect()`.  \n* **Keeps all existing reconnect semantics** – threads are resumed exactly as before; only the pending‑turn map is cleared.  \n* **No API changes** – the method uses existing private fields, no new public contracts.  \n* **Low risk** – clearing a map that only holds in‑flight turn collectors cannot corrupt other state; it merely prevents the server from trying to resolve already‑lost promises.\n\n**Regression checks**\n\n1. **Reconnect flow** – Simulate a disconnect, ensure `handleDisconnect()` increments `reconnectAttempts`, then a reconnect occurs. Verify that after reconnect `this.pendingTurns.size === 0` and no “turn completed” messages are lost.  \n2. **Circuit‑breaker** – Force `maxReconnectAttempts` to be `1` and cause two disconnects. The server should transition to `phase === \"error\"` with error code `circuit_breaker`.  \n3. **Normal operation** – Ensure that without a disconnect, pending turns are still resolved correctly (existing tests cover this).  \n\nThese checks confirm that the fix does not break normal turn handling, does not affect the reconnect limit, and correctly resets pending turns after a reconnect."
+        }
+      }
+    ],
+    "created": 1774490967,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 976,
+      "prompt_tokens": 19637,
+      "total_tokens": 20613
+    },
+    "id": "chatcmpl-sj20eyvTrI9C7mjDPbwYpfdDkN1VbMiC",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 19637,
+      "prompt_ms": 2561.663,
+      "prompt_per_token_ms": 0.1304508326119061,
+      "prompt_per_second": 7665.7233992137135,
+      "predicted_n": 976,
+      "predicted_ms": 5038.746,
+      "predicted_per_token_ms": 5.162649590163935,
+      "predicted_per_second": 193.69898780371147
+    }
+  }
+}

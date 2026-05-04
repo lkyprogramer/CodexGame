@@ -1,0 +1,42 @@
+{
+  "task_id": "agentic_python_restore_bootstrap",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 3049.6816670056432,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"summary\":\"Fixed restore.py to ensure threads are created before marking state as running and connected, preventing premature state exposure.\",\"files\":[{\"path\":\"runtime/restore.py\",\"content\":\"from __future__ import annotations\\n\\nfrom .session import Snapshot\\nfrom .threads import ThreadBootstrapper\\nfrom .types import RuntimeState\\n\\n\\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\\n    state.thread_ids = {}\\n    for agent_id in snapshot.agent_ids:\\n        if agent_id not in state.thread_ids:\\n            state.thread_ids[agent_id] = bootstrapper.ensure_thread(agent_id)\\n    state.phase = \\\"running\\\"\\n    state.connected = True\\n    return state\\n\"}]"
+        }
+      }
+    ],
+    "created": 1774451706,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 159,
+      "prompt_tokens": 748,
+      "total_tokens": 907
+    },
+    "id": "chatcmpl-OG6mpjuokdSIIjvvO1C5wecU49c5M8bk",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 748,
+      "prompt_ms": 118.877,
+      "prompt_per_token_ms": 0.15892647058823528,
+      "prompt_per_second": 6292.2180068474145,
+      "predicted_n": 159,
+      "predicted_ms": 1867.034,
+      "predicted_per_token_ms": 11.742352201257862,
+      "predicted_per_second": 85.16181280040962
+    }
+  },
+  "validation_results": [],
+  "files_written": [],
+  "json_error": "JSONDecodeError(\"Expecting ',' delimiter: line 1 column 719 (char 718)\")"
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "ts_boot_restore_consistency",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 43173.43491700012,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Root Cause Analysis\n\nThe highest-risk bug is in `apps/game-runtime/src/runtime/GameRuntimeServer.ts` within the `restoreSession` method.\n\n**The Bug:**\nWhen the runtime restores a session from disk (`restoreSession`), it successfully reconstructs the `Simulation` state (agents, world, tick) and sets `this.phase = \"running\"`. However, it **fails to restore the Codex threads** (`threadIds` and `threadToAgentId` maps) that correspond to the restored agents.\n\n**Consequences:**\n1.  **Inconsistent State:** The server enters the `running` phase with a valid simulation but no active threads for the agents.\n2.  **Stalled Execution:** The scheduler (`runScheduler`) will attempt to pick an agent, but `requestGameplayTurn` will fail immediately because `this.threadIds.gameplayByAgentId[agentId]` is undefined.\n3.  **Race Condition:** If a client connects immediately after boot, they see `phase: \"running\"` but no threads. The `primeCodexModelCatalog` method attempts to start threads *only* if `Object.keys(this.threadIds.gameplayByAgentId).length === 0`. While this logic exists, it relies on `primeCodexModelCatalog` running successfully *after* `restoreSession` returns. If the model catalog refresh fails or is delayed, the system remains in a broken \"running\" state where agents cannot act.\n4.  **Duplicate Creation Risk:** If `startThreadsForExistingSession` is called (via `primeCodexModelCatalog`) while `restoreSession` has already partially initialized state, there is a risk of mismatched thread IDs or duplicate logic if the restore logic isn't atomic with thread initialization.\n\n**The Fix:**\nThe `restoreSession` method must explicitly restore the `threadIds` from the saved snapshot and re-establish the `threadToAgentId` mapping. It should **not** rely on `startThreadsForExistingSession` to create *new* threads for a restored session; it must assume the thread IDs in the snapshot are still valid (or handle the case where they are stale, but the primary fix is to restore the mapping).\n\nHowever, looking closer at `startThreadsForExistingSession`, it *creates new threads*. This is incorrect for a restore scenario where we want to resume the *existing* threads if possible, or at least ensure the mapping exists before the scheduler runs.\n\nActually, the most robust fix for \"Boot-time restore\" consistency is to ensure that if we restore a session, we immediately populate `threadIds` from the saved state. If the threads are dead (because the process restarted), the `reconnect` logic or a specific \"resume\" flow should handle them. But the immediate crash/stall happens because `threadIds` is empty.\n\n**Refined Fix:**\nIn `restoreSession`, after loading the `saved` snapshot:\n1.  Restore `this.threadIds` from `saved.threadIds`.\n2.  Re-populate `this.threadToAgentId` based on the restored `threadIds`.\n3.  Ensure `this.phase` is only set to \"running\" if the threads are valid (or handle the \"threads missing\" case by triggering a re-initialization).\n\nGiven the instruction to \"avoid duplicate thread creation\", we should **not** call `startThreadsForExistingSession` (which calls `thread/start`) during a restore if we have valid IDs. We should just restore the IDs. If the threads are actually dead, the `reconnect` flow (which calls `thread/resume`) will handle it.\n\n### Proposed Fix\n\n**File:** `apps/game-runtime/src/runtime/GameRuntimeServer.ts`\n\n**Change:** Modify `restoreSession` to restore `threadIds` and `threadToAgentId` from the snapshot, preventing the scheduler from failing due to missing thread mappings.\n\n```typescript\n// apps/game-runtime/src/runtime/GameRuntimeServer.ts\n\n  private async restoreSession(): Promise<void> {\n    const saved = await this.stateStore.load();\n    if (!saved) {\n      return;\n    }\n\n    const content = this.contentStore.getContent();\n    if (saved.simulation) {\n      this.simulation = Simulation.fromState(saved.simulation, content);\n      this.seed = saved.simulation.seed;\n      for (const agent of saved.simulation.agents ?? []) {\n        this.agentConfigs.set(agent.id, { id: agent.id, name: agent.name });\n      }\n      this.resetAgentLoopState((saved.simulation.agents ?? []).map((agent) => agent.id));\n    } else if (typeof saved.seed === \"number\") {\n      this.simulation = new Simulation(saved.seed, DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE, content, [\n        { id: \"agent-1\", name: \"Agent 1\" }\n      ]);\n      this.seed = saved.seed;\n      this.agentConfigs.set(\"agent-1\", { id: \"agent-1\", name: \"Agent 1\" });\n      this.resetAgentLoopState([\"agent-1\"]);\n    } else {\n      return;\n    }\n\n    // FIX: Restore thread IDs and mappings from the snapshot to ensure consistency\n    // before entering the \"running\" phase. This prevents the scheduler from failing\n    // due to missing thread mappings.\n    if (saved.threadIds) {\n      this.threadIds = saved.threadIds;\n      this.threadToAgentId.clear();\n      for (const [agentId, threadId] of Object.entries(saved.threadIds.gameplayByAgentId)) {\n        this.threadToAgentId.set(threadId, agentId);\n      }\n      // Ensure builder thread mapping is also restored if present\n      if (saved.threadIds.builder) {\n        // Builder doesn't have an agentId in the map, but we track it in threadIds\n        // No specific mapping needed for builder in threadTo"
+        }
+      }
+    ],
+    "created": 1773052833,
+    "model": "bench/qwen35-27b-dense-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1250,
+      "prompt_tokens": 21368,
+      "total_tokens": 22618
+    },
+    "id": "chatcmpl-vrazvwgsa1l0jFReRfQoVAsNDrNJ2DaV",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 21368,
+      "prompt_ms": 9083.737,
+      "prompt_per_token_ms": 0.425109369150131,
+      "prompt_per_second": 2352.335828305025,
+      "predicted_n": 1250,
+      "predicted_ms": 31238.567,
+      "predicted_per_token_ms": 24.990853599999998,
+      "predicted_per_second": 40.01463959598403
+    }
+  }
+}

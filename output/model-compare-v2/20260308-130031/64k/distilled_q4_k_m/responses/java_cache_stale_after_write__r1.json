@@ -1,0 +1,40 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 22736.206667032093,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "## Code Review: Stale Cache After Profile Update\n\n### Root Cause\n\nThe `updateDisplayName()` method writes to the database but **never invalidates the cache**. This causes a classic cache consistency bug:\n\n```\n┌─────────────────────────────────────────────────────┐\n│  Thread A (Write)          Thread B (Read)           │\n│  updateDisplayName(123)    get(123)                  │\n│  └─ save to DB             └─ read from CACHE        │\n│     (new value)                (stale old value!)    │\n│                                                 │\n│  Cache still holds OLD value                     │\n└─────────────────────────────────────────────────────┘\n```\n\n### The Fix\n\nAdd cache eviction immediately after a successful database write. This maintains the existing cache-aside pattern while ensuring reads always get fresh data.\n\n**File: `src/main/java/com/example/profile/ProfileService.java`**\n\n```java\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    profileCache.evict(profileId);  // ← ADD THIS LINE\n}\n```\n\n### Why This Is The Smallest Safe Fix\n\n| Alternative | Why Not |\n|-------------|---------|\n| Read from cache in `updateDisplayName()` | Adds unnecessary read, doesn't solve consistency |\n| Write-through (put in cache + DB) | Changes semantics, requires cache to handle errors |\n| Cache refresh on read | Doesn't help when read happens before refresh |\n\nThe fix is **one line** that ensures the cache-aside pattern works correctly: writes invalidate, reads populate.\n\n### Regression Checks\n\n1. **Stale cache after update**: Update a profile's display name, then immediately call `get()` — should return the new value, not the old cached one.\n\n2. **Cache miss after eviction**: Update a profile, then call `get()` — should hit the database (not cache) and return fresh data.\n\n3. **Successful update required**: Verify that `evict()` is only called if `save()` succeeds (current code does this correctly by sequential execution).\n\n",
+          "reasoning_content": "Let me analyze the code to identify the cache consistency bug.\n\n**Write Path Analysis:**\n1. `updateDisplayName()` is called\n2. Profile is loaded from DB via `profileRepository.require(profileId)`\n3. Display name is set on the profile object\n4. Profile is saved to DB via `profileRepository.save(profile)`\n5. **No cache operation is performed**\n\n**Read Path Analysis:**\n1. `get()` is called\n2. Cache is checked first\n3. If cache miss, DB is queried and result is cached\n\n**The Bug:**\nWhen `updateDisplayName()` updates the profile in the database, the cache is never invalidated. This means:\n- If the profile was already in cache, the old (stale) value remains\n- Subsequent `get()` calls return the cached stale data\n- The cache only gets updated on the next cache miss (when it reads from DB again)\n\n**Cache Consistency Strategies:**\n1. **Cache-Aside (Lazy Loading)** - Read path handles caching, write path invalidates cache\n2. **Write-Through** - Write path writes to both cache and DB\n3. **Write-Behind** - Write path writes to cache, cache asynchronously writes to DB\n\nThe current code follows Cache-Aside pattern for reads but doesn't invalidate on writes.\n\n**The Fix:**\nAfter successfully updating the profile in the database, we need to evict the cached entry so the next read will fetch fresh data from the database.\n\nThis is the smallest safe fix because:\n- It maintains the existing cache-aside pattern\n- It doesn't change the read path logic\n- It only adds one line to invalidate the cache after a successful write\n- It ensures eventual consistency (cache will be fresh on next read)\n\n**Files to change:**\n- `src/main/java/com/example/profile/ProfileService.java` - Add cache eviction in `updateDisplayName()`\n\n**Regression Checks:**\n1. Update a profile, then immediately read it - should get the new value\n2. Multiple updates followed by read - should get the latest value\n\n\n3. Cache eviction should occur only after successful database update\n4. Concurrent read/write scenarios need careful handling to prevent race conditions\n5. Verify cache invalidation doesn't cause unnecessary database load\n"
+        }
+      }
+    ],
+    "created": 1772947156,
+    "model": "jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Q4_K_M",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 950,
+      "prompt_tokens": 463,
+      "total_tokens": 1413
+    },
+    "id": "chatcmpl-pwc0SEL83NcxfvPQj2n3eiCOVgotZlHj",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 463,
+      "prompt_ms": 218.67,
+      "prompt_per_token_ms": 0.47228941684665227,
+      "prompt_per_second": 2117.3457721681075,
+      "predicted_n": 950,
+      "predicted_ms": 21215.206,
+      "predicted_per_token_ms": 22.33179578947368,
+      "predicted_per_second": 44.77920223824365
+    }
+  }
+}

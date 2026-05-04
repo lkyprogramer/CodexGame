@@ -1,0 +1,52 @@
+{
+  "task_id": "agentic_python_restore_bootstrap",
+  "repeat_index": 2,
+  "http_status": 200,
+  "elapsed_ms": 3012.5860830012243,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"summary\":\"Fix restore.py to set phase to 'running' only after threads are created, preventing state exposure before threads exist.\",\"files\":[{\"path\":\"runtime/restore.py\",\"content\":\"from __future__ import annotations\\n\\nfrom .session import Snapshot\\nfrom .threads import ThreadBootstrapper\\nfrom .types import RuntimeState\\n\\n\\ndef restore(snapshot: Snapshot, state: RuntimeState, bootstrapper: ThreadBootstrapper) -> RuntimeState:\\n    state.thread_ids = {}\\n    for agent_id in snapshot.agent_ids:\\n        if agent_id not in state.thread_ids:\\n            state.thread_ids[agent_id] = bootstrapper.ensure_thread(agent_id)\\n    state.phase = \\\"running\\\"\\n    state.connected = True\\n    return state\\n\"}]}"
+        }
+      }
+    ],
+    "created": 1774451709,
+    "model": "bench/omnicoder-9b-q8_0-tuned",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 161,
+      "prompt_tokens": 748,
+      "total_tokens": 909
+    },
+    "id": "chatcmpl-vIfEIcnZuLxNdu0h8eNaSYLgeWK9b8bc",
+    "timings": {
+      "cache_n": 236,
+      "prompt_n": 512,
+      "prompt_ms": 81.715,
+      "prompt_per_token_ms": 0.159599609375,
+      "prompt_per_second": 6265.679495808603,
+      "predicted_n": 161,
+      "predicted_ms": 1891.186,
+      "predicted_per_token_ms": 11.746496894409937,
+      "predicted_per_second": 85.13176387727066
+    }
+  },
+  "validation_results": [
+    {
+      "command": "python3 -m unittest -q",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nOK\n",
+      "success": true
+    }
+  ],
+  "files_written": [
+    "runtime/restore.py"
+  ],
+  "json_error": ""
+}

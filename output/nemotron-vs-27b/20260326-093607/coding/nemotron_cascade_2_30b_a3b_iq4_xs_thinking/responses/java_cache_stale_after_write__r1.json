@@ -1,0 +1,39 @@
+{
+  "task_id": "java_cache_stale_after_write",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 5145.462457992835,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "We need to identify highest-risk correctness bug: after updateDisplayName, cache still holds old display name, leading to stale reads. The read path get() will return cached view if present, not checking DB. So after update, need to evict cache entry for that profileId. The bug is in updateDisplayName: it updates DB but does not evict cache, so subsequent get may return stale cached view.\n\nSmallest safe fix: in updateDisplayName, after saving, evict from cache. Could also modify get to check DB if stale, but that's more complex. So fix: add profileCache.evict(profileId) after save.\n\nCheck files: ProfileService.java needs change. Possibly also ensure thread-safety? Not required.\n\nPropose fix: add evict call.\n\nRegression checks: ensure after update, get returns new display name; ensure evict called; ensure no other behavior changed.\n\nLet's craft answer.\n</think>\n**Highest‑risk bug**  \n`ProfileService.updateDisplayName(..)` writes the new display name to the database but never touches the cache.  \nBecause `ProfileService.get(..)` returns a cached `ProfileView` if one exists, a subsequent read of the same profile will serve the *old* display name – the cache becomes permanently stale for that profile.\n\n**Root cause**  \nThe write path (`updateDisplayName`) and the read path (`get`) have mismatched consistency guarantees. The write updates the source of truth (the DB) but does **not** invalidate the corresponding entry in `ProfileCache`. The read path assumes the cache is always fresh, which is violated after an update.\n\n**Smallest safe fix**  \nAdd a single `evict` call for the affected profile after the repository write. This guarantees that the next `get` will miss the cache and reload the up‑to‑date `ProfileView` from the DB.\n\n**Exact change**  \n\n*File: `src/main/java/com/example/profile/ProfileService.java`*  \n\n```java\npublic void updateDisplayName(long profileId, String displayName) {\n    Profile profile = profileRepository.require(profileId);\n    profile.setDisplayName(displayName);\n    profileRepository.save(profile);\n    // *** NEW: invalidate the cached view so the next read is fresh ***\n    profileCache.evict(profileId);\n}\n```\n\nNo other files need to be touched. The `ProfileCache` contract already provides an `evict` method, and `ProfileService` already has a reference to it.\n\n**Why this is the minimal, safe fix**\n\n* **Correctness** – After the update, the cache entry for `profileId` is guaranteed to be removed, so `get(profileId)` will fetch the updated `Profile` from the repository and rebuild the view.\n* **No behavioural change** – All existing successful reads (where no update has occurred) continue to hit the cache, preserving performance.\n* **No API changes** – We only use the existing `evict` method; no new methods or interfaces are introduced.\n* **Thread‑safety** – The cache’s `evict` semantics are unchanged; we simply invoke it at the right moment. The repository’s `save` is assumed to be atomic (as before).\n\n**Regression checks to run**\n\n1. **Happy path** – Create a profile, read it (cache miss → DB), read again (cache hit).  \n2. **Update path** – Update the display name, then read the same profile:  \n   * Expect a cache miss (evict called) → DB read → new display name returned.  \n   * Subsequent read returns the new value from cache (hit).  \n3. **Concurrent reads** – Multiple threads reading the same profile after an update should all see the new name (no stale value).  \n4. **Other profiles** – Ensure that updating profile A does **not** evict the cache entry for profile B (only the targeted `profileId` is evicted).\n\nAll tests should pass with the single‑line addition, confirming that cache consistency now matches the write path."
+        }
+      }
+    ],
+    "created": 1774491410,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs-thinking",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 856,
+      "prompt_tokens": 431,
+      "total_tokens": 1287
+    },
+    "id": "chatcmpl-NI9BB7K8Ooi6K8PDwlLIfY5J4UffXy7q",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 431,
+      "prompt_ms": 58.274,
+      "prompt_per_token_ms": 0.13520649651972158,
+      "prompt_per_second": 7396.094313072725,
+      "predicted_n": 856,
+      "predicted_ms": 4031.8,
+      "predicted_per_token_ms": 4.710046728971963,
+      "predicted_per_second": 212.3121186566794
+    }
+  }
+}

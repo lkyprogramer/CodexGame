@@ -1,0 +1,39 @@
+{
+  "task_id": "java_audit_success_on_failure",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 3276.389290986117,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "**Root cause**\n\n`ProfileService.changeStatus` records the audit entry in a `finally` block.  \nIf `profileRepository.save(profile)` throws (e.g. a DB constraint violation, optimistic‑lock failure, etc.) the method still executes `auditRepository.recordSuccess(...)`.  \nThus the audit log contains a *success* entry even though the write to the profile failed – the exact inconsistency described in the task.\n\n**Smallest safe fix**\n\nMove the audit call out of the `finally` block and invoke it **only after** the save succeeds.  \nThe `finally` block can be removed (or kept empty) because we no longer need a guaranteed‑run cleanup for the audit entry.\n\n**Exact change (single file)**  \n\n```diff\n--- src/main/java/com/example/profile/ProfileService.java\n+++ src/main/java/com/example/profile/ProfileService.java\n@@\n public void changeStatus(long profileId, String newStatus) {\n-    try {\n-        Profile profile = profileRepository.require(profileId);\n-        profile.setStatus(newStatus);\n-        profileRepository.save(profile);\n-    } finally {\n-        auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n-    }\n+    Profile profile = profileRepository.require(profileId);\n+    profile.setStatus(newStatus);\n+    profileRepository.save(profile);\n+    // Record audit only when the save succeeded\n+    auditRepository.recordSuccess(\"PROFILE_STATUS_CHANGED\", profileId);\n }\n```\n\n*No other files need to be modified.*  \nThe `ProfileRepository` and `AuditRepository` interfaces remain unchanged.\n\n**Regression checks (concise)**  \n\n1. **Happy path** – `save` succeeds → audit entry is recorded.  \n2. **Failure path** – `save` throws → `auditRepository.recordSuccess` is **not** called, so no audit entry is created.  \n3. **Exception propagation** – the exception from `save` still propagates to the caller (unchanged behavior).  \n\nWith this change the audit log will only contain entries for *successful* status changes, eliminating the reported consistency bug."
+        }
+      }
+    ],
+    "created": 1774490856,
+    "model": "bench/nemotron-cascade-2-30b-a3b-iq4_xs",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 451,
+      "prompt_tokens": 359,
+      "total_tokens": 810
+    },
+    "id": "chatcmpl-gGG0woEsBC2Df95zSHL4j4QLEXe9qDHs",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 359,
+      "prompt_ms": 56.675,
+      "prompt_per_token_ms": 0.15786908077994427,
+      "prompt_per_second": 6334.362593736216,
+      "predicted_n": 451,
+      "predicted_ms": 2115.411,
+      "predicted_per_token_ms": 4.690490022172949,
+      "predicted_per_second": 213.19734084771233
+    }
+  }
+}

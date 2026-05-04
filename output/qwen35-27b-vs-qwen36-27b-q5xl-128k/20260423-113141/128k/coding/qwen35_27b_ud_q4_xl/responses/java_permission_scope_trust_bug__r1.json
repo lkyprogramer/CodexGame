@@ -1,0 +1,39 @@
+{
+  "task_id": "java_permission_scope_trust_bug",
+  "repeat_index": 1,
+  "http_status": 200,
+  "elapsed_ms": 13586.224749975372,
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "### Security Bug Analysis\n\n**Highest-Risk Bug:** **Insecure Direct Object Reference (IDOR) / Privilege Escalation via Trust Boundary Violation.**\n\nIn `ReportController.java`, the application trusts the `orgId` provided in the request payload (`request.getOrgId()`) rather than the `orgId` established in the authenticated `UserSession`.\n\n**Impact:**\nAn authenticated user can modify the `orgId` in the JSON payload to access, generate reports for, or manipulate data belonging to other organizations. The `UserSession` already contains the correct, verified `orgId` from the authentication layer, but the controller ignores it.\n\n### Root Cause\nThe controller passes `request.getOrgId()` to the service layer. This allows the client to dictate the scope of the operation, bypassing the authorization context established during login.\n\n### Smallest Safe Fix\nReplace the usage of `request.getOrgId()` with `session.getOrgId()` in `ReportController.java`. This enforces that the operation scope is strictly bound to the authenticated user's organization.\n\n**File to Change:** `src/main/java/com/example/report/ReportController.java`\n\n```java\n// src/main/java/com/example/report/ReportController.java\n\npublic ReportDto generate(UserSession session, GenerateReportRequest request) {\n    // FIX: Use orgId from the authenticated session, not the untrusted request payload\n    return reportService.generate(session.getOrgId(), session.getUserId(), request.getRange());\n}\n```\n\n### Regression Checks\n1.  **Functional Test:** Verify that a user in `Org A` can successfully generate a report for `Org A`.\n2.  **Security Test:** Attempt to generate a report for `Org B` by sending a request with `orgId` set to `Org B` while authenticated as a user in `Org A`. The system should either:\n    *   Ignore the payload `orgId` and generate the report for `Org A` (if the service allows cross-org logic based on user), OR\n    *   Fail with an \"Access Denied\" / \"Invalid Org\" error if the service strictly enforces that the user must belong to the target org (preferred behavior).\n    *   *Crucially, it must NOT generate a report for `Org B`.*\n3.  **Data Integrity:** Ensure no data from `Org B` is exposed in the response when the user is from `Org A`."
+        }
+      }
+    ],
+    "created": 1776916445,
+    "model": "bench/qwen35-27b-ud-q4_xl",
+    "system_fingerprint": "b1-c5a7788",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 511,
+      "prompt_tokens": 407,
+      "total_tokens": 918
+    },
+    "id": "chatcmpl-I45Ri14TQxDfMSXvkl1zL5HGRUfanuiC",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 407,
+      "prompt_ms": 181.234,
+      "prompt_per_token_ms": 0.4452923832923833,
+      "prompt_per_second": 2245.7154838496085,
+      "predicted_n": 511,
+      "predicted_ms": 11938.856,
+      "predicted_per_token_ms": 23.36371037181996,
+      "predicted_per_second": 42.80142083965164
+    }
+  }
+}
