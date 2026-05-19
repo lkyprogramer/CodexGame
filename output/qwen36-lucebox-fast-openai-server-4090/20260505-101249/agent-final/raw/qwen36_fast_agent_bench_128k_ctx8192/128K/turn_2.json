@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 2,
+    "elapsed_s": 3.786885529756546,
+    "visible_tokens": 128,
+    "full_output_tps": 33.80086326724245,
+    "source_prompt_tokens": 127245,
+    "target_prompt_tokens": 6335,
+    "target_max_ctx": 8192,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 0.054396,
+    "daemon_migrate_s": 0.000318,
+    "daemon_decode_s": 2.300589,
+    "daemon_decode_tps": 55.6379,
+    "daemon_al": 3.7647,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the operational notes and code snippets provided, the core requirement is to implement a retry mechanism that:\n1.  **Preserves Idempotency:** Uses the `idempotencyKey` to lock the resource, ensuring only one worker processes a specific command at a time.\n2.  **Avoids Duplicate Outbox Events:** Uses `enqueueAfterCommit` to ensure the event is only published if the transaction (including the state update) succeeds.\n3.  **Handles Retries:** Implements a state-machine approach where the system checks the current state, advances it if necessary, and retries with jitter/backoff"
+  },
+  "response": {
+    "id": "chatcmpl-5700638eb8d14744bf4a36d6",
+    "object": "chat.completion",
+    "created": 1777948809,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the operational notes and code snippets provided, the core requirement is to implement a retry mechanism that:\n1.  **Preserves Idempotency:** Uses the `idempotencyKey` to lock the resource, ensuring only one worker processes a specific command at a time.\n2.  **Avoids Duplicate Outbox Events:** Uses `enqueueAfterCommit` to ensure the event is only published if the transaction (including the state update) succeeds.\n3.  **Handles Retries:** Implements a state-machine approach where the system checks the current state, advances it if necessary, and retries with jitter/backoff"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6335,
+      "completion_tokens": 128,
+      "total_tokens": 6463
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127245,
+      "target_prompt_tokens": 6335,
+      "target_max_ctx": 8192,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "f4105f001ea64b959aa6bb6db2147042",
+        "prefill_s": 0.054396,
+        "migrate_s": 0.000318,
+        "decode_s": 2.300589,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 55.6379,
+        "al": 3.7647,
+        "max_ctx": 8192,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          23810,
+          8129,
+          321,
+          1970,
+          66320
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

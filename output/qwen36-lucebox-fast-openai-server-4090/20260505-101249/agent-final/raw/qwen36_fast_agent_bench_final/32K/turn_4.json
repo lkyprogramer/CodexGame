@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "32K",
+    "turn": 4,
+    "elapsed_s": 3.2446995601058006,
+    "visible_tokens": 128,
+    "full_output_tps": 39.44895286262691,
+    "source_prompt_tokens": 32273,
+    "target_prompt_tokens": 1596,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 1567,
+    "daemon_prefill_s": 0.091168,
+    "daemon_migrate_s": 0.000451,
+    "daemon_decode_s": 2.332091,
+    "daemon_decode_tps": 54.8864,
+    "daemon_al": 3.7647,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "To address **Risk 0/7/22/24/25** (\"concurrent workers can race if advisory lock scope is wrong\") and ensure strict idempotency for `paymentId`, `settlementId`, and `externalTraceId`, we must implement a strategy that prevents two workers from processing the same logical reconciliation unit simultaneously.\n\nStandard row-level locks (`SELECT ... FOR UPDATE`) are insufficient if the row does not yet exist (race condition on creation) or if the lock granularity is too coarse (blocking unrelated reconciliations).\n\n### Strategy: PostgreSQL Advisory Locks + Transactional Outbox\n\nWe"
+  },
+  "response": {
+    "id": "chatcmpl-a425b54d6bb44b0f8a44d51e",
+    "object": "chat.completion",
+    "created": 1777948417,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To address **Risk 0/7/22/24/25** (\"concurrent workers can race if advisory lock scope is wrong\") and ensure strict idempotency for `paymentId`, `settlementId`, and `externalTraceId`, we must implement a strategy that prevents two workers from processing the same logical reconciliation unit simultaneously.\n\nStandard row-level locks (`SELECT ... FOR UPDATE`) are insufficient if the row does not yet exist (race condition on creation) or if the lock granularity is too coarse (blocking unrelated reconciliations).\n\n### Strategy: PostgreSQL Advisory Locks + Transactional Outbox\n\nWe"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1596,
+      "completion_tokens": 128,
+      "total_tokens": 1724
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 32273,
+      "target_prompt_tokens": 1596,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 32241,
+          "compressed_tokens": 1458,
+          "cache_key": "c8ab9991cf08f26e7d8943255f8c0d8ae371cdfcc3837d1f0e708390f19cd4f1",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 1567,
+      "daemon_perf": {
+        "id": "1d6e915b0d424a528dca8dbb5c4a9356",
+        "prefill_s": 0.091168,
+        "migrate_s": 0.000451,
+        "decode_s": 2.332091,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 54.8864,
+        "al": 3.7647,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          1206,
+          2534,
+          2972,
+          82364,
+          220,
+          15,
+          14,
+          22
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

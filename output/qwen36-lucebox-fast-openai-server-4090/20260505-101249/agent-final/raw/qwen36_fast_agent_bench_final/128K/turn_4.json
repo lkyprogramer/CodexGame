@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 4,
+    "elapsed_s": 8.248964712023735,
+    "visible_tokens": 128,
+    "full_output_tps": 15.517098747364807,
+    "source_prompt_tokens": 127238,
+    "target_prompt_tokens": 6328,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": false,
+    "gpu_snapshot_requested": true,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 4.353435,
+    "daemon_migrate_s": 0.001154,
+    "daemon_decode_s": 2.453177,
+    "daemon_decode_tps": 52.1772,
+    "daemon_al": 3.4595,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the code patterns provided (specifically `repository.withTransaction(command.idempotencyKey(), ...)`), here is the robust PostgreSQL strategy to ensure idempotency, prevent duplicate processing, and handle concurrent workers safely.\n\n### Core Strategy: \"Lock-Then-Process\" with Application-Level Idempotency\n\nThe strategy relies on two layers:\n1.  **PostgreSQL Advisory Locks:** To serialize access to a specific `idempotencyKey` across all worker instances.\n2.  **Application-Level State Check:** To ensure that if a lock is acquired, the work is only performed if it"
+  },
+  "response": {
+    "id": "chatcmpl-abb9ec86878f4d23be2cae49",
+    "object": "chat.completion",
+    "created": 1777948498,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the code patterns provided (specifically `repository.withTransaction(command.idempotencyKey(), ...)`), here is the robust PostgreSQL strategy to ensure idempotency, prevent duplicate processing, and handle concurrent workers safely.\n\n### Core Strategy: \"Lock-Then-Process\" with Application-Level Idempotency\n\nThe strategy relies on two layers:\n1.  **PostgreSQL Advisory Locks:** To serialize access to a specific `idempotencyKey` across all worker instances.\n2.  **Application-Level State Check:** To ensure that if a lock is acquired, the work is only performed if it"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6328,
+      "completion_tokens": 128,
+      "total_tokens": 6456
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127238,
+      "target_prompt_tokens": 6328,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": false,
+      "gpu_snapshot_requested": true,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "ca1f2d883ac541e0a78889ac5fda39e1",
+        "prefill_s": 4.353435,
+        "migrate_s": 0.001154,
+        "decode_s": 2.453177,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 52.1772,
+        "al": 3.4595,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": true,
+        "snapshot_ok": false,
+        "snapshot_slot": 5
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          1970,
+          12261,
+          3766,
+          318,
+          49516
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 5,
+    "elapsed_s": 8.039597541093826,
+    "visible_tokens": 128,
+    "full_output_tps": 15.921194978447264,
+    "source_prompt_tokens": 127238,
+    "target_prompt_tokens": 6328,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": false,
+    "gpu_snapshot_requested": true,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 4.402977,
+    "daemon_migrate_s": 0.00118,
+    "daemon_decode_s": 2.219272,
+    "daemon_decode_tps": 57.6766,
+    "daemon_al": 3.7647,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the code patterns and operational notes provided in the repository, here is the rollout checklist and the specific metrics that should block promotion to production.\n\n### Rollout Checklist\n\n1.  **Idempotency Verification**\n    *   Confirm that `ReconciliationRepository.withTransaction` correctly handles duplicate `ReconcileCommand` instances.\n    *   Verify that `current.advance()` is idempotent for the same command ID and timestamp.\n    *   Ensure that `outboxPublisher.enqueueAfterCommit()` does not duplicate events if the transaction commits multiple times (e.g., due to network retr"
+  },
+  "response": {
+    "id": "chatcmpl-a5be3c3260064be080dbd50c",
+    "object": "chat.completion",
+    "created": 1777948506,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the code patterns and operational notes provided in the repository, here is the rollout checklist and the specific metrics that should block promotion to production.\n\n### Rollout Checklist\n\n1.  **Idempotency Verification**\n    *   Confirm that `ReconciliationRepository.withTransaction` correctly handles duplicate `ReconcileCommand` instances.\n    *   Verify that `current.advance()` is idempotent for the same command ID and timestamp.\n    *   Ensure that `outboxPublisher.enqueueAfterCommit()` does not duplicate events if the transaction commits multiple times (e.g., due to network retries).\n\n2. "
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6328,
+      "completion_tokens": 128,
+      "total_tokens": 6456
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127238,
+      "target_prompt_tokens": 6328,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": false,
+      "gpu_snapshot_requested": true,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "fa48c588c6d1471db886332a676a39d1",
+        "prefill_s": 4.402977,
+        "migrate_s": 0.00118,
+        "decode_s": 2.219272,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 57.6766,
+        "al": 3.7647,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": true,
+        "snapshot_ok": false,
+        "snapshot_slot": 6
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          1970,
+          12261,
+          321,
+          23810,
+          8129
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

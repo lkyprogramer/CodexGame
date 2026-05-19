@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "64K",
+    "turn": 5,
+    "elapsed_s": 3.065465498715639,
+    "visible_tokens": 128,
+    "full_output_tps": 41.75548544050785,
+    "source_prompt_tokens": 65269,
+    "target_prompt_tokens": 3250,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 3221,
+    "daemon_prefill_s": 0.047434,
+    "daemon_migrate_s": 0.00052,
+    "daemon_decode_s": 2.05792,
+    "daemon_decode_tps": 62.1987,
+    "daemon_al": 4.129,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the code patterns and operational notes provided in the repository (specifically focusing on the idempotency, transactional outbox, and retry mechanisms), here is the rollout checklist and the blocking metrics for promotion.\n\n### Rollout Checklist\n\n1.  **Idempotency Key Validation**\n    *   Verify that `command.idempotencyKey()` is correctly derived from `paymentId`, `settlementId`, and `externalTraceId` across all services (`risk-hold`, `settlement-worker`, `refund`, etc.).\n    *   Ensure the database schema has a unique constraint on the idemp"
+  },
+  "response": {
+    "id": "chatcmpl-0ae0b6580ba34f65aed4dd2b",
+    "object": "chat.completion",
+    "created": 1777948451,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the code patterns and operational notes provided in the repository (specifically focusing on the idempotency, transactional outbox, and retry mechanisms), here is the rollout checklist and the blocking metrics for promotion.\n\n### Rollout Checklist\n\n1.  **Idempotency Key Validation**\n    *   Verify that `command.idempotencyKey()` is correctly derived from `paymentId`, `settlementId`, and `externalTraceId` across all services (`risk-hold`, `settlement-worker`, `refund`, etc.).\n    *   Ensure the database schema has a unique constraint on the idemp"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 3250,
+      "completion_tokens": 128,
+      "total_tokens": 3378
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 65269,
+      "target_prompt_tokens": 3250,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 65237,
+          "compressed_tokens": 2978,
+          "cache_key": "688fe5f0c56d37f31a958677e5488018962b3cb8cf1c4d1cc34e585bf972c247",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 3221,
+      "daemon_perf": {
+        "id": "fff2122aaad84206b0392fcb8b6905c2",
+        "prefill_s": 0.047434,
+        "migrate_s": 0.00052,
+        "decode_s": 2.05792,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 62.1987,
+        "al": 4.129,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          1970,
+          12261,
+          321,
+          23810,
+          8129
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

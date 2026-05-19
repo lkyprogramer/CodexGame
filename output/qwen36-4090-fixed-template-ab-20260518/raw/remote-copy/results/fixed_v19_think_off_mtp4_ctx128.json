@@ -1,0 +1,547 @@
+{
+  "config": {
+    "id": "fixed_v19_think_off_mtp4_ctx128",
+    "template": "fixed_v19",
+    "reasoning_tag": "<|think_off|>",
+    "ctx": 131072
+  },
+  "summary": {
+    "id": "fixed_v19_think_off_mtp4_ctx128",
+    "template": "fixed_v19",
+    "reasoning_tag": "<|think_off|>",
+    "ctx": 131072,
+    "case_count": 9,
+    "ok_count": 9,
+    "error_count": 0,
+    "think_leak_count": 0,
+    "avg_decode_tokens_per_s": 74.95063716626962,
+    "max_decode_tokens_per_s": 100.08793439950814,
+    "avg_response_tokens_per_s": 42.79936414241907,
+    "avg_prompt_tokens_per_s": 67574.32117843287,
+    "avg_draft_accept_rate": 0.7568018623169522,
+    "avg_format_score": 4.888888888888889,
+    "avg_quality_score": 4.777777777777778,
+    "long_context_warm_speedup": 70.22225638324659,
+    "long_context_cold": {
+      "elapsed_s": 44.93086486309767,
+      "prompt_ms": 44297.6,
+      "cache_n": 0,
+      "prompt_tokens": 65621
+    },
+    "long_context_warm": {
+      "elapsed_s": 0.6398379541933537,
+      "prompt_ms": 122.5,
+      "cache_n": 65617,
+      "prompt_tokens": 65621
+    },
+    "gpu_summary": {
+      "sample_count": 69,
+      "max_memory_used_mib": 21812.0,
+      "max_power_w": 418.42,
+      "max_utilization_gpu_pct": 100.0,
+      "last": {
+        "memory_used_mib": 21812.0,
+        "memory_free_mib": 2405.0,
+        "utilization_gpu_pct": 27.0,
+        "power_w": 254.28,
+        "temperature_c": 75.0,
+        "ts": 1779086083.6099062
+      }
+    },
+    "startup_s": 6.137195818126202,
+    "models": {
+      "models": [
+        {
+          "name": "openclaw/fixed_v19_think_off_mtp4_ctx128",
+          "model": "openclaw/fixed_v19_think_off_mtp4_ctx128",
+          "modified_at": "",
+          "size": "",
+          "digest": "",
+          "type": "model",
+          "description": "",
+          "tags": [
+            ""
+          ],
+          "capabilities": [
+            "completion"
+          ],
+          "parameters": "",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "",
+            "families": [
+              ""
+            ],
+            "parameter_size": "",
+            "quantization_level": ""
+          }
+        }
+      ],
+      "object": "list",
+      "data": [
+        {
+          "id": "openclaw/fixed_v19_think_off_mtp4_ctx128",
+          "aliases": [
+            "openclaw/fixed_v19_think_off_mtp4_ctx128"
+          ],
+          "tags": [],
+          "object": "model",
+          "created": 1779086020,
+          "owned_by": "llamacpp",
+          "meta": {
+            "vocab_type": 2,
+            "n_vocab": 248320,
+            "n_ctx": 131072,
+            "n_ctx_train": 262144,
+            "n_embd": 5120,
+            "n_params": 27320697856,
+            "size": 17898102784
+          }
+        }
+      ]
+    },
+    "server_cmd": [
+      "/home/hhtele/llama.cpp-master-pr22673-20260517/build/bin/llama-server",
+      "-m",
+      "/data/models/qwen/mtp/Qwen3.6-27B-UD-Q4_K_XL.gguf",
+      "--alias",
+      "openclaw/fixed_v19_think_off_mtp4_ctx128",
+      "-ngl",
+      "99",
+      "-c",
+      "131072",
+      "-np",
+      "1",
+      "-fa",
+      "on",
+      "-ctk",
+      "q4_0",
+      "-ctv",
+      "q4_0",
+      "-rea",
+      "off",
+      "--temp",
+      "0",
+      "--top-p",
+      "1",
+      "--cache-prompt",
+      "--cache-ram",
+      "2048",
+      "--slot-prompt-similarity",
+      "0.10",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "19343",
+      "--spec-type",
+      "draft-mtp",
+      "--spec-draft-p-min",
+      "0.75",
+      "--spec-draft-n-max",
+      "4",
+      "--jinja",
+      "--chat-template-file",
+      "/home/hhtele/qwen36-fixed-template-ab-20260518/chat_template.jinja"
+    ]
+  },
+  "results": [
+    {
+      "case_id": "stream_ttft_ok",
+      "ok": true,
+      "elapsed_s": 0.21189549565315247,
+      "ttft_s": 0.15660560503602028,
+      "content": "OK",
+      "content_prefix": "OK",
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 5.0,
+        "notes": []
+      }
+    },
+    {
+      "case_id": "short_ok",
+      "ok": true,
+      "elapsed_s": 0.1575138419866562,
+      "prompt_tokens": 48,
+      "completion_tokens": 2,
+      "response_tokens_per_s": 12.697296788490693,
+      "prompt_tokens_per_s": 565.6308551631491,
+      "decode_tokens_per_s": 39.6620790861857,
+      "draft_n": 4,
+      "draft_n_accepted": 4,
+      "draft_accept_rate": 1.0,
+      "cache_n": 0,
+      "prompt_ms": 84.861,
+      "predicted_ms": 50.426,
+      "think_leak": false,
+      "content": "OK",
+      "content_prefix": "OK",
+      "usage": {
+        "completion_tokens": 2,
+        "prompt_tokens": 48,
+        "total_tokens": 50,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 48,
+        "prompt_ms": 84.861,
+        "prompt_per_token_ms": 1.7679375000000002,
+        "prompt_per_second": 565.6308551631491,
+        "predicted_n": 2,
+        "predicted_ms": 50.426,
+        "predicted_per_token_ms": 25.213,
+        "predicted_per_second": 39.6620790861857,
+        "draft_n": 4,
+        "draft_n_accepted": 4
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 5.0,
+        "notes": []
+      },
+      "kind": "short"
+    },
+    {
+      "case_id": "json_tool",
+      "ok": true,
+      "elapsed_s": 0.4982777014374733,
+      "prompt_tokens": 94,
+      "completion_tokens": 28,
+      "response_tokens_per_s": 56.19356418965419,
+      "prompt_tokens_per_s": 506.79864997466007,
+      "decode_tokens_per_s": 100.08793439950814,
+      "draft_n": 24,
+      "draft_n_accepted": 21,
+      "draft_accept_rate": 0.875,
+      "cache_n": 0,
+      "prompt_ms": 185.478,
+      "predicted_ms": 279.754,
+      "think_leak": false,
+      "content": "{\"action\":\"edit\",\"file\":\"apps/game-runtime/src/runtime/GameRuntimeServer.ts\",\"risk\":\"low\",\"tests\":[\"pnpm test\"]}",
+      "content_prefix": "{\"action\":\"edit\",\"file\":\"apps/game-runtime/src/runtime/GameRuntimeServer.ts\",\"risk\":\"low\",\"tests\":[\"pnpm test\"]}",
+      "usage": {
+        "completion_tokens": 28,
+        "prompt_tokens": 94,
+        "total_tokens": 122,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 94,
+        "prompt_ms": 185.478,
+        "prompt_per_token_ms": 1.9731702127659576,
+        "prompt_per_second": 506.79864997466007,
+        "predicted_n": 28,
+        "predicted_ms": 279.754,
+        "predicted_per_token_ms": 9.991214285714287,
+        "predicted_per_second": 100.08793439950813,
+        "draft_n": 24,
+        "draft_n_accepted": 21
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 5.0,
+        "notes": []
+      },
+      "kind": "json"
+    },
+    {
+      "case_id": "patch_unified_diff",
+      "ok": true,
+      "elapsed_s": 1.50590006634593,
+      "prompt_tokens": 85,
+      "completion_tokens": 120,
+      "response_tokens_per_s": 79.68656266227563,
+      "prompt_tokens_per_s": 579.2360898156666,
+      "decode_tokens_per_s": 96.63897691536441,
+      "draft_n": 116,
+      "draft_n_accepted": 93,
+      "draft_accept_rate": 0.8017241379310345,
+      "cache_n": 0,
+      "prompt_ms": 146.745,
+      "predicted_ms": 1241.735,
+      "think_leak": false,
+      "content": "--- a/src/score.ts\n+++ b/src/score.ts\n@@ -1,6 +1,6 @@\n-export function formatScore(value: number | null): string {\n-  if (value === null) {\n-    return \"N/A\";\n-  }\n-  return value.toFixed(2);\n-}\n+export function formatScore(value: number | null): string {\n+  if (value === null) {\n+    return \"N/A\";\n+  }\n+  return value.toFixed(2);\n+}",
+      "content_prefix": "--- a/src/score.ts\n+++ b/src/score.ts\n@@ -1,6 +1,6 @@\n-export function formatScore(value: number | null): string {\n-  if (value === null) {\n-    return \"N/A\";\n-  }\n-  return value.toFixed(2);\n-}\n+export function formatScore(value: number | null): string {\n+  if (value === null) {\n+    return \"N/A\";\n+  }\n+  return value.toFixed(2);\n+}",
+      "usage": {
+        "completion_tokens": 120,
+        "prompt_tokens": 85,
+        "total_tokens": 205,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 85,
+        "prompt_ms": 146.745,
+        "prompt_per_token_ms": 1.7264117647058823,
+        "prompt_per_second": 579.2360898156667,
+        "predicted_n": 120,
+        "predicted_ms": 1241.735,
+        "predicted_per_token_ms": 10.347791666666666,
+        "predicted_per_second": 96.6389769153644,
+        "draft_n": 116,
+        "draft_n_accepted": 93
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 4.5,
+        "notes": []
+      },
+      "kind": "patch"
+    },
+    {
+      "case_id": "code_review_cn",
+      "ok": true,
+      "elapsed_s": 1.9925034567713737,
+      "prompt_tokens": 95,
+      "completion_tokens": 114,
+      "response_tokens_per_s": 57.21445531879984,
+      "prompt_tokens_per_s": 496.09650382516514,
+      "decode_tokens_per_s": 68.03208249785162,
+      "draft_n": 160,
+      "draft_n_accepted": 73,
+      "draft_accept_rate": 0.45625,
+      "cache_n": 0,
+      "prompt_ms": 191.495,
+      "predicted_ms": 1675.68,
+      "think_leak": false,
+      "content": "1. **并发丢失（Fire-and-Forget）**：`forEach` 不会等待内部的 `async` 回调完成。`save` 函数会立即返回 `true`，此时数据库插入操作可能尚未开始或仍在进行中，导致调用方误以为数据已持久化。\n2. **无序执行与竞态风险**：`forEach` 中的 `async` 任务会并发启动，而非串行。若 `items` 之间存在外键依赖或唯一性约束，并发插入极易引发数据库冲突或违反一致性约束。",
+      "content_prefix": "1. **并发丢失（Fire-and-Forget）**：`forEach` 不会等待内部的 `async` 回调完成。`save` 函数会立即返回 `true`，此时数据库插入操作可能尚未开始或仍在进行中，导致调用方误以为数据已持久化。\n2. **无序执行与竞态风险**：`forEach` 中的 `async` 任务会并发启动，而非串行。若 `items` 之间存在外键依赖或唯一性约束，并发插入极易引发数据库冲突或违反一致性约束。",
+      "usage": {
+        "completion_tokens": 114,
+        "prompt_tokens": 95,
+        "total_tokens": 209,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 95,
+        "prompt_ms": 191.495,
+        "prompt_per_token_ms": 2.0157368421052633,
+        "prompt_per_second": 496.0965038251651,
+        "predicted_n": 114,
+        "predicted_ms": 1675.68,
+        "predicted_per_token_ms": 14.698947368421052,
+        "predicted_per_second": 68.03208249785162,
+        "draft_n": 160,
+        "draft_n_accepted": 73
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 4.5,
+        "quality_score": 4.5,
+        "notes": []
+      },
+      "kind": "review"
+    },
+    {
+      "case_id": "agent_history_json",
+      "ok": true,
+      "elapsed_s": 0.9624626412987709,
+      "prompt_tokens": 148,
+      "completion_tokens": 42,
+      "response_tokens_per_s": 43.63805741418094,
+      "prompt_tokens_per_s": 622.6335717290702,
+      "decode_tokens_per_s": 70.16266043444051,
+      "draft_n": 56,
+      "draft_n_accepted": 29,
+      "draft_accept_rate": 0.5178571428571429,
+      "cache_n": 0,
+      "prompt_ms": 237.7,
+      "predicted_ms": 598.609,
+      "think_leak": false,
+      "content": "{\"cause\":\"Model wrapped JSON in markdown fences despite 'Return JSON' instruction\",\"next_patch\":\"Add explicit 'no markdown fences' constraint to prompt\",\"test\":\"Verify output is raw JSON without backticks\"}",
+      "content_prefix": "{\"cause\":\"Model wrapped JSON in markdown fences despite 'Return JSON' instruction\",\"next_patch\":\"Add explicit 'no markdown fences' constraint to prompt\",\"test\":\"Verify output is raw JSON without backticks\"}",
+      "usage": {
+        "completion_tokens": 42,
+        "prompt_tokens": 148,
+        "total_tokens": 190,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 148,
+        "prompt_ms": 237.7,
+        "prompt_per_token_ms": 1.606081081081081,
+        "prompt_per_second": 622.6335717290702,
+        "predicted_n": 42,
+        "predicted_ms": 598.609,
+        "predicted_per_token_ms": 14.252595238095239,
+        "predicted_per_second": 70.16266043444051,
+        "draft_n": 56,
+        "draft_n_accepted": 29
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 5.0,
+        "notes": []
+      },
+      "kind": "agent_history_json"
+    },
+    {
+      "case_id": "long_generation_768",
+      "ok": true,
+      "elapsed_s": 12.536332909017801,
+      "prompt_tokens": 102,
+      "completion_tokens": 768,
+      "response_tokens_per_s": 61.26193405788961,
+      "prompt_tokens_per_s": 661.1741675363484,
+      "decode_tokens_per_s": 62.650232075058895,
+      "draft_n": 1172,
+      "draft_n_accepted": 473,
+      "draft_accept_rate": 0.4035836177474403,
+      "cache_n": 0,
+      "prompt_ms": 154.271,
+      "predicted_ms": 12258.534,
+      "think_leak": false,
+      "content": "The evaluation of local coding agent models on the NVIDIA RTX 4090 represents a critical inflection point in the democratization of high-performance software engineering automation, specifically focusing on the interplay between hardware constraints, architectural innovations like Multi-Token Prediction (MTP), and the nuanced demands of agentic workflows. The RTX 4090, with its 24GB of GDDR6X memory and substantial tensor core throughput, serves as the primary bottleneck and enabler for models ranging from 7B to 14B parameters, while pushing the absolute limits for 30B+ parameter models through aggressive quantization. This analysis delves into the granular performance metrics, latency profiles, and quality tradeoffs inherent in deploying these models for complex coding tasks, moving beyond simple tokens-per-second benchmarks to examine the holistic efficiency of the agentic loop.\n\nMulti-Token Prediction (MTP) speculative decoding has emerged as a transformative technique for mitigating the autoregressive latency inherent in large language models. In the context of the RTX 4090, MTP allows a smaller draft model or a multi-head prediction mechanism within the main model to propose multiple future tokens simultaneously, which are then verified in parallel by the target model. For coding tasks, where syntactic structures often follow predictable patterns, MTP can achieve acceptance rates significantly higher than natural language tasks. Benchmarks indicate that for a 14B parameter model quantized to 4-bit, MTP can yield a 1.5x to 2.2x speedup in generation throughput compared to standard autoregressive decoding. However, the overhead of the draft mechanism and the verification step introduces a non-linear latency penalty for short sequences. The RTX 4090’s high memory bandwidth is crucial here, as the parallel verification requires loading weights for multiple token positions simultaneously. When the acceptance rate drops below 60%, typically seen in highly creative or ambiguous code generation scenarios, the overhead of MTP can negate its benefits, resulting in slower effective throughput. Therefore, the utility of MTP is highly context-dependent, excelling in boilerplate generation, function scaffolding, and standard library usage, but offering diminishing returns in complex algorithmic reasoning where token uncertainty is high.\n\nPrompt caching mechanisms, particularly KV-cache persistence, are essential for maintaining state in agentic workflows where the model must retain context across multiple turns of interaction. The RTX 4090’s 24GB VRAM imposes strict limits on the size of the cached context. For a 14B model at 4-bit quantization, the model weights occupy approximately 7-8GB, leaving roughly 16GB for the KV-cache and activation memory. This allows for a cached context window of approximately 32k to 64k tokens, depending on the specific architecture’s memory efficiency. When the prompt cache is fully utilized, the prefill phase for subsequent turns is reduced to a near-instantaneous operation, as the model only needs to process the new delta tokens. This results in a dramatic reduction in time-to-first-token (TTFT) for follow-up queries, often dropping from several seconds to under 100 milliseconds. However, cache eviction policies become critical when the context exceeds the VRAM capacity. Aggressive eviction can lead to context fragmentation and degraded reasoning quality, while conservative eviction limits the effective context window. The RTX 4090’s unified memory architecture with the CPU allows for offloading excess cache to system RAM, but this introduces a significant latency penalty due to the PCIe bottleneck, reducing effective throughput by up to 80% when cache misses occur. Thus, optimal performance requires careful management of the cache size relative to the expected context length of the coding task.\n\nLong-context prefill performance is a critical",
+      "content_prefix": "The evaluation of local coding agent models on the NVIDIA RTX 4090 represents a critical inflection point in the democratization of high-performance software engineering automation, specifically focusing on the interplay between hardware constraints, architectural innovations like Multi-Token Prediction (MTP), and the nuanced demands of agentic workflows. The RTX 4090, with its 24GB of GDDR6X memory and substantial tensor core throughput, serves as the primary bottleneck and enabler for models ranging from 7B to 14B parameters, while pushing the absolute limits for 30B+ parameter models through aggressive quantization. This analysis delves into the granular performance metrics, latency profi",
+      "usage": {
+        "completion_tokens": 768,
+        "prompt_tokens": 102,
+        "total_tokens": 870,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 102,
+        "prompt_ms": 154.271,
+        "prompt_per_token_ms": 1.5124607843137254,
+        "prompt_per_second": 661.1741675363484,
+        "predicted_n": 768,
+        "predicted_ms": 12258.534,
+        "predicted_per_token_ms": 15.9616328125,
+        "predicted_per_second": 62.650232075058895,
+        "draft_n": 1172,
+        "draft_n_accepted": 473
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 4.5,
+        "quality_score": 4.0,
+        "notes": []
+      },
+      "kind": "long_generation"
+    },
+    {
+      "case_id": "long_context_marker_cold",
+      "ok": true,
+      "elapsed_s": 44.93086486309767,
+      "prompt_tokens": 65621,
+      "completion_tokens": 20,
+      "response_tokens_per_s": 0.4451283112608472,
+      "prompt_tokens_per_s": 1481.366936357726,
+      "decode_tokens_per_s": 81.09741015420673,
+      "draft_n": 16,
+      "draft_n_accepted": 16,
+      "draft_accept_rate": 1.0,
+      "cache_n": 0,
+      "prompt_ms": 44297.6,
+      "predicted_ms": 246.617,
+      "think_leak": false,
+      "content": "OPENCLAW_FIXED_TEMPLATE_fixed_v19_think_off_mtp4_ctx128",
+      "content_prefix": "OPENCLAW_FIXED_TEMPLATE_fixed_v19_think_off_mtp4_ctx128",
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 65621,
+        "total_tokens": 65641,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 65621,
+        "prompt_ms": 44297.6,
+        "prompt_per_token_ms": 0.6750521936575181,
+        "prompt_per_second": 1481.366936357726,
+        "predicted_n": 20,
+        "predicted_ms": 246.617,
+        "predicted_per_token_ms": 12.33085,
+        "predicted_per_second": 81.09741015420673,
+        "draft_n": 16,
+        "draft_n_accepted": 16
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 5.0,
+        "notes": []
+      },
+      "kind": "long_context_marker"
+    },
+    {
+      "case_id": "long_context_marker_warm",
+      "ok": true,
+      "elapsed_s": 0.6398379541933537,
+      "prompt_tokens": 65621,
+      "completion_tokens": 20,
+      "response_tokens_per_s": 31.2579143968008,
+      "prompt_tokens_per_s": 535681.6326530612,
+      "decode_tokens_per_s": 81.2737217675409,
+      "draft_n": 16,
+      "draft_n_accepted": 16,
+      "draft_accept_rate": 1.0,
+      "cache_n": 65617,
+      "prompt_ms": 122.5,
+      "predicted_ms": 246.082,
+      "think_leak": false,
+      "content": "OPENCLAW_FIXED_TEMPLATE_fixed_v19_think_off_mtp4_ctx128",
+      "content_prefix": "OPENCLAW_FIXED_TEMPLATE_fixed_v19_think_off_mtp4_ctx128",
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 65621,
+        "total_tokens": 65641,
+        "prompt_tokens_details": {
+          "cached_tokens": 65617
+        }
+      },
+      "timings": {
+        "cache_n": 65617,
+        "prompt_n": 4,
+        "prompt_ms": 122.5,
+        "prompt_per_token_ms": 30.625,
+        "prompt_per_second": 32.6530612244898,
+        "predicted_n": 20,
+        "predicted_ms": 246.082,
+        "predicted_per_token_ms": 12.3041,
+        "predicted_per_second": 81.2737217675409,
+        "draft_n": 16,
+        "draft_n_accepted": 16
+      },
+      "error": null,
+      "raw_error_body": null,
+      "score": {
+        "format_score": 5.0,
+        "quality_score": 5.0,
+        "notes": []
+      },
+      "kind": "long_context_marker"
+    }
+  ]
+}

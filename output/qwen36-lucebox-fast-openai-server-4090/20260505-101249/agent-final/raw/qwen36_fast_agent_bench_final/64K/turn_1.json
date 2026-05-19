@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "64K",
+    "turn": 1,
+    "elapsed_s": 12.003806740045547,
+    "visible_tokens": 128,
+    "full_output_tps": 10.663283970824269,
+    "source_prompt_tokens": 65274,
+    "target_prompt_tokens": 3255,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 0,
+    "compression_misses": 1,
+    "gpu_snapshot_restore_hit": false,
+    "gpu_snapshot_requested": true,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 3221,
+    "daemon_prefill_s": 2.23044,
+    "daemon_migrate_s": 0.002281,
+    "daemon_decode_s": 2.386016,
+    "daemon_decode_tps": 53.6459,
+    "daemon_al": 3.6571,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the provided code snippets, the reconciliation design relies on a transactional boundary (`repository.withTransaction`) to ensure idempotency and prevent duplicate outbox events. The highest-risk failure mode is **Race Condition due to Incorrect Advisory Lock Scope**.\n\n### Highest-Risk Failure Mode: Race Condition (Advisory Lock Scope Mismatch)\n\n**Description:**\nThe code assumes that `repository.withTransaction(command.idempotencyKey(), ...)` acquires an exclusive lock on the specific `idempotencyKey`. If the underlying implementation of `withTransaction` fails to acquire a proper row"
+  },
+  "response": {
+    "id": "chatcmpl-a14d7d81774b49fe9dde93d9",
+    "object": "chat.completion",
+    "created": 1777948436,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the provided code snippets, the reconciliation design relies on a transactional boundary (`repository.withTransaction`) to ensure idempotency and prevent duplicate outbox events. The highest-risk failure mode is **Race Condition due to Incorrect Advisory Lock Scope**.\n\n### Highest-Risk Failure Mode: Race Condition (Advisory Lock Scope Mismatch)\n\n**Description:**\nThe code assumes that `repository.withTransaction(command.idempotencyKey(), ...)` acquires an exclusive lock on the specific `idempotencyKey`. If the underlying implementation of `withTransaction` fails to acquire a proper row-level or advisory lock (e.g"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 3255,
+      "completion_tokens": 128,
+      "total_tokens": 3383
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 65274,
+      "target_prompt_tokens": 3255,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 0,
+      "compression_misses": 1,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 65237,
+          "compressed_tokens": 2978,
+          "cache_key": "688fe5f0c56d37f31a958677e5488018962b3cb8cf1c4d1cc34e585bf972c247",
+          "cache_hit": false
+        }
+      ],
+      "gpu_snapshot_restore_hit": false,
+      "gpu_snapshot_requested": true,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 3221,
+      "daemon_perf": {
+        "id": "fe39bd4a833340a08f0cc5e4ee58e6c9",
+        "prefill_s": 2.23044,
+        "migrate_s": 0.002281,
+        "decode_s": 2.386016,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 53.6459,
+        "al": 3.6571,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": true,
+        "snapshot_ok": true,
+        "snapshot_slot": 1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          3766,
+          1970,
+          66320,
+          11,
+          279
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

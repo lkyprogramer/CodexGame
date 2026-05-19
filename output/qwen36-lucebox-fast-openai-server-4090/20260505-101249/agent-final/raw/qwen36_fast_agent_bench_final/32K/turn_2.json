@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "32K",
+    "turn": 2,
+    "elapsed_s": 3.6696272157132626,
+    "visible_tokens": 128,
+    "full_output_tps": 34.88092726473872,
+    "source_prompt_tokens": 32280,
+    "target_prompt_tokens": 1603,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 1567,
+    "daemon_prefill_s": 0.122079,
+    "daemon_migrate_s": 0.000483,
+    "daemon_decode_s": 2.687882,
+    "daemon_decode_tps": 47.6211,
+    "daemon_al": 3.2821,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "To address the requirements for idempotency, duplicate prevention, and robust retry handling, we need to implement a state machine that strictly adheres to the **Outbox Pattern** within a single database transaction.\n\n### Key Design Decisions\n\n1.  **Idempotency via Transactional Locking**: The `repository.withTransaction` method (implied by the context) must acquire a lock on the `idempotencyKey` (e.g., `SELECT ... FOR UPDATE`). This ensures that concurrent workers processing the same command do not race. Only one worker can proceed; others will wait or fail gracefully.\n2"
+  },
+  "response": {
+    "id": "chatcmpl-e5286860af4c433db1df1a28",
+    "object": "chat.completion",
+    "created": 1777948409,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To address the requirements for idempotency, duplicate prevention, and robust retry handling, we need to implement a state machine that strictly adheres to the **Outbox Pattern** within a single database transaction.\n\n### Key Design Decisions\n\n1.  **Idempotency via Transactional Locking**: The `repository.withTransaction` method (implied by the context) must acquire a lock on the `idempotencyKey` (e.g., `SELECT ... FOR UPDATE`). This ensures that concurrent workers processing the same command do not race. Only one worker can proceed; others will wait or fail gracefully.\n2"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1603,
+      "completion_tokens": 128,
+      "total_tokens": 1731
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 32280,
+      "target_prompt_tokens": 1603,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 32241,
+          "compressed_tokens": 1458,
+          "cache_key": "c8ab9991cf08f26e7d8943255f8c0d8ae371cdfcc3837d1f0e708390f19cd4f1",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 1567,
+      "daemon_perf": {
+        "id": "377509f3fc22498a89df71afed1cd54b",
+        "prefill_s": 0.122079,
+        "migrate_s": 0.000483,
+        "decode_s": 2.687882,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 47.6211,
+        "al": 3.2821,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          1206,
+          2534,
+          279,
+          8242,
+          364,
+          850,
+          3157,
+          349
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

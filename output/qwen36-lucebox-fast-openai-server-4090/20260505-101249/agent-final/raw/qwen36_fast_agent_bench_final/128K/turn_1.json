@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 1,
+    "elapsed_s": 18.31390955299139,
+    "visible_tokens": 128,
+    "full_output_tps": 6.98922311643133,
+    "source_prompt_tokens": 127243,
+    "target_prompt_tokens": 6333,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 0,
+    "compression_misses": 1,
+    "gpu_snapshot_restore_hit": false,
+    "gpu_snapshot_requested": true,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 4.310781,
+    "daemon_migrate_s": 0.001144,
+    "daemon_decode_s": 2.569676,
+    "daemon_decode_tps": 49.8117,
+    "daemon_al": 3.3684,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the inspection of the provided `AgentCase` implementations, the reconciliation design relies on a **Transactional Outbox** pattern where state changes (`tx.save`) and event publishing (`outboxPublisher.enqueueAfterCommit`) are coupled within a single database transaction.\n\n### Highest-Risk Failure Mode: **Split-Brain State Divergence due to Transaction Rollback After Save**\n\n**Description:**\nThe critical risk is that `tx.save(next)` succeeds, but the subsequent `outboxPublisher.enqueueAfterCommit(next.toEvent())` fails (e.g., due to a constraint violation, network timeout, or internal"
+  },
+  "response": {
+    "id": "chatcmpl-bea2afa5de0142ea850b81dd",
+    "object": "chat.completion",
+    "created": 1777948474,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the inspection of the provided `AgentCase` implementations, the reconciliation design relies on a **Transactional Outbox** pattern where state changes (`tx.save`) and event publishing (`outboxPublisher.enqueueAfterCommit`) are coupled within a single database transaction.\n\n### Highest-Risk Failure Mode: **Split-Brain State Divergence due to Transaction Rollback After Save**\n\n**Description:**\nThe critical risk is that `tx.save(next)` succeeds, but the subsequent `outboxPublisher.enqueueAfterCommit(next.toEvent())` fails (e.g., due to a constraint violation, network timeout, or internal error in the publisher),"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6333,
+      "completion_tokens": 128,
+      "total_tokens": 6461
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127243,
+      "target_prompt_tokens": 6333,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 0,
+      "compression_misses": 1,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": false
+        }
+      ],
+      "gpu_snapshot_restore_hit": false,
+      "gpu_snapshot_requested": true,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "77fb23ae3298457eb36cae3fb27abca9",
+        "prefill_s": 4.310781,
+        "migrate_s": 0.001144,
+        "decode_s": 2.569676,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 49.8117,
+        "al": 3.3684,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": true,
+        "snapshot_ok": false,
+        "snapshot_slot": 2
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          24865,
+          314,
+          279,
+          3766,
+          1510
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+You are reviewing a large Java/Spring payment reconciliation repository. The following context is stable across an agent session. Use it as source code and operational constraints.
+
+### File: services/payment-reconcile/src/main/java/com/acme/paymentreconcile/AgentCase0.java
+```java
+package com.acme.paymentreconcile;
+
+public final class AgentCase0 {
+    private final ReconciliationRepository repository;
+    private final OutboxPublisher outboxPublisher;
+    private final RetryClock retryClock;
+
+    public AgentCase0(ReconciliationRepository repository, OutboxPublisher outboxPublisher, RetryClock retryClock) {
+        this.repository = repository;
+        this.outboxPublisher = outboxPublisher;
+        this.retryClock = retryClock;
+    }
+
+    public ReconcileResult handle(ReconcileCommand command) {
+        // Requirement 0: preserve idempotency for paymentId, settlementId, and externalTraceId.
+        // Constraint 0: never publish duplicate outbox events after transaction rollback.
+        // Risk 0: concurrent workers can race if advisory lock scope is wrong.
+        return repository.withTransaction(command.idempotencyKey(), tx -> {
+            var current = tx.find(command.idempotencyKey());
+            if (current.isTerminal()) {
+                return current.toResult();
+            }
+            var next = current.advance(command, retryClock.now());
+            tx.save(next);
+            outboxPublisher.enqueueAfterCommit(next.toEvent());
+            return next.toResult();
+        });
+    }
+}
+```
+Operational notes 0: retry backoff must use jitter, circuit breaker half-open probes, monotonic attempt counters, and a strict audit trail. Tests must cover duplicate command replay, transaction timeout, worker crash after save before publish, and outbox replay.
+
+### File: services/ledger-outbox/src/main/java/com/acme/ledgeroutbox/AgentCase1.java
+```java
+package com.acme.ledgeroutbox;
+
+public final class AgentCase1 {
+    private final ReconciliationRepository repository;
+    private final OutboxPublisher outboxPublisher;
+    private final RetryClock retryClock;
+
+    public AgentCase1(ReconciliationRepository repository, OutboxPublisher outboxPublisher, RetryClock retryClock) {
+        this.repository = repository;
+        this.outboxPublisher = outboxPublisher;
+        this.retryClock = retryClock;
+    }
+
+    public ReconcileResult handle(ReconcileCommand command) {
+        // Requirement 1: preserve idempotency for paymentId, settlementId, and externalTraceId.
+        // Constraint 1: never publish duplicate outbox events after transaction rollback.
+        // Risk 1: concurrent workers can race if advisory lock scope is wrong.
+        return repository.withTransaction(command.idempotencyKey(), tx -> {
+            var current = tx.find(command.idempotencyKey());
+            if (current.isTerminal()) {
+                return current.toResult();
+            }
+            var next = current.advance(command, retryClock.now());
+            tx.save(next);
+            outboxPublisher.enqueueAfterCommit(next.toEvent());
+            return next.toResult();
+        });
+    }
+}
+```
+Operational notes 1: retry backoff must use jitter, circuit breaker half-open probes, monotonic attempt counters, and a strict audit trail. Tests must cover duplicate command replay, transaction timeout, worker crash after save before publish, and outbox replay.
+
+### File: services/settlement-worker/src/main/java/com/acme/settlementworker/AgentCase2.java
+```java
+package com.acme.settlementworker;
+
+public final class AgentCase2 {
+    private final ReconciliationRepository repository;
+    private final OutboxPublisher outboxPublisher;
+    private final RetryClock retryClock;
+
+    public AgentCase2(ReconciliationRepository repository, OutboxPublisher outboxPublisher, RetryClock retryClock) {
+        this.repository = repository;
+        this.outboxPublisher = outboxPublisher;
+        this.retryClock = retryClock;
+    }
+
+    public ReconcileResult handle(Reconcile

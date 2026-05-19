@@ -1,0 +1,620 @@
+{
+  "timestamp": "20260504-160915",
+  "preflight": {
+    "nvidia_smi": {
+      "cmd": "nvidia-smi --query-gpu=name,driver_version,memory.total,memory.used --format=csv",
+      "returncode": 0,
+      "elapsed_s": 0.018453121185302734,
+      "stdout": "name, driver_version, memory.total [MiB], memory.used [MiB]\nNVIDIA GeForce RTX 4090, 545.23.08, 24564 MiB, 21870 MiB\n",
+      "stderr": ""
+    },
+    "df": {
+      "cmd": "df -h /data /home /tmp",
+      "returncode": 0,
+      "elapsed_s": 0.011879205703735352,
+      "stdout": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/nvme0n1p2  915G  749G  119G  87% /\n/dev/nvme0n1p2  915G  749G  119G  87% /\n/dev/nvme0n1p2  915G  749G  119G  87% /\n",
+      "stderr": ""
+    },
+    "services_before": {
+      "qwen35-35b-a3b-uncensored": "active",
+      "openclaw-executor": "inactive",
+      "models": {
+        "models": [
+          {
+            "name": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+            "model": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+            "modified_at": "",
+            "size": "",
+            "digest": "",
+            "type": "model",
+            "description": "",
+            "tags": [
+              ""
+            ],
+            "capabilities": [
+              "completion"
+            ],
+            "parameters": "",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "",
+              "families": [
+                ""
+              ],
+              "parameter_size": "",
+              "quantization_level": ""
+            }
+          }
+        ],
+        "object": "list",
+        "data": [
+          {
+            "id": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+            "aliases": [
+              "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M"
+            ],
+            "tags": [],
+            "object": "model",
+            "created": 1777882193,
+            "owned_by": "llamacpp",
+            "meta": {
+              "vocab_type": 2,
+              "n_vocab": 248320,
+              "n_ctx_train": 262144,
+              "n_embd": 2048,
+              "n_params": 34660610688,
+              "size": 21158128128
+            }
+          }
+        ]
+      }
+    }
+  },
+  "services_stopped": {
+    "qwen35-35b-a3b-uncensored": "inactive",
+    "openclaw-executor": "inactive",
+    "models_error": "URLError(ConnectionRefusedError(111, 'Connection refused'))"
+  },
+  "smoke": {
+    "kernel": {
+      "returncode": 0,
+      "elapsed_s": 0.9984655380249023
+    },
+    "run_py": {
+      "prompt_tokens": 29,
+      "requested_gen_tokens": 128,
+      "max_ctx": 256,
+      "visible_tokens": 108,
+      "raw_tokens": 109,
+      "stop_token_hit": true,
+      "raw_first_token_ids": [
+        14436,
+        20531,
+        198,
+        71093,
+        12305,
+        198,
+        727,
+        73111
+      ],
+      "tok_s": 141.56,
+      "returncode": 0,
+      "elapsed_s": 9.576276779174805,
+      "content_len": 330,
+      "thinking_leakage": false
+    }
+  },
+  "pflash_niah": [
+    {
+      "bad_header": false,
+      "oom": false,
+      "compressed_tokens": 3466,
+      "compression_ratio": 10.1,
+      "score_s": 4.6,
+      "gen_s": 2.9,
+      "ttft_s": 7.5,
+      "needle_hit": true,
+      "answer": "4025016",
+      "accuracy": {
+        "correct": 1,
+        "total": 1
+      },
+      "label": "32k",
+      "ctx": 32768,
+      "keep_ratio": 0.1,
+      "returncode": 0,
+      "elapsed_s": 17.279694080352783
+    },
+    {
+      "bad_header": false,
+      "oom": false,
+      "compressed_tokens": 3473,
+      "compression_ratio": 20.1,
+      "score_s": 6.2,
+      "gen_s": 2.8,
+      "ttft_s": 9.0,
+      "needle_hit": true,
+      "answer": "4025016",
+      "accuracy": {
+        "correct": 1,
+        "total": 1
+      },
+      "label": "64k",
+      "ctx": 65536,
+      "keep_ratio": 0.05,
+      "returncode": 0,
+      "elapsed_s": 19.076135396957397
+    },
+    {
+      "bad_header": false,
+      "oom": false,
+      "compressed_tokens": 2755,
+      "compression_ratio": 50.8,
+      "score_s": 11.0,
+      "gen_s": 2.5,
+      "ttft_s": 13.5,
+      "needle_hit": false,
+      "answer": "4025016",
+      "accuracy": {
+        "correct": 0,
+        "total": 1
+      },
+      "label": "128k",
+      "ctx": 131072,
+      "keep_ratio": 0.02,
+      "returncode": 0,
+      "elapsed_s": 23.720442056655884
+    }
+  ],
+  "long_decode": [
+    {
+      "prompt_tokens": 31977,
+      "requested_gen_tokens": 128,
+      "max_ctx": 32768,
+      "visible_tokens": 128,
+      "raw_tokens": 128,
+      "stop_token_hit": false,
+      "raw_first_token_ids": [
+        49581,
+        50732,
+        20531,
+        271,
+        760,
+        3766,
+        2193,
+        16067
+      ],
+      "tok_s": 53.94,
+      "label": "tq3_32k",
+      "ctx": 32768,
+      "kv": "tq3",
+      "returncode": 0,
+      "elapsed_s": 37.610594511032104,
+      "content_len": 659,
+      "thinking_leakage": false,
+      "starts_with_marker": true
+    },
+    {
+      "prompt_tokens": 64762,
+      "requested_gen_tokens": 128,
+      "max_ctx": 65536,
+      "visible_tokens": 128,
+      "raw_tokens": 128,
+      "stop_token_hit": false,
+      "raw_first_token_ids": [
+        49581,
+        50732,
+        20531,
+        271,
+        760,
+        3766,
+        1414,
+        16067
+      ],
+      "tok_s": 51.55,
+      "label": "tq3_64k",
+      "ctx": 65536,
+      "kv": "tq3",
+      "returncode": 0,
+      "elapsed_s": 80.89591717720032,
+      "content_len": 642,
+      "thinking_leakage": false,
+      "starts_with_marker": true
+    },
+    {
+      "prompt_tokens": 130249,
+      "requested_gen_tokens": 128,
+      "max_ctx": 131072,
+      "visible_tokens": 128,
+      "raw_tokens": 128,
+      "stop_token_hit": false,
+      "raw_first_token_ids": [
+        49581,
+        50732,
+        20531,
+        271,
+        27775,
+        383,
+        279,
+        3766
+      ],
+      "tok_s": 54.53,
+      "label": "tq3_128k",
+      "ctx": 131072,
+      "kv": "tq3",
+      "returncode": 0,
+      "elapsed_s": 222.45000386238098,
+      "content_len": 648,
+      "thinking_leakage": false,
+      "starts_with_marker": true
+    },
+    {
+      "prompt_tokens": 31977,
+      "requested_gen_tokens": 128,
+      "max_ctx": 32768,
+      "visible_tokens": 128,
+      "raw_tokens": 128,
+      "stop_token_hit": false,
+      "raw_first_token_ids": [
+        49581,
+        50732,
+        20531,
+        271,
+        9,
+        256,
+        2972,
+        45209
+      ],
+      "tok_s": 56.57,
+      "label": "q4_32k",
+      "ctx": 32768,
+      "kv": "q4",
+      "returncode": 0,
+      "elapsed_s": 31.17292332649231,
+      "content_len": 597,
+      "thinking_leakage": false,
+      "starts_with_marker": true
+    }
+  ],
+  "server_cache_agent_loop": {
+    "models": {
+      "object": "list",
+      "data": [
+        {
+          "id": "luce-dflash",
+          "object": "model",
+          "owned_by": "luce",
+          "created": 1700000000,
+          "context_length": 131072,
+          "max_context_length": 131072
+        }
+      ]
+    },
+    "short_nonstream": {
+      "status": 200,
+      "elapsed_s": 1.332733392715454,
+      "content_len": 230,
+      "thinking_leakage": false,
+      "preview": "CODE_RESULT\n```python\ndef fibonacci(n: int) -> int:\n    if n <= 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        a, b = 0, 1\n        for _ in range(2, n + 1):\n            a, b = b, a + b\n        return b\n```"
+    },
+    "short_stream": {
+      "elapsed_s": 1.6600637435913086,
+      "content_len": 230,
+      "thinking_leakage": false,
+      "preview": "CODE_RESULT\n```python\ndef fibonacci(n: int) -> int:\n    if n <= 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        a, b = 0, 1\n        for _ in range(2, n + 1):\n            a, b = b, a + b\n        return b\n```"
+    },
+    "agent_loop": [
+      {
+        "turn": 1,
+        "status": 200,
+        "elapsed_s": 12.932613611221313,
+        "content_len": 602,
+        "completion_tokens": 128,
+        "thinking_leakage": false,
+        "starts_with_marker": true,
+        "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Critical)**\n    *   **Risk:** Duplicate `callback_id` requests result in duplicate settlement events and double payments.\n    *   **Patch Strategy:** Implement a database-l"
+      },
+      {
+        "turn": 2,
+        "status": 200,
+        "elapsed_s": 12.673664331436157,
+        "content_len": 586,
+        "completion_tokens": 128,
+        "thinking_leakage": false,
+        "starts_with_marker": true,
+        "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Race Condition)**\n    *   **Risk:** Critical. Duplicate callbacks result in double settlement events, causing financial discrepancies.\n    *   **Root Cause:** Lack of atomi"
+      },
+      {
+        "turn": 3,
+        "status": 200,
+        "elapsed_s": 12.68063735961914,
+        "content_len": 584,
+        "completion_tokens": 128,
+        "thinking_leakage": false,
+        "starts_with_marker": true,
+        "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Race Condition)**\n    *   **Risk:** Critical. Duplicate callbacks result in double settlement events, causing financial discrepancies.\n    *   **Root Cause:** Lack of atomi"
+      },
+      {
+        "turn": 4,
+        "status": 200,
+        "elapsed_s": 12.63227367401123,
+        "content_len": 563,
+        "completion_tokens": 128,
+        "thinking_leakage": false,
+        "starts_with_marker": true,
+        "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Critical)**\n    *   **Risk:** Duplicate `callback_id` requests result in duplicate settlement events and double payments.\n    *   **Patch Strategy:** Implement a database-l"
+      },
+      {
+        "turn": 5,
+        "status": 200,
+        "elapsed_s": 12.559610605239868,
+        "content_len": 599,
+        "completion_tokens": 128,
+        "thinking_leakage": false,
+        "starts_with_marker": true,
+        "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Critical)**\n    The `callback_id` is not being used to enforce idempotency at the database level. Duplicate callbacks (due to retries or race conditions with manual reconci"
+      }
+    ],
+    "cache_stats": {
+      "prefix_cache_hits": 0,
+      "full_cache_hits": 0,
+      "compression_fired": 5,
+      "diag_entries": 7,
+      "snapshot_oom": true
+    },
+    "diag": [
+      {
+        "route": "openai_nonstream",
+        "prompt_tokens": 25,
+        "requested_max_tokens": 96,
+        "effective_gen_len": 96,
+        "compression_fired": false,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 96,
+          "raw_tokens": 91,
+          "visible_tokens": 87,
+          "raw_first_token_ids": [
+            14436,
+            20531,
+            198,
+            71093,
+            12305,
+            198,
+            727,
+            73111
+          ],
+          "stop_token_hit": true,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      },
+      {
+        "route": "openai_stream",
+        "prompt_tokens": 25,
+        "requested_max_tokens": 96,
+        "effective_gen_len": 96,
+        "compression_fired": false,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 96,
+          "raw_tokens": 91,
+          "visible_tokens": 87,
+          "raw_first_token_ids": [
+            14436,
+            20531,
+            198,
+            71093,
+            12305,
+            198,
+            727,
+            73111
+          ],
+          "stop_token_hit": true,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      },
+      {
+        "route": "openai_nonstream",
+        "prompt_tokens": 1585,
+        "requested_max_tokens": 128,
+        "effective_gen_len": 128,
+        "compression_fired": true,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 128,
+          "raw_tokens": 128,
+          "visible_tokens": 128,
+          "raw_first_token_ids": [
+            49581,
+            50732,
+            20531,
+            271,
+            9,
+            256,
+            2972,
+            45209
+          ],
+          "stop_token_hit": false,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      },
+      {
+        "route": "openai_nonstream",
+        "prompt_tokens": 1585,
+        "requested_max_tokens": 128,
+        "effective_gen_len": 128,
+        "compression_fired": true,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 128,
+          "raw_tokens": 128,
+          "visible_tokens": 128,
+          "raw_first_token_ids": [
+            49581,
+            50732,
+            20531,
+            271,
+            9,
+            256,
+            2972,
+            45209
+          ],
+          "stop_token_hit": false,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      },
+      {
+        "route": "openai_nonstream",
+        "prompt_tokens": 1585,
+        "requested_max_tokens": 128,
+        "effective_gen_len": 128,
+        "compression_fired": true,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 128,
+          "raw_tokens": 128,
+          "visible_tokens": 128,
+          "raw_first_token_ids": [
+            49581,
+            50732,
+            20531,
+            271,
+            9,
+            256,
+            2972,
+            45209
+          ],
+          "stop_token_hit": false,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      },
+      {
+        "route": "openai_nonstream",
+        "prompt_tokens": 1585,
+        "requested_max_tokens": 128,
+        "effective_gen_len": 128,
+        "compression_fired": true,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 128,
+          "raw_tokens": 128,
+          "visible_tokens": 128,
+          "raw_first_token_ids": [
+            49581,
+            50732,
+            20531,
+            271,
+            9,
+            256,
+            2972,
+            45209
+          ],
+          "stop_token_hit": false,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      },
+      {
+        "route": "openai_nonstream",
+        "prompt_tokens": 1585,
+        "requested_max_tokens": 128,
+        "effective_gen_len": 128,
+        "compression_fired": true,
+        "prefix_cache_hit": false,
+        "full_cache_hit": false,
+        "token_diag": {
+          "requested_n_gen": 128,
+          "raw_tokens": 128,
+          "visible_tokens": 128,
+          "raw_first_token_ids": [
+            49581,
+            50732,
+            20531,
+            271,
+            9,
+            256,
+            2972,
+            45209
+          ],
+          "stop_token_hit": false,
+          "sentinel_hit": true,
+          "read_eof": false,
+          "empty_generation": false
+        }
+      }
+    ]
+  },
+  "restore_status": {
+    "qwen35-35b-a3b-uncensored": "active",
+    "openclaw-executor": "inactive",
+    "models": {
+      "models": [
+        {
+          "name": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+          "model": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+          "modified_at": "",
+          "size": "",
+          "digest": "",
+          "type": "model",
+          "description": "",
+          "tags": [
+            ""
+          ],
+          "capabilities": [
+            "completion"
+          ],
+          "parameters": "",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "",
+            "families": [
+              ""
+            ],
+            "parameter_size": "",
+            "quantization_level": ""
+          }
+        }
+      ],
+      "object": "list",
+      "data": [
+        {
+          "id": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+          "aliases": [
+            "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M"
+          ],
+          "tags": [],
+          "object": "model",
+          "created": 1777882833,
+          "owned_by": "llamacpp",
+          "meta": {
+            "vocab_type": 2,
+            "n_vocab": 248320,
+            "n_ctx_train": 262144,
+            "n_embd": 2048,
+            "n_params": 34660610688,
+            "size": 21158128128
+          }
+        }
+      ]
+    }
+  }
+}

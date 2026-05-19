@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 4,
+    "elapsed_s": 4.049627482891083,
+    "visible_tokens": 128,
+    "full_output_tps": 31.607845546479524,
+    "source_prompt_tokens": 127238,
+    "target_prompt_tokens": 6328,
+    "target_max_ctx": 8192,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 0.054613,
+    "daemon_migrate_s": 0.002655,
+    "daemon_decode_s": 2.537865,
+    "daemon_decode_tps": 50.4361,
+    "daemon_al": 3.3684,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the provided Java code snippets (specifically `AgentCase32` through `AgentCase34` which represent the canonical pattern), here is the PostgreSQL transaction and advisory-lock strategy to ensure safe concurrent execution.\n\n### 1. The Core Problem\nThe Java code uses `repository.withTransaction(command.idempotencyKey(), ...)`. Without explicit locking, two workers processing the same `idempotencyKey` could:\n1. Both read the state as \"not processed.\"\n2. Both attempt to insert/update the state.\n3. One succeeds, the other fails (or causes a duplicate event if the"
+  },
+  "response": {
+    "id": "chatcmpl-8c618f2d95b440569365a0f0",
+    "object": "chat.completion",
+    "created": 1777948817,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the provided Java code snippets (specifically `AgentCase32` through `AgentCase34` which represent the canonical pattern), here is the PostgreSQL transaction and advisory-lock strategy to ensure safe concurrent execution.\n\n### 1. The Core Problem\nThe Java code uses `repository.withTransaction(command.idempotencyKey(), ...)`. Without explicit locking, two workers processing the same `idempotencyKey` could:\n1. Both read the state as \"not processed.\"\n2. Both attempt to insert/update the state.\n3. One succeeds, the other fails (or causes a duplicate event if the"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6328,
+      "completion_tokens": 128,
+      "total_tokens": 6456
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127238,
+      "target_prompt_tokens": 6328,
+      "target_max_ctx": 8192,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "0baad9aee0d14149bab2eeaee483e23a",
+        "prefill_s": 0.054613,
+        "migrate_s": 0.002655,
+        "decode_s": 2.537865,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 50.4361,
+        "al": 3.3684,
+        "max_ctx": 8192,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          3766,
+          7693,
+          1970,
+          66320,
+          318
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

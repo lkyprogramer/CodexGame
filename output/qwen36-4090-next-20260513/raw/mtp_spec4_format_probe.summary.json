@@ -1,0 +1,172 @@
+{
+  "lane": "mtp_spec4_format_probe",
+  "models": {
+    "models": [
+      {
+        "name": "qwen36-mtp-udq4xl",
+        "model": "qwen36-mtp-udq4xl",
+        "modified_at": "",
+        "size": "",
+        "digest": "",
+        "type": "model",
+        "description": "",
+        "tags": [
+          ""
+        ],
+        "capabilities": [
+          "completion"
+        ],
+        "parameters": "",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "",
+          "families": [
+            ""
+          ],
+          "parameter_size": "",
+          "quantization_level": ""
+        }
+      }
+    ],
+    "object": "list",
+    "data": [
+      {
+        "id": "qwen36-mtp-udq4xl",
+        "aliases": [
+          "qwen36-mtp-udq4xl"
+        ],
+        "tags": [],
+        "object": "model",
+        "created": 1778641775,
+        "owned_by": "llamacpp",
+        "meta": {
+          "vocab_type": 2,
+          "n_vocab": 248320,
+          "n_ctx": 32768,
+          "n_ctx_train": 262144,
+          "n_embd": 5120,
+          "n_params": 27320697856,
+          "size": 17898102784
+        }
+      }
+    ]
+  },
+  "summary": {
+    "case_count": 4,
+    "ok_count": 4,
+    "error_count": 0,
+    "avg_tokens_per_sec": 49.36912006895172,
+    "median_tokens_per_sec": 48.89419139165642,
+    "p50_elapsed_s": 1.3763081524521112,
+    "p95_elapsed_s": 2.6684090718626976,
+    "expected_all_pass": true
+  },
+  "results": [
+    {
+      "case_id": "chat_json_baseline",
+      "category": "format_probe",
+      "endpoint": "/v1/chat/completions",
+      "ok": true,
+      "elapsed_s": 1.1133018843829632,
+      "prompt_chars": 129,
+      "prompt_tokens": 52,
+      "completion_tokens": 50,
+      "tokens_per_sec": 44.91144827955808,
+      "finish_reason": "stop",
+      "expected_contains": null,
+      "expected_found": null,
+      "expected_all": [],
+      "expected_all_found": null,
+      "content": "<think>\n\n</think>\n\n{\"answer\":\"exact-match 测试要求输出与预期结果完全一致，任何多余的包装（如 Markdown 标记或额外文本）都会导致字符串比较失败。\",\"checks\":[\"严格匹配\",\"无额外字符\",\"格式纯净\"]}",
+      "usage": {
+        "completion_tokens": 50,
+        "prompt_tokens": 52,
+        "total_tokens": 102,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "error": null,
+      "lane": "mtp_spec4_format_probe"
+    },
+    {
+      "case_id": "chat_json_system_no_think",
+      "category": "format_probe",
+      "endpoint": "/v1/chat/completions",
+      "ok": true,
+      "elapsed_s": 1.4940351732075214,
+      "prompt_chars": 216,
+      "prompt_tokens": 68,
+      "completion_tokens": 79,
+      "tokens_per_sec": 52.876934503754754,
+      "finish_reason": "stop",
+      "expected_contains": null,
+      "expected_found": null,
+      "expected_all": [],
+      "expected_all_found": null,
+      "content": "<think>\n\n</think>\n\n{\n  \"answer\": \"Exact-match 测试要求输出与预期结果完全一致，任何多余的包装（如引号、数组括号或额外空格）都会导致字符串比较失败，从而判定为错误。\",\n  \"checks\": [\n    \"严格相等\",\n    \"无额外字符\",\n    \"格式纯净\"\n  ]\n}",
+      "usage": {
+        "completion_tokens": 79,
+        "prompt_tokens": 68,
+        "total_tokens": 147,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "error": null,
+      "lane": "mtp_spec4_format_probe"
+    },
+    {
+      "case_id": "chat_json_stop_think_close",
+      "category": "format_probe",
+      "endpoint": "/v1/chat/completions",
+      "ok": true,
+      "elapsed_s": 1.258581131696701,
+      "prompt_chars": 129,
+      "prompt_tokens": 52,
+      "completion_tokens": 50,
+      "tokens_per_sec": 39.72727601008501,
+      "finish_reason": "stop",
+      "expected_contains": null,
+      "expected_found": null,
+      "expected_all": [],
+      "expected_all_found": null,
+      "content": "<think>\n\n</think>\n\n{\"answer\":\"exact-match 测试要求输出与预期结果完全一致，任何多余的包装（如 Markdown 标记或额外文本）都会导致字符串比较失败。\",\"checks\":[\"严格匹配\",\"无额外字符\",\"格式纯净\"]}",
+      "usage": {
+        "completion_tokens": 50,
+        "prompt_tokens": 52,
+        "total_tokens": 102,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "error": null,
+      "lane": "mtp_spec4_format_probe"
+    },
+    {
+      "case_id": "completion_json_raw_prompt",
+      "category": "format_probe",
+      "endpoint": "/completion",
+      "ok": true,
+      "elapsed_s": 2.6684090718626976,
+      "prompt_chars": 96,
+      "prompt_tokens": 40,
+      "completion_tokens": 160,
+      "tokens_per_sec": 59.96082148240904,
+      "finish_reason": "limit",
+      "expected_contains": null,
+      "expected_found": null,
+      "expected_all": [],
+      "expected_all_found": null,
+      "content": "\n\n<think>\nHere's a thinking process:\n\n1.  **Analyze User Input:**\n   - **Output Format:** JSON only, no markdown, no explanations.\n   - **Fields:** \n     - `answer`: a string explaining why exact-match tests cannot contain extra wrapping.\n     - `checks`: an array of 3 short strings.\n   - **Language:** Chinese (implied by the prompt).\n\n2.  **Deconstruct Requirements:**\n   - `answer` needs to explain the reason exact-match tests fail with extra wrapping. Key points: exact-match compares output character-by-character; extra wrapping (like quotes, brackets, markdown, whitespace) changes the string; causes mismatch; breaks strict equality checks.\n   - `checks` needs to be",
+      "usage": {
+        "prompt_tokens": 40,
+        "completion_tokens": 160,
+        "total_tokens": 200
+      },
+      "error": null,
+      "lane": "mtp_spec4_format_probe"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "timestamp": "20260505-101249",
+  "implementation": {
+    "server": "dflash/scripts/server_fast.py",
+    "daemon": "dflash/test/test_dflash.cpp",
+    "remote_root": "/home/hhtele/lucebox-hub-main-maxperf-qwen36",
+    "target": "/data/models/qwen/Qwen3.6-27B-Q4_K_M.gguf",
+    "draft": "/data/models/qwen/dflash-draft-qwen36-q8/dflash-draft-3.6-q8_0.gguf",
+    "pflash_drafter": "/data/models/qwen/Qwen3-0.6B-BF16.gguf",
+    "kv": "tq3_0",
+    "fa_window": 2048,
+    "budget": 26
+  },
+  "validation": {
+    "local_py_compile": true,
+    "git_diff_check": true,
+    "remote_build_test_dflash": true,
+    "remote_build_test_flashprefill_kernels": true,
+    "openai_models_smoke": true,
+    "openai_nonstream_smoke": true,
+    "openai_stream_smoke": true,
+    "default_service_restored": true
+  },
+  "short_api": {
+    "elapsed_s": 3.968132734298706,
+    "visible_tokens": 64,
+    "wall_visible_tps": 16.128492740883782,
+    "daemon_decode_tps": 189.8847,
+    "daemon_decode_s": 0.337047,
+    "target_max_ctx": 256,
+    "route": "short_direct"
+  },
+  "stream_api": {
+    "elapsed_s": 0.8813695907592773,
+    "chunks": 11,
+    "chars": 80
+  },
+  "pflash_cache": [
+    {
+      "turn": 1,
+      "elapsed_s": 7.8091795444488525,
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 1580,
+      "target_prompt_tokens": 76,
+      "compression_hits": 0,
+      "compression_misses": 1,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 1555,
+          "compressed_tokens": 51,
+          "cache_key": "2d47622594e9c60b7f1087ab350b3868d6b65e1554d36626f2b459624e74b255",
+          "cache_hit": false
+        }
+      ],
+      "daemon_decode_tps": 49.3743,
+      "snapshot_requested": true,
+      "snapshot_ok": true,
+      "snapshot_restore_hit": false,
+      "empty_generation": false
+    },
+    {
+      "turn": 2,
+      "elapsed_s": 1.3273937702178955,
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 1580,
+      "target_prompt_tokens": 76,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 1555,
+          "compressed_tokens": 51,
+          "cache_key": "2d47622594e9c60b7f1087ab350b3868d6b65e1554d36626f2b459624e74b255",
+          "cache_hit": true
+        }
+      ],
+      "daemon_decode_tps": 51.7284,
+      "snapshot_requested": true,
+      "snapshot_ok": true,
+      "snapshot_restore_hit": false,
+      "empty_generation": false
+    }
+  ],
+  "notes": [
+    "Short API smoke used PFlash off and target_max_ctx_auto, so daemon rebuilt to 256 context.",
+    "PFlash smoke intentionally used a low 128 token threshold to verify cache mechanics quickly; it is not a 32K/64K/128K quality benchmark.",
+    "Second PFlash turn hit disk compressed-message cache; GPU full snapshot did not restore because the full rendered prompt changed with the user turn."
+  ]
+}

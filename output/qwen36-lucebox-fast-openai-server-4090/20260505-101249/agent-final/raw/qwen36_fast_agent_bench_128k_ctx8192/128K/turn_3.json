@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 3,
+    "elapsed_s": 3.967967264354229,
+    "visible_tokens": 128,
+    "full_output_tps": 32.258330644477105,
+    "source_prompt_tokens": 127240,
+    "target_prompt_tokens": 6330,
+    "target_max_ctx": 8192,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 0.055611,
+    "daemon_migrate_s": 0.000373,
+    "daemon_decode_s": 2.464865,
+    "daemon_decode_tps": 51.9298,
+    "daemon_al": 3.4595,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the operational notes and code structure provided (specifically focusing on the `ReconciliationRepository` pattern used in classes like `AgentCase32`), here are two focused JUnit tests.\n\nThese tests target the two most critical failure modes defined in the operational notes:\n1.  **Idempotency/Duplicate Command Replay:** Ensuring that if a command is processed, a subsequent identical command returns the existing result without re-executing business logic or publishing duplicate events.\n2.  **Worker Crash After Save Before Publish:** Ensuring that if the transaction commits (save) but t"
+  },
+  "response": {
+    "id": "chatcmpl-77aca83c171f49f385c31311",
+    "object": "chat.completion",
+    "created": 1777948813,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the operational notes and code structure provided (specifically focusing on the `ReconciliationRepository` pattern used in classes like `AgentCase32`), here are two focused JUnit tests.\n\nThese tests target the two most critical failure modes defined in the operational notes:\n1.  **Idempotency/Duplicate Command Replay:** Ensuring that if a command is processed, a subsequent identical command returns the existing result without re-executing business logic or publishing duplicate events.\n2.  **Worker Crash After Save Before Publish:** Ensuring that if the transaction commits (save) but the external publish fails, the system"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6330,
+      "completion_tokens": 128,
+      "total_tokens": 6458
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127240,
+      "target_prompt_tokens": 6330,
+      "target_max_ctx": 8192,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "daa0b32485dd48309ff99c5b1c3fd8ea",
+        "prefill_s": 0.055611,
+        "migrate_s": 0.000373,
+        "decode_s": 2.464865,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 51.9298,
+        "al": 3.4595,
+        "max_ctx": 8192,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          23810,
+          8129,
+          321,
+          1970,
+          5759
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

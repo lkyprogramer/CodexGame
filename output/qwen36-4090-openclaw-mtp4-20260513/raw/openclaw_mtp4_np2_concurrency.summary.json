@@ -1,0 +1,145 @@
+{
+  "lane": "openclaw_mtp4_np2_concurrency",
+  "mode": "concurrency",
+  "models": {
+    "models": [
+      {
+        "name": "openclaw/Qwen3.6-27B-MTP-Q4XL",
+        "model": "openclaw/Qwen3.6-27B-MTP-Q4XL",
+        "modified_at": "",
+        "size": "",
+        "digest": "",
+        "type": "model",
+        "description": "",
+        "tags": [
+          ""
+        ],
+        "capabilities": [
+          "completion"
+        ],
+        "parameters": "",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "",
+          "families": [
+            ""
+          ],
+          "parameter_size": "",
+          "quantization_level": ""
+        }
+      }
+    ],
+    "object": "list",
+    "data": [
+      {
+        "id": "openclaw/Qwen3.6-27B-MTP-Q4XL",
+        "aliases": [
+          "openclaw/Qwen3.6-27B-MTP-Q4XL"
+        ],
+        "tags": [],
+        "object": "model",
+        "created": 1778647400,
+        "owned_by": "llamacpp",
+        "meta": {
+          "vocab_type": 2,
+          "n_vocab": 248320,
+          "n_ctx": 16384,
+          "n_ctx_train": 262144,
+          "n_embd": 5120,
+          "n_params": 27320697856,
+          "size": 17898102784
+        }
+      }
+    ]
+  },
+  "summary": {
+    "case_count": 2,
+    "ok_count": 2,
+    "error_count": 0,
+    "avg_tokens_per_sec": 42.012104306587375,
+    "median_tokens_per_sec": 42.012104306587375,
+    "avg_elapsed_s": 1.610412972047925,
+    "think_leak_count": 0,
+    "json_valid_count": 1,
+    "tool_call_count": 0,
+    "expected_exact_pass": true,
+    "must_contain_pass": true
+  },
+  "results": [
+    {
+      "case_id": "json_command_plan_worker1",
+      "category": "format",
+      "ok": true,
+      "elapsed_s": 1.4596186131238937,
+      "prompt_chars": 148,
+      "prompt_tokens": 79,
+      "completion_tokens": 58,
+      "tokens_per_sec": 39.73640749611139,
+      "finish_reason": "stop",
+      "think_leak": false,
+      "json_valid": true,
+      "tool_call_count": 0,
+      "tool_call_names": [],
+      "expected_exact": null,
+      "expected_exact_found": null,
+      "must_contain": [
+        "commands",
+        "risk",
+        "needs_confirmation"
+      ],
+      "must_contain_found": true,
+      "content": "{\n  \"commands\": [\n    \"git status\",\n    \"npm test\",\n    \"tail -n 20 /var/log/app/error.log\"\n  ],\n  \"risk\": \"low\",\n  \"needs_confirmation\": false\n}",
+      "tool_calls": [],
+      "usage": {
+        "completion_tokens": 58,
+        "prompt_tokens": 79,
+        "total_tokens": 137,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "error": null,
+      "batch_elapsed_s": 1.77506735175848,
+      "batch_tokens_per_sec": 76.61681111157324,
+      "lane": "openclaw_mtp4_np2_concurrency"
+    },
+    {
+      "case_id": "patch_generation_worker2",
+      "category": "coding",
+      "ok": true,
+      "elapsed_s": 1.7612073309719563,
+      "prompt_chars": 200,
+      "prompt_tokens": 64,
+      "completion_tokens": 78,
+      "tokens_per_sec": 44.28780111706337,
+      "finish_reason": "stop",
+      "think_leak": false,
+      "json_valid": null,
+      "tool_call_count": 0,
+      "tool_call_names": [],
+      "expected_exact": null,
+      "expected_exact_found": null,
+      "must_contain": [
+        "---",
+        "+++",
+        "sorted(items"
+      ],
+      "must_contain_found": true,
+      "content": "```diff\n--- a/executor/rank.py\n+++ b/executor/rank.py\n@@ -1,4 +1,4 @@\n def top_k(items, k):\n-    items.sort(reverse=True)\n+    sorted_items = sorted(items, reverse=True)\n-    return items[:k]\n+    return sorted_items[:k]\n```",
+      "tool_calls": [],
+      "usage": {
+        "completion_tokens": 78,
+        "prompt_tokens": 64,
+        "total_tokens": 142,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "error": null,
+      "batch_elapsed_s": 1.77506735175848,
+      "batch_tokens_per_sec": 76.61681111157324,
+      "lane": "openclaw_mtp4_np2_concurrency"
+    }
+  ]
+}

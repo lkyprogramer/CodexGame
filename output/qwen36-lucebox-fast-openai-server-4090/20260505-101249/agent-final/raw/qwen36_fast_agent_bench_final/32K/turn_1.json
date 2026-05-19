@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "32K",
+    "turn": 1,
+    "elapsed_s": 12.162964671850204,
+    "visible_tokens": 128,
+    "full_output_tps": 10.523750043954449,
+    "source_prompt_tokens": 32278,
+    "target_prompt_tokens": 1601,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 0,
+    "compression_misses": 1,
+    "gpu_snapshot_restore_hit": false,
+    "gpu_snapshot_requested": true,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 1567,
+    "daemon_prefill_s": 4.16803,
+    "daemon_migrate_s": 0.477498,
+    "daemon_decode_s": 2.035786,
+    "daemon_decode_tps": 62.875,
+    "daemon_al": 4.2667,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the provided code snippets and operational constraints, here is the analysis of the highest-risk failure mode and the corresponding Java method skeleton.\n\n### Highest-Risk Failure Mode: **Outbox Event Duplication on Transaction Rollback (Double-Spend/Double-Settlement Risk)**\n\n**Why it is the highest risk:**\n1.  **Constraint Violation:** The code explicitly states `Constraint: never publish duplicate outbox events after transaction rollback.`\n2.  **Implementation Gap:** The current `handle` method uses `outboxPublisher.enqueueAfterCommit(next.toEvent())`. While `enqueueAfterCommit` im"
+  },
+  "response": {
+    "id": "chatcmpl-d31fd30936ca4b69bf03b7b0",
+    "object": "chat.completion",
+    "created": 1777948403,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the provided code snippets and operational constraints, here is the analysis of the highest-risk failure mode and the corresponding Java method skeleton.\n\n### Highest-Risk Failure Mode: **Outbox Event Duplication on Transaction Rollback (Double-Spend/Double-Settlement Risk)**\n\n**Why it is the highest risk:**\n1.  **Constraint Violation:** The code explicitly states `Constraint: never publish duplicate outbox events after transaction rollback.`\n2.  **Implementation Gap:** The current `handle` method uses `outboxPublisher.enqueueAfterCommit(next.toEvent())`. While `enqueueAfterCommit` implies a transactional"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1601,
+      "completion_tokens": 128,
+      "total_tokens": 1729
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 32278,
+      "target_prompt_tokens": 1601,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 0,
+      "compression_misses": 1,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 32241,
+          "compressed_tokens": 1458,
+          "cache_key": "c8ab9991cf08f26e7d8943255f8c0d8ae371cdfcc3837d1f0e708390f19cd4f1",
+          "cache_hit": false
+        }
+      ],
+      "gpu_snapshot_restore_hit": false,
+      "gpu_snapshot_requested": true,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 1567,
+      "daemon_perf": {
+        "id": "5c01364c01a04325a5397d828b27a4d4",
+        "prefill_s": 4.16803,
+        "migrate_s": 0.477498,
+        "decode_s": 2.035786,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 62.875,
+        "al": 4.2667,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": true,
+        "snapshot_ok": true,
+        "snapshot_slot": 0
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          3766,
+          1970,
+          66320,
+          321,
+          23810
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "64K",
+    "turn": 4,
+    "elapsed_s": 3.528152957558632,
+    "visible_tokens": 128,
+    "full_output_tps": 36.27960622449086,
+    "source_prompt_tokens": 65269,
+    "target_prompt_tokens": 3250,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 3221,
+    "daemon_prefill_s": 0.047481,
+    "daemon_migrate_s": 0.000564,
+    "daemon_decode_s": 2.405161,
+    "daemon_decode_tps": 53.2189,
+    "daemon_al": 3.6571,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "To ensure idempotency and prevent race conditions among concurrent workers processing the same `idempotencyKey` (derived from `paymentId`, `settlementId`, `externalTraceId`), we must implement a strategy that combines **PostgreSQL Advisory Locks** with **Strict Transaction Isolation**.\n\n### Core Strategy: \"Lock-Then-Process\" within a Single Transaction\n\nThe goal is to serialize access to the specific reconciliation state for a given key. We do **not** rely on row-level locks (`SELECT FOR UPDATE`) alone because:\n1.  If the row doesn't exist yet, `SELECT FOR"
+  },
+  "response": {
+    "id": "chatcmpl-3d16473db5124e419d0253c5",
+    "object": "chat.completion",
+    "created": 1777948448,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "To ensure idempotency and prevent race conditions among concurrent workers processing the same `idempotencyKey` (derived from `paymentId`, `settlementId`, `externalTraceId`), we must implement a strategy that combines **PostgreSQL Advisory Locks** with **Strict Transaction Isolation**.\n\n### Core Strategy: \"Lock-Then-Process\" within a Single Transaction\n\nThe goal is to serialize access to the specific reconciliation state for a given key. We do **not** rely on row-level locks (`SELECT FOR UPDATE`) alone because:\n1.  If the row doesn't exist yet, `SELECT FOR"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 3250,
+      "completion_tokens": 128,
+      "total_tokens": 3378
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 65269,
+      "target_prompt_tokens": 3250,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 65237,
+          "compressed_tokens": 2978,
+          "cache_key": "688fe5f0c56d37f31a958677e5488018962b3cb8cf1c4d1cc34e585bf972c247",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 3221,
+      "daemon_perf": {
+        "id": "f2be6ac673084b91a953ed052eb5a88b",
+        "prefill_s": 0.047481,
+        "migrate_s": 0.000564,
+        "decode_s": 2.405161,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 53.2189,
+        "al": 3.6571,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          1206,
+          5790,
+          850,
+          3157,
+          349,
+          2179,
+          321,
+          5190
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "128K",
+    "turn": 5,
+    "elapsed_s": 3.6117329373955727,
+    "visible_tokens": 128,
+    "full_output_tps": 35.440051138526606,
+    "source_prompt_tokens": 127238,
+    "target_prompt_tokens": 6328,
+    "target_max_ctx": 8192,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 6299,
+    "daemon_prefill_s": 0.052053,
+    "daemon_migrate_s": 0.00055,
+    "daemon_decode_s": 2.062169,
+    "daemon_decode_tps": 62.0706,
+    "daemon_al": 4.129,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the code patterns and operational notes provided in the context, here is the rollout checklist and the blocking metrics for promotion.\n\n### Rollout Checklist\n\n1.  **Idempotency Verification**:\n    *   Confirm that `ReconciliationRepository.withTransaction` correctly handles duplicate `ReconcileCommand` instances.\n    *   Verify that `OutboxPublisher.enqueueAfterCommit` does not publish duplicate events after transaction rollback.\n    *   Ensure that concurrent workers do not race if advisory lock scope is wrong.\n\n2.  **Retry Backoff Configuration**:\n    *   Verify that retry backoff u"
+  },
+  "response": {
+    "id": "chatcmpl-77caf902aaae43049a7f4647",
+    "object": "chat.completion",
+    "created": 1777948821,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the code patterns and operational notes provided in the context, here is the rollout checklist and the blocking metrics for promotion.\n\n### Rollout Checklist\n\n1.  **Idempotency Verification**:\n    *   Confirm that `ReconciliationRepository.withTransaction` correctly handles duplicate `ReconcileCommand` instances.\n    *   Verify that `OutboxPublisher.enqueueAfterCommit` does not publish duplicate events after transaction rollback.\n    *   Ensure that concurrent workers do not race if advisory lock scope is wrong.\n\n2.  **Retry Backoff Configuration**:\n    *   Verify that retry backoff uses jitter."
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6328,
+      "completion_tokens": 128,
+      "total_tokens": 6456
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 127238,
+      "target_prompt_tokens": 6328,
+      "target_max_ctx": 8192,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 127206,
+          "compressed_tokens": 5844,
+          "cache_key": "e855e084853fc9536ac6eac235079b7acd6c0fc0eb2f725913f4e103401e027f",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_perf": {
+        "id": "1ebdc110dfbd4a6183474443fe5c3f2e",
+        "prefill_s": 0.052053,
+        "migrate_s": 0.00055,
+        "decode_s": 2.062169,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 62.0706,
+        "al": 4.129,
+        "max_ctx": 8192,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          1970,
+          12261,
+          321,
+          23810,
+          8129
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

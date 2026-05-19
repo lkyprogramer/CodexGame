@@ -1,0 +1,108 @@
+{
+  "row": {
+    "context": "64K",
+    "turn": 2,
+    "elapsed_s": 2.938792794942856,
+    "visible_tokens": 128,
+    "full_output_tps": 43.555299380162296,
+    "source_prompt_tokens": 65276,
+    "target_prompt_tokens": 3257,
+    "target_max_ctx": 16384,
+    "route": "pflash_compressed",
+    "compression_hits": 1,
+    "compression_misses": 0,
+    "gpu_snapshot_restore_hit": true,
+    "gpu_snapshot_requested": false,
+    "gpu_snapshot_kind": "stable_compressed_prefix",
+    "gpu_snapshot_tokens": 3221,
+    "daemon_prefill_s": 0.050243,
+    "daemon_migrate_s": 0.00099,
+    "daemon_decode_s": 1.823064,
+    "daemon_decode_tps": 70.2115,
+    "daemon_al": 4.7407,
+    "empty_generation": false,
+    "thinking_leakage": false,
+    "content_preview": "Based on the patterns observed in the provided code snippets (specifically `AgentCase7`, `AgentCase22`, `AgentCase52`, etc.), the solution relies on a transactional boundary that locks on the `idempotencyKey`. This ensures that only one instance of the state machine can advance the state for a given key at a time, preventing race conditions and duplicate outbox events.\n\nHere is the retry state-machine method implementation:\n\n```java\npublic ReconcileResult handle(ReconcileCommand command) {\n    // Requirement: preserve idempotency for paymentId, settlementId, and"
+  },
+  "response": {
+    "id": "chatcmpl-8a9e30ad8b8a42b98920bbbb",
+    "object": "chat.completion",
+    "created": 1777948441,
+    "model": "luce-dflash-fast",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Based on the patterns observed in the provided code snippets (specifically `AgentCase7`, `AgentCase22`, `AgentCase52`, etc.), the solution relies on a transactional boundary that locks on the `idempotencyKey`. This ensures that only one instance of the state machine can advance the state for a given key at a time, preventing race conditions and duplicate outbox events.\n\nHere is the retry state-machine method implementation:\n\n```java\npublic ReconcileResult handle(ReconcileCommand command) {\n    // Requirement: preserve idempotency for paymentId, settlementId, and"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 3257,
+      "completion_tokens": 128,
+      "total_tokens": 3385
+    },
+    "lucebox_perf": {
+      "route": "pflash_compressed",
+      "source_prompt_tokens": 65276,
+      "target_prompt_tokens": 3257,
+      "target_max_ctx": 16384,
+      "compression_fired": true,
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "compressed_messages": [
+        {
+          "index": 0,
+          "role": "system",
+          "source_tokens": 65237,
+          "compressed_tokens": 2978,
+          "cache_key": "688fe5f0c56d37f31a958677e5488018962b3cb8cf1c4d1cc34e585bf972c247",
+          "cache_hit": true
+        }
+      ],
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 3221,
+      "daemon_perf": {
+        "id": "fdb4109ac4c146a58d95b0660465f11d",
+        "prefill_s": 0.050243,
+        "migrate_s": 0.00099,
+        "decode_s": 1.823064,
+        "compress_s": 0.0,
+        "snapshot_s": 0.0,
+        "restore_s": 0.0,
+        "tokens": 128,
+        "tok_s": 70.2115,
+        "al": 4.7407,
+        "max_ctx": 16384,
+        "fa_window": 2048,
+        "budget": 26,
+        "snapshot_attempted": false,
+        "snapshot_ok": false,
+        "snapshot_slot": -1
+      },
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          27775,
+          383,
+          279,
+          12261,
+          12784,
+          303,
+          279,
+          3766
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  }
+}

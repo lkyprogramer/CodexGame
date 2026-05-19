@@ -1,0 +1,285 @@
+{
+  "models": {
+    "object": "list",
+    "data": [
+      {
+        "id": "luce-dflash",
+        "object": "model",
+        "owned_by": "luce",
+        "created": 1700000000,
+        "context_length": 131072,
+        "max_context_length": 131072
+      }
+    ]
+  },
+  "short_nonstream": {
+    "status": 200,
+    "elapsed_s": 1.332733392715454,
+    "content_len": 230,
+    "thinking_leakage": false,
+    "preview": "CODE_RESULT\n```python\ndef fibonacci(n: int) -> int:\n    if n <= 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        a, b = 0, 1\n        for _ in range(2, n + 1):\n            a, b = b, a + b\n        return b\n```"
+  },
+  "short_stream": {
+    "elapsed_s": 1.6600637435913086,
+    "content_len": 230,
+    "thinking_leakage": false,
+    "preview": "CODE_RESULT\n```python\ndef fibonacci(n: int) -> int:\n    if n <= 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        a, b = 0, 1\n        for _ in range(2, n + 1):\n            a, b = b, a + b\n        return b\n```"
+  },
+  "agent_loop": [
+    {
+      "turn": 1,
+      "status": 200,
+      "elapsed_s": 12.932613611221313,
+      "content_len": 602,
+      "completion_tokens": 128,
+      "thinking_leakage": false,
+      "starts_with_marker": true,
+      "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Critical)**\n    *   **Risk:** Duplicate `callback_id` requests result in duplicate settlement events and double payments.\n    *   **Patch Strategy:** Implement a database-l"
+    },
+    {
+      "turn": 2,
+      "status": 200,
+      "elapsed_s": 12.673664331436157,
+      "content_len": 586,
+      "completion_tokens": 128,
+      "thinking_leakage": false,
+      "starts_with_marker": true,
+      "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Race Condition)**\n    *   **Risk:** Critical. Duplicate callbacks result in double settlement events, causing financial discrepancies.\n    *   **Root Cause:** Lack of atomi"
+    },
+    {
+      "turn": 3,
+      "status": 200,
+      "elapsed_s": 12.68063735961914,
+      "content_len": 584,
+      "completion_tokens": 128,
+      "thinking_leakage": false,
+      "starts_with_marker": true,
+      "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Race Condition)**\n    *   **Risk:** Critical. Duplicate callbacks result in double settlement events, causing financial discrepancies.\n    *   **Root Cause:** Lack of atomi"
+    },
+    {
+      "turn": 4,
+      "status": 200,
+      "elapsed_s": 12.63227367401123,
+      "content_len": 563,
+      "completion_tokens": 128,
+      "thinking_leakage": false,
+      "starts_with_marker": true,
+      "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Critical)**\n    *   **Risk:** Duplicate `callback_id` requests result in duplicate settlement events and double payments.\n    *   **Patch Strategy:** Implement a database-l"
+    },
+    {
+      "turn": 5,
+      "status": 200,
+      "elapsed_s": 12.559610605239868,
+      "content_len": 599,
+      "completion_tokens": 128,
+      "thinking_leakage": false,
+      "starts_with_marker": true,
+      "preview": "LONG_AGENT_RESULT\n\n*   **Bug 1: Non-Idempotent Callback Processing (Critical)**\n    The `callback_id` is not being used to enforce idempotency at the database level. Duplicate callbacks (due to retries or race conditions with manual reconci"
+    }
+  ],
+  "cache_stats": {
+    "prefix_cache_hits": 0,
+    "full_cache_hits": 0,
+    "compression_fired": 5,
+    "diag_entries": 7,
+    "snapshot_oom": true
+  },
+  "diag": [
+    {
+      "route": "openai_nonstream",
+      "prompt_tokens": 25,
+      "requested_max_tokens": 96,
+      "effective_gen_len": 96,
+      "compression_fired": false,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 96,
+        "raw_tokens": 91,
+        "visible_tokens": 87,
+        "raw_first_token_ids": [
+          14436,
+          20531,
+          198,
+          71093,
+          12305,
+          198,
+          727,
+          73111
+        ],
+        "stop_token_hit": true,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    },
+    {
+      "route": "openai_stream",
+      "prompt_tokens": 25,
+      "requested_max_tokens": 96,
+      "effective_gen_len": 96,
+      "compression_fired": false,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 96,
+        "raw_tokens": 91,
+        "visible_tokens": 87,
+        "raw_first_token_ids": [
+          14436,
+          20531,
+          198,
+          71093,
+          12305,
+          198,
+          727,
+          73111
+        ],
+        "stop_token_hit": true,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    },
+    {
+      "route": "openai_nonstream",
+      "prompt_tokens": 1585,
+      "requested_max_tokens": 128,
+      "effective_gen_len": 128,
+      "compression_fired": true,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          49581,
+          50732,
+          20531,
+          271,
+          9,
+          256,
+          2972,
+          45209
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    },
+    {
+      "route": "openai_nonstream",
+      "prompt_tokens": 1585,
+      "requested_max_tokens": 128,
+      "effective_gen_len": 128,
+      "compression_fired": true,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          49581,
+          50732,
+          20531,
+          271,
+          9,
+          256,
+          2972,
+          45209
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    },
+    {
+      "route": "openai_nonstream",
+      "prompt_tokens": 1585,
+      "requested_max_tokens": 128,
+      "effective_gen_len": 128,
+      "compression_fired": true,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          49581,
+          50732,
+          20531,
+          271,
+          9,
+          256,
+          2972,
+          45209
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    },
+    {
+      "route": "openai_nonstream",
+      "prompt_tokens": 1585,
+      "requested_max_tokens": 128,
+      "effective_gen_len": 128,
+      "compression_fired": true,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          49581,
+          50732,
+          20531,
+          271,
+          9,
+          256,
+          2972,
+          45209
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    },
+    {
+      "route": "openai_nonstream",
+      "prompt_tokens": 1585,
+      "requested_max_tokens": 128,
+      "effective_gen_len": 128,
+      "compression_fired": true,
+      "prefix_cache_hit": false,
+      "full_cache_hit": false,
+      "token_diag": {
+        "requested_n_gen": 128,
+        "raw_tokens": 128,
+        "visible_tokens": 128,
+        "raw_first_token_ids": [
+          49581,
+          50732,
+          20531,
+          271,
+          9,
+          256,
+          2972,
+          45209
+        ],
+        "stop_token_hit": false,
+        "sentinel_hit": true,
+        "read_eof": false,
+        "empty_generation": false
+      }
+    }
+  ]
+}

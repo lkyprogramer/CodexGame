@@ -1,0 +1,144 @@
+{
+  "lane": "luce_dflash_budget26_tq3",
+  "base_url": "http://127.0.0.1:18366",
+  "models": {
+    "object": "list",
+    "data": [
+      {
+        "id": "luce-dflash",
+        "object": "model",
+        "owned_by": "luce",
+        "created": 1700000000,
+        "context_length": 32768,
+        "max_context_length": 32768
+      }
+    ]
+  },
+  "summary": {
+    "case_count": 6,
+    "ok_count": 5,
+    "error_count": 1,
+    "avg_tokens_per_sec": 25.281448844416204,
+    "median_tokens_per_sec": 21.23441826755709,
+    "avg_elapsed_s": 4.804744735360146,
+    "quality_long_context_pass": false
+  },
+  "results": [
+    {
+      "case_id": "perf_short_cn",
+      "category": "perf",
+      "ok": true,
+      "elapsed_s": 3.7203750535845757,
+      "prompt_chars": 49,
+      "prompt_tokens": 47,
+      "completion_tokens": 79,
+      "tokens_per_sec": 21.23441826755709,
+      "expected_contains": null,
+      "expected_found": null,
+      "content": "1. 峰值显存占用非瓶颈，关注实际可用带宽。\n2. 单线程CPU瓶颈常被误认为GPU算力不足。\n3. 量化精度损失导致延迟增加，非硬件性能差。\n4. 上下文窗口过大引发KV Cache交换，拖慢速度。\n5. 驱动版本过旧导致内核优化失效，非硬件限制。",
+      "usage": {
+        "prompt_tokens": 47,
+        "completion_tokens": 79,
+        "total_tokens": 126
+      },
+      "error": null,
+      "lane": "luce_dflash_budget26_tq3"
+    },
+    {
+      "case_id": "perf_code",
+      "category": "perf",
+      "ok": true,
+      "elapsed_s": 5.945242773741484,
+      "prompt_chars": 92,
+      "prompt_tokens": 33,
+      "completion_tokens": 180,
+      "tokens_per_sec": 30.276307772495166,
+      "expected_contains": null,
+      "expected_found": null,
+      "content": "```python\nimport numpy as np\nfrom typing import List, Tuple\n\ndef rolling_percentiles(latencies: List[float], window: int = 100) -> Tuple[List[float], List[float]]:\n    \"\"\"\n    Compute rolling p50 and p95 latencies from a list of floats.\n    \n    Args:\n        latencies: List of latency values (floats).\n        window: Size of the rolling window.\n    \n    Returns:\n        Tuple of two lists: (p50_values, p95_values), each aligned with the input\n        such that the i-th element corresponds to the percentile computed over\n        latencies[max(0, i-window+1):i+1].\n    \"\"\"\n    if not latencies:\n        return [], []\n    \n    arr = np.array(latencies)\n    n",
+      "usage": {
+        "prompt_tokens": 33,
+        "completion_tokens": 180,
+        "total_tokens": 213
+      },
+      "error": null,
+      "lane": "luce_dflash_budget26_tq3"
+    },
+    {
+      "case_id": "math_reasoning_cn",
+      "category": "quality",
+      "ok": true,
+      "elapsed_s": 5.465154428035021,
+      "prompt_chars": 61,
+      "prompt_tokens": 56,
+      "completion_tokens": 220,
+      "tokens_per_sec": 40.255038150696926,
+      "expected_contains": null,
+      "expected_found": null,
+      "content": "设这个三位数的百位、十位、个位数字分别为 $h, t, u$。\n\n根据题意，我们有以下三个方程：\n1. 各位数字之和为 18：$h + t + u = 18$\n2. 百位比个位小 2：$h = u - 2$\n3. 十位是个位的 2 倍：$t = 2u$\n\n将方程 (2) 和 (3) 代入方程 (1)：\n$(u - 2) + 2u + u = 18$\n\n合并同类项：\n$4u - 2 = 18$\n$4u = 20$\n$u = 5$\n\n求出个位 $u=5$ 后，计算其他位：\n- 百位 $h = 5 - 2 = 3$\n- 十位 $t = 2 \\times 5 = 10$\n\n**注意**",
+      "usage": {
+        "prompt_tokens": 56,
+        "completion_tokens": 220,
+        "total_tokens": 276
+      },
+      "error": null,
+      "lane": "luce_dflash_budget26_tq3"
+    },
+    {
+      "case_id": "code_review",
+      "category": "quality",
+      "ok": true,
+      "elapsed_s": 3.628198403865099,
+      "prompt_chars": 225,
+      "prompt_tokens": 66,
+      "completion_tokens": 74,
+      "tokens_per_sec": 20.395797517899855,
+      "expected_contains": null,
+      "expected_found": null,
+      "content": "```python\ndef top_k(items, k):\n    sorted_items = sorted(items, reverse=True)\n    return sorted_items[:k]\n```\n\nThe bug was that `items.sort()` mutates the original list in place, violating the constraint to not mutate the caller's list; using `sorted()` instead creates a new sorted list without modifying the input.",
+      "usage": {
+        "prompt_tokens": 66,
+        "completion_tokens": 74,
+        "total_tokens": 140
+      },
+      "error": null,
+      "lane": "luce_dflash_budget26_tq3"
+    },
+    {
+      "case_id": "instruction_following",
+      "category": "quality",
+      "ok": true,
+      "elapsed_s": 5.264753017574549,
+      "prompt_chars": 101,
+      "prompt_tokens": 57,
+      "completion_tokens": 75,
+      "tokens_per_sec": 14.24568251343198,
+      "expected_contains": null,
+      "expected_found": null,
+      "content": "{\n  \"answer\": \"因为长上下文推理既要求模型在海量信息中精准定位关键线索以保证输出质量，又需评估其在处理复杂逻辑时的响应效率，二者共同决定了实际可用性。\",\n  \"checks\": [\n    \"逻辑一致性\",\n    \"关键信息提取\",\n    \"首字延迟\"\n  ]\n}",
+      "usage": {
+        "prompt_tokens": 57,
+        "completion_tokens": 75,
+        "total_tokens": 132
+      },
+      "error": null,
+      "lane": "luce_dflash_budget26_tq3"
+    },
+    {
+      "case_id": "niah_1200_words",
+      "category": "quality_long_context",
+      "ok": false,
+      "elapsed_s": 28.3872002735734,
+      "prompt_chars": 110548,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tokens_per_sec": null,
+      "expected_contains": "NEEDLE_CODE_4090_MTP_DFLASH",
+      "expected_found": false,
+      "content": "",
+      "usage": {},
+      "error": "<HTTPError 500: 'Internal Server Error'>",
+      "lane": "luce_dflash_budget26_tq3"
+    }
+  ]
+}

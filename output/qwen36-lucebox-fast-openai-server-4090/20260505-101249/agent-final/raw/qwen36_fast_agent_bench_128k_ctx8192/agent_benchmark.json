@@ -1,0 +1,212 @@
+{
+  "config": {
+    "target": "/data/models/qwen/Qwen3.6-27B-Q4_K_M.gguf",
+    "draft": "/data/models/qwen/dflash-draft-qwen36-q8/dflash-draft-3.6-q8_0.gguf",
+    "drafter": "/data/models/qwen/Qwen3-0.6B-BF16.gguf",
+    "kv": "tq3_0",
+    "fa_window": 2048,
+    "budget": 26,
+    "keep_ratio": 0.05,
+    "target_max_ctx": 8192,
+    "max_tokens": 128,
+    "turns_per_context": 5
+  },
+  "context_summaries": [
+    {
+      "label": "128K",
+      "turns": 5,
+      "actual_source_prompt_tokens_first_turn": 127243,
+      "actual_target_prompt_tokens_first_turn": 6333,
+      "cold_full_tps": 7.147345611004122,
+      "warm_full_tps_median": 33.02959695585977,
+      "all_full_tps_median": 32.258330644477105,
+      "cold_elapsed_s": 17.908746402710676,
+      "warm_elapsed_s_median": 3.8774263970553875,
+      "compression_cache_hits": 4,
+      "compression_cache_misses": 1,
+      "gpu_snapshot_restore_hits": 4,
+      "empty_generations": 0,
+      "thinking_leakage": 0,
+      "daemon_decode_tps_median": 51.9298
+    }
+  ],
+  "turns": [
+    {
+      "context": "128K",
+      "turn": 1,
+      "elapsed_s": 17.908746402710676,
+      "visible_tokens": 128,
+      "full_output_tps": 7.147345611004122,
+      "source_prompt_tokens": 127243,
+      "target_prompt_tokens": 6333,
+      "target_max_ctx": 8192,
+      "route": "pflash_compressed",
+      "compression_hits": 0,
+      "compression_misses": 1,
+      "gpu_snapshot_restore_hit": false,
+      "gpu_snapshot_requested": true,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_prefill_s": 4.038259,
+      "daemon_migrate_s": 0.493978,
+      "daemon_decode_s": 2.630019,
+      "daemon_decode_tps": 48.6688,
+      "daemon_al": 3.2,
+      "empty_generation": false,
+      "thinking_leakage": false,
+      "content_preview": "Based on the inspection of the provided `AgentCase` implementations, the design relies on a **Transaction-Scoped Idempotency** pattern. The critical failure mode arises from the gap between the database commit and the external event publication.\n\n### Highest-Risk Failure Mode: \"Commit-Then-Crash\" (Event Loss)\n\n**Description:**\nThe method executes `tx.save(next)` (committing the state change to the database) and then calls `outboxPublisher.enqueueAfterCommit(next.toEvent())`. If the application process crashes, loses network connectivity, or throws an unhandled exception **after** the database "
+    },
+    {
+      "context": "128K",
+      "turn": 2,
+      "elapsed_s": 3.786885529756546,
+      "visible_tokens": 128,
+      "full_output_tps": 33.80086326724245,
+      "source_prompt_tokens": 127245,
+      "target_prompt_tokens": 6335,
+      "target_max_ctx": 8192,
+      "route": "pflash_compressed",
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_prefill_s": 0.054396,
+      "daemon_migrate_s": 0.000318,
+      "daemon_decode_s": 2.300589,
+      "daemon_decode_tps": 55.6379,
+      "daemon_al": 3.7647,
+      "empty_generation": false,
+      "thinking_leakage": false,
+      "content_preview": "Based on the operational notes and code snippets provided, the core requirement is to implement a retry mechanism that:\n1.  **Preserves Idempotency:** Uses the `idempotencyKey` to lock the resource, ensuring only one worker processes a specific command at a time.\n2.  **Avoids Duplicate Outbox Events:** Uses `enqueueAfterCommit` to ensure the event is only published if the transaction (including the state update) succeeds.\n3.  **Handles Retries:** Implements a state-machine approach where the system checks the current state, advances it if necessary, and retries with jitter/backoff"
+    },
+    {
+      "context": "128K",
+      "turn": 3,
+      "elapsed_s": 3.967967264354229,
+      "visible_tokens": 128,
+      "full_output_tps": 32.258330644477105,
+      "source_prompt_tokens": 127240,
+      "target_prompt_tokens": 6330,
+      "target_max_ctx": 8192,
+      "route": "pflash_compressed",
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_prefill_s": 0.055611,
+      "daemon_migrate_s": 0.000373,
+      "daemon_decode_s": 2.464865,
+      "daemon_decode_tps": 51.9298,
+      "daemon_al": 3.4595,
+      "empty_generation": false,
+      "thinking_leakage": false,
+      "content_preview": "Based on the operational notes and code structure provided (specifically focusing on the `ReconciliationRepository` pattern used in classes like `AgentCase32`), here are two focused JUnit tests.\n\nThese tests target the two most critical failure modes defined in the operational notes:\n1.  **Idempotency/Duplicate Command Replay:** Ensuring that if a command is processed, a subsequent identical command returns the existing result without re-executing business logic or publishing duplicate events.\n2.  **Worker Crash After Save Before Publish:** Ensuring that if the transaction commits (save) but t"
+    },
+    {
+      "context": "128K",
+      "turn": 4,
+      "elapsed_s": 4.049627482891083,
+      "visible_tokens": 128,
+      "full_output_tps": 31.607845546479524,
+      "source_prompt_tokens": 127238,
+      "target_prompt_tokens": 6328,
+      "target_max_ctx": 8192,
+      "route": "pflash_compressed",
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_prefill_s": 0.054613,
+      "daemon_migrate_s": 0.002655,
+      "daemon_decode_s": 2.537865,
+      "daemon_decode_tps": 50.4361,
+      "daemon_al": 3.3684,
+      "empty_generation": false,
+      "thinking_leakage": false,
+      "content_preview": "Based on the provided Java code snippets (specifically `AgentCase32` through `AgentCase34` which represent the canonical pattern), here is the PostgreSQL transaction and advisory-lock strategy to ensure safe concurrent execution.\n\n### 1. The Core Problem\nThe Java code uses `repository.withTransaction(command.idempotencyKey(), ...)`. Without explicit locking, two workers processing the same `idempotencyKey` could:\n1. Both read the state as \"not processed.\"\n2. Both attempt to insert/update the state.\n3. One succeeds, the other fails (or causes a duplicate event if the"
+    },
+    {
+      "context": "128K",
+      "turn": 5,
+      "elapsed_s": 3.6117329373955727,
+      "visible_tokens": 128,
+      "full_output_tps": 35.440051138526606,
+      "source_prompt_tokens": 127238,
+      "target_prompt_tokens": 6328,
+      "target_max_ctx": 8192,
+      "route": "pflash_compressed",
+      "compression_hits": 1,
+      "compression_misses": 0,
+      "gpu_snapshot_restore_hit": true,
+      "gpu_snapshot_requested": false,
+      "gpu_snapshot_kind": "stable_compressed_prefix",
+      "gpu_snapshot_tokens": 6299,
+      "daemon_prefill_s": 0.052053,
+      "daemon_migrate_s": 0.00055,
+      "daemon_decode_s": 2.062169,
+      "daemon_decode_tps": 62.0706,
+      "daemon_al": 4.129,
+      "empty_generation": false,
+      "thinking_leakage": false,
+      "content_preview": "Based on the code patterns and operational notes provided in the context, here is the rollout checklist and the blocking metrics for promotion.\n\n### Rollout Checklist\n\n1.  **Idempotency Verification**:\n    *   Confirm that `ReconciliationRepository.withTransaction` correctly handles duplicate `ReconcileCommand` instances.\n    *   Verify that `OutboxPublisher.enqueueAfterCommit` does not publish duplicate events after transaction rollback.\n    *   Ensure that concurrent workers do not race if advisory lock scope is wrong.\n\n2.  **Retry Backoff Configuration**:\n    *   Verify that retry backoff u"
+    }
+  ],
+  "default_service_restored": true,
+  "restored_models": {
+    "models": [
+      {
+        "name": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+        "model": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+        "modified_at": "",
+        "size": "",
+        "digest": "",
+        "type": "model",
+        "description": "",
+        "tags": [
+          ""
+        ],
+        "capabilities": [
+          "completion"
+        ],
+        "parameters": "",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "",
+          "families": [
+            ""
+          ],
+          "parameter_size": "",
+          "quantization_level": ""
+        }
+      }
+    ],
+    "object": "list",
+    "data": [
+      {
+        "id": "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M",
+        "aliases": [
+          "hauhaucs/Qwen3.5-35B-A3B-Uncensored-Aggressive-Q4_K_M"
+        ],
+        "tags": [],
+        "object": "model",
+        "created": 1777948832,
+        "owned_by": "llamacpp",
+        "meta": {
+          "vocab_type": 2,
+          "n_vocab": 248320,
+          "n_ctx_train": 262144,
+          "n_embd": 2048,
+          "n_params": 34660610688,
+          "size": 21158128128
+        }
+      }
+    ]
+  }
+}
