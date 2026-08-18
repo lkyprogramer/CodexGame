@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.560862131416798,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 295,
+  "prompt_ms": 110.919,
+  "predicted_ms": 4307.376,
+  "ttft_ms": 110.919,
+  "decode_tokens_per_s": 59.432935504121296,
+  "effective_content_tok_s": 64.6807536601332,
+  "draft_n": 353,
+  "draft_n_accepted": 156,
+  "draft_acceptance_rate": 0.44192634560906513,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 110.919,
+    "prompt_per_token_ms": 27.72975,
+    "prompt_per_second": 36.06235180627305,
+    "predicted_n": 256,
+    "predicted_ms": 4307.376,
+    "predicted_per_token_ms": 16.891670588235296,
+    "predicted_per_second": 59.200775599808324,
+    "draft_n": 353,
+    "draft_n_accepted": 156
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify connectivity by running curl -v http://localhost:8080 to inspect the exact response headers and confirm the 502 status code is present.\n2. Check if the reverse proxy process is active using systemctl status nginx or supervisorctl status to ensure the front-end service is not crashed or stopped.\n3. Examine the real-time error logs with tail -f /var/log/nginx/error.log to identify specific upstream timeout messages or connection refused errors immediately.\n4. Test the backend application directly by running curl http://localhost:8000/api/health to determine if the issue lies in the proxy configuration or the app itself.\n5. Inspect the listening sockets using netstat -tlnp | grep 8000 to verify that the backend service is actually bound to the correct IP address and port number.\n6. Review the proxy configuration files located in /etc/nginx/sites-available/ to ensure the proxy_pass directive points to the valid upstream host and port.\n7. Check for resource exhaustion by running top -c to see if the backend process has consumed all available memory or CPU cycles, causing it to hang.\n8. Validate network permissions with sudo iptables -L -n to confirm that no",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

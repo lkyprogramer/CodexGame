@@ -1,0 +1,49 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 6.902417279779911,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 253,
+  "prompt_ms": 107.305,
+  "predicted_ms": 6655.352,
+  "ttft_ms": 107.305,
+  "decode_tokens_per_s": 38.465283278780745,
+  "effective_content_tok_s": 36.65382571713588,
+  "draft_n": 0,
+  "draft_n_accepted": 0,
+  "draft_acceptance_rate": null,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 107.305,
+    "prompt_per_token_ms": 26.82625,
+    "prompt_per_second": 37.276920926331485,
+    "predicted_n": 256,
+    "predicted_ms": 6655.352,
+    "predicted_per_token_ms": 26.099419607843135,
+    "predicted_per_second": 38.315028265973005
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the upstream service is actually running locally using `systemctl status myapp` or `ps aux | grep node`. If it is not active, restart it immediately with `sudo systemctl restart myapp` and monitor the logs via `journalctl -u myapp -f` to identify immediate crash reasons.\n2. Check if the backend application is listening on the expected port by running `ss -tlnp | grep :8080`. If no process appears, verify the configuration file for binding errors using `cat /etc/myapp/config.yaml`. Ensure the bind address is set to 127.0.0.1 or 0.0.0.0 as required by your proxy setup.\n3. Test direct connectivity to the backend from the same host to rule out network isolation issues. Execute `curl -v http://localhost:8080/health` to see if the application responds with a 200 OK. If this fails, check for firewall rules blocking loopback traffic using `sudo iptables -L -n | grep 8080`.\n4. Inspect the reverse proxy error logs to find specific upstream timeout or connection refused messages. For Nginx, run `tail",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

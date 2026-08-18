@@ -1,0 +1,49 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 6.863170308992267,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 266,
+  "prompt_ms": 202.484,
+  "predicted_ms": 6653.648,
+  "ttft_ms": 202.484,
+  "decode_tokens_per_s": 38.475134242148066,
+  "effective_content_tok_s": 38.75759860592142,
+  "draft_n": 0,
+  "draft_n_accepted": 0,
+  "draft_acceptance_rate": null,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 74,
+    "prompt_ms": 202.484,
+    "prompt_per_token_ms": 2.7362702702702704,
+    "prompt_per_second": 365.4609746942968,
+    "predicted_n": 256,
+    "predicted_ms": 6653.648,
+    "predicted_per_token_ms": 26.092737254901962,
+    "predicted_per_second": 38.324840749014676
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the upstream service is actually listening on the expected port using `ss -tlnp | grep :8080` or `netstat -anp | grep 8080`. If the socket is not in LISTEN state, check the application logs for startup failures or crash loops.\n2. Confirm network connectivity between the load balancer and the backend instance by running `curl -v http://backend-ip:8080/health` from the proxy host. A connection refused error indicates a firewall rule or wrong IP address configuration.\n3. Inspect the reverse proxy configuration file, such as `/etc/nginx/nginx.conf` or `/etc/haproxy/haproxy.cfg`, to ensure the `proxy_pass` directive points to the correct upstream server and that no typos exist in the hostnames or ports.\n4. Check for DNS resolution issues if using hostnames instead of IP addresses by executing `dig backend-hostname` or `nslookup backend-hostname`. If resolution fails, update the local `/etc/hosts` file or fix the internal DNS zone records immediately.\n5. Examine resource utilization on the backend server with `top -p $(pgrep -f \"myapp\")` and `free",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

@@ -1,0 +1,47 @@
+# speed_2048_r1
+
+- http: `200`
+- task_pass: `True`
+- elapsed_s: `52.70495535526425`
+- decode_tok_s: `39.10576346584911`
+- acceptance: `None`
+- empty_content: `False`
+- think_leak: `False`
+- junk: `False` (None)
+- finish: `length`
+- prompt/completion: `75` / `2048`
+- reasoning_tokens_approx: `0`
+
+## Content
+
+```text
+1. Verify the immediate symptom by reproducing the error from the client side. Use curl with verbose output to inspect headers and timing metrics. Execute: curl -v http://localhost:8080/api/health. If the connection fails immediately, check if the port is listening using: ss -tlnp | grep 8080. If no process is bound to the port, the reverse proxy or load balancer is likely down. Start the service using your init system, for example: sudo systemctl restart nginx or sudo docker restart web-proxy. Confirm the service status with: sudo systemctl status nginx. Look for active (running) in the output. If it is failed, check the logs immediately with: journalctl -u nginx -n 50 --no-pager.
+
+2. Inspect the reverse proxy configuration files for syntax errors and logical mistakes. For Nginx, run the test command: sudo nginx -t. This will report if any include files are missing or if there are typos in the upstream definitions. If using Apache, run: apachectl configtest. Look specifically at the proxy_pass directive. Ensure the URL points to a valid backend address and port. A common mistake is pointing to 127.0.0.1:8000 when the backend is actually running on 127.0.0.1:3000. Edit the configuration file, often located at /etc/nginx/sites-available/default or /etc/apache2/sites-enabled/000-default.conf. After making changes, reload the configuration without restarting the entire service to minimize downtime. Use: sudo nginx -s reload or sudo systemctl reload apache2.
+
+3. Check if the backend application process is actually running and healthy. If the backend is a Node.js application, check if the node process exists using: ps aux | grep node. If it is missing, start it manually in a terminal to see immediate error output: cd /var/www/app && npm start. Observe the console for crash messages, such as unhandled promise rejections or memory allocation failures. If the backend is a Python Django or Flask app, check if gunicorn or uvicorn is running: ps aux | grep gunicorn. Start it with: sudo -u www-data gunicorn myapp:app --bind 127.0.0.1:8000 --error-logfile /var/log/gunicorn/error.log. Monitor the error log in real-time using: tail -f /var/log/gunicorn/error.log. Look for exceptions like ConnectionRefusedError or TimeoutError.
+
+4. Test connectivity between the reverse proxy and the backend directly. Bypass the proxy by curling the backend address directly from the server. Execute: curl -v http://127.0.0.1:8000/health. If this returns a 200 OK, the backend is working, and the issue lies in the proxy configuration or network path between them. If this returns a connection refused error, the backend is not listening on that specific interface. Check if the backend is bound to 0.0.0.0 or strictly to 127.0.0.1. Some frameworks bind to localhost by default, which may resolve to IPv6 (::1) while the proxy tries to connect via IPv4 (127.0.0.1). Force IPv4 in your curl test: curl -v http://127.0.0.1:8000/health. If it fails but curl -v http://localhost:8000/health works, you have an IPv6 mismatch. Update the proxy configuration to use 127.0.0.1 explicitly or configure the backend to listen on all interfaces.
+
+5. Analyze firewall and security group rules that might block internal traffic. On Linux systems using iptables, check for DROP or REJECT rules affecting the local loopback interface or specific ports. Run: sudo iptables -L -n | grep 8000. If you see a rule blocking traffic to port 8000 from 127.0.0.1, remove it with: sudo iptables -D INPUT -p tcp --dport 8000 -j DROP. Be cautious when modifying firewall rules in production. For Docker environments, check if the containers are on the same network. If the proxy and backend are in separate containers, they cannot communicate via localhost unless host networking is used or a custom bridge network is configured. Check the docker network: docker network ls. Ensure both containers are attached to the same user-defined network. If not, recreate them with: docker run --network my-net --name proxy ... and docker run --network my-net --name backend .... Inside the proxy container, use the service name or container ID instead of localhost to reach the backend.
+
+6. Review application logs for specific error messages related to upstream timeouts. A 502 Bad Gateway often indicates that the backend took too long to respond. Check the Nginx error log: sudo tail -n 100 /var/log/nginx/error.log. Look for phrases like "upstream timed out" or "recv() failed". If you see timeout errors, increase the proxy_read_timeout directive in your Nginx configuration. For example, set: proxy_read_timeout 60s; inside the server or location block. Also check the backend application logs for slow queries or deadlock indicators. If using a database, check the query performance. Run: sudo tail -f /var/log/app/application.log. Look for stack traces that indicate where the process is hanging. Common causes include waiting for a lock on a database table, making an external API call that is not responding, or infinite loops in the code.
+
+7. Check resource utilization to determine if the server is under heavy load causing processes to hang. Use top or htop to monitor CPU and memory usage: sudo htop. Look for any process consuming 100% of a CPU core or swapping heavily. If memory is exhausted, the operating system might be killing processes or slowing them down due to swap thrashing. Check free memory with: free -h. If available memory is near zero, consider increasing the swap space or optimizing the application's memory footprint. Also check disk I/O wait time. Run: iostat -x 1 5. If the %iowait column is high, the backend might be stalling while writing to a slow disk. This can cause requests to hang until the proxy timeout is reached, resulting in a 502 error.
+
+8. Verify that the SSL/TLS termination and certificate configurations are correct if HTTPS is involved. A misconfigured upstream SSL setting can cause handshake failures that manifest as 502s. If the backend uses HTTPS, ensure the proxy is configured to connect via https:// and that the certificate verification is handled correctly. In Nginx, use: proxy_pass https://backend; and include: proxy_ssl_verify off; if using self-signed certificates for internal communication. Check if the backend certificate has expired. Run: openssl s_client -connect 127.0.0.1:8443 | openssl x509 -noout -dates. If the certificate is invalid, the proxy may refuse to connect. Update the certificate or adjust the verification settings in the proxy configuration.
+
+9. Investigate potential issues with shared libraries or dependencies if the backend is a compiled language like Go, C++, or Rust. If the application starts but crashes immediately under load, it might be missing a shared library. Use ldd on the binary to check for missing dependencies: ldd /usr/bin/myapp. Look for "not found" entries. Install the missing libraries using your package manager. For example: sudo apt-get install libssl1.1. If the application is running in a container, ensure the base image includes all necessary system dependencies. Rebuild the Docker image if you have recently updated code or dependencies. Use: docker build -t myapp:latest . and then restart the container: docker restart backend.
+
+10. Perform a packet capture to analyze network traffic between the proxy and backend if previous steps did not reveal the issue. Install tcpdump if it is not already present: sudo apt-get install tcpdump. Start capturing traffic on the loopback interface filtering for the specific port: sudo tcpdump -i lo port 8000 -w /tmp/capture.pcap. Trigger the failing request using curl from another terminal. Stop the capture with Ctrl+C. Analyze the packet capture using Wireshark or tshark. Look for TCP RST (Reset) packets sent by the backend, which indicate that the backend is actively refusing connections. Also look for SYN packets from the proxy that do not receive a SYN-ACK response, indicating that the backend is not listening or is dropping packets due to firewall rules.
+
+11. Check for DNS resolution issues if the proxy uses hostnames instead of IP addresses in its upstream configuration. If the proxy is configured with: proxy_pass http://backend-service:8000; ensure that the hostname resolves correctly inside the proxy container or host. Run: nslookup backend-service or getent hosts backend-service. If it fails, check /etc/hosts or your Docker Compose service definitions. In Docker Compose, services can resolve each other by name only if they are in the same project and network. Ensure the docker-compose.yml file defines both services correctly. Restart the stack to apply changes: sudo docker-compose down && sudo docker-compose up -d.
+
+12. Review the health check endpoints configured in your load balancer or orchestrator. If you are using Kubernetes, the readiness probes might be failing, causing pods to be removed from the service endpoint list. Check the pod status: kubectl get pods -n namespace-name. Look for CrashLoopBack
+```
+
+## Reasoning
+
+```text
+
+```

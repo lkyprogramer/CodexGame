@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.783052586019039,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 276,
+  "prompt_ms": 110.306,
+  "predicted_ms": 4530.475,
+  "ttft_ms": 110.306,
+  "decode_tokens_per_s": 56.506216235604434,
+  "effective_content_tok_s": 57.70373522690377,
+  "draft_n": 285,
+  "draft_n_accepted": 141,
+  "draft_acceptance_rate": 0.49473684210526314,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 110.306,
+    "prompt_per_token_ms": 27.5765,
+    "prompt_per_second": 36.26275995866045,
+    "predicted_n": 256,
+    "predicted_ms": 4530.475,
+    "predicted_per_token_ms": 17.766568627450983,
+    "predicted_per_second": 56.2854888284341,
+    "draft_n": 285,
+    "draft_n_accepted": 141
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the proxy status immediately by running `systemctl status nginx` or `apachectl -S` to ensure the service is active and not in a crash loop.\n2. Check the error logs for specific backend failures using `tail -n 50 /var/log/nginx/error.log | grep \"502\"` to identify if the upstream connection was refused, timed out, or closed prematurely.\n3. Test direct connectivity to the backend application from the proxy host by executing `curl -v http://localhost:8080/health` to confirm the service is listening on the expected port and responding with valid HTTP headers.\n4. Inspect firewall rules that might block inter-process communication or local loopback traffic by running `sudo iptables -L -n | grep 8080` to ensure no DROP policies are interfering with internal requests.\n5. Review the proxy configuration file for incorrect upstream definitions using `grep -r \"upstream\" /etc/nginx/conf.d/` to verify that the backend IP addresses and ports match the actual running services.\n6. Check if the backend process is overwhelmed by high CPU or memory usage via `top -c | grep java` or `ps aux | sort -rk ",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

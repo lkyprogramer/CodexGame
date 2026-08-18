@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.509722779504955,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 241,
+  "prompt_ms": 250.761,
+  "predicted_ms": 4251.284,
+  "ttft_ms": 250.761,
+  "decode_tokens_per_s": 60.21710146863865,
+  "effective_content_tok_s": 53.44009194872401,
+  "draft_n": 300,
+  "draft_n_accepted": 153,
+  "draft_acceptance_rate": 0.51,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 74,
+    "prompt_ms": 250.761,
+    "prompt_per_token_ms": 3.388662162162162,
+    "prompt_per_second": 295.101710393562,
+    "predicted_n": 256,
+    "predicted_ms": 4251.284,
+    "predicted_per_token_ms": 16.67170196078431,
+    "predicted_per_second": 59.98187841602678,
+    "draft_n": 300,
+    "draft_n_accepted": 153
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the proxy is running. Execute `systemctl status nginx` or `docker ps` to confirm the service state and container health.\n2. Check active listening ports. Run `sudo ss -tlnp | grep :80` to ensure the frontend is bound correctly without conflicts.\n3. Inspect upstream availability. Use `curl -I http://127.0.0.1:5000` to test if the backend application responds directly, bypassing the proxy layer entirely.\n4. Review error logs immediately. Execute `tail -n 50 /var/log/nginx/error.log` to identify specific connection refused or timeout messages from the upstream server.\n5. Validate network connectivity. Run `ping 127.0.0.1` and `nc -zv 127.0.0.1 5000` to rule out basic TCP layer failures or firewall blocks between services.\n6. Check process resources. Use `top -c | grep node` or `ps aux | grep python` to verify the backend process is not zombie, hung, or consuming excessive memory.\n7. Examine proxy configuration. Run `nginx -t` to ensure syntax is",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.969006388448179,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 278,
+  "prompt_ms": 110.008,
+  "predicted_ms": 4718.084,
+  "ttft_ms": 110.008,
+  "decode_tokens_per_s": 54.25931373837346,
+  "effective_content_tok_s": 55.94679866910363,
+  "draft_n": 469,
+  "draft_n_accepted": 151,
+  "draft_acceptance_rate": 0.32196162046908317,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 110.008,
+    "prompt_per_token_ms": 27.502,
+    "prompt_per_second": 36.36099192785979,
+    "predicted_n": 256,
+    "predicted_ms": 4718.084,
+    "predicted_per_token_ms": 18.50229019607843,
+    "predicted_per_second": 54.047363294082935,
+    "draft_n": 469,
+    "draft_n_accepted": 151
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the upstream service is actually running and listening on the expected port. Execute ss -tlnp | grep :8080 or netstat -an | grep 8080 to confirm the backend process is bound to the interface. If nothing appears, check the application logs for startup errors using journalctl -u my-service -n 50 --no-pager or tail -f /var/log/my-app/error.log.\n\n2. Test connectivity directly from the proxy host to the upstream server. Run curl -v http://127.0.0.1:8080/health to see if the backend responds correctly. If this fails, the issue is with the application or local network configuration, not the reverse proxy itself. Look for connection refused errors which indicate the port is closed.\n\n3. Inspect the reverse proxy configuration for typos in upstream addresses or ports. For Nginx, run nginx -t to validate syntax and then check /etc/nginx/conf.d/default.conf for correct proxy_pass directives. Ensure the backend IP and port match what ss showed earlier. Reload with systemctl reload nginx after changes.\n\n4. Check firewall rules that might block traffic between the proxy and backend. Execute iptables -L",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.626364244148135,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 273,
+  "prompt_ms": 282.882,
+  "predicted_ms": 4335.95,
+  "ttft_ms": 282.882,
+  "decode_tokens_per_s": 59.04127123237123,
+  "effective_content_tok_s": 59.00962085839141,
+  "draft_n": 225,
+  "draft_n_accepted": 142,
+  "draft_acceptance_rate": 0.6311111111111111,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 74,
+    "prompt_ms": 282.882,
+    "prompt_per_token_ms": 3.82272972972973,
+    "prompt_per_second": 261.59317312519,
+    "predicted_n": 256,
+    "predicted_ms": 4335.95,
+    "predicted_per_token_ms": 17.00372549019608,
+    "predicted_per_second": 58.810641266619776,
+    "draft_n": 225,
+    "draft_n_accepted": 142
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify upstream health by running `curl -v http://localhost:8080/` directly against the backend service to isolate the reverse proxy from the application layer.\n2. Check if the backend process is actually listening on the expected port using `ss -tlnp | grep :8080` or `netstat -an | grep 8080` to confirm socket availability.\n3. Inspect reverse proxy error logs immediately with `tail -f /var/log/nginx/error.log` or `journalctl -u httpd -f` to capture specific upstream connection refused or timeout messages.\n4. Test DNS resolution if the backend uses hostnames rather than IPs by executing `getent hosts backend-service.local` to ensure name resolution is not failing silently.\n5. Review firewall rules that might block inter-container or local loopback traffic using `sudo iptables -L -n -v` or `sudo ufw status verbose` to identify dropped packets.\n6. Check for resource exhaustion on the backend by running `free -m` and `df -h` to ensure the application is not crashing due to out-of-memory conditions or full disk space.\n7. Validate configuration syntax of the proxy server using `",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

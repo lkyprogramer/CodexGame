@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 5.709308328106999,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 288,
+  "prompt_ms": 251.662,
+  "predicted_ms": 5450.924,
+  "ttft_ms": 251.662,
+  "decode_tokens_per_s": 46.96451464008671,
+  "effective_content_tok_s": 50.443938818678305,
+  "draft_n": 144,
+  "draft_n_accepted": 120,
+  "draft_acceptance_rate": 0.8333333333333334,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 74,
+    "prompt_ms": 251.662,
+    "prompt_per_token_ms": 3.400837837837838,
+    "prompt_per_second": 294.0451875928825,
+    "predicted_n": 256,
+    "predicted_ms": 5450.924,
+    "predicted_per_token_ms": 21.376172549019607,
+    "predicted_per_second": 46.78105950477387,
+    "draft_n": 144,
+    "draft_n_accepted": 120
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the client request using curl -v http://localhost:8080/api/health to confirm the 502 status code and inspect response headers for upstream errors or timeout indicators.\n2. Check if the reverse proxy process is running with ps aux | grep nginx or systemctl status nginx, ensuring it has not crashed due to misconfiguration or resource exhaustion.\n3. Examine the main configuration file using cat /etc/nginx/nginx.conf to verify the proxy_pass directive points to the correct backend address and port number.\n4. Confirm the backend application is listening on the expected socket with ss -tlnp | grep :8080, validating that the service is actually bound to the interface specified in the proxy config.\n5. Test direct connectivity to the backend by running curl http://127.0.0.1:8080/health to determine if the application itself returns a 200 OK or fails independently of the proxy layer.\n6. Inspect real-time error logs using tail -f /var/log/nginx/error.log to identify specific failure reasons such as connection refused, timeout, or invalid header responses from upstream servers.\n7. Check system resource limits with free -m and top to ensure",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

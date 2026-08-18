@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenClaw Qwen3.8 27B work-balanced 112K (primary)
+After=network-online.target
+Wants=network-online.target
+Conflicts=openclaw-qwen36-mtp4-128k.service
+
+[Service]
+Type=simple
+User=hhtele
+WorkingDirectory=/home/hhtele/qwen38-27b-4090-20260818
+ExecStart=/home/hhtele/qwen38-27b-4090-20260818/launch/production-18343.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/llama/openclaw-qwen38-work-64k.log
+StandardError=append:/var/log/llama/openclaw-qwen38-work-64k.err.log
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

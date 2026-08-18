@@ -1,0 +1,55 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.193210162222385,
+  "prompt_tokens": 109,
+  "completion_tokens": 248,
+  "reasoning_tokens_approx": 206,
+  "content_tokens_approx": 28,
+  "prompt_ms": 209.181,
+  "predicted_ms": 3817.98,
+  "ttft_ms": 209.181,
+  "decode_tokens_per_s": 64.95581433113846,
+  "effective_content_tok_s": 6.677461638402619,
+  "draft_n": 248,
+  "draft_n_accepted": 154,
+  "draft_acceptance_rate": 0.6209677419354839,
+  "cache_n": 28,
+  "timings": {
+    "cache_n": 28,
+    "prompt_n": 81,
+    "prompt_ms": 209.181,
+    "prompt_per_token_ms": 2.582481481481482,
+    "prompt_per_second": 387.2244611126249,
+    "predicted_n": 248,
+    "predicted_ms": 3817.98,
+    "predicted_per_token_ms": 15.457408906882591,
+    "predicted_per_second": 64.6938957249645,
+    "draft_n": 248,
+    "draft_n_accepted": 154
+  },
+  "usage": {
+    "completion_tokens": 248,
+    "prompt_tokens": 109,
+    "total_tokens": 357,
+    "prompt_tokens_details": {
+      "cached_tokens": 28
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"}",
+  "reasoning_content": "We need answer user's request. Need produce final JSON only with single field code containing full fixed function. No extra text.\n\nUser asks: Fix Python function. Return JSON only with single field code containing full fixed function. Do not mutate input list. Handle k<=0 return empty list and k larger than len(items). Use sorted(..., reverse=True).\n\nOriginal:\ndef top_k(items, k):\n    items.sort(reverse=True)\n    return items[:k]\n\nFixed:\ndef top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n\nIf k larger than len, slice returns all. Need JSON string with code field. Ensure valid JSON. Could include newline escapes? Better raw JSON object: {\"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"}\n\nNeed only JSON. final.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "ok",
+  "format_pass": true,
+  "parsed": {
+    "code": "def top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n"
+  },
+  "suite": "s2"
+}

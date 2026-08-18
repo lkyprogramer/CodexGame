@@ -1,0 +1,61 @@
+# speed_2048_r3
+
+- http: `200`
+- task_pass: `True`
+- elapsed_s: `53.69324245210737`
+- decode_tok_s: `38.33493483388647`
+- acceptance: `None`
+- empty_content: `False`
+- think_leak: `False`
+- junk: `False` (None)
+- finish: `length`
+- prompt/completion: `75` / `2048`
+- reasoning_tokens_approx: `0`
+
+## Content
+
+```text
+1. Verify the immediate client response and headers. Open a terminal on the client machine and run curl -v http://localhost:8080/api/health to observe the raw exchange. Look specifically for the Server header, which often identifies the reverse proxy or load balancer returning the 502. If the header says nginx, focus your investigation on the Nginx configuration. If it says Apache, check mod_proxy. If it says HAProxy, inspect the frontend and backend definitions. Note the X-Request-ID if present; this string is crucial for correlating logs across multiple services later in the debugging process.
+
+2. Check the status of the upstream application service. Determine which port your web server expects the backend to listen on. Common defaults are 8080, 3000, or 5000. Run ss -tlnp | grep :8080 to see if any process is bound to that port. If the output is empty, the application is not running or has crashed. If a process is listed, note its PID. You can then inspect the process state with ps aux | grep <PID>. Look for zombie states or high CPU usage that might indicate a hang rather than a complete failure.
+
+3. Inspect the web server error logs. For Nginx, the default error log location is /var/log/nginx/error.log. Run tail -f /var/log/nginx/error.log and trigger a request using curl. Look for lines containing "connect() failed" or "upstream prematurely closed connection". These messages indicate that the proxy attempted to reach the backend but failed at the network layer. If you see "no live upstreams," it means all defined backends are marked as down, likely due to previous health check failures or manual maintenance modes.
+
+4. Validate the web server configuration syntax. Before making changes, ensure the current configuration is valid. For Nginx, run nginx -t. This command parses the configuration files and checks for syntax errors without reloading the service. If there are errors, fix them in /etc/nginx/sites-available/default or similar locations. After fixing, reload with systemctl reload nginx. A misconfigured proxy_pass directive, such as a typo in the IP address or port, is a frequent cause of 502 errors that will only appear after a reload if the config was recently edited.
+
+5. Test direct connectivity to the backend application. Bypass the reverse proxy entirely to isolate the issue. Run curl -v http://127.0.0.1:8080/health from the same host running the web server. If this command succeeds and returns a 200 OK, the problem lies in how the web server is communicating with the backend, not the backend itself. If this command fails with "Connection refused," the backend application is down or listening on a different interface. If it hangs, the backend is overloaded or stuck in an infinite loop.
+
+6. Examine firewall rules and network interfaces. Run iptables -L -n to check for any DROP or REJECT rules that might block local traffic, although this is less common for localhost communication. Verify that the backend is listening on 127.0.0.1 or 0.0.0.0 as expected. If the backend binds only to a specific external IP and the proxy tries to connect via localhost, the connection will fail. Use ifconfig or ip addr to confirm the correct interface addresses are available.
+
+7. Check for resource exhaustion on the server. A 502 can occur if the system is out of memory or file descriptors. Run free -h to check available RAM and swap. If swap usage is high, the backend might be swapping heavily, causing timeouts. Run ulimit -n to see the maximum number of open files. If your application opens many connections, it might hit this limit. Check dmesg | tail -20 for kernel messages indicating out-of-memory kills (OOM killer) that might have terminated your backend process silently.
+
+8. Analyze application-specific logs. Locate the log files for your backend service. For a Node.js app, these might be in /var/log/app/node.log or stdout captured by systemd. Run journalctl -u my-app.service --since "5 minutes ago" to view recent system journal entries. Look for stack traces, unhandled exceptions, or database connection errors. A 502 is often a symptom of the backend crashing during request processing due to an unhandled exception that terminates the worker process.
+
+9. Verify health check endpoints and timeouts. Many proxies use active health checks to determine if a backend is alive. Check your proxy configuration for health_check intervals and thresholds. If the backend takes longer than the timeout to respond to a health check, it will be marked as down. Run time curl http://127.0.0.1:8080/health to measure response time. If it exceeds the configured timeout (e.g., 5 seconds), adjust the proxy timeout or optimize the backend health check endpoint to respond faster without heavy database queries.
+
+10. Inspect SSL/TLS termination configurations. If your setup involves TLS termination at the proxy, ensure that the upstream connection is correctly defined as HTTP or HTTPS. A common mistake is configuring proxy_pass https://backend:8080 when the backend only speaks plain HTTP on port 8080. This causes a protocol mismatch, resulting in immediate connection resets and 502 errors. Verify the certificate validity if using HTTPS upstreams with openssl s_client -connect backend:443.
+
+11. Check for IP address conflicts or DNS resolution issues. If your proxy_pass uses a hostname instead of an IP address, ensure that DNS resolution is working correctly on the server. Run dig backend-hostname to verify it resolves to the correct internal IP. If you are using Docker or Kubernetes, check if the service discovery names are resolving correctly within the container network. A failed DNS lookup will prevent the proxy from establishing a connection to the upstream.
+
+12. Review recent system changes and deployments. Check your deployment logs or git history for recent changes to the application code or configuration. Run git log --oneline -5 in your application repository to see the latest commits. If a recent deployment introduced a bug that causes the app to crash on startup, the 502 will persist until you roll back. Use your CI/CD system logs to identify when the last successful deploy occurred and compare it with the time the 502 errors started appearing in the access logs.
+
+13. Examine connection pool settings and limits. Some proxies limit the number of concurrent connections to upstream servers. If this limit is reached, new requests may be rejected or queued, leading to timeouts and 502s. Check your configuration for max_conns or similar parameters. Monitor active connections using ss -s to see if you are hitting system-level TCP connection limits. Adjust the pool size if necessary, ensuring it does not exceed the backend's ability to handle concurrent requests.
+
+14. Test with a minimal static response. To isolate whether the issue is application logic or infrastructure, temporarily configure the proxy to return a static 200 OK response instead of passing traffic to the backend. In Nginx, you can add return 200 "Test"; in the location block. If this works, the proxy is functioning correctly, and the problem is definitively with the upstream application or network path. This step helps rule out complex proxy configuration errors that might only manifest under specific request conditions.
+
+15. Check for IPv6 vs IPv4 mismatches. If your backend binds to ::1 (IPv6 localhost) but your proxy attempts to connect to 127.0.0.1 (IPv4 localhost), the connection will fail. Ensure that the IP address used in the proxy_pass directive matches the protocol family of the backend binding. You can force IPv4 by explicitly using 127.0.0.1 or IPv6 by using ::1, but consistency is key. Run ip addr to confirm which addresses are actually assigned to the loopback interface.
+
+16. Investigate load balancer stickiness and session issues. If you have multiple backend instances behind a load balancer, a 502 might occur if one instance fails while others are healthy. Check the health status of all backends in your load balancer dashboard or configuration. If using session affinity, ensure that the backend holding the user's session is not down. A failed session lookup can sometimes result in a 502 if the application cannot re-establish the connection to the correct node.
+
+17. Monitor disk I/O and latency. High disk I/O can cause applications to slow down significantly, leading to proxy timeouts. Run iostat -x 1 5 to observe disk utilization and await times. If %util is consistently near 100% and await times are high, the backend might be struggling with database queries or file operations. This performance degradation can manifest as 502 errors even if the application is technically running. Consider optimizing database indexes or moving slow queries to asynchronous processes.
+
+18. Verify environment variables and configuration files. Ensure that the backend application has access to all necessary environment variables, such as DATABASE_URL, API_KEYS, or SECRET_TOKENS. Missing or incorrect environment variables can cause the application to fail during initialization or when processing requests. Check your systemd service file for EnvironmentFile directives or Docker Compose env_file settings. Run cat /proc/<PID>/environ | tr '\0' '\n' to inspect the actual environment of the running process.
+
+19. Check for port conflicts with other services. Ensure that no other service is inadvertently binding to the port your backend expects, or that the backend is not trying to bind to a port already in use by another process. Run lsof -i :8080 to list all processes using
+```
+
+## Reasoning
+
+```text
+
+```

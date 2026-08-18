@@ -1,0 +1,55 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.4907032903283834,
+  "prompt_tokens": 109,
+  "completion_tokens": 229,
+  "reasoning_tokens_approx": 184,
+  "content_tokens_approx": 29,
+  "prompt_ms": 208.092,
+  "predicted_ms": 4121.602,
+  "ttft_ms": 208.092,
+  "decode_tokens_per_s": 55.56092024411867,
+  "effective_content_tok_s": 6.457785813295041,
+  "draft_n": 194,
+  "draft_n_accepted": 133,
+  "draft_acceptance_rate": 0.6855670103092784,
+  "cache_n": 28,
+  "timings": {
+    "cache_n": 28,
+    "prompt_n": 81,
+    "prompt_ms": 208.092,
+    "prompt_per_token_ms": 2.5690370370370372,
+    "prompt_per_second": 389.25090825211925,
+    "predicted_n": 229,
+    "predicted_ms": 4121.602,
+    "predicted_per_token_ms": 18.077201754385964,
+    "predicted_per_second": 55.31829613824916,
+    "draft_n": 194,
+    "draft_n_accepted": 133
+  },
+  "usage": {
+    "completion_tokens": 229,
+    "prompt_tokens": 109,
+    "total_tokens": 338,
+    "prompt_tokens_details": {
+      "cached_tokens": 28
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\n  \"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"\n}",
+  "reasoning_content": "We need answer user's request. Need produce final JSON only with single field code containing full fixed function. Must not mutate input list. Handle k<=0 return empty list, k larger than len(items). Use sorted(..., reverse=True). Need likely Python code string. Ensure JSON valid. Function:\ndef top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n\nIf k larger than len, slice handles. Could also not copy? sorted returns new list. Good.\nNeed output JSON only. {\"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"}\nEnsure no extra text. Could include type hints? no need. Single field code. JSON string escape newline. final only JSON.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "ok",
+  "format_pass": true,
+  "parsed": {
+    "code": "def top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n"
+  },
+  "suite": "s2"
+}

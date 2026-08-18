@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.9659617049619555,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 286,
+  "prompt_ms": 257.719,
+  "predicted_ms": 4701.707,
+  "ttft_ms": 257.719,
+  "decode_tokens_per_s": 54.44830994360132,
+  "effective_content_tok_s": 57.59206715473273,
+  "draft_n": 417,
+  "draft_n_accepted": 150,
+  "draft_acceptance_rate": 0.3597122302158273,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 74,
+    "prompt_ms": 257.719,
+    "prompt_per_token_ms": 3.482689189189189,
+    "prompt_per_second": 287.1344371194984,
+    "predicted_n": 256,
+    "predicted_ms": 4701.707,
+    "predicted_per_token_ms": 18.438066666666668,
+    "predicted_per_second": 54.235621232884135,
+    "draft_n": 417,
+    "draft_n_accepted": 150
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify connectivity using curl -v http://localhost:8080/health to inspect response headers and connection state immediately.\n2. Check active network listeners with netstat -tlnp | grep :8080 to confirm the upstream service is bound correctly.\n3. Review proxy logs via tail -f /var/log/nginx/error.log to identify specific upstream timeout or connection refused errors.\n4. Test backend health directly using curl http://localhost:3000/status to isolate whether the issue lies in the app or proxy.\n5. Inspect system resource limits with free -m and top -bn1 | head -20 to rule out memory exhaustion or high CPU load.\n6. Validate DNS resolution if external services are involved by running nslookup upstream-service.example.com from the container shell.\n7. Check firewall rules using iptables -L -n | grep DROP to ensure no packet filtering is blocking internal communication paths.\n8. Examine process status with ps aux | grep java to verify the backend application process is actually running and not crashed.\n9. Review recent kernel messages via dmesg -T | tail -20 to detect any network interface errors or dropped packet warnings.\n10. Confirm",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

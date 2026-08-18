@@ -1,0 +1,53 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 5.752615545876324,
+  "prompt_tokens": 108,
+  "completion_tokens": 424,
+  "reasoning_tokens_approx": 301,
+  "content_tokens_approx": 129,
+  "prompt_ms": 202.173,
+  "predicted_ms": 5405.158,
+  "ttft_ms": 202.173,
+  "decode_tokens_per_s": 78.44359036313092,
+  "effective_content_tok_s": 22.424582169839546,
+  "draft_n": 414,
+  "draft_n_accepted": 248,
+  "draft_acceptance_rate": 0.5990338164251208,
+  "cache_n": 28,
+  "timings": {
+    "cache_n": 28,
+    "prompt_n": 80,
+    "prompt_ms": 202.173,
+    "prompt_per_token_ms": 2.5271625,
+    "prompt_per_second": 395.7007117666553,
+    "predicted_n": 424,
+    "predicted_ms": 5405.158,
+    "predicted_per_token_ms": 12.778151300236408,
+    "predicted_per_second": 78.25858189529335,
+    "draft_n": 414,
+    "draft_n_accepted": 248
+  },
+  "usage": {
+    "completion_tokens": 424,
+    "prompt_tokens": 108,
+    "total_tokens": 532,
+    "prompt_tokens_details": {
+      "cached_tokens": 28
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"Reducing turnTimeoutMs from 45_000 to 5_000 may cause premature turn timeouts under normal latency, AI processing, or slow client conditions.\",\n    \"This is a significant behavioral change that can affect gameplay reliability and may require coordinated client, server, or game-flow updates.\"\n  ],\n  \"safe_fix\": \"Revert to turnTimeoutMs: 45_000, or make the timeout configurable with a documented default and verify that 5_000 is safe for the worst-case turn duration.\"\n}",
+  "reasoning_content": "We need answer to user: Review diff and return JSON with fields severity, findings, safe_fix. No markdown fences. Need produce valid JSON only. Need analyze diff: in config.ts turnTimeoutMs changed from 45000 to 5000. Severity? Probably high/medium? It's a significant reduction in turn timeout from 45s to 5s. Could cause timeouts in legitimate gameplay, network delays, AI, etc. Need findings array maybe strings. safe_fix maybe revert to 45_000 unless intentional; or make configurable with sensible default. Need only JSON. Ensure no markdown. Could include severity \"medium\" or \"high\". I'd say \"high\" if production and may break game. Findings: \"Reducing turnTimeoutMs from 45_000 to 5_000 may cause premature turn timeouts under normal latency, AI processing, or slow client conditions.\", \"This is a behavioral change that can affect gameplay reliability and may require coordinated client/server updates.\" safe_fix: \"Revert to turnTimeoutMs: 45_000 or make the timeout configurable with a documented default and validate that 5_000 satisfies worst-case turn duration.\" Need JSON fields exactly severity, findings, safe_fix. Maybe findings can be array. Ensure valid JSON. No fences. final only JSON.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "{\"severity\": \"high\", \"findings\": [\"reducing turntimeoutms from 45_000 to 5_000 may cause premature turn timeouts under normal latency, ai processing, or slow client conditions.\", \"this is a significant behavioral change that can affect gameplay reliability and may require coordinated client, server,",
+  "format_pass": true,
+  "suite": "s4",
+  "repeat": 1
+}

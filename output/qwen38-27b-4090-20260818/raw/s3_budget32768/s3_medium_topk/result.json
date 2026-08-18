@@ -1,0 +1,56 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 3.291586883366108,
+  "prompt_tokens": 109,
+  "completion_tokens": 242,
+  "reasoning_tokens_approx": 207,
+  "content_tokens_approx": 29,
+  "prompt_ms": 249.242,
+  "predicted_ms": 3033.399,
+  "ttft_ms": 249.242,
+  "decode_tokens_per_s": 79.77849270735568,
+  "effective_content_tok_s": 8.81034012699171,
+  "draft_n": 250,
+  "draft_n_accepted": 147,
+  "draft_acceptance_rate": 0.588,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 109,
+    "prompt_ms": 249.242,
+    "prompt_per_token_ms": 2.286623853211009,
+    "prompt_per_second": 437.3259723481596,
+    "predicted_n": 242,
+    "predicted_ms": 3033.399,
+    "predicted_per_token_ms": 12.586717842323651,
+    "predicted_per_second": 79.44882951435008,
+    "draft_n": 250,
+    "draft_n_accepted": 147
+  },
+  "usage": {
+    "completion_tokens": 242,
+    "prompt_tokens": 109,
+    "total_tokens": 351,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\n  \"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"\n}",
+  "reasoning_content": "We need answer user's request. Need produce JSON only with single field code containing full fixed function. Need fix Python function. Requirements: Do not mutate input list. Handle k<=0 return empty list and k larger than len(items). Use sorted(..., reverse=True). So code:\ndef top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\nNeed ensure JSON valid, code string maybe with newline escapes. Only JSON no markdown. Could include full fixed function. Need maybe handle k larger than len automatically slicing returns all. Need maybe if items not list? probably list. Return JSON only. Ensure code field exactly. Need not include analysis. Final JSON:\n{\"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"}\nCheck JSON only. OK.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "ok",
+  "format_pass": true,
+  "parsed": {
+    "code": "def top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n"
+  },
+  "suite": "s3",
+  "profile": "medium"
+}

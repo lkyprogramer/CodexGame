@@ -1,0 +1,73 @@
+From: CodexGame 2026-08-18
+Subject: reserve content tokens when reasoning shares max_tokens
+
+--- tools/server/server-schema.cpp.bak-20260818	2026-08-18 02:22:32.057901224 -0400
++++ tools/server/server-schema.cpp	2026-08-18 02:22:32.409901370 -0400
+@@ -2,6 +2,8 @@
+ 
+ #include "json-schema-to-grammar.h"
+ 
++#include <algorithm>
++
+ namespace server_schema {
+ 
+ //
+@@ -553,6 +555,28 @@
+         params.chat_parser_params.reasoning_in_content = params.stream && (reasoning_format == COMMON_REASONING_FORMAT_DEEPSEEK_LEGACY);
+     }
+ 
++    // Thinking and the visible answer share n_predict / max_tokens. If the
++    // client sends a small budget (common for agents), leave room so content
++    // is not empty when reasoning is cut. toast.eth / community: budget must
++    // be strictly less than the output cap.
++    if (params.n_predict > 0 && params.sampling.reasoning_budget_tokens != 0) {
++        int reserve = 256;
++        if (params.n_predict <= 64) {
++            reserve = std::max(16, params.n_predict / 2);
++        } else if (params.n_predict <= 512) {
++            reserve = std::max(64, params.n_predict / 4);
++        } else {
++            reserve = std::min(1024, std::max(256, params.n_predict / 4));
++        }
++        const int cap = std::max(0, params.n_predict - reserve);
++        int budget = params.sampling.reasoning_budget_tokens;
++        if (budget < 0 || budget > cap) {
++            params.sampling.reasoning_budget_tokens = cap;
++            SRV_INF("clamp reasoning_budget_tokens %d -> %d (n_predict=%d reserve=%d)\n",
++                    budget, cap, params.n_predict, reserve);
++        }
++    }
++
+     // debugging
+     {
+         auto budget = params.sampling.reasoning_budget_tokens;
+
+--- tools/server/server-context.cpp.bak-20260818	2026-08-18 02:22:32.057901224 -0400
++++ tools/server/server-context.cpp	2026-08-18 02:22:32.457901390 -0400
+@@ -1825,6 +1825,26 @@
+                     slot.prompt.n_tokens(), slot.task->n_tokens(), (int) slot.stats.n_gen, slot.n_ctx);
+         }
+ 
++        // Force-close thinking before max_tokens so the remaining tokens can
++        // become visible content. No-op if the budget sampler is idle/done.
++        if (slot.smpl && slot.has_next_token && slot.n_predict_max > 0) {
++            const int n_left = slot.n_remaining();
++            int reserve = 256;
++            if (slot.n_predict_max <= 64) {
++                reserve = std::max(16, slot.n_predict_max / 2);
++            } else if (slot.n_predict_max <= 512) {
++                reserve = std::max(64, slot.n_predict_max / 4);
++            } else {
++                reserve = std::min(1024, std::max(256, slot.n_predict_max / 4));
++            }
++            if (n_left >= 0 && n_left <= reserve) {
++                if (common_sampler_reasoning_budget_force(slot.smpl.get())) {
++                    SLT_INF(slot, "forced reasoning end, n_left=%d reserve=%d n_predict=%d\n",
++                            n_left, reserve, slot.n_predict_max);
++                }
++            }
++        }
++
+         // check the limits
+         if (slot.stats.n_gen > 0 && slot.has_next_token && !slot.has_budget()) {
+             slot.stop           = STOP_TYPE_LIMIT;

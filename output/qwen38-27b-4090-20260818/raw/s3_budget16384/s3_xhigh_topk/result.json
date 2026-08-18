@@ -1,0 +1,56 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.269692818634212,
+  "prompt_tokens": 147,
+  "completion_tokens": 300,
+  "reasoning_tokens_approx": 254,
+  "content_tokens_approx": 27,
+  "prompt_ms": 222.536,
+  "predicted_ms": 3857.832,
+  "ttft_ms": 222.536,
+  "decode_tokens_per_s": 77.76388396384291,
+  "effective_content_tok_s": 6.323639930761284,
+  "draft_n": 366,
+  "draft_n_accepted": 177,
+  "draft_acceptance_rate": 0.48360655737704916,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 147,
+    "prompt_ms": 222.536,
+    "prompt_per_token_ms": 1.5138503401360544,
+    "prompt_per_second": 660.5672790020492,
+    "predicted_n": 300,
+    "predicted_ms": 3857.832,
+    "predicted_per_token_ms": 12.902448160535117,
+    "predicted_per_second": 77.50467101729676,
+    "draft_n": 366,
+    "draft_n_accepted": 177
+  },
+  "usage": {
+    "completion_tokens": 300,
+    "prompt_tokens": 147,
+    "total_tokens": 447,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\"code\":\"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\"}",
+  "reasoning_content": "We need answer user: Fix Python function. Return JSON only with single field code containing full fixed function. Requirements: Do not mutate input list. Handle k<=0 return empty list. Handle k larger than len(items). Use sorted(..., reverse=True). Need output JSON only. Need produce final with {\"code\": \"...\"}. Ensure code full fixed function. Probably:\ndef top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\nIf k > len, slice returns all, okay. But if k is not int? Not specified. Could use max? No. Need handle k larger than len. Slice handles. Maybe if k is None? no. Use sorted. Ensure not mutate. JSON valid: escape newlines or code string with \\n. Could output minified. Need only JSON. Let's craft:\n{\"code\":\"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\"}\nNeed maybe if k > len(items), no issue. If k negative slice would return weird? we handle. If k is not comparable? okay.\nCheck JSON only. No markdown. final.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "ok",
+  "format_pass": true,
+  "parsed": {
+    "code": "def top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]"
+  },
+  "suite": "s3",
+  "profile": "xhigh"
+}

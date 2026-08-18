@@ -1,0 +1,15 @@
+{
+  "http": 200,
+  "elapsed": 9.510616891086102,
+  "content": "{\n  \"severity\": \"high\",\n  \"findings\": [\n    {\n      \"id\": \"CFG-001\",\n      \"location\": \"apps/game-runtime/src/runtime/config.ts\",\n      \"description\": \"turnTimeoutMs reduced from 45,000 ms (45 s) to 5,000 ms (5 s). A 5-second window is impractically short for a player turn: it does not account for network latency, UI interaction time, or strategic decision-making. This will cause frequent forced/auto-turns, player frustration, and potential mid-action state corruption if a timeout fires while the player is mid-input.\",\n      \"risk\": \"Likely a typo (e.g., intended 50_000 but dropped a zero / misplaced the underscore). As-is, it breaks the core gameplay loop for every user.\"\n    }\n  ],\n  \"safe_fix\": \"Revert the value to the previous 45_000. If the intent was to *increase* the timeout to 50 s, use 50_000. Either way, validate the value against the product spec for turn duration before merging.\\n\\n  // apps/game-runtime/src/runtime/config.ts\\n  turnTimeoutMs: 45_000,  // ← restore original (or 50_000 if 50 s is the intended new value)\\n\\nAdditionally, add a unit/integration test that asserts turnTimeoutMs is within a reasonable range (e.g., ≥ 10_000) to catch similar regressions in the future.\"\n}",
+  "empty": false,
+  "finish": "stop",
+  "completion": 731,
+  "reason_len": 1504,
+  "content_len": 1211,
+  "tool_calls": [],
+  "id": "hidden_timeout",
+  "pass": true,
+  "detail": "{\"severity\": \"high\", \"findings\": [{\"id\": \"cfg-001\", \"location\": \"apps/game-runtime/src/runtime/confi",
+  "reasoning_head": "The user wants me to review a diff and return JSON with fields: severity, findings, safe_fix.\n\nThe diff shows a change in a game runtime config file where `turnTimeoutMs` is changed from 45_000 (45 seconds) to 5_000 (5 seconds).\n\nLet me analyze this:\n\n1. **What changed:** The turn timeout for a game runtime was reduced from 45 seconds to 5 seconds.\n\n2. **Impact:**\n   - 5 seconds is extremely short for a game turn timeout. Most games (especially strategy games, turn-based games) give players much"
+}

@@ -1,0 +1,56 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 2.737827716395259,
+  "prompt_tokens": 109,
+  "completion_tokens": 209,
+  "reasoning_tokens_approx": 160,
+  "content_tokens_approx": 29,
+  "prompt_ms": 200.58,
+  "predicted_ms": 2528.9,
+  "ttft_ms": 200.58,
+  "decode_tokens_per_s": 82.64462809917354,
+  "effective_content_tok_s": 10.592339257264383,
+  "draft_n": 207,
+  "draft_n_accepted": 128,
+  "draft_acceptance_rate": 0.6183574879227053,
+  "cache_n": 28,
+  "timings": {
+    "cache_n": 28,
+    "prompt_n": 81,
+    "prompt_ms": 200.58,
+    "prompt_per_token_ms": 2.4762962962962964,
+    "prompt_per_second": 403.8288962010171,
+    "predicted_n": 209,
+    "predicted_ms": 2528.9,
+    "predicted_per_token_ms": 12.158173076923077,
+    "predicted_per_second": 82.24919925659377,
+    "draft_n": 207,
+    "draft_n_accepted": 128
+  },
+  "usage": {
+    "completion_tokens": 209,
+    "prompt_tokens": 109,
+    "total_tokens": 318,
+    "prompt_tokens_details": {
+      "cached_tokens": 28
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\n  \"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"\n}",
+  "reasoning_content": "We need answer user's request. Need produce JSON only with single field code containing full fixed function. Need not mutate input list. Handle k<=0 return empty list. k larger than len(items) (slice handles but we can just return sorted list[:k]). Use sorted(..., reverse=True). Need likely preserve input list type? items could iterable? But says input list. Fixed:\ndef top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\nJSON only: {\"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\\n\"}\nNeed ensure valid JSON. No extra. Final only JSON.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "ok",
+  "format_pass": true,
+  "parsed": {
+    "code": "def top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n"
+  },
+  "suite": "s3",
+  "profile": "medium"
+}

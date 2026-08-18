@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 5.79106458928436,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 253,
+  "prompt_ms": 109.605,
+  "predicted_ms": 5542.271,
+  "ttft_ms": 109.605,
+  "decode_tokens_per_s": 46.19045153151119,
+  "effective_content_tok_s": 43.6879948581725,
+  "draft_n": 198,
+  "draft_n_accepted": 117,
+  "draft_acceptance_rate": 0.5909090909090909,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 109.605,
+    "prompt_per_token_ms": 27.40125,
+    "prompt_per_second": 36.494685461429675,
+    "predicted_n": 256,
+    "predicted_ms": 5542.271,
+    "predicted_per_token_ms": 21.73439607843137,
+    "predicted_per_second": 46.010020080216215,
+    "draft_n": 198,
+    "draft_n_accepted": 117
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Confirm the error persists by running `curl -v http://localhost:8080/` and checking the response headers for upstream details.\n2. Verify the backend service is actually listening on its expected port using `ss -tlnp | grep :8081` or `netstat -an | grep LISTEN`.\n3. Check if the reverse proxy configuration is valid by executing `nginx -t` or `apache2ctl configtest` to rule out syntax errors.\n4. Inspect the reverse proxy error logs immediately using `tail -f /var/log/nginx/error.log` while reproducing the failure.\n5. Test direct connectivity to the backend with `curl -v http://localhost:8081/health` to see if the app itself is responding correctly.\n6. Look for resource exhaustion on the backend by running `top` or `htop` to check CPU and memory usage spikes.\n7. Check if the backend process has crashed or is restarting frequently using `systemctl status myapp.service` or `docker ps -a`.\n8. Review recent backend application logs with `journalctl -u myapp.service -n 50 --no-pager` to find stack traces",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

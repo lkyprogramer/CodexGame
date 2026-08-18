@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.984163864515722,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 250,
+  "prompt_ms": 110.258,
+  "predicted_ms": 4732.478,
+  "ttft_ms": 110.258,
+  "decode_tokens_per_s": 54.09428210759775,
+  "effective_content_tok_s": 50.15886451483891,
+  "draft_n": 508,
+  "draft_n_accepted": 155,
+  "draft_acceptance_rate": 0.3051181102362205,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 110.258,
+    "prompt_per_token_ms": 27.5645,
+    "prompt_per_second": 36.27854668141995,
+    "predicted_n": 256,
+    "predicted_ms": 4732.478,
+    "predicted_per_token_ms": 18.55873725490196,
+    "predicted_per_second": 53.88297631811495,
+    "draft_n": 508,
+    "draft_n_accepted": 155
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify connectivity using `curl -v http://localhost` to check for immediate connection refused errors or successful TCP handshakes.\n2. Inspect proxy logs via `tail -f /var/log/nginx/error.log` or equivalent Apache logs to identify upstream timeout or reset messages.\n3. Confirm backend process status with `systemctl status myapp` and review recent journal entries using `journalctl -u myapp -n 50 --no-pager`.\n4. Check port listening state via `ss -tlnp | grep :8080` to ensure the application is bound to the expected interface and port.\n5. Test direct backend access by running `curl http://127.0.0.1:8080/health` to isolate proxy issues from application failures.\n6. Examine firewall rules using `sudo iptables -L -n` or `ufw status verbose` to rule out local packet dropping between proxy and app.\n7. Review resource limits with `top` or `htop` to detect CPU spikes, high memory usage, or OOM killer activity terminating the service.\n8. Check disk space via `df -h /` and inode usage with `df",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

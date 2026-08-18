@@ -1,0 +1,51 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 4.723430803976953,
+  "prompt_tokens": 74,
+  "completion_tokens": 256,
+  "reasoning_tokens_approx": 0,
+  "content_tokens_approx": 265,
+  "prompt_ms": 110.32,
+  "predicted_ms": 4471.285,
+  "ttft_ms": 110.32,
+  "decode_tokens_per_s": 57.25423452094868,
+  "effective_content_tok_s": 56.103288265995104,
+  "draft_n": 289,
+  "draft_n_accepted": 140,
+  "draft_acceptance_rate": 0.4844290657439446,
+  "cache_n": 70,
+  "timings": {
+    "cache_n": 70,
+    "prompt_n": 4,
+    "prompt_ms": 110.32,
+    "prompt_per_token_ms": 27.58,
+    "prompt_per_second": 36.25815808556926,
+    "predicted_n": 256,
+    "predicted_ms": 4471.285,
+    "predicted_per_token_ms": 17.534450980392155,
+    "predicted_per_second": 57.03058516735122,
+    "draft_n": 289,
+    "draft_n_accepted": 140
+  },
+  "usage": {
+    "completion_tokens": 256,
+    "prompt_tokens": 74,
+    "total_tokens": 330,
+    "prompt_tokens_details": {
+      "cached_tokens": 70
+    }
+  },
+  "finish_reason": "length",
+  "content": "1. Verify the client receives the error by running curl -i http://localhost:8080/health and checking the response headers for Server or X-Powered-By clues.\n2. Check if the load balancer process is alive using ps aux | grep nginx and confirm it is listening on the expected port with ss -tlnp | grep :8080.\n3. Inspect the upstream configuration by running cat /etc/nginx/nginx.conf or checking specific site configs in /etc/nginx/sites-enabled/ to ensure proxy_pass points to the correct backend address and port.\n4. Test direct connectivity to the backend service from the load balancer host using curl -v http://127.0.0.1:3000/health to isolate whether the issue is network-level or application-level.\n5. If the backend is a container, check its status with docker ps and view recent logs using docker logs --tail 50 <container_id> to identify crash loops or startup failures.\n6. Examine system resource limits by running free -m for memory pressure and df -h for disk space, as full disks often cause silent service failures leading to 502s.\n7. Review the load",
+  "reasoning_content": "",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "speed-256",
+  "suite": "s2"
+}

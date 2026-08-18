@@ -1,0 +1,56 @@
+{
+  "ok_http": true,
+  "http_status": 200,
+  "elapsed_s": 3.5583555633202195,
+  "prompt_tokens": 109,
+  "completion_tokens": 289,
+  "reasoning_tokens_approx": 248,
+  "content_tokens_approx": 28,
+  "prompt_ms": 250.639,
+  "predicted_ms": 3296.982,
+  "ttft_ms": 250.639,
+  "decode_tokens_per_s": 87.65592290161123,
+  "effective_content_tok_s": 7.868803300217094,
+  "draft_n": 316,
+  "draft_n_accepted": 192,
+  "draft_acceptance_rate": 0.6075949367088608,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 109,
+    "prompt_ms": 250.639,
+    "prompt_per_token_ms": 2.299440366972477,
+    "prompt_per_second": 434.88842518522654,
+    "predicted_n": 289,
+    "predicted_ms": 3296.982,
+    "predicted_per_token_ms": 11.447854166666666,
+    "predicted_per_second": 87.35261520991016,
+    "draft_n": 316,
+    "draft_n_accepted": 192
+  },
+  "usage": {
+    "completion_tokens": 289,
+    "prompt_tokens": 109,
+    "total_tokens": 398,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\n  \"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\"\n}",
+  "reasoning_content": "We need answer user: \"Fix this Python function. Return JSON only with a single field code containing the full fixed function. Do not mutate the input list. Handle k<=0 (return empty list) and k larger than len(items). Use sorted(..., reverse=True).\ndef top_k(items, k):\n    items.sort(reverse=True)\n    return items[:k]\"\n\nNeed output JSON only with field code. Must include full fixed function. Ensure no mutation, handle k <=0 empty list, k larger than len(items). Use sorted(..., reverse=True).\n\nPotential code:\ndef top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]\n\nThis handles k larger: slicing returns all sorted. No mutation. JSON only: {\"code\": \"def top_k(items, k):\\n    if k <= 0:\\n        return []\\n    return sorted(items, reverse=True)[:k]\"}.\n\nNeed be careful JSON string escaping. Only JSON no markdown. Could include newline escaped. Ensure valid. Maybe add docstring? Full fixed function only, not necessary.\n\nFinal must be JSON only.\n",
+  "tool_calls": [],
+  "empty_content": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "junk_repeat": false,
+  "junk_reason": null,
+  "task_pass": true,
+  "task_detail": "ok",
+  "format_pass": true,
+  "parsed": {
+    "code": "def top_k(items, k):\n    if k <= 0:\n        return []\n    return sorted(items, reverse=True)[:k]"
+  },
+  "suite": "s3",
+  "profile": "medium"
+}
