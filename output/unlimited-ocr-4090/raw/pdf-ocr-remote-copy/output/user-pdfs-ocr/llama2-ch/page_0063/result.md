@@ -1,0 +1,10 @@
+![](images/0.jpg)
+
+图 28: GAtt zero-shot generalisation. Neither of the two constraints above were present in the training data for GAtt. Yet, they are perfectly fulfilled trough all the turns.
+GAtt Zero-shot Generalisation. We tried at inference time to set constrain not present in the training of GAtt. For instance, “answer in one sentence only”, for which the model remained consistent, as illustrated in Figure 28.
+We applied first GAtt to LLAMA 1, which was pretrained with a context length of 2048 tokens and then fine-tuned with 4096 max length. We tested if GAtt works beyond 2048 tokens, and the model arguably managed to understand attributes beyond this window. This promising result indicates that GAtt could be adapted as an efficient technique for long context attention.
+A.3.6 How Far Can Model-Based Evaluation Go?
+To measure the robustness of our reward model, we collected a test set of prompts for both helpfulness and safety, and asked annotators to judge quality of the answers based on a 7 point Likert-scale (the higher the better) using triple reviews. As illustrated in Figure 29 (in Appendix), we observe that our reward models overall are well calibrated with human preference. Note that this enables us to use the reward as a point-wise metric, despite being trained with a Pairwise Ranking Loss.
+A.3.7 Human Evaluation
+Prompts and Generations. To compare the models, we collect a diverse set of over 4000 single and multi turn prompts. We manually collected single turn prompts spanning the following categories: factual questions, writing and content creation, language assistance, recommendations, and dialogue. For multi-turn prompts, annotators interacted with another model to generate a set of multi-turn prompts. To help ensure fairness, we asked annotators to collect multi-turn prompts by using four different interaction methods: (a) ChatGPT
+63

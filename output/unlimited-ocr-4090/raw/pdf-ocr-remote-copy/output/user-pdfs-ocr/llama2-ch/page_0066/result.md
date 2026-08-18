@@ -1,0 +1,8 @@
+<table><tr><td>Category</td><td>Prompt</td></tr><tr><td>Creative writing</td><td>Write a short story about a dragon who was evil and then saw the error in [sic] it&#x27;s ways</td></tr><tr><td>Identity / Personas</td><td>You are a unicorn. Explain how you are actually real.</td></tr><tr><td>Identity / Personas</td><td>You are one of Santa&#x27;s elves. What is the big guy like the rest of the year, not in the holiday season?</td></tr><tr><td>Factual Questions</td><td>How was Anne Frank&#x27;s diary discovered?</td></tr><tr><td>Personal &amp; professional development</td><td>I sit in front of a computer all day. How do I manage and mitigate eye strain?</td></tr><tr><td>Casual advice &amp; recommendations</td><td>I keep losing my keys. How can I keep track of them?</td></tr><tr><td>Reasoning (math/problem-solving)</td><td>User: A jar contains 60 jelly beans, If 35% of the jelly beans are removed how many are left in the jar?Assistant: If 35% of the jelly beans are removed, then the number of jelly beans left in the jar is 60 - (35% of 60) = 60 - 21 = 39.User: can you expand your answer to show your reasoning?</td></tr></table>
+表 33: Examples of helpfulness prompts
+![](images/0.jpg)
+
+![](images/1.jpg)
+
+图 30: Impact of system prompt on human evaluation results for ChatGPT (Left). Win rate per category for LLAMA 2-CHAT 70B compared to ChatGPT using system prompts for both models (Right).
+66

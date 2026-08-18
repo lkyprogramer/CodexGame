@@ -1,0 +1,15 @@
+- Our closest legal, policy, comms, and privacy partners, including Mike Clark, Nisha Deo, Ahuva Goldstand, Amanda Felix, Dustin Holland, Alex Kessler, Mo Metanat, Harrison Rudolph, Adam Shajnfeld, Allie Vieth, Beau James and Polina Zvyagina, who helped guide us through the release.
+- Our partnerships team including Ash Jhaveri, Marc Shedroff, Kelly Michelena, Allie Feinstein, Amit Sangani, Geeta Chauhan, Chester Hu, Charlton Gholson, Eissa Jamil, Anja Komlenovic, Eissa Jamil, Brandon Spence, Azadeh Yazdan, Elisa Garcia Anzano, and Natascha Parks.
+- Chris Marra, Chaya Nayak, Jacqueline Pan, George Orlin, Edward Dowling, Esteban Arcaute, Eleonora Presani, and Logan Kerr, who provided helpful product and technical organization support.
+- Armand Joulin, Edouard Grave, Guillaume Lample, and Timothee Lacroix, members of the original Llama team who helped get this work started.
+- Drew Hamlin, Chantal Mora, and Aran Mun, who gave us some design input on the figures in the paper.
+- Vijai Mohan for the discussions about RLHF that inspired our Figure 20, and his contribution to the internal demo.
+- Early reviewers of this paper, who helped us improve its quality, including Mike Lewis, Joelle Pineau, Laurens van der Maaten, Jason Weston, and Omer Levy.
+A.2 Additional Details for Pretraining
+A.2.1 Architecture Changes Compared to LLAMA 1
+Context Length. We expand the context window for LLAMA 2 from 2048 tokens to 4096 tokens. The longer context window enables models to process more information, which is particularly useful for supporting longer histories in chat applications, various summarization tasks, and understanding longer documents. Table 16 compares the performance of 2k and 4k context pretraining on long-context benchmarks. Both models are trained for 150B tokens, keeping the same architecture and hyperparameters as a baseline, varying only the context length. We observe improvement on SCROLLS (Shaham et al., 2022), where the average input length is 3.5k, and no performance degradation on SQUAD (Rajpurkar et al., 2018). Table 17 shows that the longer context model retains strong performance on various general-purpose tasks.
+<table><tr><td>Context Length</td><td>NarrativeQA (F1)</td><td>Qasper (F1)</td><td>QuALITY (acc)</td><td>QMSum (Rouge 1/2/L)</td><td>ContractNLI (EM)</td><td>SQuAD (EM/F1)</td></tr><tr><td>2k</td><td>0.21</td><td>0.71</td><td>26.1</td><td>0.13/0.01/0.12</td><td>11.76</td><td>57.23/62.89</td></tr><tr><td>4k</td><td>17.26</td><td>18.52</td><td>29.6</td><td>15.08/3.55/12.16</td><td>16.33</td><td>57.99/64.46</td></tr></table>
+sex 16: Context length ablation on long-context tasks.
+<table><tr><td>Context Length</td><td>Hella-Swag (0-shot)</td><td>NQ (64-shot)</td><td>TQA (64-shot)</td><td>GSM8K (8-shot)</td><td>Human-Eval (0-shot)</td></tr><tr><td>2k</td><td>75.1</td><td>25.5</td><td>53.7</td><td>4.9</td><td>7.9</td></tr><tr><td>4k</td><td>74.8</td><td>25.5</td><td>52.2</td><td>6.5</td><td>7.3</td></tr></table>
+ex 17: Context length ablation on general tasks.
+53

@@ -1,0 +1,12 @@
+![](images/0.jpg)
+
+![](images/1.jpg)
+
+图 29: Average reward model score vs model response quality rating (7-point Likert scale) from triple human review. The left and right plots are on helpfulness and safety test sets, respectively. The shaded areas represent  \( \pm1 \)  standard deviation.
+as the interaction model, (b) LLAMA 2-CHAT as the interaction model, (c) best response between ChatGPT and LLAMA 2-CHAT at every turn as selected by the annotators, (d) alternating between ChatGPT and LLAMA 2-CHAT at every turn. We also categorized multi-turn prompts into the same five categories listed above. Since it can be hard to categorize multi-turn prompts into a single category, annotators could select up to two categories for multi-turn prompts. Example evaluation prompts can be seen in Table 33.
+For open-source models, we collect generations using a context length of 1000 tokens and allow the model to generate up to 1000 tokens. Even though LLAMA 2-CHAT models are capable of handling up to 4000 tokens, we limit the context and generation length to 1000 tokens to provide a fair comparison with the open-source models. Limiting the generation length to 1000 tokens may adversely affect the LLAMA 2-CHAT models. Any prompts that are longer than 1000 tokens are filtered out for evaluations with open sourced models. For MPT models, we use the mpt-7b-chat model. For Falcon models, we use the Falcon-40B-Instruct model which is a chat/instruct model. For Vicuna models, we use vicuna-13b-delta-v1.1 and vicuna-33b-delta-v1.3 models from lmsys. All model weights were obtained from HuggingFace.
+Since closed-source models have longer context lengths, we change the context length and generation length to 2000 tokens for these models. To evaluate with closed source models, we collect another set of generations with 2000 context and generation length.
+While collecting generations, we append a system prompt prior to the prompt for evaluation. The system prompt for each model is shown in Table 31. Since ChatGPT, PaLM, and Falcon do not provide a system prompt, we use the same system prompt as LLAMA 2-CHAT model. Generations from different models on an example prompt can be seen in Table 34.
+Evaluation Methodology. For evaluations, the human annotators are presented with a prompt and generations from two models side-by-side. They are asked to answer the following question:
+Considering both model responses, which is better (helpful while also being safe and honest), Model A or Model B?
+64

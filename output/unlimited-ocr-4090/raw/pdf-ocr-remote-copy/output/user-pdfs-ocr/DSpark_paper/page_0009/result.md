@@ -1,0 +1,18 @@
+We first globally sort all valid prefix extensions in descending order of survival probability. To dynamically determine the optimal target batch size B, we incrementally admit tokens from this sorted pool, updating the expected throughput  \( \Theta \)  via an  \( O(1) \)  lookup from the pre-profiled cost table.
+Lossless speculative decoding strictly requires the non-anticipating property: admission decisions must not depend on future candidate tokens (Chen et al., 2023; Leviathan et al., 2023). Because our confidence head relies on the Markov feature of the previously sampled token, computing the next survival probability  \( a_{r,k+1} \)  explicitly requires the instantiated candidate  \( x_{r,k} \) . A retrospective global search would thus inadvertently leak  \( x_{r,k} \)  into the admission decision for step k, introducing selection bias (we provide a concrete counterexample demonstrating this theoretical violation in Appendix A).
+To enforce strict causality, the scheduler (Algorithm 1) employs an early-stopping mechanism. By breaking the greedy search immediately when the throughput drops \((\Theta \leq \Theta_{\mathrm{best}})\), the truncation decision relies solely on the prefix processed up to that exact step. This isolates the admission event from future tokens, ensuring exact target-distribution recovery. Note that this stepwise early-stopping yields the global maximum throughput if and only if the objective \(\Theta\) is unimodal, which implicitly assumes a smoothly decaying hardware capacity curve. We address the engineering adaptations required for real-world, non-smooth SPS characteristics and asynchronous system pipelines in Section 5.2.
+3.3. Training
+During training, we randomly sample multiple anchor positions from each target sequence to form  \( \gamma \) -token blocks as training data. The target model is frozen throughout training; the draft model shares its embedding layer and language modeling head and keeps them frozen, updating only the backbone drafter, sequential block, and confidence head.
+The training objective consists of three terms: a cross-entropy loss  \( L_{ce} \) , a distribution-matching loss  \( L_{tv} \) , and a confidence loss  \( L_{conf} \) . All three are position-weighted by  \( w_{k} = \exp(-(k-1)/\gamma) \)  (Chen et al., 2026), which emphasizes earlier block positions that contribute more to the expected acceptance length under prefix-based verification. The cross-entropy loss  \( L_{ce} \)  trains the drafter to predict the correct next token:
+\[
+\mathcal {L} _ {\mathrm{ce}} = - \sum_ {k = 1} ^ {\gamma} w _ {k} \log p _ {k} ^ {d} (x _ {k} ^ {*}), \tag {9}
+\]
+where  \( x_{k}^{*} \)  is the ground-truth token and  \( p_{k}^{d} \)  is the draft distribution. The distribution-matching loss  \( L_{tv} \)  penalizes the total variation distance between the draft and target distributions:
+\[
+\mathcal {L} _ {\mathrm{tv}} = \sum_ {k = 1} ^ {\gamma} w _ {k} \| p _ {k} ^ {d} - p _ {k} ^ {t} \| _ {1}. \tag {10}
+\]
+Since the total variation distance is a direct proxy for the acceptance rate: the per-step acceptance probability equals  \( 1 - \frac{1}{2} \| p^{d} - p^{t} \|_{1} \)  (Leviathan et al., 2023), minimizing  \( L_{tv} \)  directly maximizes the expected acceptance rate. The confidence loss  \( L_{conf} \)  is a binary cross-entropy that trains the confidence head to predict the soft acceptance label  \( c_{k}^{*} \)  from Equation 8:
+\[
+\mathcal {L} _ {\text {conf}} = - \sum_ {k = 1} ^ {\gamma} w _ {k} \left[ c _ {k} ^ {*} \log c _ {k} + (1 - c _ {k} ^ {*}) \log (1 - c _ {k}) \right]. \tag {11}
+\]
+9
