@@ -1,0 +1,103 @@
+{
+  "case_id": "long_1024_r2",
+  "ok": true,
+  "error": null,
+  "elapsed_s": 16.899022116325796,
+  "prompt_tokens": 84,
+  "completion_tokens": 1024,
+  "prompt_ms": 197.368,
+  "predicted_ms": 16522.227,
+  "prompt_tokens_per_s": 425.60090794860366,
+  "decode_tokens_per_s": 61.97711724938776,
+  "effective_tokens_per_s": 60.59522219399516,
+  "draft_n": 653,
+  "draft_n_accepted": 548,
+  "draft_acceptance_rate": 0.8392036753445635,
+  "cache_n": 27,
+  "timings": {
+    "cache_n": 27,
+    "prompt_n": 57,
+    "prompt_ms": 197.368,
+    "prompt_per_token_ms": 3.4625964912280702,
+    "prompt_per_second": 288.80061610798106,
+    "predicted_n": 1024,
+    "predicted_ms": 16522.227,
+    "predicted_per_token_ms": 16.150759530791788,
+    "predicted_per_second": 61.9165927208239,
+    "draft_n": 653,
+    "draft_n_accepted": 548
+  },
+  "usage": {
+    "completion_tokens": 1024,
+    "prompt_tokens": 84,
+    "total_tokens": 1108,
+    "prompt_tokens_details": {
+      "cached_tokens": 27
+    }
+  },
+  "finish_reason": "length",
+  "content": "Operational Runbook: Diagnosing Java/Spring HTTP 502 Errors\n\n1. Immediate Context and Safety\nA 502 Bad Gateway error indicates that the reverse proxy or load balancer (e.g., Nginx, HAProxy, AWS ALB) received an invalid response from the upstream Java/Spring application. This is distinct from a 503 Service Unavailable, which usually implies the upstream is down or overloaded. A 502 suggests the upstream process is running but failing to communicate correctly, crashing mid-request, or returning malformed data.\n\nBefore executing any commands, verify that you have read-only access to the production environment. Do not restart services or modify configurations until the root cause is isolated. If the error rate is above 5 percent, immediately trigger the rollback procedure in Section 5.\n\n2. Evidence Collection\nGather data from three distinct layers: the edge (proxy), the application (Spring Boot), and the infrastructure (OS/Container).\n\nEdge Layer (Reverse Proxy)\nCheck the access logs and error logs of the load balancer. Look for specific error strings.\n- Connection refused: The Spring app is not listening on the expected port.\n- Connection reset by peer: The Spring app accepted the connection but closed it abruptly.\n- Upstream timed out: The Spring app is taking longer than the proxy timeout allows.\n- Invalid header field value: The Spring app is returning malformed HTTP headers.\n\nApplication Layer (Spring Boot)\nRetrieve the application logs from the last 15 minutes. Focus on the following patterns:\n- OutOfMemoryError: Indicates heap exhaustion.\n- StackOverflowError: Indicates infinite recursion.\n- Connection pool exhaustion: Look for \"Cannot get a connection, pool error\" or HikariCP timeout messages.\n- Unhandled exceptions: Look for 500 status codes in the application logs that correlate with the 502s at the edge.\n\nInfrastructure Layer\nCheck system resources on the host or container.\n- CPU usage: Sustained 100 percent CPU may indicate a busy loop or GC thrashing.\n- Memory usage: Check for OOM killer events in dmesg or system logs.\n- Disk I/O: High I/O wait can cause request timeouts.\n- Network: Check for dropped packets or connection limits (netstat -s).\n\n3. Hypotheses\nBased on the evidence, prioritize the following hypotheses:\n\nHypothesis A: Application Crash or Restart\nThe Spring Boot process is crashing and restarting. During the restart window, the proxy cannot connect.\n- Evidence: Application logs show a shutdown sequence followed by a startup sequence. System logs show process termination.\n- Likelihood: High if errors are intermittent and clustered.\n\nHypothesis B: Thread Pool Exhaustion\nThe Tomcat or Jetty thread pool is full. New requests are queued or rejected.\n- Evidence: Application logs show \"RejectedExecutionException\" or high thread count. Metrics show high active thread count.\n- Likelihood: Medium if errors correlate with traffic spikes.\n\nHypothesis C: Database or Downstream Timeout\nThe Spring app is waiting for a slow database query or external API call, exceeding the proxy timeout.\n- Evidence: Application logs show long execution times for specific endpoints. Database logs show slow queries.\n- Likelihood: High if errors are consistent for specific endpoints.\n\nHypothesis D: Malformed Response\nThe Spring app is returning a response that the proxy cannot parse (e.g., invalid header, missing Content-Length).\n- Evidence: Proxy error logs show \"invalid header\" or \"bad response\". Application logs show successful 200 responses.\n- Likelihood: Low, but possible after a recent code change involving custom headers or filters.\n\nHypothesis E: Resource Exhaustion\nThe JVM is out of memory or the host is out of file descriptors.\n- Evidence: JVM logs show frequent Full GCs. System logs show \"Too many open files\".\n- Likelihood: Medium if errors are persistent and not tied to specific endpoints.\n\n4. Safe Checks\nExecute these checks in order. Do not modify any configuration.\n\nStep 1: Verify Process Status\n- Check if the Java process is running: ps aux | grep java\n- Check if the process is listening on the expected port: netstat -tlnp | grep <port>\n- If the process is not running, check the system logs for OOM killer events: dmesg | grep -i oom\n\nStep 2: Check JVM Health\n- If JMX is enabled, connect to the JVM and check:\n  - Heap usage: Is it near 100 percent?\n  - Thread count: Is it near the maximum?\n  - GC activity: Are Full GCs occurring frequently?\n- If JMX is not available, check the GC logs (if enabled) for long pause times.\n\nStep",
+  "reasoning_content": null,
+  "tool_calls": [],
+  "empty_output": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "json_valid": null,
+  "contains_ok": null,
+  "exact_ok": null,
+  "raw_response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Operational Runbook: Diagnosing Java/Spring HTTP 502 Errors\n\n1. Immediate Context and Safety\nA 502 Bad Gateway error indicates that the reverse proxy or load balancer (e.g., Nginx, HAProxy, AWS ALB) received an invalid response from the upstream Java/Spring application. This is distinct from a 503 Service Unavailable, which usually implies the upstream is down or overloaded. A 502 suggests the upstream process is running but failing to communicate correctly, crashing mid-request, or returning malformed data.\n\nBefore executing any commands, verify that you have read-only access to the production environment. Do not restart services or modify configurations until the root cause is isolated. If the error rate is above 5 percent, immediately trigger the rollback procedure in Section 5.\n\n2. Evidence Collection\nGather data from three distinct layers: the edge (proxy), the application (Spring Boot), and the infrastructure (OS/Container).\n\nEdge Layer (Reverse Proxy)\nCheck the access logs and error logs of the load balancer. Look for specific error strings.\n- Connection refused: The Spring app is not listening on the expected port.\n- Connection reset by peer: The Spring app accepted the connection but closed it abruptly.\n- Upstream timed out: The Spring app is taking longer than the proxy timeout allows.\n- Invalid header field value: The Spring app is returning malformed HTTP headers.\n\nApplication Layer (Spring Boot)\nRetrieve the application logs from the last 15 minutes. Focus on the following patterns:\n- OutOfMemoryError: Indicates heap exhaustion.\n- StackOverflowError: Indicates infinite recursion.\n- Connection pool exhaustion: Look for \"Cannot get a connection, pool error\" or HikariCP timeout messages.\n- Unhandled exceptions: Look for 500 status codes in the application logs that correlate with the 502s at the edge.\n\nInfrastructure Layer\nCheck system resources on the host or container.\n- CPU usage: Sustained 100 percent CPU may indicate a busy loop or GC thrashing.\n- Memory usage: Check for OOM killer events in dmesg or system logs.\n- Disk I/O: High I/O wait can cause request timeouts.\n- Network: Check for dropped packets or connection limits (netstat -s).\n\n3. Hypotheses\nBased on the evidence, prioritize the following hypotheses:\n\nHypothesis A: Application Crash or Restart\nThe Spring Boot process is crashing and restarting. During the restart window, the proxy cannot connect.\n- Evidence: Application logs show a shutdown sequence followed by a startup sequence. System logs show process termination.\n- Likelihood: High if errors are intermittent and clustered.\n\nHypothesis B: Thread Pool Exhaustion\nThe Tomcat or Jetty thread pool is full. New requests are queued or rejected.\n- Evidence: Application logs show \"RejectedExecutionException\" or high thread count. Metrics show high active thread count.\n- Likelihood: Medium if errors correlate with traffic spikes.\n\nHypothesis C: Database or Downstream Timeout\nThe Spring app is waiting for a slow database query or external API call, exceeding the proxy timeout.\n- Evidence: Application logs show long execution times for specific endpoints. Database logs show slow queries.\n- Likelihood: High if errors are consistent for specific endpoints.\n\nHypothesis D: Malformed Response\nThe Spring app is returning a response that the proxy cannot parse (e.g., invalid header, missing Content-Length).\n- Evidence: Proxy error logs show \"invalid header\" or \"bad response\". Application logs show successful 200 responses.\n- Likelihood: Low, but possible after a recent code change involving custom headers or filters.\n\nHypothesis E: Resource Exhaustion\nThe JVM is out of memory or the host is out of file descriptors.\n- Evidence: JVM logs show frequent Full GCs. System logs show \"Too many open files\".\n- Likelihood: Medium if errors are persistent and not tied to specific endpoints.\n\n4. Safe Checks\nExecute these checks in order. Do not modify any configuration.\n\nStep 1: Verify Process Status\n- Check if the Java process is running: ps aux | grep java\n- Check if the process is listening on the expected port: netstat -tlnp | grep <port>\n- If the process is not running, check the system logs for OOM killer events: dmesg | grep -i oom\n\nStep 2: Check JVM Health\n- If JMX is enabled, connect to the JVM and check:\n  - Heap usage: Is it near 100 percent?\n  - Thread count: Is it near the maximum?\n  - GC activity: Are Full GCs occurring frequently?\n- If JMX is not available, check the GC logs (if enabled) for long pause times.\n\nStep"
+        }
+      }
+    ],
+    "created": 1786935373,
+    "model": "openclaw/qwen38_mtp_n3_p075_ctx32",
+    "system_fingerprint": "b0-unknown",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1024,
+      "prompt_tokens": 84,
+      "total_tokens": 1108,
+      "prompt_tokens_details": {
+        "cached_tokens": 27
+      }
+    },
+    "id": "chatcmpl-kPSbGqj34gNvx1XbAkFt1LtJjLl0hkYQ",
+    "timings": {
+      "cache_n": 27,
+      "prompt_n": 57,
+      "prompt_ms": 197.368,
+      "prompt_per_token_ms": 3.4625964912280702,
+      "prompt_per_second": 288.80061610798106,
+      "predicted_n": 1024,
+      "predicted_ms": 16522.227,
+      "predicted_per_token_ms": 16.150759530791788,
+      "predicted_per_second": 61.9165927208239,
+      "draft_n": 653,
+      "draft_n_accepted": 548
+    }
+  },
+  "request": {
+    "model": "openclaw/qwen38_mtp_n3_p075_ctx32",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an OpenClaw coding agent. Follow the requested output contract exactly. Do not reveal hidden reasoning."
+      },
+      {
+        "role": "user",
+        "content": "Write a detailed but non-repetitive engineering runbook for diagnosing a Java/Spring HTTP 502. Include sections for evidence, hypotheses, safe checks, rollback, and verification. Do not use markdown fences."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 1024,
+    "stream": false
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "case_id": "patch_review_r1",
+  "ok": true,
+  "error": null,
+  "elapsed_s": 3.6196319013834,
+  "prompt_tokens": 68,
+  "completion_tokens": 172,
+  "prompt_ms": 192.178,
+  "predicted_ms": 3248.832,
+  "prompt_tokens_per_s": 353.83862877124335,
+  "decode_tokens_per_s": 52.94210350058113,
+  "effective_tokens_per_s": 47.51864407379731,
+  "draft_n": 68,
+  "draft_n_accepted": 64,
+  "draft_acceptance_rate": 0.9411764705882353,
+  "cache_n": 27,
+  "timings": {
+    "cache_n": 27,
+    "prompt_n": 41,
+    "prompt_ms": 192.178,
+    "prompt_per_token_ms": 4.687268292682926,
+    "prompt_per_second": 213.34387911207318,
+    "predicted_n": 172,
+    "predicted_ms": 3248.832,
+    "predicted_per_token_ms": 18.999017543859647,
+    "predicted_per_second": 52.634300573252176,
+    "draft_n": 68,
+    "draft_n_accepted": 64
+  },
+  "usage": {
+    "completion_tokens": 172,
+    "prompt_tokens": 68,
+    "total_tokens": 240,
+    "prompt_tokens_details": {
+      "cached_tokens": 27
+    }
+  },
+  "finish_reason": "stop",
+  "content": "```json\n{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"The diff moves a database write outside of the transaction boundary, which can lead to duplicate writes if the transaction is retried or if the write is executed multiple times due to lack of idempotency.\",\n    \"Without proper transactional guarantees, partial writes may occur, leading to data inconsistency.\",\n    \"The change may violate ACID properties, specifically atomicity, as the write is no longer part of the atomic transaction.\"\n  ],\n  \"safe_fix\": \"Ensure that all database writes that are part of the transaction are executed within the transaction boundary. Use appropriate transaction management to guarantee atomicity and prevent duplicate writes. Consider using idempotent operations or unique constraints to prevent duplicates if retries are possible.\"\n}\n```",
+  "reasoning_content": null,
+  "tool_calls": [],
+  "empty_output": false,
+  "think_leak": false,
+  "markdown_fence": true,
+  "json_valid": false,
+  "contains_ok": null,
+  "exact_ok": null,
+  "raw_response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```json\n{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"The diff moves a database write outside of the transaction boundary, which can lead to duplicate writes if the transaction is retried or if the write is executed multiple times due to lack of idempotency.\",\n    \"Without proper transactional guarantees, partial writes may occur, leading to data inconsistency.\",\n    \"The change may violate ACID properties, specifically atomicity, as the write is no longer part of the atomic transaction.\"\n  ],\n  \"safe_fix\": \"Ensure that all database writes that are part of the transaction are executed within the transaction boundary. Use appropriate transaction management to guarantee atomicity and prevent duplicate writes. Consider using idempotent operations or unique constraints to prevent duplicates if retries are possible.\"\n}\n```"
+        }
+      }
+    ],
+    "created": 1786935010,
+    "model": "openclaw/qwen38_mtp_n1_p075_ctx32",
+    "system_fingerprint": "b0-unknown",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 172,
+      "prompt_tokens": 68,
+      "total_tokens": 240,
+      "prompt_tokens_details": {
+        "cached_tokens": 27
+      }
+    },
+    "id": "chatcmpl-rHaJL3nOo8RYjv5vjCj6EqnGNjnVf8dm",
+    "timings": {
+      "cache_n": 27,
+      "prompt_n": 41,
+      "prompt_ms": 192.178,
+      "prompt_per_token_ms": 4.687268292682926,
+      "prompt_per_second": 213.34387911207318,
+      "predicted_n": 172,
+      "predicted_ms": 3248.832,
+      "predicted_per_token_ms": 18.999017543859647,
+      "predicted_per_second": 52.634300573252176,
+      "draft_n": 68,
+      "draft_n_accepted": 64
+    }
+  },
+  "request": {
+    "model": "openclaw/qwen38_mtp_n1_p075_ctx32",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an OpenClaw coding agent. Follow the requested output contract exactly. Do not reveal hidden reasoning."
+      },
+      {
+        "role": "user",
+        "content": "Review this unified diff and return JSON with fields severity, findings, and safe_fix. The diff changes a transaction boundary and may cause duplicate writes."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 360,
+    "stream": false
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "model": "openclaw/qwen38_agent_n2_ctx64",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an OpenClaw coding agent. Follow the requested output contract exactly. Do not reveal hidden reasoning."
+    },
+    {
+      "role": "user",
+      "content": "Inspect apps/game-runtime/src/runtime/config.ts with read_file, then use the tool result to propose a safe JSON-only diagnosis. Do not mutate files."
+    }
+  ],
+  "temperature": 0,
+  "top_p": 1,
+  "max_tokens": 320,
+  "stream": false,
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read a repository file without changing it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_check",
+        "description": "Run a named read-only validation check.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "command"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}

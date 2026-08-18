@@ -1,0 +1,103 @@
+{
+  "case_id": "json_tool_plan",
+  "ok": true,
+  "error": null,
+  "elapsed_s": 1.043885400518775,
+  "prompt_tokens": 76,
+  "completion_tokens": 64,
+  "prompt_ms": 128.877,
+  "predicted_ms": 807.211,
+  "prompt_tokens_per_s": 589.7095680377413,
+  "decode_tokens_per_s": 79.28534175079378,
+  "effective_tokens_per_s": 61.309411903063506,
+  "draft_n": 46,
+  "draft_n_accepted": 46,
+  "draft_acceptance_rate": 1.0,
+  "cache_n": 0,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 76,
+    "prompt_ms": 128.877,
+    "prompt_per_token_ms": 1.69575,
+    "prompt_per_second": 589.7095680377414,
+    "predicted_n": 64,
+    "predicted_ms": 807.211,
+    "predicted_per_token_ms": 12.612671875,
+    "predicted_per_second": 79.28534175079378,
+    "draft_n": 46,
+    "draft_n_accepted": 46
+  },
+  "usage": {
+    "completion_tokens": 64,
+    "prompt_tokens": 76,
+    "total_tokens": 140,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "content": "{\n  \"commands\": [\n    \"curl -I http://localhost\",\n    \"systemctl status nginx\",\n    \"tail -n 20 /var/log/nginx/error.log\"\n  ],\n  \"risk\": \"low\",\n  \"needs_confirmation\": false\n}",
+  "reasoning_content": null,
+  "tool_calls": [],
+  "empty_output": false,
+  "think_leak": false,
+  "markdown_fence": false,
+  "json_valid": true,
+  "contains_ok": null,
+  "exact_ok": null,
+  "raw_response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"commands\": [\n    \"curl -I http://localhost\",\n    \"systemctl status nginx\",\n    \"tail -n 20 /var/log/nginx/error.log\"\n  ],\n  \"risk\": \"low\",\n  \"needs_confirmation\": false\n}"
+        }
+      }
+    ],
+    "created": 1786934597,
+    "model": "openclaw/Qwen3.6-27B-MTP-Q4XL",
+    "system_fingerprint": "b1-ebe4fca",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 64,
+      "prompt_tokens": 76,
+      "total_tokens": 140,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-ItIs2ZifSI2oO2ipnK6eoslyjlq7LsOo",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 76,
+      "prompt_ms": 128.877,
+      "prompt_per_token_ms": 1.69575,
+      "prompt_per_second": 589.7095680377414,
+      "predicted_n": 64,
+      "predicted_ms": 807.211,
+      "predicted_per_token_ms": 12.612671875,
+      "predicted_per_second": 79.28534175079378,
+      "draft_n": 46,
+      "draft_n_accepted": 46
+    }
+  },
+  "request": {
+    "model": "openclaw/Qwen3.6-27B-MTP-Q4XL",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an OpenClaw coding agent. Follow the requested output contract exactly. Do not reveal hidden reasoning."
+      },
+      {
+        "role": "user",
+        "content": "Return JSON only. Fields: commands (array of exactly 3 strings), risk (string), needs_confirmation (boolean). Plan read-only checks for a local 502 incident."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 220,
+    "stream": false
+  }
+}

@@ -1,0 +1,35 @@
+timestamp=2026-08-16T22:43:14-04:00
+active
+enabled
+# /etc/systemd/system/openclaw-qwen36-mtp4-128k.service
+[Unit]
+Description=OpenClaw Qwen3.6 27B MTP4 128K on llama.cpp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hhtele
+WorkingDirectory=/home/hhtele/llama.cpp-mtp-unsloth-20260513
+ExecStart=/opt/llama.cpp/run-openclaw-qwen36-mtp4-128k.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/llama/openclaw-qwen36-mtp4-128k.log
+StandardError=append:/var/log/llama/openclaw-qwen36-mtp4-128k.err.log
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+--- processes ---
+1652110 bash -c set -o pipefail; cd /home/hhtele/llama.cpp-qwen38-20260817; cmake -S . -B build -DBUILD_SHARED_LIBS=OFF -DLLAMA_BUILD_UI=OFF -DLLAMA_BUILD_WEBUI=OFF -DGGML_CUDA=ON -DGGML_CUDA_FA=ON -DGGML_CUDA_GRAPHS=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=89 -DCMAKE_BUILD_TYPE=Release 2>&1 | tee /home/hhtele/qwen38-27b-4090-20260817/logs/llama-cmake-reconfigure.log; cmake --build build --config Release -j"$(nproc)" --target llama-server llama-cli llama-bench 2>&1 | tee /home/hhtele/qwen38-27b-4090-20260817/logs/llama-build-final.log; echo BUILD_FINAL_RC=${PIPESTATUS[0]}
+1652140 cmake --build build --config Release -j32 --target llama-server llama-cli llama-bench
+1652143 /usr/bin/gmake -f Makefile -j32 llama-server llama-cli llama-bench
+1652145 /usr/bin/gmake -s -f CMakeFiles/Makefile2 llama-server
+1652148 /usr/bin/gmake -s -f CMakeFiles/Makefile2 tools/server/CMakeFiles/llama-server.dir/all
+1653455 bash -c set -o pipefail; ROOT=/home/hhtele/qwen38-27b-4090-20260817; { echo "timestamp=$(date -Is)"; systemctl is-active openclaw-qwen36-mtp4-128k.service; systemctl is-enabled openclaw-qwen36-mtp4-128k.service; systemctl cat openclaw-qwen36-mtp4-128k.service; echo "--- processes ---"; pgrep -af llama-server; echo "--- listeners ---"; ss -ltnp | grep -E ":(18343|28343)" || true; echo "--- direct models ---"; curl -fsS http://127.0.0.1:18343/v1/models; echo; } > "$ROOT/logs/production-preflight.txt"; cd "$ROOT"; python3 qwen38_eval.py --mode external --base-url http://127.0.0.1:18343 --output-root "$ROOT" --model-id openclaw/Qwen3.6-27B-MTP-Q4XL --llama-commit ebe4fca --ctx 131072 --request-timeout 900; rc=$?; echo BASELINE_RC=$rc; exit $rc
+3494036 /home/hhtele/llama.cpp-mtp-unsloth-20260513/build/bin/llama-server -m /data/models/qwen/mtp/Qwen3.6-27B-UD-Q4_K_XL.gguf --alias openclaw/Qwen3.6-27B-MTP-Q4XL -ngl 99 -c 131072 -np 1 -fa on -ctk q4_0 -ctv q4_0 --spec-type mtp --spec-draft-n-max 4 -rea off --temp 0 --top-p 1 --cache-prompt --cache-reuse 256 --cache-ram 2048 --slot-prompt-similarity 0.10 --host 0.0.0.0 --port 18343
+--- listeners ---
+LISTEN 0      511          0.0.0.0:28343      0.0.0.0:*                                              
+LISTEN 0      512          0.0.0.0:18343      0.0.0.0:*    users:(("llama-server",pid=3494036,fd=14))
+--- direct models ---
+{"models":[{"name":"openclaw/Qwen3.6-27B-MTP-Q4XL","model":"openclaw/Qwen3.6-27B-MTP-Q4XL","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","format":"gguf","family":"","families":[""],"parameter_size":"","quantization_level":""}}],"object":"list","data":[{"id":"openclaw/Qwen3.6-27B-MTP-Q4XL","aliases":["openclaw/Qwen3.6-27B-MTP-Q4XL"],"tags":[],"object":"model","created":1786934594,"owned_by":"llamacpp","meta":{"vocab_type":2,"n_vocab":248320,"n_ctx":131072,"n_ctx_train":262144,"n_embd":5120,"n_params":27320697856,"size":17898102784}}]}

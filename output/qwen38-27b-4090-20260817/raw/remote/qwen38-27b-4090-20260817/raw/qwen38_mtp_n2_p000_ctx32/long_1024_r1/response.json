@@ -1,0 +1,38 @@
+{
+  "choices": [
+    {
+      "finish_reason": "length",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Operational Runbook: Diagnosing Java/Spring HTTP 502 Errors\n\n1. Immediate Context and Safety\nA 502 Bad Gateway error indicates that the reverse proxy or load balancer (e.g., Nginx, HAProxy, AWS ALB) received an invalid response from the upstream Java/Spring application. This is distinct from a 503 Service Unavailable, which usually implies the upstream is down or overloaded. A 502 suggests the upstream is reachable but failing to communicate correctly, crashing, or returning malformed data.\n\nBefore executing any commands, verify that you have read-only access to the production environment. Do not restart services or modify configurations until the root cause is identified. If the service is critical and traffic is failing, consider enabling a maintenance page or failover to a secondary region if available, rather than attempting a live fix.\n\n2. Evidence Collection\nGather data from three distinct layers: the edge (proxy), the application (Spring/Java), and the infrastructure (OS/Container).\n\nEdge Layer (Reverse Proxy/Load Balancer)\n- Retrieve the access logs for the specific time window of the incident. Look for the upstream status code. If the log shows \"upstream_status: 502\" or \"upstream_status: 000\", the connection was reset or closed prematurely.\n- Check error logs for specific messages such as \"upstream prematurely closed connection,\" \"no live upstreams,\" or \"connection refused.\"\n- Verify the health check status of the upstream instances. If the proxy marks the instance as unhealthy, it may be routing traffic to a dead node.\n\nApplication Layer (Spring/Java)\n- Collect the application logs (stdout/stderr or log files) for the affected instance. Search for exceptions, stack traces, or OOM (Out of Memory) kills.\n- Check the Spring Boot Actuator endpoints if exposed. Specifically, look at /actuator/health and /actuator/metrics. A \"DOWN\" status on the health endpoint often correlates with 502s if the proxy relies on health checks.\n- Review the JVM logs for garbage collection pauses. Long GC pauses can cause the application to stop responding to keep-alive requests, leading the proxy to interpret this as a failure.\n\nInfrastructure Layer\n- Check system resource utilization: CPU, Memory, and Disk I/O. High memory pressure can cause the OS to kill the Java process (OOM Killer).\n- Verify network connectivity between the proxy and the application. Use ping or traceroute if appropriate, but be aware that ICMP may be blocked.\n- If running in a containerized environment (Kubernetes/Docker), check the container status. Look for \"CrashLoopBackOff\" or \"OOMKilled\" states.\n\n3. Hypotheses\nBased on the evidence, prioritize the following hypotheses:\n\nHypothesis A: Application Crash or Restart\nThe Java process has terminated unexpectedly. This is common if the application throws an unhandled exception during startup or if it is killed by the OS due to memory limits.\n- Indicator: Application logs show a shutdown sequence or no logs after a certain timestamp. Container status shows \"Exited\" or \"Restarting.\"\n\nHypothesis B: Resource Exhaustion (Memory/CPU)\nThe application is running but is too slow to respond within the proxy's timeout window. This can be caused by memory leaks, high CPU usage, or disk I/O bottlenecks.\n- Indicator: High GC activity in JVM logs, high CPU usage, or slow response times in application metrics. The proxy logs show \"upstream timed out.\"\n\nHypothesis C: Network or Configuration Mismatch\nThe proxy is trying to connect to the wrong port, IP, or protocol. This can happen after a deployment if the service port changes or if the application binds to a different interface.\n- Indicator: Proxy logs show \"connection refused\" or \"no route to host.\" The application is listening on a different port than expected.\n\nHypothesis D: Malformed Response\nThe application is returning a response that the proxy cannot parse. This is rare but can occur if the application sends invalid HTTP headers or if there is a protocol mismatch (e.g., HTTP vs. HTTPS).\n- Indicator: Proxy logs show \"invalid header\" or \"bad response.\" The application logs show successful request processing.\n\n4. Safe Checks\nExecute these checks in order of least to most intrusive.\n\nStep 1: Verify Application Process Status\n- On the host or container, run: ps aux | grep java\n- Confirm the Java process is running. If it is not, proceed to Step 2. If it is, proceed to Step 3.\n\nStep 2: Check for OOM Kills\n- On the host, run: dmesg | grep -i \"killed process\"\n- If you see a message indicating the Java process was killed, check the memory limits of the container or host"
+      }
+    }
+  ],
+  "created": 1786935631,
+  "model": "openclaw/qwen38_mtp_n2_p000_ctx32",
+  "system_fingerprint": "b0-unknown",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 1024,
+    "prompt_tokens": 84,
+    "total_tokens": 1108,
+    "prompt_tokens_details": {
+      "cached_tokens": 27
+    }
+  },
+  "id": "chatcmpl-4EPBdJsVTk9nFM8QflWgpItrgPnbZkMf",
+  "timings": {
+    "cache_n": 27,
+    "prompt_n": 57,
+    "prompt_ms": 198.034,
+    "prompt_per_token_ms": 3.474280701754386,
+    "prompt_per_second": 287.8293626346991,
+    "predicted_n": 1024,
+    "predicted_ms": 13195.632,
+    "predicted_per_token_ms": 12.898956011730204,
+    "predicted_per_second": 77.52565394366863,
+    "draft_n": 886,
+    "draft_n_accepted": 579
+  }
+}

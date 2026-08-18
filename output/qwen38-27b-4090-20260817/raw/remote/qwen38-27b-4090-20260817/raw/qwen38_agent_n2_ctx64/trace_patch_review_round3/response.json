@@ -1,0 +1,38 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"turnTimeoutMs is reduced from 45000ms to 5000ms, a 9x decrease that may cause premature turn timeouts under normal latency.\",\n    \"The change is isolated to a single constant; no related constants (schedulerMs, maxReconnectAttempts) are adjusted, which may create inconsistent timing behavior.\",\n    \"No comments or context in the diff explain the rationale for the reduction.\"\n  ],\n  \"safe_fix\": \"Revert turnTimeoutMs to 45000 unless a specific performance requirement justifies the lower value. If the reduction is intentional, add a comment explaining the rationale and verify that downstream consumers (turn loop, scheduler) can operate correctly within the 5000ms window. Consider also reviewing whether schedulerMs (500ms) and maxReconnectAttempts (8) need corresponding adjustments.\"\n}"
+      }
+    }
+  ],
+  "created": 1786935760,
+  "model": "openclaw/qwen38_agent_n2_ctx64",
+  "system_fingerprint": "b0-unknown",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 202,
+    "prompt_tokens": 792,
+    "total_tokens": 994,
+    "prompt_tokens_details": {
+      "cached_tokens": 506
+    }
+  },
+  "id": "chatcmpl-UcSfheXnDYbJ7Hwoeoihf4IReoINJb31",
+  "timings": {
+    "cache_n": 506,
+    "prompt_n": 286,
+    "prompt_ms": 347.867,
+    "prompt_per_token_ms": 1.2163181818181819,
+    "prompt_per_second": 822.1532942187675,
+    "predicted_n": 202,
+    "predicted_ms": 3283.08,
+    "predicted_per_token_ms": 16.33373134328358,
+    "predicted_per_second": 61.22299791659052,
+    "draft_n": 108,
+    "draft_n_accepted": 99
+  }
+}

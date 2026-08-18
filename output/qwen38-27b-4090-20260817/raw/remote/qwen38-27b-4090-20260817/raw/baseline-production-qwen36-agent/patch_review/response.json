@@ -1,0 +1,38 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"The diff modifies the transaction boundary, potentially moving operations outside of a transactional context.\",\n    \"This change may lead to duplicate writes if the operation is retried or executed multiple times without proper idempotency checks.\",\n    \"Lack of atomicity guarantees could result in data inconsistency or partial updates.\"\n  ],\n  \"safe_fix\": \"Ensure that all critical write operations remain within a single transactional boundary. Add idempotency keys or checks to prevent duplicate writes. Validate that the transaction scope covers all related operations to maintain consistency.\"\n}\n```"
+      }
+    }
+  ],
+  "created": 1786934599,
+  "model": "openclaw/Qwen3.6-27B-MTP-Q4XL",
+  "system_fingerprint": "b1-ebe4fca",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 142,
+    "prompt_tokens": 68,
+    "total_tokens": 210,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "id": "chatcmpl-lcu3jsp1iirAv78gWWikYtv12dQ4RSGB",
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 68,
+    "prompt_ms": 122.433,
+    "prompt_per_token_ms": 1.8004852941176472,
+    "prompt_per_second": 555.4058137920331,
+    "predicted_n": 142,
+    "predicted_ms": 2477.996,
+    "predicted_per_token_ms": 17.45067605633803,
+    "predicted_per_second": 57.30437014426173,
+    "draft_n": 76,
+    "draft_n_accepted": 75
+  }
+}

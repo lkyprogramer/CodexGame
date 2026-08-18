@@ -1,0 +1,38 @@
+{
+  "choices": [
+    {
+      "finish_reason": "length",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Operational Runbook: Diagnosing Java/Spring HTTP 502 Errors\n\n1. Immediate Context and Safety\nA 502 Bad Gateway error indicates that the reverse proxy or load balancer (e.g., Nginx, HAProxy, AWS ALB) received an invalid response from the upstream Java/Spring application. This is distinct from a 503 Service Unavailable, which usually implies the upstream is down or overloaded. A 502 suggests the upstream is reachable but failing to communicate correctly, crashing, or timing out.\n\nBefore executing any commands, verify that you have read-only access to the production environment. Do not restart services or modify configurations until the root cause is identified. If the service is critical and traffic is failing, consider enabling a maintenance page or draining traffic to a healthy instance if available.\n\n2. Evidence Collection\nGather data from three distinct layers: the edge (proxy), the application (Spring/Java), and the infrastructure (OS/Container).\n\nEdge Layer (Reverse Proxy/Load Balancer)\n- Retrieve the access logs for the specific time window of the incident. Look for the upstream status code. If the log shows \"upstream timed out,\" the issue is latency. If it shows \"connection reset by peer\" or \"broken pipe,\" the Java process likely crashed or closed the socket abruptly.\n- Check the error logs for specific proxy messages. Nginx often logs \"upstream prematurely closed connection\" or \"no live upstreams.\"\n- Verify the health check status. If the proxy is marking the backend as unhealthy, it may be routing traffic to a dead instance.\n\nApplication Layer (Spring/Java)\n- Collect the application logs (stdout/stderr or log files) for the affected instance. Search for exceptions such as OutOfMemoryError, StackOverflowError, or specific Spring framework errors like \"Failed to bind properties\" or \"BeanCreationException.\"\n- Check for thread dumps. If the application is hanging, a thread dump will reveal if threads are blocked on I/O, database locks, or synchronized blocks.\n- Review the Spring Boot Actuator health endpoint (if exposed) to see if the application reports itself as DOWN or DEGRADED.\n\nInfrastructure Layer (OS/Container)\n- Check system resource utilization. High CPU usage may indicate a busy loop or excessive garbage collection. High memory usage may indicate a memory leak leading to OOM kills.\n- For containerized environments (Kubernetes/Docker), check the container status. Look for \"OOMKilled\" or \"CrashLoopBackOff\" states.\n- Verify network connectivity between the proxy and the Java application. Ensure there are no firewall rules or security groups blocking the port.\n\n3. Hypotheses\nBased on the evidence, prioritize the following hypotheses:\n\nHypothesis A: Application Crash or Restart\nThe Java process terminated unexpectedly due to an unhandled exception, OOM, or a liveness probe failure. The proxy attempted to send a request to a dead process.\n- Supporting Evidence: Container restarts, OOMKilled status, \"connection refused\" in proxy logs.\n\nHypothesis B: Timeout Mismatch\nThe reverse proxy has a shorter timeout than the Java application. The Java app is processing a slow request (e.g., complex query, external API call) and exceeds the proxy's read timeout.\n- Supporting Evidence: \"upstream timed out\" in proxy logs, long request durations in application logs, no exceptions in Java logs.\n\nHypothesis C: Resource Exhaustion\nThe Java application is running out of memory, file descriptors, or database connections. It accepts the connection but fails to process the request, leading to a reset or hang.\n- Supporting Evidence: High GC time, \"Too many open files\" errors, database connection pool exhaustion logs.\n\nHypothesis D: Configuration Drift\nA recent deployment introduced a configuration error (e.g., wrong port, malformed YAML) that causes the Spring context to fail to start or bind incorrectly.\n- Supporting Evidence: Application fails to start, \"Port already in use\" or \"BindException\" in logs.\n\n4. Safe Checks\nExecute these checks in order of least to most intrusive.\n\nStep 1: Verify Process Status\n- On the host or in the container, confirm the Java process is running.\n- Command: ps aux | grep java\n- If the process is missing, check the container logs for the reason for termination.\n\nStep 2: Check Port Binding\n- Ensure the Java application is listening on the expected port.\n- Command: netstat -tlnp | grep <port> or ss -tlnp | grep <port>\n- If the port is not listening, the application has not started or has crashed.\n\nStep 3: Test Local Connectivity\n- From the same host as the Java application, test connectivity to the local port.\n- Command: curl -v http://localhost:<port>/act"
+      }
+    }
+  ],
+  "created": 1786935213,
+  "model": "openclaw/qwen38_mtp_n2_p075_ctx32",
+  "system_fingerprint": "b0-unknown",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 1024,
+    "prompt_tokens": 84,
+    "total_tokens": 1108,
+    "prompt_tokens_details": {
+      "cached_tokens": 27
+    }
+  },
+  "id": "chatcmpl-T2om7HlpNxYI6rPUsiKxxCEzXYnKpiMJ",
+  "timings": {
+    "cache_n": 27,
+    "prompt_n": 57,
+    "prompt_ms": 193.504,
+    "prompt_per_token_ms": 3.3948070175438594,
+    "prompt_per_second": 294.5675541590872,
+    "predicted_n": 1024,
+    "predicted_ms": 17614.012,
+    "predicted_per_token_ms": 17.217998044965785,
+    "predicted_per_second": 58.07876138610557,
+    "draft_n": 543,
+    "draft_n_accepted": 488
+  }
+}

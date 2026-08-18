@@ -1,0 +1,63 @@
+# short_256_r2
+
+- status: `PASS`
+- started: `2026-08-16T22:52:09-0400`
+- model: `/data/models/qwen/qwen38/Qwen3.8-27B-UD-Q4_K_XL.gguf`
+- llama.cpp commit: `4df29be4f4c3673f428170fda944a5b19f743bb8`
+- lane: `qwen38_mtp_n2_p075_ctx32`
+- context: `32768`
+- cold/warm: `n/a`
+
+## Metrics
+
+- prompt_tokens: `72`
+- completion_tokens: `256`
+- prompt_ms: `190.51`
+- predicted_ms: `4720.847`
+- prompt_tokens_per_s: `377.93291690724897`
+- decode_tokens_per_s: `54.22755704643679`
+- effective_tokens_per_s: `50.30133604463942`
+- draft_n: `127`
+- draft_n_accepted: `110`
+- draft_acceptance_rate: `0.8661417322834646`
+- cache_n: `27`
+- empty_output: `False`
+- think_leak: `False`
+- markdown_fence: `False`
+- json_valid: `None`
+- contains_ok: `True`
+- exact_ok: `None`
+- finish_reason: `length`
+
+## GPU
+
+- peak memory MiB: `18580.0`
+- max utilization: `96.0`
+- max power W: `415.91`
+- max temperature C: `80.0`
+
+## Manual review
+
+- format score (1-5): `4`
+- quality score (1-5): `4`
+- reviewer notes: `核心 marker/修复内容正确，长输出可读；未对全部细节做语义基准。`
+
+## Raw evidence
+
+- `request.json`
+- `response.json`
+- `result.json`
+- `server.stdout.log`
+- `server.stderr.log`
+- `gpu.csv`
+- `trace.json` (when this is a multi-turn trace)
+
+## Output
+
+```text
+1. Establishing a baseline is the foundational step in any maintenance workflow. Before applying any changes, you must capture the current state of the system to ensure you have a reference point for comparison. This read-only health check verifies that the environment is stable and functioning as expected prior to intervention. Without this initial snapshot, it becomes impossible to distinguish between pre-existing issues and new problems introduced by the patch.
+
+2. The read-only nature of the check is critical for safety. By strictly limiting the operation to observation and data collection, you eliminate the risk of accidental modification or corruption during the diagnostic phase. This ensures that the system remains in its original state, preserving data integrity. If the check were to write to the system, it could mask underlying faults or create new ones, thereby invalidating the diagnostic results and complicating the subsequent patching process.
+
+3. Identifying pre-existing failures is essential for accurate attribution. If a service is already degraded or a component is failing before the patch is applied, this must be documented. Running the health check first allows you to isolate these issues. If you apply the patch without this step, and the system fails afterward, you cannot determine whether the failure was caused by the patch or was a latent defect. This ambiguity can lead to incorrect
+```

@@ -1,0 +1,103 @@
+{
+  "case_id": "patch_review_r1",
+  "ok": true,
+  "error": null,
+  "elapsed_s": 3.3650696594268084,
+  "prompt_tokens": 68,
+  "completion_tokens": 179,
+  "prompt_ms": 191.946,
+  "predicted_ms": 2995.88,
+  "prompt_tokens_per_s": 354.26630406468485,
+  "decode_tokens_per_s": 59.74872157763328,
+  "effective_tokens_per_s": 53.19354964868398,
+  "draft_n": 90,
+  "draft_n_accepted": 85,
+  "draft_acceptance_rate": 0.9444444444444444,
+  "cache_n": 27,
+  "timings": {
+    "cache_n": 27,
+    "prompt_n": 41,
+    "prompt_ms": 191.946,
+    "prompt_per_token_ms": 4.681609756097561,
+    "prompt_per_second": 213.60174215664824,
+    "predicted_n": 179,
+    "predicted_ms": 2995.88,
+    "predicted_per_token_ms": 16.830786516853934,
+    "predicted_per_second": 59.41492983697611,
+    "draft_n": 90,
+    "draft_n_accepted": 85
+  },
+  "usage": {
+    "completion_tokens": 179,
+    "prompt_tokens": 68,
+    "total_tokens": 247,
+    "prompt_tokens_details": {
+      "cached_tokens": 27
+    }
+  },
+  "finish_reason": "stop",
+  "content": "```json\n{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"The diff moves the commit/transaction boundary such that a write operation can be executed more than once if the transaction is retried or if an exception occurs after the write but before the commit is finalized.\",\n    \"This can lead to duplicate records or inconsistent state in the database, violating idempotency guarantees.\",\n    \"Lack of proper transactional integrity may cause data corruption or financial discrepancies in transactional systems.\"\n  ],\n  \"safe_fix\": \"Ensure the transaction boundary is correctly scoped so that all writes are atomic and idempotent. Use a single transaction that commits only once, and add appropriate error handling to roll back on failure. Consider using unique constraints or idempotency keys to prevent duplicate writes if retries are possible.\"\n}\n```",
+  "reasoning_content": null,
+  "tool_calls": [],
+  "empty_output": false,
+  "think_leak": false,
+  "markdown_fence": true,
+  "json_valid": false,
+  "contains_ok": null,
+  "exact_ok": null,
+  "raw_response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```json\n{\n  \"severity\": \"high\",\n  \"findings\": [\n    \"The diff moves the commit/transaction boundary such that a write operation can be executed more than once if the transaction is retried or if an exception occurs after the write but before the commit is finalized.\",\n    \"This can lead to duplicate records or inconsistent state in the database, violating idempotency guarantees.\",\n    \"Lack of proper transactional integrity may cause data corruption or financial discrepancies in transactional systems.\"\n  ],\n  \"safe_fix\": \"Ensure the transaction boundary is correctly scoped so that all writes are atomic and idempotent. Use a single transaction that commits only once, and add appropriate error handling to roll back on failure. Consider using unique constraints or idempotency keys to prevent duplicate writes if retries are possible.\"\n}\n```"
+        }
+      }
+    ],
+    "created": 1786935190,
+    "model": "openclaw/qwen38_mtp_n2_p075_ctx32",
+    "system_fingerprint": "b0-unknown",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 179,
+      "prompt_tokens": 68,
+      "total_tokens": 247,
+      "prompt_tokens_details": {
+        "cached_tokens": 27
+      }
+    },
+    "id": "chatcmpl-9VKhYqygd01MCmocL8aComfwR7THVYar",
+    "timings": {
+      "cache_n": 27,
+      "prompt_n": 41,
+      "prompt_ms": 191.946,
+      "prompt_per_token_ms": 4.681609756097561,
+      "prompt_per_second": 213.60174215664824,
+      "predicted_n": 179,
+      "predicted_ms": 2995.88,
+      "predicted_per_token_ms": 16.830786516853934,
+      "predicted_per_second": 59.41492983697611,
+      "draft_n": 90,
+      "draft_n_accepted": 85
+    }
+  },
+  "request": {
+    "model": "openclaw/qwen38_mtp_n2_p075_ctx32",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an OpenClaw coding agent. Follow the requested output contract exactly. Do not reveal hidden reasoning."
+      },
+      {
+        "role": "user",
+        "content": "Review this unified diff and return JSON with fields severity, findings, and safe_fix. The diff changes a transaction boundary and may cause duplicate writes."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 360,
+    "stream": false
+  }
+}
