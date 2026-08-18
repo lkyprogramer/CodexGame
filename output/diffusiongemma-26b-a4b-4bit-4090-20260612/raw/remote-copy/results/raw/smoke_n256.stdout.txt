@@ -1,0 +1,17 @@
+
+<|channel>thought
+*   Topic: Benchmarking DiffusionGemma Q4_K_M on RTX 4090.
+    *   Marker: `DG_SMOKE_Q4KM`.
+    *   Goal: Explain the performance tradeoff between diffusion generation and autoregressive decoding.
+    *   Constraint: Coherent answer, include the marker exactly once.
+
+    *   *DiffusionGemma:* Likely a hypothetical or specific model combining diffusion-based generation with Gemma-like architecture/weights.
+    *   *Q4_K_M:* A quantization level (4-bit K-medium), GGUF format.
+    *   *RTX 4090:* High-end consumer GPU (24GB VRAM, high memory bandwidth).
+    *   *Autoregressive (AR) Decoding:* Token-by-token generation. Each step depends on previous steps. Memory bandwidth-bound (waiting for weight loads).
+    *   *Diffusion Generation:* Iterative denoising. Usually involves multiple timesteps. Can be parallelized to some extent but requires many passes through the U-Net or Transformer block.
+
+    *   *Autoregressive Decoding:*
+        *   Mechanism: Sequential dependency.
+total time: 3074.80ms, time per step: 153.74ms (20 steps over 1 blocks, entropy-bound)
+throughput: 83.3 tok/s (256 tok in 3074.80ms), in-step parallel 1665 tok/s (256-tok canvas x 20.0 steps/block)
