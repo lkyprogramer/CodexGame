@@ -1,0 +1,1 @@
+import java.util.*;public final class BatchValidationException extends RuntimeException{private final List<String>errors;public BatchValidationException(List<String>e){errors=e;}public List<String>errors(){return errors;}}

@@ -1,0 +1,1 @@
+import java.util.*;public final class ProfileMapper{public static Profile fromMap(Map<String,Object>m){return new Profile((String)m.get("id"),(String)m.get("displayName"));}public static Map<String,Object>toMap(Profile p){return Map.of("id",p.id(),"userName",p.displayName());}}

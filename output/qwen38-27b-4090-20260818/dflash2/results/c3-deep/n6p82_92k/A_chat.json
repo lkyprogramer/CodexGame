@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 9.980454650707543,
+  "content": "1. **显存根本装不下**：27B 权重即便压到 INT4 也要约 14–15 GB，两个就是 ~30 GB，已超出 4090 的 24 GB，还没给 KV cache 留一字节。\n2. **KV cache 是隐形杀手**：即使你靠 offload 把权重勉强塞进显存，多轮对话的注意力缓存会随上下文线性膨胀，瞬间把剩余空间吃光，触发 OOM。\n3. **带宽争抢让\"能跑\"变成\"白跑\"**：4090 的 1 TB/s 显存带宽是推理吞吐的瓶颈，两路请求同时拉取权重，有效带宽对半分，单请求延迟翻倍，体验比单卡跑一个 7B 还差。",
+  "reasoning": "用户问的是：为什么单张 RTX 4090 不该同时跑两个 27B 模型（比如 Qwen2.5-27B 或 Llama 3.3 的类似规模模型）。要求用三句话说明。\n\n让我分析：\n- RTX 4090 显存：24GB\n- 一个 27B 参数模型，即使 FP8/INT8 量化也需要约 27GB，FP16 需要约 54GB，INT4 大约 14-15GB\n- 所以单张 4090（24GB）连一个 27B 的 FP16 都装不下，INT8 也勉强（27GB > 24GB），只有 INT4 量化（~14-15GB）才能装下\n- 同时跑两个 27B：即使是 INT4，两个就是 ~28-30GB，远超 24GB\n- 如果是 FP8，一个就要 ~27GB，两个 54GB，更不可能\n- 即使 INT4 能勉强装一个（~14-15GB），两个就是 ~28-30GB，超出 24GB 显存\n- 而且还要留出空间给 KV cache（上下文），实际可用空间更少\n\n三句话要精炼有力：\n\n1. 显存不够：24GB 装不下两个 27B（即使 INT4 各约 14-15GB，两个就 ~30GB），还没算 KV cache。\n2. 即使能塞下权重，推理时 KV cache 还需要额外显存，必然 OOM。\n3. 退一步说，即便勉强不 OOM，显存带宽（1TB/s）被两路请求争抢，吞吐和延迟都会崩。\n\n让我精炼成三句：\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 596,
+  "decode_tokens_per_s": 61.226501628830746,
+  "prompt_tokens_per_s": 268.9640680815298,
+  "draft_n": 445,
+  "draft_n_accepted": 326,
+  "accept_rate": 0.7325842696629213,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 118.975,
+    "prompt_per_token_ms": 3.71796875,
+    "prompt_per_second": 268.9640680815298,
+    "predicted_n": 596,
+    "predicted_ms": 9718.014,
+    "predicted_per_token_ms": 16.33279663865546,
+    "predicted_per_second": 61.226501628830746,
+    "draft_n": 445,
+    "draft_n_accepted": 326
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22440.0,
+    "memory_free_mib": 1777.0,
+    "utilization_gpu_pct": 77.0,
+    "power_w": 352.61,
+    "temperature_c": 71.0
+  },
+  "id": "A_chat",
+  "class": "A"
+}

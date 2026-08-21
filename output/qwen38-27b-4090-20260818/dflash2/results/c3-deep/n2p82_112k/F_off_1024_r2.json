@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 15.947452267631888,
+  "content": "```cpp\n/**\n * @file red_black_tree.hpp\n * @brief A dense, heavily-commented implementation of a Red-Black Tree in C++17.\n *\n * This implementation provides:\n * - Insertion with standard RB rebalancing\n * - Erasure with standard RB rebalancing\n * - Find (lower_bound, upper_bound, contains)\n * - In-order traversal\n * - Size and empty checks\n * - Height and balance verification for debugging\n * - A comprehensive test suite using a simple assertion macro\n *\n * Design notes:\n * - Nodes are allocated via a custom allocator that tracks live node count.\n * - Colors are represented as an enum with two values: RED and BLACK.\n * - The tree maintains a sentinel NIL node (black) for every leaf and as the\n *   parent of the root to simplify edge-case handling during rotations and\n *   rebalancing.\n * - All public methods are const-correct where appropriate.\n * - The tree is templated on the key type and comparator.\n */\n\n#include <iostream>\n#include <functional>\n#include <memory>\n#include <string>\n#include <vector>\n#include <algorithm>\n#include <sstream>\n#include <cassert>\n#include <stdexcept>\n#include <optional>\n#include <random>\n#include <chrono>\n\n// ---------------------------------------------------------------------------\n// Color enumeration\n// ---------------------------------------------------------------------------\n\n/**\n * @enum Color\n * @brief Represents the color of a red-black tree node.\n *\n * Invariant: The root is always black. The NIL sentinel is always black.\n * Every path from a node to its descendant leaves contains the same number\n * of black nodes (black-height property).\n */\nenum class Color {\n    RED,   ///< Red node: cannot have a red child.\n    BLACK  ///< Black node: may have red or black children.\n};\n\n/**\n * @brief Stream operator for Color for debugging.\n */\ninline std::ostream& operator<<(std::ostream& os, Color c) {\n    return os << (c == Color::RED ? \"R\" : \"B\");\n}\n\n// ---------------------------------------------------------------------------\n// Node structure\n// ---------------------------------------------------------------------------\n\n/**\n * @struct RBNode\n * @brief Internal node structure for the red-black tree.\n *\n * @tparam KeyT  The type of the key stored in the node.\n *\n * Each node stores:\n * - key: the value associated with this node\n * - color: the current color of the node\n * - parent, left, right: pointers to neighboring nodes\n *\n * Pointers to the NIL sentinel are used instead of nullptr to avoid\n * null-checks in rotation and rebalancing code.\n */\ntemplate <typename KeyT>\nstruct RBNode {\n    KeyT key;\n    Color color;\n    RBNode* parent;\n    RBNode* left;\n    RBNode* right;\n\n    /**\n     * @brief Construct a new RBNode.\n     * @param k The key to store.\n     * @param c The initial color (defaults to RED for new insertions).\n     * @param p Parent pointer (defaults to nullptr, set during insertion).\n     */\n    explicit RBNode(const KeyT& k, Color c = Color::RED, RBNode* p = nullptr)\n        : key(k), color(c), parent(p), left(nullptr), right(nullptr) {}\n\n    /**\n     * @brief Construct a new RBNode with move semantics for the key.\n     */\n    explicit RBNode(KeyT&& k, Color c = Color::RED, RBNode* p = nullptr)\n        : key(std::move(k)), color(c), parent(p), left(nullptr), right(nullptr) {}\n};\n\n// ---------------------------------------------------------------------------\n// Allocator for RBNodes\n// ---------------------------------------------------------------------------\n\n/**\n * @struct RBNodeAllocator\n * @brief Tracks the number of live nodes for size queries.\n *\n * This is a simple counter-based allocator. In production, one might use\n * a pool allocator or std::pmr. Here we keep it simple and thread-unsafe\n * (the tree itself is not thread-safe).\n */\ntemplate <typename KeyT>\nstruct RBNodeAllocator {\n    size_t live_count = 0;\n\n    RBNode<KeyT>* allocate() {\n        ++live_count;\n        return new RBNode<KeyT>(KeyT{}, Color::BLACK, nullptr);\n    }\n\n    void deallocate(RBNode<KeyT>* node) {\n        if (node && node != nullptr) {\n            --live_count;\n            delete node;\n        }\n    }\n};\n\n// ---------------------------------------------------------------------------\n// Red-Black Tree class\n// ---------------------------------------------------------------------------\n\n/**\n * @class RedBlackTree\n * @brief A",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 65.02505212492082,
+  "prompt_tokens_per_s": 37.65698254598859,
+  "draft_n": 656,
+  "draft_n_accepted": 547,
+  "accept_rate": 0.8338414634146342,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 106.222,
+    "prompt_per_token_ms": 26.5555,
+    "prompt_per_second": 37.65698254598859,
+    "predicted_n": 1024,
+    "predicted_ms": 15732.398,
+    "predicted_per_token_ms": 15.37868817204301,
+    "predicted_per_second": 65.02505212492082,
+    "draft_n": 656,
+    "draft_n_accepted": 547
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 89.0,
+    "power_w": 399.52,
+    "temperature_c": 72.0
+  },
+  "id": "F_off_1024_r2",
+  "class": "F_off"
+}

@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 7.046728701330721,
+  "content": "4090 只有 24 GB 显存，而一个 27B 模型即便压到 4-bit 量化也要吃掉约 13–14 GB，再叠上 KV cache 和激活，单实例已逼近上限，第二个实例的权重根本塞不进去。就算你极限把两份权重硬压进去，两个模型各自的 KV cache 还会再抢走数 GB，上下文长度会被挤到个位数 token，毫无实用价值。所以这不是\"会慢\"或\"会掉点\"的问题，而是 **物理上装不下、必然 OOM** 的问题。",
+  "reasoning": "用户问为什么单卡4090不该同时跑两个27B模型，要求用三句话说明。\n\n4090显存是24GB。一个27B参数模型：\n- FP16/BF16：27B × 2 bytes = 54GB，远超24GB\n- INT8量化：27B × 1 byte = 27GB，仍超24GB\n- INT4/GPTQ/AWQ量化：27B × 0.5 bytes ≈ 13.5GB，勉强能塞下一个\n\n所以单卡4090（24GB）连一个27B都只能跑4bit量化（约13-14GB），还要留显存给KV cache、激活值等。要同时跑两个27B，即使都是4bit量化也需要约27-28GB，根本塞不进24GB。\n\n三句话要简洁有力：\n1. 显存物理上限：24GB连一个4bit量化的27B（~14GB）加上KV cache都只够勉强，两个直接爆显存。\n2. 即使能塞下权重，KV cache和中间激活会再吃好几GB，两个模型的上下文窗口会互相挤压到不可用。\n3. 结论：这不是\"慢一点\"的问题，是根本装不下，OOM是必然。\n\n让我精炼成三句话。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 443,
+  "decode_tokens_per_s": 65.15448319596595,
+  "prompt_tokens_per_s": 268.9550256768001,
+  "draft_n": 942,
+  "draft_n_accepted": 289,
+  "accept_rate": 0.3067940552016985,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 118.979,
+    "prompt_per_token_ms": 3.71809375,
+    "prompt_per_second": 268.9550256768001,
+    "predicted_n": 443,
+    "predicted_ms": 6783.877,
+    "predicted_per_token_ms": 15.348138009049775,
+    "predicted_per_second": 65.15448319596595,
+    "draft_n": 942,
+    "draft_n_accepted": 289
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23338.0,
+    "memory_free_mib": 879.0,
+    "utilization_gpu_pct": 92.0,
+    "power_w": 423.42,
+    "temperature_c": 74.0
+  },
+  "id": "A_chat",
+  "class": "A"
+}

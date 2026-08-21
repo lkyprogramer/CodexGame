@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 7.764384660869837,
+  "content": "1. **显存直接装不下**：4090 只有 24 GB 显存，而单个 27B 即便 4-bit 量化也要吃掉 ~16 GB（含 KV cache 与运行时开销），两个叠起来 ~32 GB，物理上放不进同一块卡。\n2. **再压也压不出可用的质量**：把量化硬砍到 2-bit 或 1.58-bit 虽然数字上能\"塞下\"，但 27B 的知识容量会被严重稀释，推理质量跌到不如一个 7B 全精度模型，跑两个毫无意义。\n3. **带宽和 KV cache 会互相绞杀**：即便显存勉强够，4090 单条 ~1008 GB/s 的 GDDR6X 带宽要同时喂两路 attention 的 KV cache 读写，上下文一长就互相抢占，延迟翻倍、吞吐崩塌，远不如各用一张卡或换 48 GB/80 GB 的卡。",
+  "reasoning": "用户问的是：用三句话说明为什么单卡4090不该同时跑两个27B模型。\n\n让我分析一下：\n- RTX 4090 显存：24GB\n- 27B 模型（比如 Qwen2.5-27B、Mistral Small 等）：\n  - FP16：27B × 2 bytes = 54GB\n  - INT8：27B × 1 byte = 27GB\n  - INT4（4bit量化）：27B × 0.5 bytes ≈ 13.5GB，加上 KV cache 和 overhead，大约需要 16-18GB\n  - 所以即使是4bit量化，一个27B大概需要 ~16-18GB\n  - 两个27B（4bit）：约 32-36GB，远超24GB\n  - 如果是INT8：两个27B = 54GB，更是远超\n  - 即使是FP16更不用说\n\n核心原因：\n1. 显存不够：24GB 根本装不下两个27B，哪怕4bit量化两个也要32GB+\n2. 即使勉强用更极端的量化（如2bit），质量会严重下降，失去意义\n3. 带宽/计算瓶颈：4090的24GB GDDR6X带宽约1008GB/s，同时跑两个大模型推理会导致上下文切换、KV cache争抢，吞吐和延迟都极差\n\n用户要求三句话，简洁有力。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 579,
+  "decode_tokens_per_s": 77.05769715071833,
+  "prompt_tokens_per_s": 270.72758037225043,
+  "draft_n": 696,
+  "draft_n_accepted": 346,
+  "accept_rate": 0.49712643678160917,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 118.2,
+    "prompt_per_token_ms": 3.69375,
+    "prompt_per_second": 270.72758037225043,
+    "predicted_n": 579,
+    "predicted_ms": 7500.873,
+    "predicted_per_token_ms": 12.977288927335639,
+    "predicted_per_second": 77.05769715071833,
+    "draft_n": 696,
+    "draft_n_accepted": 346
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 21892.0,
+    "memory_free_mib": 2325.0,
+    "utilization_gpu_pct": 91.0,
+    "power_w": 431.68,
+    "temperature_c": 72.0
+  },
+  "id": "A_chat",
+  "class": "A",
+  "gpu_before": {
+    "memory_used_mib": 21892.0,
+    "memory_free_mib": 2325.0,
+    "utilization_gpu_pct": 29.0,
+    "power_w": 200.11,
+    "temperature_c": 65.0
+  }
+}

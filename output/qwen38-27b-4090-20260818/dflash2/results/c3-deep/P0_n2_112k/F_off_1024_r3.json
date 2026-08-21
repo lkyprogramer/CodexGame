@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 12.535561338067055,
+  "content": "```cpp\n/**\n * @file red_black_tree.hpp\n * @brief A dense, heavily commented implementation of a Red-Black Tree in C++.\n * \n * Red-Black Trees are self-balancing binary search trees that guarantee\n * O(log n) worst-case performance for search, insert, and delete operations.\n * They are a common choice for implementations of associative containers\n * (e.g., std::map, std::set) in many standard libraries.\n * \n * Properties maintained by a Red-Black Tree:\n * 1. Every node is either red or black.\n * 2. The root is always black.\n * 3. All leaves (NIL nodes) are black.\n * 4. If a node is red, then both its children are black (no two consecutive\n *    red nodes on any path from a node to a descendant).\n * 5. For each node, all paths from the node to descendant leaves contain\n *    the same number of black nodes (black-height).\n * \n * This implementation uses explicit NIL nodes (sentinels) to simplify\n * rotation and rebalancing logic. The tree is templated on the key type.\n */\n\n#include <iostream>\n#include <functional>\n#include <memory>\n#include <algorithm>\n#include <stdexcept>\n#include <cassert>\n#include <string>\n\nnamespace rbt {\n\n/**\n * @enum Color\n * @brief Enumeration for the color of a node in a Red-Black Tree.\n */\nenum class Color {\n    RED,\n    BLACK\n};\n\n/**\n * @class Node\n * @brief Represents a node in the Red-Black Tree.\n * \n * Each node stores a key, a pointer to its parent, left child, right child,\n * and its color. We use a shared pointer to the NIL node to represent\n * null leaves, which simplifies boundary checks.\n */\ntemplate <typename Key>\nstruct Node {\n    Key key;\n    Color color;\n    std::shared_ptr<Node> parent;\n    std::shared_ptr<Node> left;\n    std::shared_ptr<Node> right;\n\n    /**\n     * @brief Constructor for a node.\n     * @param k The key to store in this node.\n     * @param c The initial color of the node.\n     * @param parent The parent node.\n     * @param left The left child.\n     * @param right The right child.\n     */\n    Node(const Key& k, Color c, std::shared_ptr<Node> parent,\n         std::shared_ptr<Node> left, std::shared_ptr<Node> right)\n        : key(k), color(c), parent(parent), left(left), right(right) {}\n};\n\n/**\n * @class RedBlackTree\n * @brief A templated Red-Black Tree supporting insert, erase, and find.\n * \n * This class manages the structure and balancing of the tree. It maintains\n * a root pointer and a NIL sentinel node.\n */\ntemplate <typename Key>\nclass RedBlackTree {\nprivate:\n    std::shared_ptr<Node<Key>> root_;\n    std::shared_ptr<Node<Key>> nil_; // Sentinel NIL node (black)\n\n    /**\n     * @brief Performs a left rotation around node x.\n     * \n     * Left rotation is a fundamental operation in binary search trees.\n     * It restructures the tree to maintain the BST property while\n     * moving node x down and its right child up.\n     * \n     * Diagram:\n       Before:          After:\n           x               y\n          / \\            / \\\n         T1   y         x   T3\n            / \\        / \\\n           T2  T3     T1  T2\n     * \n     * @param x The node around which to rotate left.\n     */\n    void rotateLeft(std::shared_ptr<Node<Key>> x) {\n        if (!x || x == nil_) return;\n\n        // y is the right child of x\n        std::shared_ptr<Node<Key>> y = x->right;\n\n        // y's left child becomes x's right child\n        x->right = y->left;\n        if (y->left != nil_) {\n            y->left->parent = x;\n        }\n\n        // y's parent becomes x's parent\n        y->parent = x->parent;\n\n        if (x->parent == nil_) {\n            root_ = y;\n        } else if (x == x->parent->left) {\n            x->parent->left = y;\n        } else {\n            x->parent->right = y;\n        }\n\n        // x becomes y's left child\n        y->left = x;",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 83.28925299147234,
+  "prompt_tokens_per_s": 38.02787443195862,
+  "draft_n": 866,
+  "draft_n_accepted": 619,
+  "accept_rate": 0.7147806004618937,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 105.186,
+    "prompt_per_token_ms": 26.2965,
+    "prompt_per_second": 38.02787443195862,
+    "predicted_n": 1024,
+    "predicted_ms": 12282.497,
+    "predicted_per_token_ms": 12.00635092864125,
+    "predicted_per_second": 83.28925299147234,
+    "draft_n": 866,
+    "draft_n_accepted": 619
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 90.0,
+    "power_w": 398.06,
+    "temperature_c": 61.0
+  },
+  "id": "F_off_1024_r3",
+  "class": "F_off"
+}

@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 11.7172940839082,
+  "content": "```cpp\n#include <iostream>\n#include <cassert>\n#include <functional>\n#include <algorithm>\n#include <sstream>\n#include <string>\n#include <vector>\n#include <stack>\n#include <queue>\n#include <set>\n#include <random>\n#include <chrono>\n#include <iomanip>\n#include <cmath>\n#include <limits>\n#include <memory>\n#include <type_traits>\n#include <stdexcept>\n\n// ============================================================================\n// Red-Black Tree Implementation\n// ============================================================================\n// A red-black tree is a self-balancing binary search tree where each node\n// has a color (red or black) and satisfies the following properties:\n//\n// 1. Every node is either red or black.\n// 2. The root is black.\n// 3. Every leaf (NIL) is black.\n// 4. If a node is red, then both its children are black. (No two adjacent\n//    red nodes.)\n// 5. For each node, all paths from the node to descendant leaves contain\n//    the same number of black nodes. (Black height)\n//\n// This implementation uses explicit NIL pointers (colored black) rather\n// than null pointers, which simplifies some of the rebalancing logic.\n//\n// Time complexity:\n//   - Insertion: O(log n) worst case\n//   - Deletion:  O(log n) worst case\n//   - Search:    O(log n) worst case\n//   - In-order traversal: O(n)\n//\n// Space complexity: O(n)\n// ============================================================================\n\nnamespace rb {\n\n// Forward declarations\ntemplate<typename Key>\nclass RedBlackTree;\n\n// Color enum: Red or Black\nenum Color { RED, BLACK };\n\n// ============================================================================\n// Node Structure\n// ============================================================================\n// Each node stores:\n//   - key: the value stored in the node\n//   - color: RED or BLACK\n//   - left, right: pointers to child nodes\n//   - parent: pointer to parent node\n//\n// We use a single NIL node shared across the entire tree to represent\n// empty children. This NIL node is always black.\n// ============================================================================\ntemplate<typename Key>\nstruct RBNode {\n    Key key;\n    Color color;\n    RBNode<Key>* left;\n    RBNode<Key>* right;\n    RBNode<Key>* parent;\n\n    RBNode(const Key& k, Color c, RBNode<Key>* p)\n        : key(k), color(c), left(nullptr), right(nullptr), parent(p) {}\n\n    ~RBNode() {\n        // Nodes are deleted by the tree; no recursive delete here\n        // to avoid double-free issues. The tree manages ownership.\n    }\n};\n\n// ============================================================================\n// RedBlackTree Class\n// ============================================================================\ntemplate<typename Key>\nclass RedBlackTree {\nprivate:\n    // The root of the tree. Initially points to NIL.\n    RBNode<Key>* root_;\n    // The NIL node: a sentinel node that is always black.\n    // All leaf children point to this.\n    RBNode<Key>* nil_;\n    // Size of the tree (number of non-NIL nodes)\n    size_t size_;\n\n    // ------------------------------------------------------------------------\n    // Internal utility methods\n    // ------------------------------------------------------------------------\n\n    // Create a new node with given key, color, and parent\n    RBNode<Key>* make_node(const Key& key, Color color, RBNode<Key>* parent) {\n        return new RBNode<Key>(key, color, parent);\n    }\n\n    // Delete a node (caller must ensure it's safe)\n    void delete_node(RBNode<Key>* node) {\n        if (node && node != nil_) {\n            delete node;\n        }\n    }\n\n    // Get the left child of a node, or nil_ if node is null\n    RBNode<Key>* left(RBNode<Key>* x) {\n        return x ? x->left : nil_;\n    }\n\n    // Get the right child of a node, or nil_ if node is null\n    RBNode<Key>* right(RBNode<Key>* x) {\n        return x ? x->right : nil_;\n    }\n\n    // Get the parent of a node, or nil_ if node is null\n    RBNode<Key>* parent(RBNode<Key>* x) {\n        return x ? x->parent : nil_;\n    }\n\n    // Check if a node is nil (i.e., equals our sentinel NIL)\n    bool is_nil(RBNode<Key>* x) {\n        return x == nil_;\n    }\n\n    // ------------------------------------------------------------------------\n    // Rotation operations\n    // ------------------------------------------------------------------------\n    // Rotations are the fundamental operations for",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 88.95639797370717,
+  "prompt_tokens_per_s": 37.14779249243114,
+  "draft_n": 1641,
+  "draft_n_accepted": 766,
+  "accept_rate": 0.4667885435709933,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 107.678,
+    "prompt_per_token_ms": 26.9195,
+    "prompt_per_second": 37.14779249243114,
+    "predicted_n": 1024,
+    "predicted_ms": 11500.016,
+    "predicted_per_token_ms": 11.241462365591397,
+    "predicted_per_second": 88.95639797370717,
+    "draft_n": 1641,
+    "draft_n_accepted": 766
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23304.0,
+    "memory_free_mib": 913.0,
+    "utilization_gpu_pct": 81.0,
+    "power_w": 410.55,
+    "temperature_c": 72.0
+  },
+  "id": "F_off_1024_r2",
+  "class": "F_off"
+}

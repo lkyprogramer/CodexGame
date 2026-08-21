@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 4.674747874028981,
+  "content": "```python\nimport heapq\n\n\ndef dijkstra(graph, source):\n    \"\"\"\n    Compute shortest paths from source to all reachable nodes.\n\n    Args:\n        graph: dict of dicts, where graph[u][v] = weight (non-negative)\n        source: the starting node\n\n    Returns:\n        dict mapping each reachable node to its shortest distance from source\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    visited = set()\n    heap = [(0, source)]\n\n    while heap:\n        dist, u = heapq.heappop(heap)\n        if u in visited:\n            continue\n        visited.add(u)\n\n        for v, weight in graph.get(u, {}).items():\n            if v in visited:\n                continue\n            new_dist = dist + weight\n            if new_dist < distances[v]:\n                distances[v] = new_dist\n                heapq.heappush(heap, (new_dist, v))\n\n    return distances\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, returning only the function. Let me think about what a clean, complete implementation looks like.\n\nKey design decisions:\n- Graph representation: adjacency list (dict of dict, or list of lists)\n- I'll use a dict-of-dicts approach for clarity, where graph[u][v] = weight\n- Return: distances from source to all nodes\n- Use heapq for priority queue\n- Handle the standard case\n\nLet me write a clean, self-contained function.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 333,
+  "decode_tokens_per_s": 77.70302372423103,
+  "prompt_tokens_per_s": 153.45829222843363,
+  "draft_n": 254,
+  "draft_n_accepted": 206,
+  "accept_rate": 0.8110236220472441,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 228.075,
+    "prompt_per_token_ms": 6.5164285714285715,
+    "prompt_per_second": 153.45829222843363,
+    "predicted_n": 333,
+    "predicted_ms": 4272.678,
+    "predicted_per_token_ms": 12.869512048192771,
+    "predicted_per_second": 77.70302372423103,
+    "draft_n": 254,
+    "draft_n_accepted": 206
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22696.0,
+    "memory_free_mib": 1521.0,
+    "utilization_gpu_pct": 81.0,
+    "power_w": 356.72,
+    "temperature_c": 49.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22696.0,
+    "memory_free_mib": 1521.0,
+    "utilization_gpu_pct": 81.0,
+    "power_w": 338.21,
+    "temperature_c": 44.0
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 17.688229425810277,
+  "content": "# Async Connection Pool: `poolkit`\n\nProduction-grade design decisions baked in:\n\n- **Bounded concurrency + bounded wait queue** → real backpressure (fast-fail with `PoolExhaustedError` instead of unbounded queue growth)\n- **Health-gated checkout** → dead connections are recycled, not handed to callers\n- **Configurable retry policy** with full jitter, retryable-error classification, and an escape hatch for non-retryable failures\n- **Circuit breaker** as an optional layer\n- **Metrics** (counters, gauges, histogram) with a JSON-serializable snapshot\n- **Clean lifecycle**: `__aenter__/__aexit__`, `close()`, `close(cancel_waiters=True)`, context managers, async-iterator fan-out\n\n## `poolkit/errors.py`\n\n```python\n\"\"\"Exception hierarchy for poolkit.\"\"\"\n\nfrom __future__ import annotations\n\n\nclass PoolKitError(Exception):\n    \"\"\"Base class for all poolkit errors.\"\"\"\n\n\nclass PoolClosedError(PoolKitError):\n    \"\"\"The pool has been closed.\"\"\"\n\n\nclass PoolExhaustedError(PoolKitError):\n    \"\"\"",
+  "reasoning": "The user wants a production-quality async connection pool in Python. Requirements:\n- async\n- retries\n- backpressure\n- metrics\n- \"Keep extending helpers and tests until the budget runs out\" — meaning I should write a comprehensive implementation including a lot of helpers and tests.\n\nLet me design this as a single well-organized module + test file (or maybe several files). Write the following:\n\n1. `pool.py` — core implementation:\n   - `Connection` protocol/ABC\n   - `PoolConfig` dataclass with validation\n   - `PoolMetrics` — counters, gauges, histograms (lock-free-ish via asyncio locks or just plain counters), snapshots, export to dict, possibly a human-readable report\n   - `Pool` class: semaphore-based or deque-based pool, acquire/release, health check on acquire, lazy creation, max wait timeout, backpressure via bounded semaphore, drain/close, context manager, possibly `acquire_many`, stats\n   - Retry logic: `RetryPolicy` dataclass (max_attempts, base_delay, max_delay, jitter), `with_retries` helper, retryable error classification\n   - Backpressure: bounded queue / semaphore for pending acquires; reject with `PoolExhausted` when the wait queue exceeds capacity\n   - Circuit breaker might be nice as a helper\n   - Jitter helper\n   - Error hierarchy: `PoolError`, `PoolExhaustedError`, `PoolClosedError`, `AcquireTimeoutError`, `ConnectionError` (avoid collision with builtin — name it `ConnectionFailedError`)\n   - Helpers: `retry_with_backoff`, `exponential_backoff` iterator, `full_jitter`, maybe `token_bucket` (for rate limiting / backpressure)\n   - `FakeConnection` for testing\n\n2. `test_pool.py` — pytest + pytest-asyncio tests, covering:\n   - basic acquire/release\n   - max size enforcement\n   - acquisition timeout\n   - rejection via backpressure\n   - retries with exponential backoff\n   - retryable vs non-retryable exceptions\n   - metrics counters\n   - health check on checkout\n   - pool close behavior\n   - concurrent stress test\n   - context manager\n   - circuit breaker\n   - token bucket\n\nShould I write it as a single package layout with two files? I could present as a single module with everything included plus the test file. Given \"production quality\", structure like:\n\n```\nconnection_pool/\n  __init__.py\n  errors.py\n  metrics.py\n  backoff.py\n  pool.py\n  breaker.py\n  token_bucket.py\ntests/\n  test_pool.py\n```\n\nBut for a chat response, maybe simpler: 2 code blocks — `pool.py` (all-in-one, cleanly sectioned) and `test_pool.py`. That's readable enough. Actually multiple files are more production-like. Let me do a moderate split: `poolkit/` package with modules, but that's a lot of code. Budget-wise I should write a lot. Let me do:\n\n- `poolkit/errors.py`\n- `poolkit/backoff.py`\n- `poolkit/metrics.py`\n- `poolkit/breaker.py`\n- `poolkit/token.py`\n- `poolkit/pool.py`\n- `poolkit/__init__.py`\n- `tests/test_pool.py`\n\nThat's comprehensive. Let me write it out.\n\nKey design decisions:\n\nConnection protocol:\n```python\nclass Connection(Protocol):\n    async def healthcheck(self) -> bool: ...\n    async def close(self) -> None: ...\n```\n\nFactoryStop thinking. State the answer or the next smallest action now.",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 37,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 58.73758967458629,
+  "prompt_tokens_per_s": 307.8382268518134,
+  "draft_n": 618,
+  "draft_n_accepted": 514,
+  "accept_rate": 0.8317152103559871,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 37,
+    "prompt_ms": 120.193,
+    "prompt_per_token_ms": 3.2484594594594594,
+    "prompt_per_second": 307.8382268518134,
+    "predicted_n": 1024,
+    "predicted_ms": 17416.445,
+    "predicted_per_token_ms": 17.024872922776147,
+    "predicted_per_second": 58.73758967458629,
+    "draft_n": 618,
+    "draft_n_accepted": 514
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23338.0,
+    "memory_free_mib": 879.0,
+    "utilization_gpu_pct": 68.0,
+    "power_w": 356.11,
+    "temperature_c": 69.0
+  },
+  "id": "F_med_1024_r1",
+  "class": "F_med"
+}

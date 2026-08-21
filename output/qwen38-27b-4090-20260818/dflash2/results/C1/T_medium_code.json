@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 6.873359111137688,
+  "content": "```python\nimport heapq\n\ndef dijkstra(graph, source):\n    \"\"\"\n    graph:  dict of {node: {neighbor: weight, ...}, ...}\n    source: starting node\n    returns: dict of {node: shortest_distance_from_source}\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    pq = [(0, source)]\n\n    while pq:\n        dist, node = heapq.heappop(pq)\n        if dist > distances[node]:\n            continue\n        for neighbor, weight in graph[node].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(pq, (new_dist, neighbor))\n\n    return distances\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, returned as only the function.\n\nLet me think about what a clean Dijkstra implementation looks like:\n\n- It should take a graph (adjacency list), a source node, and optionally a target node\n- Use a priority queue (heapq) for efficiency\n- Return distances from source to all nodes (or to a specific target)\n- Handle the case where nodes are unreachable\n\nLet me write a clean, standard implementation:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source, target=None):\n    \"\"\"\n    graph: dict where keys are nodes and values are dicts of {neighbor: weight}\n    source: starting node\n    target: optional destination node\n    returns: dict of shortest distances from source\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    pq = [(0, source)]\n    \n    while pq:\n        dist, node = heapq.heappop(pq)\n        if dist > distances[node]:\n            continue\n        if target and node == target:\n            break\n        for neighbor, weight in graph[node].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(pq, (new_dist, neighbor))\n    \n    return distances\n```\n\nThis is clean, standard, and efficient. The user said \"return only the function\" so I'll just give the function (with the import needed). Actually, they said \"return only the function\" - I'll include the import since it's needed, but keep it minimal. Or I could put the import inside the function. Let me just include the import at the top and the function. Actually, \"return only the function\" - I'll just give the function code. I'll include the import since it's a dependency.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 596,
+  "decode_tokens_per_s": 91.09402081812229,
+  "prompt_tokens_per_s": 174.68730971560905,
+  "draft_n": 501,
+  "draft_n_accepted": 432,
+  "accept_rate": 0.8622754491017964,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 200.358,
+    "prompt_per_token_ms": 5.724514285714286,
+    "prompt_per_second": 174.68730971560905,
+    "predicted_n": 596,
+    "predicted_ms": 6531.713,
+    "predicted_per_token_ms": 10.977668907563025,
+    "predicted_per_second": 91.09402081812229,
+    "draft_n": 501,
+    "draft_n_accepted": 432
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 85.0,
+    "power_w": 380.87,
+    "temperature_c": 53.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 89.0,
+    "power_w": 279.99,
+    "temperature_c": 48.0
+  }
+}

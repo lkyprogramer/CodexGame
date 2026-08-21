@@ -1,0 +1,1 @@
+public record OutboxEvent(String id,String type,String aggregateId,String payload){}

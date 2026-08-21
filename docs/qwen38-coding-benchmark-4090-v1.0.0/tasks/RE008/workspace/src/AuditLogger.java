@@ -1,0 +1,1 @@
+import java.util.Map;public final class AuditLogger{public Object safe(Map<String,Object>event){return AuditRedactor.redact(event);}}

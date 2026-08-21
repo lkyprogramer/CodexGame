@@ -1,0 +1,1 @@
+import java.util.Optional;public interface UserStore{Optional<User>find(String id);void save(User u);void delete(String id);}

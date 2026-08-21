@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 7.255662203766406,
+  "content": "1. 4090 只有 24 GB 显存，单个 27B 模型即便压到 4-bit 量化，光权重就要 ~14 GB，两个模型的权重合计已逼近甚至超过 24 GB。\n2. 加上 KV cache、中间激活、CUDA context 和框架本身的开销，实际可分配给权重的空间远小于 24 GB，两个 27B 根本没有同时驻留的物理空间。\n3. 强行启动只会触发 OOM 或被迫把层 offload 到系统内存，推理速度从\"能用\"直接跌到\"不可用\"，远不如顺序排队或换更小/更低精度的模型。",
+  "reasoning": "用户问的是：为什么单张 4090 不应该同时跑两个 27B 模型。需要用三句话回答。\n\n分析：\n- RTX 4090 显存是 24GB GDDR6X。\n- 一个 27B 参数模型，即使做量化：\n  - FP16/BF16：27B × 2 bytes = 54GB，远超 24GB。\n  - INT8：27B × 1 byte = 27GB，仍然超过 24GB。\n  - INT4（如 GGUF Q4_K_M 或 GPTQ 4bit）：大约 27B × 0.5 bytes ≈ 13.5GB，加上 KV cache、激活值、框架开销，一个模型可能占用 14-16GB 左右。\n- 两个 27B INT4 模型：光模型权重就要约 27-28GB，已经超过 24GB 了。再加上 KV cache、CUDA context、框架 overhead，根本放不下。\n- 所以核心问题是：显存根本不够。\n\n三句话要简洁有力：\n1. 显存容量：4090 只有 24GB，单个 27B 即使 4-bit 量化权重也要 ~14-15GB，两个模型的权重就已接近/超过 24GB。\n2. 还有 KV cache、激活值、框架开销，实际可用空间远小于 24GB，两个模型根本塞不下。\n3. 强行跑只会 OOM 或者被迫把一层塞到 CPU swap，推理速度崩塌，不如老老实实排队或用量化更低/更小的模型。\n\n让我精炼成三句话，简洁直接。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 539,
+  "decode_tokens_per_s": 76.92687157144584,
+  "prompt_tokens_per_s": 275.7004514594893,
+  "draft_n": 466,
+  "draft_n_accepted": 306,
+  "accept_rate": 0.6566523605150214,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 116.068,
+    "prompt_per_token_ms": 3.627125,
+    "prompt_per_second": 275.7004514594893,
+    "predicted_n": 539,
+    "predicted_ms": 6993.655,
+    "predicted_per_token_ms": 12.99935873605948,
+    "predicted_per_second": 76.92687157144584,
+    "draft_n": 466,
+    "draft_n_accepted": 306
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 90.0,
+    "power_w": 413.66,
+    "temperature_c": 70.0
+  },
+  "id": "A_chat",
+  "class": "A"
+}

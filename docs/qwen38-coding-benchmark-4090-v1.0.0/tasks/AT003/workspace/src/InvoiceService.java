@@ -1,0 +1,1 @@
+public final class InvoiceService{private final InvoiceCalculator c=new InvoiceCalculator();public long quote(Invoice i){return c.totalCents(i);}}

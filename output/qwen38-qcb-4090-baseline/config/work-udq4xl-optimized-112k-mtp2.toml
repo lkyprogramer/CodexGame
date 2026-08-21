@@ -1,0 +1,31 @@
+[model]
+id = "work-udq4xl-optimized-112k-mtp2"
+family = "Qwen3.8-27B"
+file = "/data/models/qwen/qwen38/Qwen3.8-27B-UD-Q4_K_XL.gguf"
+sha256 = "bee238bbeb3dc0a34bde4d0dedbaee1f98c009e8bb4226f03070054c12fb1372"
+quantization = "UD-Q4_K_XL"
+template_id = "official-jinja-medium"
+notes = "Optimized lane = live OpenClaw WORK: 112K q8 KV, MTP n=2, medium thinking"
+
+[endpoint]
+base_url = "http://127.0.0.1:18343/v1"
+model = "openclaw/Qwen3.8-27B-WORK"
+api_key = "not-needed"
+timeout_seconds = 900
+
+[inference]
+lane = "optimized"
+temperature = 1.0
+top_p = 0.95
+top_k = 20
+min_p = 0.0
+seed = 42
+max_tokens = 8192
+context_size = 112000
+reasoning_effort = "medium"
+mtp_enabled = true
+tool_mode = true
+max_tool_calls = 40
+max_retries = 1
+system_prompt_file = "config/system-prompt.txt"
+extra_body = { chat_template_kwargs = { enable_thinking = true, reasoning_effort = "medium", preserve_thinking = false } }

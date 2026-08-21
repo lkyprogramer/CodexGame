@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 14.202964417636395,
+  "content": "```cpp\n#include <iostream>\n#include <cassert>\n#include <functional>\n#include <vector>\n#include <algorithm>\n#include <random>\n#include <chrono>\n#include <sstream>\n#include <iomanip>\n#include <cmath>\n#include <queue>\n#include <set>\n#include <map>\n#include <unordered_map>\n#include <string>\n#include <thread>\n#include <mutex>\n#include <atomic>\n#include <memory>\n#include <optional>\n#include <variant>\n#include <type_traits>\n#include <stdexcept>\n#include <cstdlib>\n#include <cstring>\n#include <cctype>\n#include <limits>\n#include <new>\n\n// =============================================================================\n// RED-BLACK TREE IMPLEMENTATION\n// =============================================================================\n// \n// A red-black tree is a self-balancing binary search tree where each node has\n// a color (RED or BLACK) in addition to its standard BST properties. The\n// invariants that guarantee O(log n) height are:\n//\n// 1. Every node is either RED or BLACK.\n// 2. The root is BLACK.\n// 3. Every LEAF (NIL) is BLACK.\n// 4. If a node is RED, then both its children are BLACK.\n// 5. For each node, all paths from the node to descendant LEAF nodes contain\n//    the same number of BLACK nodes (black-height).\n//\n// This implementation uses a sentinel NIL node to simplify rotation and\n// color-fixing logic. The tree is templated on Key and Value types, with a\n// comparator for ordering.\n//\n// Time complexity:\n//   - Insert: O(log n) amortized\n//   - Erase:  O(log n) amortized\n//   - Find:   O(log n)\n//   - Height: O(log n) guaranteed\n//\n// Space complexity: O(n)\n//\n// The implementation follows CLRS (Introduction to Algorithms) closely for\n// the fix-up procedures, with additional optimizations for common cases.\n//\n// Thread safety: NOT thread-safe. Use external synchronization if needed.\n//\n// =============================================================================\n\nnamespace rbtree {\n\n// Forward declarations\ntemplate <typename Key, typename Value, typename Compare>\nclass RBTree;\n\n// =============================================================================\n// NODE STRUCTURE\n// =============================================================================\n// Each node stores:\n//   - key:      The key for ordering\n//   - value:    The associated value\n//   - color:    RED (0) or BLACK (1)\n//   - left:     Pointer to left child\n//   - right:    Pointer to right child\n//   - parent:   Pointer to parent node\n//\n// Using raw pointers for performance; memory management is handled by the\n// RBTree class. The sentinel NIL node is shared across all instances of the\n// same type to avoid repeated allocation.\n\ntemplate <typename Key, typename Value, typename Compare>\nstruct Node {\n    Key   key;\n    Value value;\n    int   color;    // 0 = RED, 1 = BLACK\n    Node* left;\n    Node* right;\n    Node* parent;\n\n    // Constructor for internal nodes\n    Node(const Key& k, const Value& v, int c, Node* l, Node* r, Node* p)\n        : key(k), value(v), color(c), left(l), right(r), parent(p) {}\n\n    // Constructor for sentinel NIL nodes\n    Node() : key(Key()), value(Value()), color(1), left(nullptr), right(nullptr), parent(nullptr) {}\n\n    // Check if this is the sentinel node\n    bool isNil() const {\n        // We distinguish sentinel nodes by checking if they are the same as the\n        // tree's sentinel. However, since we can't easily compare pointers here\n        // without access to the tree, we use a flag approach instead.\n        // Actually, for simplicity, we'll mark sentinel nodes with a special\n        // parent pointer pattern or just check externally.\n        // Let's use a different approach: sentinel nodes have parent == nullptr\n        // AND are not the root. But that's fragile.\n        // Better: the tree will check against its own sentinel pointer.\n        return false; // This is a placeholder; actual check is done by RBTree\n    }\n};\n\n// Define color constants for clarity\nconstexpr int RED   = 0;\nconstexpr int BLACK = 1;\n\n// =============================================================================\n// ITERATOR CLASS\n// =============================================================================\n// Provides bidirectional iteration over the tree in in-order (sorted) order.\n// The iterator is invalidated by any modification to the tree.\n\ntemplate <typename Key, typename Value, typename Compare>\nclass Iterator {\npublic:\n    using NodeT",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 72.8019728694161,
+  "prompt_tokens_per_s": 366.43205796540326,
+  "draft_n": 732,
+  "draft_n_accepted": 632,
+  "accept_rate": 0.8633879781420765,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 53,
+    "prompt_ms": 144.638,
+    "prompt_per_token_ms": 2.729018867924528,
+    "prompt_per_second": 366.43205796540326,
+    "predicted_n": 1024,
+    "predicted_ms": 14051.817,
+    "predicted_per_token_ms": 13.735891495601171,
+    "predicted_per_second": 72.8019728694161,
+    "draft_n": 732,
+    "draft_n_accepted": 632
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22998.0,
+    "memory_free_mib": 1219.0,
+    "utilization_gpu_pct": 76.0,
+    "power_w": 355.32,
+    "temperature_c": 69.0
+  },
+  "id": "F_off_1024_r1",
+  "class": "F_off"
+}

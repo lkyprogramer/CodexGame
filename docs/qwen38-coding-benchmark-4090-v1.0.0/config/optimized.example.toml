@@ -1,0 +1,31 @@
+[model]
+id = "qwen38-candidate-optimized"
+family = "Qwen3.8-27B"
+file = "/models/candidate.gguf"
+sha256 = "REPLACE_WITH_SHA256"
+quantization = "Q4_K_M"
+template_id = "candidate-native-v1"
+notes = "Record exact server startup flags, MTP head and template hash separately"
+
+[endpoint]
+base_url = "http://127.0.0.1:8080/v1"
+model = "local-model"
+api_key = "not-needed"
+timeout_seconds = 900
+
+[inference]
+lane = "optimized"
+temperature = 0.0
+top_p = 0.95
+top_k = 20
+min_p = 0.0
+seed = 42
+max_tokens = 8192
+context_size = 65536
+reasoning_effort = "medium"
+mtp_enabled = true
+tool_mode = true
+max_tool_calls = 40
+max_retries = 1
+system_prompt_file = "config/system-prompt.txt"
+extra_body = {}

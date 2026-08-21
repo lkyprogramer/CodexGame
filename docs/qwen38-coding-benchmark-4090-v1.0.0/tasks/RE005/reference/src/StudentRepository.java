@@ -1,0 +1,1 @@
+import java.util.*;public interface StudentRepository{boolean existsId(String id);boolean existsEmail(String email);void saveAll(java.util.List<Student> students);}

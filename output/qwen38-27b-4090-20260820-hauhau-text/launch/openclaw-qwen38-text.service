@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenClaw Qwen3.8 27B HauhauCS Aggressive text-gen (switchable)
+After=network-online.target
+Wants=network-online.target
+Conflicts=openclaw-qwen38-work-64k.service openclaw-qwen36-mtp4-128k.service
+
+[Service]
+Type=simple
+User=hhtele
+WorkingDirectory=/home/hhtele/qwen38-hauhau-text-20260820
+ExecStart=/home/hhtele/qwen38-hauhau-text-20260820/launch/production-text-18343.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/llama/openclaw-qwen38-text.log
+StandardError=append:/var/log/llama/openclaw-qwen38-text.err.log
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

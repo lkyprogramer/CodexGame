@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 14.364312594756484,
+  "content": "# InnoDB 隔离级别\n\nInnoDB 支持 SQL 标准的四个隔离级别，**默认是 REPEATABLE READ（RR）**。\n\n| 隔离级别 | 脏读 | 不可重复读 | 幻读 | 说明 |\n|---|---|---|---|---|\n| READ UNCOMMITTED (RU) | ✅ 可能 | ✅ 可能 | ✅ 可能 | 能读到别的事务**未提交**的数据 |\n| READ COMMITTED (RC) | ❌ 不会 | ✅ 可能 | ✅ 可能 | 只能读到**已提交**的数据；每次 SELECT 都生成新的 Read View |\n| REPEATABLE READ (RR) | ❌ 不会 | ❌ 不会 | 基本不会¹ | **InnoDB 默认**。事务内首次 SELECT 生成 Read View，后续复用 |\n| SERIALIZABLE | ❌ 不会 | ❌ 不会 | ❌ 不会 | 所有 SELECT 隐式加 `LOCK IN SHARE MODE`，并发度最低 |\n\n> ¹ InnoDB 通过 **MVCC + Next-Key Lock（间隙锁 + 记录锁）** 在 RR 下基本消除了幻读，但极端场景（如先普通 SELECT 再 `SELECT … FOR UPDATE`）仍可能遇到。\n\n## 核心机制\n\n- **MVCC（多版本并发控制）**：每行有 `trx_id` 和 `roll_pointer` 指向 undo log 历史版本；事务开始时根据隔离级别生成 **Read View**（`m_ids / min_trx_id / max_trx_id / creator_trx_id`），决定能看到哪个版本。\n  - RC：每次一致性读都**新建** Read View → 所以能看到其他事务刚提交的数据 → 不可重复读。\n  - RR：整个事务只**新建一次** Read View → 后续读同一行版本不变 → 可重复读。\n- **Next-Key Lock**：RR 下 `SELECT … FOR UPDATE / LOCK IN SHARE MODE` 会对索引记录 + 其前的间隙加锁，防止新行插入（防幻读）。RC 下退化为**记录锁**，不锁间隙。\n\n## 切换隔离级别\n\n```sql\n-- 会话级\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n\n-- 全局级（需 SUPER 权限）\nSET GLOBAL TRANSACTION ISOLATION LEVEL SERIALIZABLE;\n```\n\n---\n\n# 一个 DDL 示例\n\n创建一张带索引的订单表，并后续加字段：\n\n```sql\n-- 建表\nCREATE TABLE `t_order` (\n    `id`          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT '主键',\n    `order_no`    VARCHAR(32)      NOT NULL                COMMENT '订单号',\n    `user_id`     BIGINT UNSIGNED  NOT NULL                COMMENT '用户ID',\n    `amount`      DECIMAL(12,2)    NOT NULL DEFAULT 0.00   COMMENT '金额',\n    `status`      TINYINT          NOT NULL DEFAULT 0      COMMENT '0-待支付 1-已支付 2-已取消',\n    `created_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    `updated_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (`id`),\n    UNIQUE KEY `uk_order_no` (`order_no`),\n    KEY `idx_user_status` (`user_id`, `status`)\n) ENGINE=InnoDB\n  DEFAULT CHARSET=utf8mb4\n  COLLATE=utf8mb4_unicode_ci\n  COMMENT='订单表';\n\n-- 后续加一个字段（MySQL 8.0 支持 Online DDL，不锁表）\nALTER TABLE `t_order`\n    ADD COLUMN `remark` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注' AFTER `amount`,\n    ALGORITHM=INPLACE, LOCK=NONE;\n```\n\n> **要点**：`ALGORITHM=INPLACE, LOCK=NONE` 让 `ALTER TABLE` 在线执行，不阻塞 DML；`ENGINE=InnoDB` 是默认值，显式写出便于阅读。",
+  "reasoning": "用户要求我用中文解释InnoDB的隔离级别，然后给一个DDL示例。让我详细组织一下：\n\nInnoDB的隔离级别（从低到高）：\n1. READ UNCOMMITTED（读未提交）\n2. READ COMMITTED（读已提交）\n3. REPEATABLE READ（可重复读）— InnoDB默认\n4. SERIALIZABLE（可串行化）\n\n每个级别要说明：\n- 能解决什么问题\n- 不能解决什么问题\n- InnoDB的实现机制（MVCC、锁等）\n\n然后给一个DDL示例，比如创建表、加索引、修改表结构等。\n\n让我用中文清晰地写出来。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 25,
+  "completion_tokens": 1039,
+  "decode_tokens_per_s": 73.59085737815342,
+  "prompt_tokens_per_s": 213.38522862093393,
+  "draft_n": 889,
+  "draft_n_accepted": 680,
+  "accept_rate": 0.7649043869516311,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 117.159,
+    "prompt_per_token_ms": 4.6863600000000005,
+    "prompt_per_second": 213.38522862093393,
+    "predicted_n": 1039,
+    "predicted_ms": 14105.013,
+    "predicted_per_token_ms": 13.588644508670521,
+    "predicted_per_second": 73.59085737815342,
+    "draft_n": 889,
+    "draft_n_accepted": 680
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23338.0,
+    "memory_free_mib": 879.0,
+    "utilization_gpu_pct": 79.0,
+    "power_w": 340.96,
+    "temperature_c": 70.0
+  },
+  "id": "T_empty_2048",
+  "class": "T"
+}

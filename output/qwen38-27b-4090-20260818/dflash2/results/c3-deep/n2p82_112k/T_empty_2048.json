@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 15.865923004224896,
+  "content": "# InnoDB 隔离级别详解\n\nInnoDB 支持 SQL 标准定义的四个事务隔离级别，默认级别为 **REPEATABLE READ（可重复读）**。\n\n| 级别 | 脏读 | 不可重复读 | 幻读 | 说明 |\n|---|---|---|---|---|\n| READ UNCOMMITTED | ✔ 可能 | ✔ 可能 | ✔ 可能 | 能看到其他事务**未提交**的修改 |\n| READ COMMITTED | ✘ 防止 | ✔ 可能 | ✔ 可能 | 只能读到其他事务**已提交**的数据 |\n| **REPEATABLE READ（默认）** | ✘ 防止 | ✘ 防止 | ✘ 基本防止* | 同一事务内多次读取同一行，结果一致 |\n| SERIALIZABLE | ✘ 防止 | ✘ 防止 | ✘ 防止 | 所有读加共享锁，完全串行化 |\n\n> \\* 在 InnoDB 的 RR 级别下，通过 **MVCC（多版本并发控制）** + **Next-Key Lock（临键锁）** 的组合，在正常 `SELECT` 场景下已能防止幻读。但 `SELECT ... FOR UPDATE` / `LOCK IN SHARE MODE` 等锁定读在某些边缘情况下仍可能观察到\"新插入的行\"，这是实现细节层面的限制。\n\n## 核心机制\n\n- **MVCC**：每行数据带有 `trx_id`（最近修改事务 ID）和 `roll_pointer`（指向 undo log 中的历史版本）。RR 级别下，事务开始时生成一个 **ReadView**，之后所有普通读都基于该快照，从而保证可重复读。\n- **Next-Key Lock**：RR 级别下，范围查询（如 `WHERE id BETWEEN 10 AND 20`）会对索引上的**记录锁 + 间隙锁**加锁，阻止其他事务在间隙中插入，从根本上抑制幻读。\n\n## 查看 / 设置隔离级别\n\n```sql\nSELECT @@transaction_isolation;          -- 查看当前级别\nSET SESSION transaction_isolation = 'READ-COMMITTED';  -- 仅当前会话\n```\n\n---\n\n## DDL 示例\n\n下面创建一个带索引和字符集指定的订单表，这是生产环境中非常典型的 DDL：\n\n```sql\nCREATE TABLE IF NOT EXISTS `t_order` (\n    `id`          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT  COMMENT '主键',\n    `order_no`    VARCHAR(64)      NOT NULL                 COMMENT '订单编号',\n    `user_id`     BIGINT UNSIGNED  NOT NULL                 COMMENT '用户ID',\n    `amount`      DECIMAL(12,2)    NOT NULL DEFAULT 0.00    COMMENT '订单金额',\n    `status`      TINYINT UNSIGNED NOT NULL DEFAULT 0       COMMENT '0-待付款 1-已付款 2-已取消',\n    `created_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    `updated_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP\n                                   ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (`id`),\n    UNIQUE KEY `uk_order_no` (`order_no`),\n    KEY `idx_user_status` (`user_id`, `status`)\n) ENGINE=InnoDB\n  DEFAULT CHARSET=utf8mb4\n  COLLATE=utf8mb4_0900_ai_ci\n  COMMENT='订单主表';\n```\n\n要点说明：\n\n- **`ENGINE=InnoDB`**：显式指定引擎，确保获得事务、MVCC、行级锁等能力。\n- **`DECIMAL(12,2)`**：金额用定点数，避免浮点精度问题。\n- **`UNIQUE KEY` + 组合索引**：`uk_order_no` 保证业务唯一性；`idx_user_status(user_id, status)` 覆盖\"按用户查某状态订单\"的常见查询，同时利用最左前缀也加速 `WHERE user_id = ?`。\n- **`utf8mb4`**：完整支持 4 字节 UTF-8（emoji 等）。\n- **`ON UPDATE CURRENT_TIMESTAMP`**：`updated_at` 自动刷新，无需应用层手动维护。",
+  "reasoning": "The user wants me to:\n1. Explain InnoDB isolation levels in Chinese\n2. Provide one DDL example\n\nLet me structure this clearly. InnoDB supports 4 isolation levels: READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ (default), SERIALIZABLE. I'll explain each in Chinese, covering what anomalies they prevent, and then give a DDL example.\n\nLet me write a thorough but clear explanation in Chinese, then a DDL example (maybe creating a table or altering one).\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 25,
+  "completion_tokens": 1020,
+  "decode_tokens_per_s": 65.26244179778237,
+  "prompt_tokens_per_s": 219.9116834679193,
+  "draft_n": 597,
+  "draft_n_accepted": 541,
+  "accept_rate": 0.9061976549413735,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 113.682,
+    "prompt_per_token_ms": 4.54728,
+    "prompt_per_second": 219.9116834679193,
+    "predicted_n": 1020,
+    "predicted_ms": 15613.881,
+    "predicted_per_token_ms": 15.322748773307163,
+    "predicted_per_second": 65.26244179778237,
+    "draft_n": 597,
+    "draft_n_accepted": 541
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 83.0,
+    "power_w": 360.46,
+    "temperature_c": 71.0
+  },
+  "id": "T_empty_2048",
+  "class": "T"
+}

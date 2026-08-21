@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 20.199511481449008,
+  "content": "# InnoDB 隔离级别详解\n\n## 一、先理解三种并发问题\n\n| 问题 | 含义 |\n|------|------|\n| **脏读 (Dirty Read)** | 读到了其他事务**未提交**的数据，对方回滚后你读到的是\"不存在\"的数据 |\n| **不可重复读 (Non-Repeatable Read)** | 同一事务内，两次读**同一行**，值不同（因为中间被别的事务 UPDATE 并 COMMIT 了） |\n| **幻读 (Phantom Read)** | 同一事务内，两次执行**范围查询**，返回的**行数**不同（因为中间被别的事务 INSERT/DELETE 并 COMMIT 了） |\n\n## 二、四种隔离级别（由低到高）\n\n### 1. READ UNCOMMITTED（读未提交）\n- 能看到其他事务**尚未提交**的修改。\n- 三种问题**全部存在**。\n- InnoDB **不推荐**使用，几乎没有实际场景需要它。\n\n### 2. READ COMMITTED（读已提交，RC）\n- 只能看到其他事务**已提交**的数据。\n- ✅ 解决了脏读\n- ❌ 仍存在不可重复读、幻读\n- 每次 **SELECT 都会生成新的 Read View**（快照），所以同一事务内两次读可能看到不同结果。\n- 典型用户：Oracle 默认级别、很多 OLTP 系统。\n\n### 3. REPEATABLE READ（可重复读，RR）⭐ InnoDB 默认\n- 只能看到**事务开始那一刻**的快照。\n- ✅ 解决了脏读\n- ✅ 解决了不可重复读\n- ✅ **基本**解决了幻读（靠 **MVCC + Next-Key Lock**）\n  - 普通 `SELECT`（一致性非锁定读）：通过 MVCC 快照，幻读不会出现。\n  - `SELECT … FOR UPDATE / LOCK IN SHARE MODE`（当前读）：通过 **Next-Key Lock**（行锁 + 间隙锁）锁住范围，防止其他事务在该范围内 INSERT。\n- 第一次 **SELECT 生成 Read View**，整个事务期间复用，因此多次读结果一致。\n\n### 4. SERIALIZABLE（串行化）\n- 所有 **SELECT 都隐式加共享锁**（相当于 `SELECT … LOCK IN SHARE MODE`）。\n- 三种问题**全部解决**。\n- 并发度极低，性能差，一般只在极端一致性要求下使用。\n\n## 三、一张图总结\n\n```\nREAD UNCOMMITTED   →  脏读 ✗  不可重复读 ✗  幻读 ✗\nREAD COMMITTED     →  脏读 ✓  不可重复读 ✗  幻读 ✗\nREPEATABLE READ    →  脏读 ✓  不可重复读 ✓  幻读 ✓ (MVCC+Gap Lock)\nSERIALIZABLE       →  脏读 ✓  不可重复读 ✓  幻读 ✓ (全加锁)\n```\n\n## 四、快速验证 / 修改隔离级别\n\n```sql\n-- 查看当前隔离级别\nSELECT @@transaction_isolation;        -- MySQL 8.0+\n-- 或\nSHOW VARIABLES LIKE 'transaction_isolation';  -- 5.7\n\n-- 会话级修改（仅当前连接生效）\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n\n-- 全局修改（需重启或新建连接才完全生效）\nSET GLOBAL TRANSACTION ISOLATION LEVEL SERIALIZABLE;\n```\n\n## 五、DDL 示例\n\n下面是一个与隔离级别语境相关的 **DDL**（建表），同时附带在表级注释中说明业务预期：\n\n```sql\nCREATE TABLE orders (\n    id          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,\n    user_id     BIGINT UNSIGNED  NOT NULL,\n    amount      DECIMAL(12,2)    NOT NULL,\n    status      TINYINT          NOT NULL DEFAULT 0,\n    created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    PRIMARY KEY (id),\n    KEY idx_user_id (user_id)\n)\nENGINE=InnoDB\nDEFAULT CHARSET=utf8mb4\nCOLLATE=utf8mb4_unicode_ci\nCOMMENT='订单表 – 业务要求 RR 可重复读，金额字段配合 Next-Key Lock 防幻读';\n```\n\n> **要点**\n> - `ENGINE=InnoDB`：只有 InnoDB 才支持事务和上述四种隔离级别（MyISAM 不支持）。\n> - 建表本身不改变隔离级别；隔离级别在 `SET SESSION / GLOBAL` 或 `my.cnf` 中设定。\n> - 真正防幻读的关键在于 **RR 级别 + 当前读（`FOR UPDATE`）时 InnoDB 自动加的 Next-Key Lock**，而不是表结构。",
+  "reasoning": "用户要求我用中文解释InnoDB的隔离级别，然后给出一个DDL示例。\n\n让我规划一下：\n\n1. 用中文解释InnoDB的四种隔离级别：\n   - READ UNCOMMITTED (读未提交)\n   - READ COMMITTED (读已提交)\n   - REPEATABLE READ (可重复读) - InnoDB默认\n   - SERIALIZABLE (串行化)\n\n2. 每种隔离级别需要解释：\n   - 能看到什么\n   - 能解决什么并发问题\n   - 不能解决什么并发问题\n\n3. 并发问题：脏读、不可重复读、幻读\n\n4. DDL示例 - 这里要注意，用户说\"DDL example\"。DDL是Data Definition Language（数据定义语言），比如CREATE TABLE, ALTER TABLE等。但在隔离级别的上下文中，用户可能想要的是设置隔离级别的SQL，那其实是SET命令，不是DDL。不过用户明确说了DDL，我可以给一个CREATE TABLE的示例，或者给一个设置隔离级别的示例。\n\n再想想，用户说\"give one DDL example\"，可能是想让我给一个与隔离级别相关的DDL。但实际上设置隔离级别不是DDL。我可以给一个CREATE TABLE的DDL示例，或者我理解为用户可能混淆了DDL和DML，给一个SET TRANSACTION ISOLATION LEVEL的示例。\n\n我还是严格按照用户说的\"DDL\"来给，给一个CREATE TABLE的示例，同时可以附带提一下设置隔离级别的命令。\n\n让我用中文详细解释，结构清晰。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 1368,
+  "decode_tokens_per_s": 68.57783958534637,
+  "prompt_tokens_per_s": 230.2280963547218,
+  "draft_n": 1119,
+  "draft_n_accepted": 845,
+  "accept_rate": 0.7551385165326184,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 117.275,
+    "prompt_per_token_ms": 4.343518518518518,
+    "prompt_per_second": 230.2280963547218,
+    "predicted_n": 1368,
+    "predicted_ms": 19933.553,
+    "predicted_per_token_ms": 14.581970007315288,
+    "predicted_per_second": 68.57783958534637,
+    "draft_n": 1119,
+    "draft_n_accepted": 845
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22440.0,
+    "memory_free_mib": 1777.0,
+    "utilization_gpu_pct": 82.0,
+    "power_w": 340.4,
+    "temperature_c": 67.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22440.0,
+    "memory_free_mib": 1777.0,
+    "utilization_gpu_pct": 69.0,
+    "power_w": 297.15,
+    "temperature_c": 63.0
+  }
+}

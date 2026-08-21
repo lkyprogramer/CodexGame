@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 11.390611152164638,
+  "content": "1. **权重就装不下：** 27B 即便压到 INT4，单个模型权重也要 ≈13–14 GB，两个加起来 ≈27–28 GB，已经超出 4090 的 24 GB 物理上限，连 KV cache、CUDA context 和中间激活的零头都没地方放。\n\n2. **没有更激进的退路：** 再往下压（INT3 / ternary）会把精度打到不可用；FP16 / INT8 更是单个模型权重就已 27 / 54 GB，一个都塞不进。\n\n3. **所以这不是\"跑起来很慢\"的问题，而是第一句 prompt 就会触发 CUDA OOM、进程直接崩溃——硬件层面就不可行。**",
+  "reasoning": "用户问的是：为什么单卡 4090 不该同时跑两个 27B（参数）的模型。要求用三句话说明。\n\n让我分析技术事实：\n- RTX 4090 显存是 24GB GDDR6X\n- 27B 参数模型，比如 Qwen2.5-27B、Mistral 27B 等\n- 模型推理时的显存占用：\n  - FP16: 27B × 2 bytes = ~54GB（远超24GB）\n  - INT8: 27B × 1 byte = ~27GB（仍超24GB）\n  - INT4 (GPTQ/AWQ): 27B × 0.5 bytes ≈ ~13.5GB（模型权重）\n  - 加上 KV cache、activation、CUDA context 等开销\n\n所以单个 27B 模型以 INT4 量化后，权重约 13-14GB，加上 KV cache（取决于上下文长度）和运行时开销，一个模型大约需要 16-20GB 甚至更多。\n\n两个 27B INT4 模型：权重就需要 ~27-28GB，直接超过 24GB 显存。即使不考虑 KV cache，权重本身就放不下了。\n\n如果不用量化，FP16 下两个 27B 需要 ~108GB，完全不可能。\n\n所以核心原因：\n1. 显存物理限制：24GB 连两个 INT4 的权重都放不下（2×~13.5GB ≈ 27GB > 24GB），还没算 KV cache 和运行时开销。\n2. 即使勉强能放下权重，KV cache 和中间激活会迅速耗尽剩余空间，导致 OOM。\n3. 即使理论上能跑，两个模型共享同一张卡的计算资源，推理吞吐会互相争抢，实际体验极差（但这条不是\"不该跑\"的硬理由，硬理由是显存根本不够）。\n\n用户要求三句话，要简洁有力。\n\n三句话：\n1. 显存：24GB 连两个 INT4 量化的 27B 权重（约 27-28GB）都塞不下，更别提 KV cache 和运行时开销。\n2. 如果退一步说 FP16/INT8，那更是不用谈，一个模型的权重就已经超了。\n3. 所以这不是\"性能不好\"的问题，而是物理上根本放不下，会直接 OOM 崩溃。\n\n让我精炼成三句话，每句一个核心点：\n1. 显存硬上限\n2. 即使最激进的量化也不够\n3. 结论：不是慢，是根本跑不起来\n\n再想想，用户说\"不该同时跑\"，语气上可能暗示有人觉得\"4090 挺强的，跑两个 27B 应该没问题\"。我要用三句话把硬道理说清楚。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 825,
+  "decode_tokens_per_s": 74.04903160222153,
+  "prompt_tokens_per_s": 269.48730041096815,
+  "draft_n": 1545,
+  "draft_n_accepted": 515,
+  "accept_rate": 0.3333333333333333,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 118.744,
+    "prompt_per_token_ms": 3.71075,
+    "prompt_per_second": 269.48730041096815,
+    "predicted_n": 825,
+    "predicted_ms": 11127.762,
+    "predicted_per_token_ms": 13.504565533980584,
+    "predicted_per_second": 74.04903160222153,
+    "draft_n": 1545,
+    "draft_n_accepted": 515
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22214.0,
+    "memory_free_mib": 2003.0,
+    "utilization_gpu_pct": 90.0,
+    "power_w": 420.11,
+    "temperature_c": 70.0
+  },
+  "id": "A_chat",
+  "class": "A",
+  "gpu_before": {
+    "memory_used_mib": 22214.0,
+    "memory_free_mib": 2003.0,
+    "utilization_gpu_pct": 16.0,
+    "power_w": 172.4,
+    "temperature_c": 64.0
+  }
+}

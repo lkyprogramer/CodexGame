@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 14.949520152062178,
+  "content": "# `apool` — production async connection pool\n\nBelow is a complete, dependency-free package (stdlib only) with **retries + backoff**, **backpressure policies**, and a full **metrics** system, followed by a pytest test suite.\n\n---\n\n## `apool/errors.py`\n\n```python\n\"\"\"Exception hierarchy for apool.\"\"\"\n\n\nclass PoolError(Exception):\n    \"\"\"Base class for all pool errors.\"\"\"\n\n\nclass PoolClosed(PoolError):\n    \"\"\"Raised when the pool has been closed.\"\"\"\n\n\nclass PoolExhausted(PoolError):\n    \"\"\"Raised when a waiter is rejected (backpressure / no idle + max size reached).\"\"\"\n\n    def __init__(self, wait_timeout: float, pool_size: int, max_size: int):\n        self.wait_timeout = wait_timeout\n        self.pool_size = pool_size\n        self.max_size = max_size\n        super().__init__(\n            f\"pool exhausted after {wait_timeout:.3f}s \"\n            f\"(size={pool_size}/{max_size})\"\n        )\n\n\nclass ConnectionError(PoolError):\n    \"\"\"A connection failed validation, health check,",
+  "reasoning": "The user wants a production-quality Python async connection pool. I need to deliver a comprehensive implementation including:\n- async connection pool\n- retries with exponential backoff\n- backpressure\n- metrics\n- helpers (context manager, factory, etc.)\n- tests (pytest-based, async)\n\nI should keep expanding until the budget is exhausted, so I should write as much as possible within reasonable output length. I'll write a single comprehensive file structure — either present it as a module `pool/` with multiple files, or present it as one big file. I'll present it as a package with the following files:\n\n- `apool/__init__.py`\n- `apool/pool.py` — ConnectionPool\n- `apool/connection.py` — PooledConnection wrapper\n- `apool/retry.py` — retry with backoff/jitter\n- `apool/backpressure.py` — backpressure policy\n- `apool/metrics.py` — Metrics registry\n- `apool/errors.py`\n- `apool/config.py`\n- `tests/test_pool.py`, `tests/test_retry.py`, `tests/test_backpressure.py`, `tests/test_metrics.py`\n- possibly `examples/demo.py`\n\nDesign:\n- `ConnectionPool(factory, max_size, timeout, idle_ttl, health_check, ...)`. `acquire()` is an async context manager.\n- Backpressure: queue with wait timeout, high-water mark, optional slow-start / token bucket on the wait queue, rejection when saturated (fail fast).\n- Retries: `with_retry(fn, attempts, base_delay, max_delay, jitter, retryable_exceptions)`.\n- Metrics: counters, gauges, histograms (simple), snapshots.\n- Idle eviction via a background task, periodic health checks.\n- Stale connections: checkout validation (validate_on_checkout), last_used.\n- Connection generation token for recycling on invalidation.\n- Graceful shutdown: `close()`, `close(timeout)`, in-use tracking.\n- Support for `async with pool.connect()` and `pool.execute(coro_fn)`.\n- `PoolStats` dataclass.\n- `PoolMetrics` with counters: acquired, released, evicted, created, destroyed, timeouts, rejections, errors, retries, histogram of acquisition waits, histogram of checkout duration, gauge of current size.\n\nBackpressure details:\n- `WaitQueue` with a max waiters limit; when full → raise `PoolExhausted` (fail-fast) or block depending on policy.\n- Policy enum: `BackpressurePolicy.BLOCK`, `FAIL_FAST`, `DEGRADED` (shrink wait timeout / shed load when pool usage exceeds a high-water mark).\n- `AdmissionGate` using `asyncio.Semaphore`-style token bucket? Simpler: high-water mark + wait queue cap.\n\nImplementation notes:\n- Connections are stored as `(gen, conn, state)`; state is IDLE/IN_USE/CLOSING.\n- On release: mark as idle, record time; if the pool has waiters, wake one up.\n- `asyncio.Queue` vs. a custom deque + Condition. Custom is cleaner for generation checks.\n- Eviction: background task every `evict_interval` closes connections idle for more than `idle_ttl` and stale ones (health check failure).\n- Health check: `health_check: Optional[Callable[[Conn], Awaitable[bool]]]`; run on idle eviction and on checkout if `validate_on_checkout` is set.\n- Invalidation: `pool.invalidate(conn, reason)` — close and replace, increment generation.\n- `pool.retry_acquire`?Stop thinking. State the answer or the next smallest action now.",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 37,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 69.41213014631914,
+  "prompt_tokens_per_s": 38.2969352877536,
+  "draft_n": 1038,
+  "draft_n_accepted": 534,
+  "accept_rate": 0.5144508670520231,
+  "timings": {
+    "cache_n": 33,
+    "prompt_n": 4,
+    "prompt_ms": 104.447,
+    "prompt_per_token_ms": 26.11175,
+    "prompt_per_second": 38.2969352877536,
+    "predicted_n": 1024,
+    "predicted_ms": 14738.058,
+    "predicted_per_token_ms": 14.406703812316717,
+    "predicted_per_second": 69.41213014631914,
+    "draft_n": 1038,
+    "draft_n_accepted": 534
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 91.0,
+    "power_w": 404.5,
+    "temperature_c": 67.0
+  },
+  "id": "F_med_1024_r2",
+  "class": "F_med"
+}

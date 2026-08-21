@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 12.267896640114486,
+  "content": "## InnoDB 隔离级别\n\nInnoDB 支持 SQL 标准定义的四个隔离级别，从低到高依次为：\n\n| 隔离级别 | 脏读 | 不可重复读 | 幻读 |\n|---|---|---|---|\n| **READ UNCOMMITTED**（读未提交） | ✅ 可能 | ✅ 可能 | ✅ 可能 |\n| **READ COMMITTED**（读已提交） | ❌ 无 | ✅ 可能 | ✅ 可能 |\n| **REPEATABLE READ**（可重复读）* | ❌ 无 | ❌ 无 | ❌ 无（MVCC+Next-Key Lock） |\n| **SERIALIZABLE**（可串行化） | ❌ 无 | ❌ 无 | ❌ 无 |\n\n> \\* **REPEATABLE READ** 是 MySQL InnoDB 的**默认级别**。\n\n### 各级别要点\n\n- **READ UNCOMMITTED**：事务 A 可以读到事务 B 尚未提交的数据（脏读）。性能最高，实际中极少使用。\n- **READ COMMITTED**：只能读到已提交的数据。Oracle 的默认级别。每次 `SELECT` 都会生成一个新的 Read View，因此同一事务内两次读同一行可能不同（不可重复读）。\n- **REPEATABLE READ（默认）**：通过 **MVCC（多版本并发控制）** 在事务开始时生成一次 Read View，整个事务期间看到一致的数据快照，避免不可重复读。配合 **Next-Key Lock**（记录锁 + 间隙锁 + 插入意向锁）解决幻读问题。\n- **SERIALIZABLE**：所有读操作都加 `LOCK IN SHARE MODE`（共享锁），写操作加排他锁，事务完全串行执行，并发度最低。\n\n### 设置隔离级别\n\n```sql\nSET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;  -- 当前会话\nSET GLOBAL  TRANSACTION ISOLATION LEVEL READ COMMITTED;  -- 全局（需重启或新连接生效）\n```\n\n---\n\n## 一条 DDL 示例\n\n```sql\nCREATE TABLE orders (\n    order_id    BIGINT       NOT NULL AUTO_INCREMENT COMMENT '订单主键',\n    user_id     BIGINT       NOT NULL                COMMENT '用户ID',\n    amount      DECIMAL(12,2) NOT NULL DEFAULT 0.00  COMMENT '订单金额',\n    status      TINYINT      NOT NULL DEFAULT 0      COMMENT '0-待支付 1-已支付 2-已取消',\n    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',\n    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',\n    PRIMARY KEY (order_id),\n    INDEX idx_user_id (user_id)\n) ENGINE = InnoDB\n  DEFAULT CHARSET = utf8mb4\n  COLLATE = utf8mb4_unicode_ci\n  COMMENT = '订单表';\n```\n\n**关键点说明：**\n\n- `ENGINE = InnoDB`：显式指定存储引擎，启用事务、行级锁、MVCC。\n- `AUTO_INCREMENT`：InnoDB 支持自增主键（聚簇索引），配合 B+Tree 顺序插入性能良好。\n- `utf8mb4`：完整支持 4 字节 UTF-8（如 emoji），避免 `utf8`（实为 utf8mb3）的截断问题。\n- `ON UPDATE CURRENT_TIMESTAMP`：行更新时自动刷新 `updated_at`，无需业务代码手动赋值。",
+  "reasoning": "The user wants two things:\n1. An explanation of InnoDB isolation levels in Chinese\n2. One DDL example (related to InnoDB or SQL in general)\n\nLet me structure this clearly:\n\nInnoDB isolation levels (4 levels):\n- READ UNCOMMITTED (读未提交)\n- READ COMMITTED (读已提交)\n- REPEATABLE READ (可重复读) - MySQL InnoDB default\n- SERIALIZABLE (可串行化)\n\nI'll explain each in Chinese, covering what they prevent (dirty read, non-repeatable read, phantom read).\n\nThen I'll give one DDL example - perhaps creating a table with InnoDB engine, which is directly relevant.\n\nLet me write the explanation in Chinese as requested, and the DDL example can have Chinese comments.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 25,
+  "completion_tokens": 934,
+  "decode_tokens_per_s": 77.68497767368713,
+  "prompt_tokens_per_s": 213.48362580590072,
+  "draft_n": 810,
+  "draft_n_accepted": 637,
+  "accept_rate": 0.7864197530864198,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 117.105,
+    "prompt_per_token_ms": 4.684200000000001,
+    "prompt_per_second": 213.48362580590072,
+    "predicted_n": 934,
+    "predicted_ms": 12010.044,
+    "predicted_per_token_ms": 12.87250160771704,
+    "predicted_per_second": 77.68497767368713,
+    "draft_n": 810,
+    "draft_n_accepted": 637
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22440.0,
+    "memory_free_mib": 1777.0,
+    "utilization_gpu_pct": 84.0,
+    "power_w": 359.51,
+    "temperature_c": 72.0
+  },
+  "id": "T_empty_2048",
+  "class": "T"
+}

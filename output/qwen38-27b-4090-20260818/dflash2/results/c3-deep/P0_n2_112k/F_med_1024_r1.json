@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 12.535782978869975,
+  "content": "```python\n\"\"\"\nasync_pool — Production-quality async connection pool with retries,\nbackpressure, circuit-breaking, and comprehensive metrics.\n\nArchitecture:\n    ┌─────────────────────────────────────────────────────────────────┐\n    │                        ConnectionPool                          │\n    │  ┌───────────┐  ┌───────────────┐  ┌────────────────────────┐  │\n    │  │ Semaphore │  │  Idle Queue   │  │  Wait Queue (bounded)  │  │\n    │  │ (permits) │  │ (ready conns) │  │  (backpressure)        │  │\n    │  └─────┬─────┘  └──────┬────────┘  └───────────┬────────────┘  │\n    │        │               │                       │               │\n    │        ▼               ▼                       ▼               │\n    │  ┌─────────────────────────────────────────────────────┐      │\n    │  │              _acquire_inner()                        │      │\n    │  │  1. Try idle queue (non-blocking)                   │      │\n    │  │  2. If empty & permits available → create new       │      │\n    │  │  3. Else wait on semaphore (with timeout)           │      │\n    │  │  4. Validate via health check                       │      │\n    │  │  5. Wrap in TrackedConnection                       │      │\n    │  └─────────────────────────────────────────────────────┘      │\n    │                                                               │\n    │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐  │\n    │  │ RetryPolicy  │  │ CircuitBreaker│  │ PoolMetrics        │  │\n    │  │ (exp+jitter) │  │ (half-open)  │  │ (hist, counters)   │  │\n    │  └──────────────┘  └──────────────┘  └────────────────────┘  │\n    └─────────────────────────────────────────────────────────────────┘\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport enum\nimport itertools\nimport logging\nimport math\nimport random\nimport statistics\nimport time\nfrom collections import deque\nfrom dataclasses import dataclass, field\nfrom typing import (\n    Any,\n    AsyncIterator,\n    Awaitable,\n    Callable,\n    Generic,\n    Optional,\n    TypeVar,\n)\n\ntry:\n    from typing import Protocol, runtime_checkable\nexcept ImportError:\n    from typing_extensions import Protocol, runtime_checkable\n\nlogger = logging.getLogger(\"async_pool\")\n\nT = TypeVar(\"T\")\nConnT = TypeVar(\"ConnT\")\n\n\n# ═══════════════════════════════════════════════════════════════════════════\n# Exceptions\n# ═══════════════════════════════════════════════════════════════════════════\n\n\nclass PoolError(Exception):\n    \"\"\"Base",
+  "reasoning": "The user wants a production-quality Python async connection pool implementation with:\n- Retries\n- Backpressure\n- Metrics\n- Expanding helpers and tests until the \"budget ends\" (meaning I should make it as comprehensive as possible)\n\nLet me design a comprehensive async connection pool that includes:\n\n1. **Core Pool**: `AsyncConnectionPool` with acquire/release, max connections, timeouts\n2. **Retries**: Exponential backoff with jitter, retryable exceptions, configurable policies\n3. **Backpressure**: Semaphore-based limiting, queue with max size, slow-consumer detection\n4. **Metrics**: Connection count, wait time, acquire/release rates, error counts, latency percentiles\n5. **Helpers**: Context manager, health checks, circuit breaker, connection factory, decorators\n6. **Tests**: Comprehensive pytest-asyncio tests\n\nLet me structure this as a complete, production-ready module with multiple files or a well-organized single module. Given the format, I'll create a comprehensive implementation.\n\nLet me think about the architecture:\n\n- `ConnectionPool` - core pool with asyncio.Semaphore + asyncio.Queue\n- `RetryPolicy` - configurable retry with exponential backoff + jitter\n- `BackpressureController` - manages queue depth, rejects when overloaded\n- `PoolMetrics` - tracks all relevant metrics with histograms\n- `CircuitBreaker` - opens circuit on repeated failures\n- `HealthChecker` - periodic validation of connections\n- `ConnectionWrapper` - wraps raw connections with lifecycle tracking\n- `acquire()` / `release()` with context manager support\n- Decorators and helpers for common patterns\n\nLet me write this out comprehensively.\n",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 37,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 83.37224853242839,
+  "prompt_tokens_per_s": 314.86146095717885,
+  "draft_n": 812,
+  "draft_n_accepted": 616,
+  "accept_rate": 0.7586206896551724,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 37,
+    "prompt_ms": 117.512,
+    "prompt_per_token_ms": 3.176,
+    "prompt_per_second": 314.86146095717885,
+    "predicted_n": 1024,
+    "predicted_ms": 12270.27,
+    "predicted_per_token_ms": 11.994398826979472,
+    "predicted_per_second": 83.37224853242839,
+    "draft_n": 812,
+    "draft_n_accepted": 616
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 91.0,
+    "power_w": 404.71,
+    "temperature_c": 64.0
+  },
+  "id": "F_med_1024_r1",
+  "class": "F_med"
+}

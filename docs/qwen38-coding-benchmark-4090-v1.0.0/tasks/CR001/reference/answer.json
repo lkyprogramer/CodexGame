@@ -1,0 +1,45 @@
+{
+  "issues": [
+    {
+      "file": "src/JwtVerifier.java",
+      "line": 5,
+      "severity": "critical",
+      "category": "algorithm validation",
+      "explanation": "The verifier accepts alg=none and returns claims without any signature verification, enabling authentication bypass.",
+      "fix": "Reject none and pin each issuer/key to a fixed allowlisted algorithm rather than trusting the header."
+    },
+    {
+      "file": "src/JwtVerifier.java",
+      "line": 5,
+      "severity": "critical",
+      "category": "untrusted key material",
+      "explanation": "When kid is unknown, a key from the untrusted token claims is used, allowing an attacker-controlled signature key and algorithm confusion.",
+      "fix": "Resolve kid only from trusted server-side key configuration; reject unknown kid and never read key material from claims."
+    },
+    {
+      "file": "src/JwtVerifier.java",
+      "line": 5,
+      "severity": "high",
+      "category": "claims validation",
+      "explanation": "exp and nbf are not checked, so expired or not-yet-valid tokens remain accepted.",
+      "fix": "Validate exp and nbf against a trusted clock with a bounded skew."
+    },
+    {
+      "file": "src/JwtVerifier.java",
+      "line": 5,
+      "severity": "high",
+      "category": "issuer audience",
+      "explanation": "The configured issuer is unused and no iss or aud validation occurs, so tokens minted for another trust domain can be replayed.",
+      "fix": "Require exact issuer and expected audience after signature validation."
+    },
+    {
+      "file": "src/Crypto.java",
+      "line": 1,
+      "severity": "critical",
+      "category": "signature verification",
+      "explanation": "Crypto.verify returns true for any non-empty signature and performs no cryptographic verification.",
+      "fix": "Use a vetted JCA/JWT implementation, verify the signature bytes with the pinned algorithm, and compare results securely."
+    }
+  ],
+  "summary": "The code does not establish token authenticity or claim validity and is unsafe for authentication."
+}

@@ -1,0 +1,1 @@
+public interface UserRepository{User find(String id);}

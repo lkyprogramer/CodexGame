@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 11.266404121182859,
+  "content": "```python\nimport heapq\n\ndef dijkstra(graph, source):\n    \"\"\"\n    Dijkstra's shortest path algorithm.\n\n    Args:\n        graph:  Adjacency list as a dict of dicts: {node: {neighbor: weight, ...}, ...}\n        source: Starting node.\n\n    Returns:\n        distances:    dict mapping each node to its shortest distance from source (inf if unreachable).\n        predecessors: dict mapping each node to its predecessor on the shortest path (None for source or unreachable).\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    predecessors = {node: None for node in graph}\n    visited = set()\n    heap = [(0, source)]\n\n    while heap:\n        dist, current = heapq.heappop(heap)\n        if current in visited:\n            continue\n        visited.add(current)\n\n        for neighbor, weight in graph[current].items():\n            if neighbor not in distances:\n                distances[neighbor] = float('inf')\n                predecessors[neighbor] = None\n            if neighbor in visited:\n                continue\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                predecessors[neighbor] = current\n                heapq.heappush(heap, (new_dist, neighbor))\n\n    return distances, predecessors\n```",
+  "reasoning": "The user wants a Dijkstra shortest path algorithm in Python, returned as just the function.\n\nLet me think about the design:\n- Input: a graph (adjacency list or dict of dict), a source node\n- Output: distances from source to all reachable nodes, and possibly predecessors for path reconstruction\n\nI'll use heapq (priority queue) for efficiency.\n\nDesign decisions:\n- Graph representation: dict of dicts (adjacency list) where graph[u] = {v: weight}\n- Return: (distances, predecessors) or just distances? I'll return both distances and the path (predecessor map) since that's most useful.\n- Handle: disconnected nodes (inf distance), negative weights (should raise or warn, but I'll just note it doesn't handle negative weights)\n\nLet me write a clean, standard implementation:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    predecessors = {node: None for node in graph}\n    visited = set()\n    heap = [(0, source)]\n    \n    while heap:\n        dist, current = heapq.heappop(heap)\n        if current in visited:\n            continue\n        visited.add(current)\n        \n        for neighbor, weight in graph[current].items():\n            if neighbor in visited:\n                continue\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                predecessors[neighbor] = current\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances, predecessors\n```\n\nWait, I should also handle the case where neighbors might not be in the `graph` dict (dangling nodes). Actually, in a standard adjacency list representation, all nodes should be keys. But to be safe, I could handle it. Let me keep it simple and assume the graph is well-formed.\n\nActually, let me also consider: what if the user passes a graph where not all nodes are keys? I'll initialize distances for all nodes that appear as either keys or values. But that might be overcomplicating. Let me just use the keys of the graph dict, and if a neighbor appears in the adjacency list but not as a key, I'll handle it.\n\nLet me refine:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    predecessors = {node: None for node in graph}\n    visited = set()\n    heap = [(0, source)]\n    \n    while heap:\n        dist, current = heapq.heappop(heap)\n        if current in visited:\n            continue\n        visited.add(current)\n        \n        for neighbor, weight in graph[current].items():\n            if neighbor not in distances:\n                distances[neighbor] = float('inf')\n                predecessors[neighbor] = None\n            if neighbor in visited:\n                continue\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                predecessors[neighbor] = current\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances, predecessors\n```\n\nThis looks good. The user said \"Return only the function\" so I'll just output the function code without extra explanation.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 1044,
+  "decode_tokens_per_s": 95.45518900539261,
+  "prompt_tokens_per_s": 174.88632388947187,
+  "draft_n": 1098,
+  "draft_n_accepted": 783,
+  "accept_rate": 0.7131147540983607,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 200.13,
+    "prompt_per_token_ms": 5.718,
+    "prompt_per_second": 174.88632388947187,
+    "predicted_n": 1044,
+    "predicted_ms": 10926.593,
+    "predicted_per_token_ms": 10.476119846596358,
+    "predicted_per_second": 95.45518900539261,
+    "draft_n": 1098,
+    "draft_n_accepted": 783
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22440.0,
+    "memory_free_mib": 1777.0,
+    "utilization_gpu_pct": 69.0,
+    "power_w": 297.15,
+    "temperature_c": 63.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22392.0,
+    "memory_free_mib": 1825.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 333.24,
+    "temperature_c": 62.0
+  }
+}

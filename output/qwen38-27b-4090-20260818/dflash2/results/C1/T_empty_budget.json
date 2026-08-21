@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 12.505681094713509,
+  "content": "## InnoDB 事务隔离级别\n\nInnoDB 引擎遵循 SQL 标准，支持以下四个事务隔离级别（从低到高）：\n\n### 1. 读未提交（READ UNCOMMITTED）\n- 一个事务可以读到**其他事务尚未提交**的修改（即\"脏读\"）。\n- 不产生锁，性能最高，但数据一致性最差。\n- 实践中极少使用。\n\n### 2. 读已提交（READ COMMITTED，RC）\n- 只能读到其他事务**已提交**的修改，消除了脏读。\n- 但在同一事务内，两次读取同一行可能得到不同结果（\"不可重复读\"）。\n- 每次 `SELECT` 都会生成新的 Read View。\n\n### 3. 可重复读（REPEATABLE READ，RR）——**InnoDB 默认级别**\n- 同一事务内，对同一行的多次读取结果始终一致，消除了不可重复读。\n- 事务开始时生成**唯一的 Read View**，整个事务期间复用。\n- InnoDB 通过 **MVCC（多版本并发控制）+ 间隙锁（Gap Lock）** 在很大程度上也避免了\"幻读\"。\n\n### 4. 串行化（SERIALIZABLE）\n- 所有读写操作都加锁（`SELECT` 也会加共享锁），事务完全串行执行。\n- 彻底消除并发问题，但并发性能最低。\n\n> **一句话总结**：级别越高，并发度越低，数据一致性越强。MySQL InnoDB 默认使用 **RR**，在 MVCC 机制下兼顾了并发与一致性。\n\n---\n\n## DDL 示例：修改数据库默认隔离级别\n\n```sql\n-- 将数据库 `orders_db` 的默认事务隔离级别设置为 READ COMMITTED\nALTER DATABASE orders_db\n  SET DEFAULT TRANSACTION ISOLATION LEVEL READ COMMITTED;\n```\n\n**说明：**\n- 该语句属于 **DDL**（数据定义语言），修改的是数据库对象的元数据。\n- 执行后，后续连接到 `orders_db` 的**新会话**默认以 RC 级别运行；已有会话不受影响，需在会话中执行 `SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;` 来覆盖。\n- 若需全局生效，可改为：\n  ```sql\n  SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;\n  ```\n  或在 `my.cnf` 中配置：\n  ```ini\n  [mysqld]\n  transaction-isolation = READ-COMMITTED\n  ```\n\n> ⚠️ 修改隔离级别前，务必评估业务中是否存在依赖 RR 间隙锁来防止幻读的逻辑（如库存扣减场景），否则可能引入并发 bug。",
+  "reasoning": "The user wants me to:\n1. Explain InnoDB isolation levels in Chinese\n2. Give one DDL example related to isolation levels\n\nLet me think about InnoDB isolation levels:\n\nInnoDB supports the following isolation levels (from lowest to highest):\n1. READ UNCOMMITTED (RU) - 读未提交\n2. READ COMMITTED (RC) - 读已提交\n3. REPEATABLE READ (RR) - 可重复读 (default in MySQL InnoDB)\n4. SERIALIZABLE (SER) - 串行化\n\nLet me explain each in Chinese and then give a DDL example. A DDL example related to isolation levels could be setting the transaction isolation level at the database level using ALTER DATABASE, or creating a table with specific considerations. Actually, the most common DDL related to isolation levels would be `ALTER DATABASE ... SET TRANSACTION ISOLATION LEVEL ...` or `CREATE DATABASE ... WITH ...`. Let me think of a practical DDL example.\n\nA good DDL example would be:\n- `ALTER DATABASE mydb SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;`\n\nOr maybe creating a table that's designed with considerations for a specific isolation level. But the most direct DDL related to isolation levels is the ALTER DATABASE statement.\n\nLet me write the explanation in Chinese and provide a clear DDL example.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 870,
+  "decode_tokens_per_s": 70.99477154960917,
+  "prompt_tokens_per_s": 230.21828103683492,
+  "draft_n": 702,
+  "draft_n_accepted": 547,
+  "accept_rate": 0.7792022792022792,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 117.28,
+    "prompt_per_token_ms": 4.343703703703704,
+    "prompt_per_second": 230.21828103683492,
+    "predicted_n": 870,
+    "predicted_ms": 12240.338,
+    "predicted_per_token_ms": 14.085544303797468,
+    "predicted_per_second": 70.99477154960917,
+    "draft_n": 702,
+    "draft_n_accepted": 547
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 84.0,
+    "power_w": 339.27,
+    "temperature_c": 55.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 85.0,
+    "power_w": 380.87,
+    "temperature_c": 52.0
+  }
+}

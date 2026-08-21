@@ -1,0 +1,1 @@
+import java.util.*;public final class SqlMigrationRunner{private final SqlSplitter splitter=new SqlSplitter();public List<String>statements(String sql){return splitter.split(sql);}}

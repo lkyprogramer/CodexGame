@@ -1,0 +1,1 @@
+import java.math.BigDecimal;import java.util.Map;public final class TaxTable{private final Map<String,BigDecimal>rates;public TaxTable(Map<String,BigDecimal>r){rates=Map.copyOf(r);}public BigDecimal rate(String c){BigDecimal r=rates.get(c);if(r==null)throw new IllegalArgumentException("unknown tax");return r;}}

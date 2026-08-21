@@ -1,0 +1,1 @@
+public final class AccountService{private final Store store;private final IdGenerator ids;public AccountService(Store s,IdGenerator i){store=s;ids=i;}public Account rename(String id,String name){Account next=new Account(id,name);store.save(next);store.append(new OutboxEvent(ids.next(),"AccountRenamed",id,name));return next;}}

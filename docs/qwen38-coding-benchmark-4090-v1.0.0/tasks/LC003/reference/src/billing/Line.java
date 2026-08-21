@@ -1,0 +1,1 @@
+public record Line(String netAmount,String taxCode){}

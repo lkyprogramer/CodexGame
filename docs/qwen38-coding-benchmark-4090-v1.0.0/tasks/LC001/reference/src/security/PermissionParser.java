@@ -1,0 +1,1 @@
+public final class PermissionParser{public static String normalize(String p){if(p==null)throw new IllegalArgumentException();return p.trim().toLowerCase(java.util.Locale.ROOT);}}

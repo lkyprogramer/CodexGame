@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 7.391918384470046,
+  "content": "```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    heap = [(0, source)]\n\n    while heap:\n        dist, current = heapq.heappop(heap)\n        if dist > distances[current]:\n            continue\n        for neighbor, weight in graph[current].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(heap, (new_dist, neighbor))\n\n    return distances\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, returning only the function. Let me think about what a clean, standard implementation looks like.\n\nI'll use heapq (priority queue) for efficiency. The function should take a graph (adjacency list), a source node, and return distances from the source to all nodes.\n\nLet me consider the interface:\n- Graph: dict of dict (adjacency list), e.g., {node: {neighbor: weight, ...}, ...}\n- source: the starting node\n- Returns: dict of {node: shortest_distance}\n\nI'll implement it with heapq for O((V+E) log V) complexity.\n\nLet me write a clean, standard implementation:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    heap = [(0, source)]\n    \n    while heap:\n        dist, current = heapq.heappop(heap)\n        if dist > distances[current]:\n            continue\n        for neighbor, weight in graph[current].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances\n```\n\nThe user said \"Return only the function.\" So I should just give the function. I'll include the import inside or assume it. Since they said \"only the function,\" I'll include the import at the top of the function or just before it. Actually, \"only the function\" most likely means no extra explanation text, just the code. I'll include the import as it's necessary for the function to work, but I'll keep it minimal - no docstring, no extra comments, just the function.\n\nActually, let me reconsider - should I include a docstring? They said \"only the function\" which I interpret as just the code for the function, no prose around it. A brief docstring is part of the function, so that's fine. But to keep it minimal per their request, I'll keep it very simple.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 596,
+  "decode_tokens_per_s": 84.3458377809815,
+  "prompt_tokens_per_s": 175.76810662595543,
+  "draft_n": 481,
+  "draft_n_accepted": 414,
+  "accept_rate": 0.8607068607068608,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 199.126,
+    "prompt_per_token_ms": 5.6893142857142855,
+    "prompt_per_second": 175.76810662595543,
+    "predicted_n": 596,
+    "predicted_ms": 7054.29,
+    "predicted_per_token_ms": 11.855949579831933,
+    "predicted_per_second": 84.3458377809815,
+    "draft_n": 481,
+    "draft_n_accepted": 414
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 387.23,
+    "temperature_c": 62.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 269.09,
+    "temperature_c": 58.0
+  }
+}

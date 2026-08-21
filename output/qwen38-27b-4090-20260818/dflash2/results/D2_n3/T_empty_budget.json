@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 14.592463439330459,
+  "content": "# InnoDB 隔离级别详解\n\n## 四种隔离级别（由低到高）\n\n| 级别 | 脏读 | 不可重复读 | 幻读 | 说明 |\n|------|:----:|:---------:|:----:|------|\n| READ UNCOMMITTED | ✗ 可能 | ✗ 可能 | ✗ 可能 | 能读到其他事务**未提交**的修改 |\n| READ COMMITTED (RC) | ✓ 解决 | ✗ 可能 | ✗ 可能 | 只能读到**已提交**数据 |\n| **REPEATABLE READ (RR)**（InnoDB 默认） | ✓ | ✓ | ✓（基本解决） | 同一事务内多次读结果一致 |\n| SERIALIZABLE | ✓ | ✓ | ✓ | 所有读加共享锁，完全串行 |\n\n## 三种\"读\"异常的定义\n\n- **脏读（Dirty Read）**：A 事务读到了 B 事务尚未 `COMMIT` 的数据，B 随后回滚，A 读到的就是\"脏\"数据。\n- **不可重复读（Non-repeatable Read）**：同一事务内，两次 `SELECT` 同一行，因为别的事务 `UPDATE` 并提交了，两次结果不同。\n- **幻读（Phantom Read）**：同一事务内，两次执行相同**范围** `SELECT`（如 `WHERE id > 10`），因为别的事务 `INSERT / DELETE` 了范围内的行，两次结果集**行数**不同。\n\n## InnoDB 的实现机制\n\n1. **MVCC（多版本并发控制）**\n   - 每行有隐藏列 `DB_TRX_ID`（最近修改事务ID）和 `DB_ROLL_PTR`（指向 undo log 旧版本）。\n   - 事务启动时生成 **Read View**，通过它判断哪个版本的快照对当前事务\"可见\"。\n   - **RC**：每次 `SELECT` 都生成**新的** Read View → 能看到其他事务刚提交的新版本 → 允许不可重复读。\n   - **RR**：只在事务**第一条** `SELECT` 时生成 Read View，之后**复用** → 整个事务看到同一快照 → 保证可重复读。\n\n2. **锁（针对\"当前读\"，即 `SELECT ... FOR UPDATE / LOCK IN SHARE MODE` 或 DML）**\n   - **Record Lock**：锁住索引记录本身。\n   - **Gap Lock**：锁住索引记录之间的**间隙**，防止别的事务在间隙中 `INSERT`。\n   - **Next-Key Lock**（= Record + Gap）：InnoDB 在 RR 级别下对范围扫描默认加的锁，正是靠它来**阻止幻读**（仅限当前读；快照读靠 MVCC）。\n\n> 简单记忆：RR 级别下，**快照读**靠 MVCC 防幻读，**当前读**靠 Next-Key Lock 防幻读。\n\n## 隔离级别设置示例（DDL / 会话级）\n\n```sql\n-- 将某个数据库的默认隔离级别设为 READ COMMITTED\n-- （MySQL 5.7+ 支持在 CREATE / ALTER DATABASE 中指定）\nALTER DATABASE my_shop\n  DEFAULT CHARACTER SET utf8mb4\n  COLLATE utf8mb4_unicode_ci\n  DEFAULT COLLATION utf8mb4_unicode_ci;\n\n-- 或者：仅修改当前会话（连接）的隔离级别\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n\n-- 修改全局默认（需要 SUPER 权限，对新连接生效）\nSET GLOBAL TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n```\n\n> 如果要在**建库时**就指定（MySQL 8.0+ 可在 `CREATE DATABASE` 中写），也可以：\n> ```sql\n> CREATE DATABASE my_shop\n>   CHARACTER SET utf8mb4\n>   COLLATE utf8mb4_unicode_ci;\n> -- 配合全局 / 会话 SET 来控制隔离级别\n> ```\n> 注意：MySQL 的隔离级别是**会话/全局属性**，并非数据库属性，所以通常用 `SET [GLOBAL|SESSION] TRANSACTION ISOLATION LEVEL ...` 来设置，而不是写在 `CREATE DATABASE` 语句里。",
+  "reasoning": "用户要求我用中文解释InnoDB的隔离级别，然后给出一个DDL示例。\n\n让我详细梳理InnoDB的四个隔离级别：\n\n1. READ UNCOMMITTED（读未提交）\n2. READ COMMITTED（读已提交）\n3. REPEATABLE READ（可重复读）—— InnoDB默认级别\n4. SERIALIZABLE（串行化）\n\n每个级别解决什么问题：\n- 脏读（Dirty Read）：读到了其他事务未提交的数据\n- 不可重复读（Non-repeatable Read）：同一事务内两次读同一行，结果不同（因为其他事务提交了UPDATE）\n- 幻读（Phantom Read）：同一事务内两次执行相同范围的SELECT，结果集行数不同（因为其他事务INSERT/DELETE了范围内的行）\n\nInnoDB的实现机制：\n- MVCC（多版本并发控制）+ 间隙锁（Gap Lock）+ 记录锁（Record Lock）\n- 在RC级别：每次SELECT都生成新的Read View\n- 在RR级别：事务开始时生成Read View，整个事务期间复用\n- RR级别通过Next-Key Lock（记录锁+间隙锁）来防止幻读（针对当前读）\n\nDDL示例：可以设置数据库或会话级别的隔离级别。\n\n让我用中文组织回复。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 1192,
+  "decode_tokens_per_s": 83.13372978326946,
+  "prompt_tokens_per_s": 231.95278472204325,
+  "draft_n": 1323,
+  "draft_n_accepted": 750,
+  "accept_rate": 0.5668934240362812,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 116.403,
+    "prompt_per_token_ms": 4.311222222222223,
+    "prompt_per_second": 231.95278472204325,
+    "predicted_n": 1192,
+    "predicted_ms": 14326.315,
+    "predicted_per_token_ms": 12.028811922753988,
+    "predicted_per_second": 83.13372978326946,
+    "draft_n": 1323,
+    "draft_n_accepted": 750
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 21884.0,
+    "memory_free_mib": 2333.0,
+    "utilization_gpu_pct": 89.0,
+    "power_w": 424.49,
+    "temperature_c": 73.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 21884.0,
+    "memory_free_mib": 2333.0,
+    "utilization_gpu_pct": 88.0,
+    "power_w": 413.52,
+    "temperature_c": 68.0
+  }
+}

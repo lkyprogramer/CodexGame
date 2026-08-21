@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 14.787927218712866,
+  "content": "# InnoDB 的四种隔离级别\n\n## 一、基本概念\n\nInnoDB 支持 SQL 标准定义的四种事务隔离级别，从低到高依次为：\n\n| 级别 | 脏读 | 不可重复读 | 幻读 | 说明 |\n|------|------|-----------|------|------|\n| READ UNCOMMITTED | ✅ 可能 | ✅ 可能 | ✅ 可能 | 能读到其他事务**未提交**的修改 |\n| READ COMMITTED | ❌ | ✅ 可能 | ✅ 可能 | 只能读到其他事务**已提交**的修改，但同一事务内两次读可能不同 |\n| **REPEATABLE READ**（默认） | ❌ | ❌ | ❌（基本解决） | 同一事务内多次读同一数据结果一致 |\n| SERIALIZABLE | ❌ | ❌ | ❌ | 所有读都加共享锁，完全串行 |\n\n> **InnoDB 默认隔离级别为 REPEATABLE READ**，通过 **MVCC（多版本并发控制）+ Next-Key Lock（间隙锁 + 行锁）** 的组合，在 RR 级别下也基本消除了幻读。\n\n## 二、各层级要点\n\n### 1. READ UNCOMMITTED\n- 事务 A 修改了数据但尚未 COMMIT，事务 B 已经能读到\"脏数据\"。\n- 实际开发中极少使用。\n\n### 2. READ COMMITTED\n- 每次执行 `SELECT` 都会生成一个新的 **ReadView**，因此能看到其他事务已提交的新数据。\n- 典型问题：同一事务内两次读同一行，值可能不同（不可重复读）。\n\n### 3. REPEATABLE READ（默认）\n- 事务中**第一次** `SELECT` 时生成 ReadView，后续快照读复用该 ReadView，保证可重复读。\n- **快照读**（普通 SELECT）：靠 MVCC 的隐藏列（`trx_id`、`roll_pointer`）+ undo log 实现，无锁。\n- **当前读**（`SELECT … FOR UPDATE / LOCK IN SHARE MODE`）：读最新已提交版本，配合 **Next-Key Lock**（Record Lock + Gap Lock）防止幻读。\n\n### 4. SERIALIZABLE\n- 所有 `SELECT` 隐式加 **共享锁（S Lock）**，并发度最低，几乎等同于串行执行。\n\n## 三、切换隔离级别（会话级）\n\n```sql\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n```\n\n## 四、DDL 示例\n\n> 注意：DDL 语句（`CREATE`、`ALTER`、`DROP` 等）在 InnoDB 中会**隐式提交**当前事务，不受隔离级别约束。以下示例创建一个带索引的订单表：\n\n```sql\nCREATE TABLE orders (\n    order_id    BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,\n    user_id     BIGINT UNSIGNED  NOT NULL,\n    amount      DECIMAL(12,2)    NOT NULL DEFAULT 0.00,\n    status      TINYINT          NOT NULL DEFAULT 0 COMMENT '0-待支付 1-已支付 2-已取消',\n    created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (order_id),\n    INDEX idx_user_id (user_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci\n  COMMENT='订单主表';\n```\n\n这条 DDL 执行后会：\n1. 隐式 COMMIT 当前所有未提交事务；\n2. 以 **InnoDB** 引擎创建表（从而支持事务、MVCC、行锁）；\n3. 在 `user_id` 上建立二级索引，后续 `WHERE user_id = ?` 的查询可以走索引加 **Next-Key Lock**，在 RR 级别下有效防止幻读。",
+  "reasoning": "用户要求我用中文解释InnoDB的隔离级别，然后给出一个DDL示例。让我仔细思考一下：\n\n1. InnoDB的四种隔离级别：\n   - READ UNCOMMITTED (RU) - 读未提交\n   - READ COMMITTED (RC) - 读已提交\n   - REPEATABLE READ (RR) - 可重复读（InnoDB默认）\n   - SERIALIZABLE (S) - 串行化\n\n2. 需要解释每个级别的特点、存在的问题（脏读、不可重复读、幻读）\n\n3. DDL示例：DDL是数据定义语言，比如CREATE TABLE、ALTER TABLE、DROP TABLE等。用户说\"one DDL example\"，给一个创建表或修改表的DDL语句即可。不过要注意，DDL语句本身和隔离级别的关系——DDL操作在大多数数据库引擎中是自动提交的（implicit commit），不受隔离级别的影响。但用户只是要求\"给一个DDL示例\"，我给出一个合理的DDL即可。\n\n让我用中文组织回答。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 1080,
+  "decode_tokens_per_s": 74.27143780692896,
+  "prompt_tokens_per_s": 231.2475376419603,
+  "draft_n": 884,
+  "draft_n_accepted": 704,
+  "accept_rate": 0.7963800904977375,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 116.758,
+    "prompt_per_token_ms": 4.32437037037037,
+    "prompt_per_second": 231.2475376419603,
+    "predicted_n": 1080,
+    "predicted_ms": 14527.792,
+    "predicted_per_token_ms": 13.464126042632067,
+    "predicted_per_second": 74.27143780692896,
+    "draft_n": 884,
+    "draft_n_accepted": 704
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22522.0,
+    "memory_free_mib": 1695.0,
+    "utilization_gpu_pct": 79.0,
+    "power_w": 337.95,
+    "temperature_c": 64.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22518.0,
+    "memory_free_mib": 1699.0,
+    "utilization_gpu_pct": 67.0,
+    "power_w": 377.3,
+    "temperature_c": 60.0
+  }
+}

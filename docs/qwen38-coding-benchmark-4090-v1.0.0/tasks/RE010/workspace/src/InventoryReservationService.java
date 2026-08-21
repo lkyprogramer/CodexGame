@@ -1,0 +1,1 @@
+import java.util.*;public final class InventoryReservationService{private final InventoryRepository repo;public InventoryReservationService(InventoryRepository r){repo=r;}public Map<String,Integer>reserve(Map<String,Integer>q){Map<String,Integer>out=new HashMap<>();q.forEach((sku,n)->{int left=repo.get(sku)-n;repo.set(sku,left);out.put(sku,left);});return out;}}

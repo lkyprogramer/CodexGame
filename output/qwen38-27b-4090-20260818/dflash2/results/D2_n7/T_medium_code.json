@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 7.230851382017136,
+  "content": "```python\nimport heapq\n\ndef dijkstra(graph, source):\n    \"\"\"\n    Returns (distances, prev) where distances maps each node to its shortest\n    distance from source, and prev maps each node to its predecessor on the\n    shortest path.\n\n    graph: dict mapping each node to a dict {neighbor: weight, ...}\n    source: starting node\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    prev = {node: None for node in graph}\n    distances[source] = 0\n    pq = [(0, source)]\n\n    while pq:\n        dist, u = heapq.heappop(pq)\n        if dist > distances[u]:\n            continue\n        for v, weight in graph[u].items():\n            if weight < 0:\n                raise ValueError(\"Dijkstra does not support negative edge weights\")\n            new_dist = dist + weight\n            if new_dist < distances[v]:\n                distances[v] = new_dist\n                prev[v] = u\n                heapq.heappush(pq, (new_dist, v))\n\n    return distances, prev\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, returning only the function. Let me think about what a clean, correct implementation looks like.\n\nKey decisions:\n- Use a priority queue (heapq) for efficiency\n- Accept a graph as adjacency list (dict of dict, or dict of list of tuples)\n- Return distances from source to all reachable nodes, or just the shortest path to a target?\n\nMost standard implementations return the shortest distances from source to all nodes. Let me go with that - it's the most common and useful form.\n\nI'll use:\n- `heapq` for the priority queue\n- Graph as a dict: `{node: {neighbor: weight, ...}, ...}`\n- Return a dict of distances and optionally a predecessor dict for path reconstruction\n\nActually, the user said \"return only the function\" - meaning the code output should just be the function, no explanations, no imports (or maybe imports are needed). Let me include the import since it's needed.\n\nLet me write a clean implementation:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    prev = {node: None for node in graph}\n    pq = [(0, source)]\n    \n    while pq:\n        dist, u = heapq.heappop(pq)\n        if dist > distances[u]:\n            continue\n        for v, weight in graph[u].items():\n            if weight < 0:\n                raise ValueError(\"Dijkstra does not support negative weights\")\n            new_dist = dist + weight\n            if new_dist < distances[v]:\n                distances[v] = new_dist\n                prev[v] = u\n                heapq.heappush(pq, (new_dist, v))\n    \n    return distances, prev\n```\n\nWait, what if the graph is represented as `{node: [(neighbor, weight), ...]}` instead? Let me go with the dict-of-dicts form as it's cleaner, but I could also support both. Let me keep it simple with dict-of-dicts.\n\nActually, let me reconsider - should I return just distances, or also the prev dict? The user just said \"Dijkstra shortest path\" - I'll return both distances and predecessors so paths can be reconstructed. That's the most complete and useful.\n\nLet me finalize.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 759,
+  "decode_tokens_per_s": 109.99585121189162,
+  "prompt_tokens_per_s": 173.421001778804,
+  "draft_n": 1141,
+  "draft_n_accepted": 596,
+  "accept_rate": 0.5223488168273445,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 201.821,
+    "prompt_per_token_ms": 5.7663142857142855,
+    "prompt_per_second": 173.421001778804,
+    "predicted_n": 759,
+    "predicted_ms": 6891.169,
+    "predicted_per_token_ms": 9.09125197889182,
+    "predicted_per_second": 109.99585121189162,
+    "draft_n": 1141,
+    "draft_n_accepted": 596
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22528.0,
+    "memory_free_mib": 1689.0,
+    "utilization_gpu_pct": 79.0,
+    "power_w": 403.44,
+    "temperature_c": 69.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22528.0,
+    "memory_free_mib": 1689.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 254.06,
+    "temperature_c": 64.0
+  }
+}

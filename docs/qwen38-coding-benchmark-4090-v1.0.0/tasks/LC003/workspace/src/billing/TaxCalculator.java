@@ -1,0 +1,1 @@
+import java.math.*;import java.util.*;public final class TaxCalculator{private final TaxTable table;public TaxCalculator(TaxTable t){table=t;}public long taxCents(List<Line>lines){long total=0;for(Line l:lines){BigDecimal tax=new BigDecimal(l.netAmount()).multiply(table.rate(l.taxCode())).setScale(2,RoundingMode.HALF_UP);total+=tax.movePointRight(2).longValue();}return total;}}

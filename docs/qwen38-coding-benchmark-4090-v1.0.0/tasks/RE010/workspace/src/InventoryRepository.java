@@ -1,0 +1,1 @@
+import java.util.function.Function;public interface InventoryRepository{Integer get(String sku);void set(String sku,int quantity);<T>T transaction(Function<InventoryRepository,T> work);}

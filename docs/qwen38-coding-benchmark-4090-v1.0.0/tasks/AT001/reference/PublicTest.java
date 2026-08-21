@@ -1,0 +1,1 @@
+public class PublicTest{public static void main(String[]a){UserService s=new UserService(id->new User(id,null));UserDto dto=s.get("1");if(dto.displayName()!=null)throw new AssertionError();System.out.println("PUBLIC OK");}}

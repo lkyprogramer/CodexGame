@@ -1,0 +1,1 @@
+import java.util.Map;public record Claims(Map<String,String>values){}

@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 7.338878637179732,
+  "content": "```python\ndef dijkstra(graph, start, end=None):\n    \"\"\"\n    graph:  adjacency list {node: {neighbor: weight}}\n    start:  source node\n    end:    optional target node (stops early if provided)\n\n    Returns (distances, previous) where:\n      distances: {node: shortest distance from start}\n      previous:  {node: predecessor on shortest path}\n    \"\"\"\n    import heapq\n\n    distances = {start: 0}\n    previous = {}\n    visited = set()\n    heap = [(0, start)]\n\n    while heap:\n        dist, node = heapq.heappop(heap)\n\n        if node in visited:\n            continue\n        visited.add(node)\n\n        if node == end:\n            break\n\n        for neighbor, weight in graph.get(node, {}).items():\n            if neighbor in visited:\n                continue\n            new_dist = dist + weight\n            if neighbor not in distances or new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                previous[neighbor] = node\n                heapq.heappush(heap, (new_dist, neighbor))\n\n    return distances, previous\n```",
+  "reasoning": "The user wants a Dijkstra shortest path algorithm implementation in Python, returning only the function.\n\nLet me think about the interface:\n- The function should take a graph, a start node, and optionally an end node\n- The graph can be represented as an adjacency list: dict of {node: {neighbor: weight}}\n- It should return distances from the start node to all reachable nodes, and optionally the paths\n\nLet me implement a clean version:\n\n```python\nimport heapq\n\ndef dijkstra(graph, start, end=None):\n    \"\"\"\n    graph: adjacency list {node: {neighbor: weight}}\n    start: starting node\n    end: optional target node (if given, stops early)\n    returns: (distances, previous) where distances maps node->shortest distance, previous maps node->previous node in shortest path\n    \"\"\"\n    import heapq\n    \n    distances = {start: 0}\n    previous = {}\n    visited = set()\n    heap = [(0, start)]\n    \n    while heap:\n        dist, node = heapq.heappop(heap)\n        \n        if node in visited:\n            continue\n        visited.add(node)\n        \n        if node == end:\n            break\n        \n        if node not in graph:\n            continue\n            \n        for neighbor, weight in graph[node].items():\n            if neighbor in visited:\n                continue\n            new_dist = dist + weight\n            if neighbor not in distances or new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                previous[neighbor] = node\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances, previous\n```\n\nWait, the user said \"Return only the function.\" So I should just give the function code, no explanation. Let me keep it clean and self-contained.\n\nLet me also consider: should I import heapq inside or outside? Since they said \"return only the function,\" I'll include the import inside the function or just assume it's available. Actually, I'll include it at the top of the function to be self-contained.\n\nLet me refine: the user said \"Return only the function\" - meaning the response should just be the function code.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 727,
+  "decode_tokens_per_s": 103.7068928943494,
+  "prompt_tokens_per_s": 175.73015880985494,
+  "draft_n": 642,
+  "draft_n_accepted": 512,
+  "accept_rate": 0.7975077881619937,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 199.169,
+    "prompt_per_token_ms": 5.690542857142858,
+    "prompt_per_second": 175.73015880985494,
+    "predicted_n": 727,
+    "predicted_ms": 7000.499,
+    "predicted_per_token_ms": 9.642560606060606,
+    "predicted_per_second": 103.7068928943494,
+    "draft_n": 642,
+    "draft_n_accepted": 512
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 21884.0,
+    "memory_free_mib": 2333.0,
+    "utilization_gpu_pct": 88.0,
+    "power_w": 413.52,
+    "temperature_c": 70.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 21884.0,
+    "memory_free_mib": 2333.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 382.5,
+    "temperature_c": 66.0
+  }
+}

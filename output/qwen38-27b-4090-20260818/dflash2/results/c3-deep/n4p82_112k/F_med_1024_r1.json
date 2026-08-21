@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 19.880125362426043,
+  "content": "# Async Connection Pool — `apool/`\n\nA self-contained package with the pool core, retry/backoff, a circuit breaker, a backpressure-aware fan-out helper, and full metrics (counters, latency histogram, Prometheus exposition). Followed by a dependency-light test suite.\n\n**Run the tests:**\n```bash\npython3 -m apool.tests        # plain asyncio harness\n# or, with pytest + pytest-asyncio installed:\npython3 -m pytest -q\n```\n\n---\n\n## `apool/__init__.py`\n\n```python\n\"\"\"apool — production-quality async connection pool.\n\nFeatures:\n  * Bounded pool with async acquire/release and context-manager ergonomics\n  * Retry with exponential backoff + full jitter on connection creation\n  * Optional circuit breaker wrapping the factory\n  * Backpressure: bounded wait queue, acquire timeouts, hard rejection mode\n  * Idle eviction, max-lifetime recycling, idle health checks\n  * Metrics: counters, gauges, latency histogram, Prometheus text output\n\nUsage:\n    import asyncio\n    from apool import Pool, PoolConfig\n\n    async def main():\n        async",
+  "reasoning": "The user is asking for a production-quality, asynchronous connection pool in Python. They mention retry, backpressure, metrics, plus \"keep expanding helpers and tests until the budget runs out.\" This is a code-writing task. I should produce a comprehensive single-file (or few-file) implementation:\n\n- `Pool` class with async acquire/release\n- Retry with exponential backoff + jitter\n- Backpressure: bounded queue, wait timeout, acquire semaphore\n- Metrics: counters (acquired, released, timeout, error, in-use, idle, peak), latency histogram (approximate), snapshots\n- Context manager support\n- Health check, idle eviction, max lifetime\n- Circuit breaker (if needed)\n- Retry wrapper helper with tenacity-like semantics\n- Metrics reporter (Prometheus-style)\n- Tests using asyncio\n\nShould be self-contained. Write a module `pool.py` with code and a `test_pool.py` using pytest/pytest-asyncio, or plain asyncio tests. Keep quality high. Include:\n\n- `AcquireTimeoutError`, `PoolClosedError`, `RetriesExhaustedError`, `PoolError`\n- `PoolConfig` dataclass: min_size, max_size, acquire_timeout, max_lifetime, idle_ttl, health_check_interval, retry attempts, backoff base/max/jitter\n- `Pool` with `_idle: deque`, `_semaphore`, `_size`, closed flag\n- `_create` factory is an async callable; retry with backoff\n- `acquire()` -> `PooledConnection` (context manager, auto-return on exit, marks dirty/broken)\n- `release()` handles broken connections (recreate)\n- Backpressure: if pool is at max and queue is full, reject immediately (`BackpressureError`), or enforce acquire timeout\n- Metrics: `PoolMetrics` dataclass with counters + histogram buckets, `snapshot()` returning a dict, optional `on_event` callback, Prometheus exposition text\n- Eviction task started via `Pool.start()` or on first acquire; idle reaper\n- `retry` helper: async `retry(func, attempts, base, cap, jitter, retry_on)`\n- `CircuitBreaker` helper\n- `LabeledMetrics` if needed\n- `health_check` optional async predicate\n- `Pool.map` / `Pool.map_concurrent` helper: run a coroutine over the pool with bounded concurrency (backpressure)\n- `with_pool` context manager\n- `stats()`, `__repr__`\n\nTests: use pytest-asyncio? To avoid dependency on pytest-asyncio, write tests with plain `asyncio.run` wrappers, or mark them as async with plain pytest using an asyncio event loop. Simpler: use `@pytest.mark.asyncio` in a `tests` section but also provide a plain asyncio runner. I'll write tests that can be run with `python -m pytest` assuming pytest-asyncio. Or write a small `run()` that executes each test function. I'll include a minimal test harness fallback.\n\nLet me design the code carefully.\n\nKey correctness concerns:\n- Don't lose the semaphore slot: each checked-out connection holds one permit. Release returns the permit.\n- Evicting an idle connection also releases a permit.\n- On close: cancel reaper, discard idle.\n- Broken connection: mark broken on error; release with `broken=True` decrements size and does not return to idle.\n\nImplementation sketch:\n\n```python\n@dataclass(frozen=True)\nclass PoolConfig:\n    min_size=0; max_size=10; acquire_timeout=5.0; max_lifetime=0 (0=inf); idle_ttl=Stop thinking. State the answer or the next smallest action now.",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 37,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 52.155923472628054,
+  "prompt_tokens_per_s": 311.7758584369075,
+  "draft_n": 533,
+  "draft_n_accepted": 424,
+  "accept_rate": 0.7954971857410882,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 37,
+    "prompt_ms": 118.675,
+    "prompt_per_token_ms": 3.2074324324324324,
+    "prompt_per_second": 311.7758584369075,
+    "predicted_n": 1024,
+    "predicted_ms": 19614.263,
+    "predicted_per_token_ms": 19.173277614858257,
+    "predicted_per_second": 52.155923472628054,
+    "draft_n": 533,
+    "draft_n_accepted": 424
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23004.0,
+    "memory_free_mib": 1213.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 354.2,
+    "temperature_c": 71.0
+  },
+  "id": "F_med_1024_r1",
+  "class": "F_med"
+}

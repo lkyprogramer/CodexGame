@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 9.44298268854618,
+  "content": "两个 27B 即便压到 Q4，权重本身就要 ≈ 28–32 GB，而 4090 只有 24 GB，物理上装不下。就算把权重再狠砍几 bit 勉强塞进权重区，KV cache 和推理激活一上来立刻 OOM，连第一个 token 都吐不出来。退一万步说，硬压到 2–3 bit 才能\"凑\"下两份权重，精度已崩到不如老老实实跑一个 Q4 的单模型。",
+  "reasoning": "用户问的是：为什么单卡 4090 不该同时跑两个 27B（模型），要求用三句话说明。\n\n让我分析：\n- 单卡 4090 显存是 24GB\n- 27B 模型（比如 Qwen2.5-27B 或类似的 27B 参数模型）\n- 两个 27B 模型同时跑\n\n显存计算：\n- 27B 模型，FP16/BF16 下：27B × 2 bytes = 54GB\n- 即使 Q4_K_M 量化：大约 27B × ~0.5-0.6 bytes ≈ 14-16GB\n- 两个模型：~28-32GB（量化后）\n- 4090 只有 24GB 显存\n- 加上 KV cache、系统开销等\n\n所以核心问题：\n1. 显存根本放不下：两个 27B 即使量化到 4bit 也需要约 28-32GB，远超 24GB。\n2. 即使勉强量化到极低精度（如 2-3bit），KV cache 和推理开销也会让显存爆掉，而且量化到那个程度精度已经严重退化。\n3. 24GB 连跑一个 27B（量化版）都比较紧张，还要留 KV cache 空间，两个根本不可能。\n\n用三句话说清楚，要简洁有力：\n\n1. 显存不够：两个 27B 即使 Q4 量化也需 ~28GB+，4090 只有 24GB，物理上装不下。\n2. 还有 KV cache 和推理开销：光模型权重就超了，留给上下文和激活的空间为零。\n3. 退一步说，就算强行压到 2bit，精度崩塌后\"两个模型\"的推理质量不如一个正常量化的。\n\n让我精炼成三句话。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 560,
+  "decode_tokens_per_s": 60.84493477891029,
+  "prompt_tokens_per_s": 274.46843184176896,
+  "draft_n": 396,
+  "draft_n_accepted": 301,
+  "accept_rate": 0.76010101010101,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 116.589,
+    "prompt_per_token_ms": 3.64340625,
+    "prompt_per_second": 274.46843184176896,
+    "predicted_n": 560,
+    "predicted_ms": 9187.289,
+    "predicted_per_token_ms": 16.43522182468694,
+    "predicted_per_second": 60.84493477891029,
+    "draft_n": 396,
+    "draft_n_accepted": 301
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23004.0,
+    "memory_free_mib": 1213.0,
+    "utilization_gpu_pct": 80.0,
+    "power_w": 354.74,
+    "temperature_c": 72.0
+  },
+  "id": "A_chat",
+  "class": "A"
+}

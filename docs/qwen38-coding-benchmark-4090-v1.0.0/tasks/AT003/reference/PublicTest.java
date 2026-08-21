@@ -1,0 +1,1 @@
+import java.util.List;public class PublicTest{public static void main(String[]a){long x=new InvoiceService().quote(new Invoice(List.of(new Line("19.995",1))));if(x!=2000)throw new AssertionError("got "+x);System.out.println("PUBLIC OK");}}

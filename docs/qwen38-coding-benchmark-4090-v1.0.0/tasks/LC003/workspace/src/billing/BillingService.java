@@ -1,0 +1,1 @@
+import java.util.List;public final class BillingService{private final TaxCalculator calculator;public BillingService(TaxCalculator c){calculator=c;}public long tax(List<Line>l){return calculator.taxCents(l);}}

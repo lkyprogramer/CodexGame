@@ -1,0 +1,45 @@
+{
+  "issues": [
+    {
+      "file": "job_queue.py",
+      "line": 3,
+      "severity": "high",
+      "category": "shared mutable default",
+      "explanation": "queue=[] is shared by every instance, so jobs leak across independent queues.",
+      "fix": "Default to None and allocate a new deque per instance."
+    },
+    {
+      "file": "job_queue.py",
+      "line": 11,
+      "severity": "critical",
+      "category": "deadlock and lock scope",
+      "explanation": "The user job executes while the non-reentrant lock is held; a job calling put/close deadlocks and slow jobs block producers.",
+      "fix": "Remove the job under the lock, release the lock, then invoke it."
+    },
+    {
+      "file": "job_queue.py",
+      "line": 9,
+      "severity": "high",
+      "category": "condition predicate",
+      "explanation": "Condition.wait is guarded by if rather than a while predicate, so spurious wakeups or another consumer can make pop(0) fail.",
+      "fix": "Wait in a while loop that checks queue and closed state."
+    },
+    {
+      "file": "job_queue.py",
+      "line": 13,
+      "severity": "high",
+      "category": "data race",
+      "explanation": "closed is assigned outside the lock, racing put and consumers.",
+      "fix": "Change and read closed only while holding the condition lock."
+    },
+    {
+      "file": "job_queue.py",
+      "line": 14,
+      "severity": "high",
+      "category": "shutdown wakeup",
+      "explanation": "close notifies only one waiter and take_and_run has no closed-empty terminal path, leaving other consumers blocked or popping an empty queue.",
+      "fix": "Use notify_all and have the predicate return a shutdown result or raise when closed and empty."
+    }
+  ],
+  "summary": "The queue has shared state leakage, a direct callback deadlock, incorrect condition use, and broken shutdown semantics."
+}

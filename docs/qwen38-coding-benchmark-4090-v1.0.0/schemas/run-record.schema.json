@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QCB run record",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "run_id",
+    "started_at",
+    "completed_at",
+    "suite",
+    "lane",
+    "seed",
+    "model",
+    "endpoint",
+    "config",
+    "inference",
+    "task",
+    "outcome",
+    "verification",
+    "usage",
+    "timing",
+    "endpoint_metrics",
+    "agent",
+    "gpu",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "benchmark": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"const": "QCB-4090"},
+        "version": {"type": "string"},
+        "manifest_sha256": {"type": ["string", "null"]}
+      }
+    },
+    "run_id": {"type": "string"},
+    "started_at": {"type": "string"},
+    "completed_at": {"type": "string"},
+    "suite": {"enum": ["smoke", "core", "full", "finalists"]},
+    "lane": {"enum": ["normalized", "optimized"]},
+    "seed": {"type": "integer"},
+    "model": {
+      "type": "object",
+      "required": ["id", "family", "quantization", "template_id", "hash_status"]
+    },
+    "endpoint": {
+      "type": "object",
+      "required": ["base_url", "model", "timeout_seconds", "retry_count"]
+    },
+    "config": {
+      "type": "object",
+      "required": ["source", "sha256"]
+    },
+    "inference": {
+      "type": "object",
+      "required": [
+        "temperature",
+        "top_p",
+        "top_k",
+        "min_p",
+        "max_tokens",
+        "context_size",
+        "reasoning_effort",
+        "mtp_enabled",
+        "tool_mode",
+        "max_tool_calls",
+        "system_prompt_sha256"
+      ]
+    },
+    "task": {
+      "type": "object",
+      "required": ["id", "title", "category", "language", "difficulty", "weight", "task_type", "prompt_sha256", "metadata_sha256"]
+    },
+    "outcome": {"type": "string"},
+    "verification": {
+      "type": "object",
+      "required": ["passed", "tests_passed", "tests_total", "score"]
+    },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens", "total_tokens", "reasoning_tokens"],
+      "properties": {
+        "reasoning_tokens": {"type": ["number", "null"]}
+      }
+    },
+    "timing": {
+      "type": "object",
+      "required": ["wall_seconds"]
+    },
+    "endpoint_metrics": {"type": "object"},
+    "agent": {
+      "type": "object",
+      "required": [
+        "tool_calls",
+        "invalid_tool_calls",
+        "failed_tool_operations",
+        "public_test_runs",
+        "public_test_failures",
+        "recovered_after_public_test_failure",
+        "patch_bytes"
+      ]
+    },
+    "gpu": {"type": "object"},
+    "artifacts": {"type": "string"}
+  }
+}

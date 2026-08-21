@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 16.63993634376675,
+  "content": "## InnoDB 隔离级别（Isolation Levels）\n\nInnoDB 支持 SQL 标准定义的四个隔离级别，通过 `SET TRANSACTION ISOLATION LEVEL` 或 MySQL 全局/会话变量 `tx_isolation` / `transaction_isolation` 来设置。\n\n### 1. READ UNCOMMITTED（读未提交）\n\n- **现象**：事务 A 可以读到事务 B **尚未提交**的修改。\n- **问题**：可能出现**脏读（Dirty Read）**——B 回滚后，A 读到的数据实际上不存在。\n- InnoDB 中很少使用，性能略高（不加 next-key lock），但数据一致性最差。\n\n### 2. READ COMMITTED（读已提交，RC）\n\n- **现象**：只能读到其他事务**已提交**的数据。\n- **消除**：脏读。\n- **残留问题**：**不可重复读（Non-repeatable Read）**——同一事务内两次 `SELECT` 同一行，若中间有其它事务提交了修改，结果可能不同。\n- MVCC 实现：每次 SELECT 都会生成一个新的 ReadView（快照），所以能看见最新已提交版本。\n\n### 3. REPEATABLE READ（可重复读，RR）— **InnoDB 默认**\n\n- **现象**：同一事务内，无论读多少次，同一行/范围的结果保持一致（基于首次 SELECT 时的 MVCC 快照）。\n- **消除**：脏读 + 不可重复读。\n- **关于幻读（Phantom Read）**：\n  - 对**快照读**（普通 `SELECT`）：MVCC 保证不会幻读。\n  - 对**当前读**（`SELECT … FOR UPDATE` / `LOCK IN SHARE MODE` / `UPDATE` / `DELETE`）：InnoDB 通过 **Next-Key Lock（间隙锁 + 行锁）** 防止幻读。\n  - 所以 InnoDB 在 RR 下**基本消除了幻读**，这比 SQL 标准更严格。\n\n### 4. SERIALIZABLE（可串行化）\n\n- **现象**：所有 `SELECT` 都隐式加共享锁（`LOCK IN SHARE MODE`），事务之间完全串行执行。\n- **消除**：脏读、不可重复读、幻读。\n- **代价**：并发度最低，容易锁等待 / 死锁，实际业务中极少使用。\n\n### 快速对照表\n\n| 隔离级别 | 脏读 | 不可重复读 | 幻读 | 典型实现 |\n|---------|------|-----------|------|---------|\n| RU | ✔ 可能 | ✔ 可能 | ✔ 可能 | 无锁 / 无快照 |\n| RC | ✘ | ✔ 可能 | ✔ 可能（当前读） | 每语句新 ReadView |\n| RR（默认）| ✘ | ✘ | ✘（MVCC + Next-Key Lock） | 事务首条 SELECT 建 ReadView |\n| SERIALIZABLE | ✘ | ✘ | ✘ | 全行共享锁 |\n\n> 查看/设置示例：\n> ```sql\n> SELECT @@transaction_isolation;          -- 查看\n> SET GLOBAL transaction_isolation='READ-COMMITTED';  -- 全局\n> SET SESSION transaction_isolation='SERIALIZABLE';   -- 当前会话\n> ```\n\n---\n\n## DDL 示例\n\n下面创建一个带 InnoDB 引擎、指定字符集，并附加唯一索引和注释的表：\n\n```sql\nCREATE TABLE IF NOT EXISTS `orders` (\n    `id`          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT '主键',\n    `order_no`    VARCHAR(32)      NOT NULL                COMMENT '订单编号',\n    `user_id`     BIGINT UNSIGNED  NOT NULL                COMMENT '用户ID',\n    `amount`      DECIMAL(12,2)    NOT NULL DEFAULT 0.00   COMMENT '金额',\n    `status`      TINYINT          NOT NULL DEFAULT 0      COMMENT '0-待付 1-已付 2-取消',\n    `created_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    `updated_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP\n                                 ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (`id`),\n    UNIQUE KEY `uk_order_no` (`order_no`),\n    KEY `idx_user_id` (`user_id`)\n) ENGINE=InnoDB\n  DEFAULT CHARSET=utf8mb4\n  COLLATE=utf8mb4_0900_ai_ci\n  COMMENT='订单主表';\n```\n\n要点：\n- `ENGINE=InnoDB`：显式指定存储引擎，启用行锁、MVCC、事务。\n- `utf8mb4`：完整支持 4 字节 Unicode（emoji 等）。\n- `AUTO_INCREMENT` + `UNIQUE KEY`：主键自增 + 业务唯一约束。\n- `ON UPDATE CURRENT_TIMESTAMP`：`updated_at` 随行变更自动刷新，无需应用层维护。",
+  "reasoning": "用户要求：\n1. 用中文解释 InnoDB 的隔离级别\n2. 给出一个 DDL 示例\n\n让我组织一下 InnoDB 支持的隔离级别：\n- READ UNCOMMITTED（读未提交）\n- READ COMMITTED（读已提交）\n- REPEATABLE READ（可重复读）- InnoDB 默认\n- SERIALIZABLE（可串行化）\n\n需要解释每个级别的特性、可能产生的问题（脏读、不可重复读、幻读），以及 InnoDB 的 MVCC 和锁机制如何支撑这些级别。\n\nDDL 示例：给一个 CREATE TABLE 或 ALTER TABLE 的例子即可。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 25,
+  "completion_tokens": 1235,
+  "decode_tokens_per_s": 75.30098885331789,
+  "prompt_tokens_per_s": 217.51235470174706,
+  "draft_n": 949,
+  "draft_n_accepted": 791,
+  "accept_rate": 0.8335089567966281,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 114.936,
+    "prompt_per_token_ms": 4.597440000000001,
+    "prompt_per_second": 217.51235470174706,
+    "predicted_n": 1235,
+    "predicted_ms": 16387.567,
+    "predicted_per_token_ms": 13.280038087520259,
+    "predicted_per_second": 75.30098885331789,
+    "draft_n": 949,
+    "draft_n_accepted": 791
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23004.0,
+    "memory_free_mib": 1213.0,
+    "utilization_gpu_pct": 80.0,
+    "power_w": 362.43,
+    "temperature_c": 72.0
+  },
+  "id": "T_empty_2048",
+  "class": "T"
+}

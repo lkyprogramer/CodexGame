@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 12.456022455357015,
+  "content": "```cpp\n// ============================================================================\n// RED-BLACK TREE IMPLEMENTATION IN C++\n// ============================================================================\n// A red-black tree is a self-balancing binary search tree where each node has\n// a color (red or black) and satisfies the following properties:\n//   1. Every node is either red or black.\n//   2. The root is black.\n//   3. All leaves (NIL nodes) are black.\n//   4. If a node is red, then both its children are black.\n//   5. For each node, all paths from the node to descendant leaves contain\n//      the same number of black nodes.\n//\n// This implementation includes:\n//   - Insert with rebalancing\n//   - Erase with rebalancing\n//   - Find / Lower Bound / Upper Bound\n//   - In-order traversal\n//   - Height calculation\n//   - Verification of red-black properties\n//   - Comprehensive unit tests\n// ============================================================================\n\n#include <iostream>\n#include <cassert>\n#include <functional>\n#include <string>\n#include <vector>\n#include <sstream>\n#include <algorithm>\n#include <random>\n#include <chrono>\n\n// ============================================================================\n// NODE STRUCTURE\n// ============================================================================\n\nnamespace rbtree {\n\n// Color enum for red-black tree nodes\nenum class Color {\n    RED,\n    BLACK\n};\n\n// Helper to convert color to string for debugging\ninline std::string colorToString(Color c) {\n    return (c == Color::RED) ? \"RED\" : \"BLACK\";\n}\n\n// Node structure for the red-black tree\n// Each node stores a key, a color, and pointers to left, right, and parent.\n// The NIL sentinel node is represented by a static nullptr-equivalent node\n// that is always BLACK.\ntemplate <typename Key>\nstruct Node {\n    Key key;\n    Color color;\n    Node* left;\n    Node* right;\n    Node* parent;\n\n    // Default constructor\n    Node() : key(), color(Color::BLACK), left(nullptr), right(nullptr), parent(nullptr) {}\n\n    // Parameterized constructor\n    explicit Node(const Key& k, Color c = Color::RED, Node* p = nullptr,\n                  Node* l = nullptr, Node* r = nullptr)\n        : key(k), color(c), left(l), right(r), parent(p) {}\n};\n\n// ============================================================================\n// RED-BLACK TREE CLASS\n// ============================================================================\n\ntemplate <typename Key>\nclass RedBlackTree {\nprivate:\n    // The NIL sentinel node. All leaf pointers point to this node.\n    // This simplifies edge cases in rotations and rebalancing.\n    Node<Key>* NIL_;\n    Node<Key>* root_;\n    size_t size_;\n\n    // ========================================================================\n    // ROTATION HELPERS\n    // ========================================================================\n\n    // Left rotation around node x.\n    //    x              y\n    //   / \\            / \\\n    //  A   B   =>     x   C\n    //     / \\        / \\\n    //    B   C      A   B\n    //\n    // B is the subtree that moves from x's right to y's left.\n    void leftRotate(Node<Key>* x) {\n        // B is x's right child\n        Node<Key>* y = x->right;\n        // B becomes x's right child\n        x->right = y->left;\n        if (y->left != NIL_) {\n            y->left->parent = x;\n        }\n        // y's parent becomes x's parent\n        y->parent = x->parent;\n        // Update root if x was root\n        if (x->parent == NIL_) {\n            root_ = y;\n        } else if (x == x->parent->left) {\n            x->parent->left = y;\n        } else {\n            x->parent->right = y;\n        }\n        // x becomes y's left child\n        y->left = x;\n        x->parent = y;\n    }\n\n    // Right rotation around node x.\n    //      x          y\n    //     / \\        / \\\n    //    A   B  =>  C   x\n    //       / \\     / \\\n    //      C   D   A   B\n    //\n    // A is the subtree that moves from x's left to y's right.\n    void rightRotate(Node<Key>* x) {\n        // A is x's left child\n        Node<Key>* y = x->left;\n        // A becomes x's left child\n        x->left = y->right;\n        if (",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 83.16262504167277,
+  "prompt_tokens_per_s": 359.46094422929536,
+  "draft_n": 845,
+  "draft_n_accepted": 715,
+  "accept_rate": 0.8461538461538461,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 53,
+    "prompt_ms": 147.443,
+    "prompt_per_token_ms": 2.7819433962264153,
+    "prompt_per_second": 359.46094422929536,
+    "predicted_n": 1024,
+    "predicted_ms": 12301.199,
+    "predicted_per_token_ms": 12.024632453567937,
+    "predicted_per_second": 83.16262504167277,
+    "draft_n": 845,
+    "draft_n_accepted": 715
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23302.0,
+    "memory_free_mib": 915.0,
+    "utilization_gpu_pct": 63.0,
+    "power_w": 365.86,
+    "temperature_c": 66.0
+  },
+  "id": "F_off_1024_r1",
+  "class": "F_off"
+}

@@ -1,0 +1,1 @@
+import java.util.List;public record Invoice(java.util.List<Line>lines){}

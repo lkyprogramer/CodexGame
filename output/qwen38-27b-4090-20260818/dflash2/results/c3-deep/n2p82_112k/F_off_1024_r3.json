@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 15.960569822229445,
+  "content": "```cpp\n// ============================================================================\n// Red-Black Tree Implementation in C++\n// ============================================================================\n//\n// A Red-Black Tree is a self-balancing Binary Search Tree (BST) with an\n// additional bit for each node to indicate its color, either red or black.\n// The tree maintains the following properties (Red-Black properties):\n//\n//   1. Every node is either red or black.\n//   2. The root is black.\n//   3. All leaves (NIL nodes) are black.\n//   4. If a node is red, then both its children are black.\n//   5. For each node, all paths from the node to descendant leaves contain\n//      the same number of black nodes.\n//\n// Property 5 is often called the \"black-height\" property. The black-height\n// of a node x is the number of black nodes on any path from x (not including\n// x) to a leaf.\n//\n// These properties ensure that the tree is approximately balanced: the\n// longest path can be no more than twice as long as the shortest path.\n// This guarantees O(log n) time complexity for search, insert, and delete.\n//\n// Implementation Details:\n//   - We use a singleton NIL node (typically black) to represent null\n//     children and leaves. This simplifies the code by avoiding null checks.\n//   - The tree is templated on a key type T and a comparator.\n//   - We implement insert, erase, find, and additional utility methods.\n//   - We include comprehensive unit tests using a simple test framework.\n//\n// ============================================================================\n\n#include <iostream>\n#include <functional>\n#include <stdexcept>\n#include <string>\n#include <vector>\n#include <algorithm>\n#include <sstream>\n#include <cassert>\n#include <type_traits>\n#include <memory>\n\n// ============================================================================\n// Forward Declarations\n// ============================================================================\n\ntemplate <typename T, typename Compare = std::less<T>>\nclass RedBlackTree;\n\n// ============================================================================\n// RBNode: Node Structure for the Red-Black Tree\n// ============================================================================\n\n/**\n * @brief Node structure for the Red-Black Tree.\n *\n * Each node contains:\n *   - key: The data stored in the node.\n *   - color: Whether the node is RED or BLACK.\n *   - left, right: Pointers to child nodes.\n *   - parent: Pointer to the parent node (used for rotations and fixes).\n *\n * We use a singleton NIL node to represent null children. This is a common\n * technique in Red-Black Tree implementations to simplify the logic.\n */\ntemplate <typename T, typename Compare = std::less<T>>\nstruct RBNode {\n    using Self = RBNode<T, Compare>;\n    using TreeType = RedBlackTree<T, Compare>;\n\n    enum class Color : uint8_t {\n        RED = 0,\n        BLACK = 1\n    };\n\n    T key;\n    Color color;\n    Self* left;\n    Self* right;\n    Self* parent;\n\n    // Constructor for internal nodes\n    RBNode(const T& k, Color c, Self* l, Self* r, Self* p)\n        : key(k), color(c), left(l), right(r), parent(p) {}\n\n    // Constructor for the NIL sentinel node\n    RBNode(Color c)\n        : key(T()), color(c), left(nullptr), right(nullptr), parent(nullptr) {}\n\n    // Helper to check if this node is the NIL sentinel\n    bool isNil() const {\n        // We'll use a flag or compare against a known NIL instance.\n        // For simplicity, we'll check if left and right are nullptr and\n        // the color is BLACK and key is default-constructed.\n        // A more robust approach would be to have a static NIL pointer.\n        return false; // Placeholder; we'll handle NIL differently.\n    }\n\n    // Swap two nodes (used in erase operations)\n    void swapWith(Self* other) {\n        std::swap(key, other->key);\n        std::swap(color, other->color);\n        std::swap(left, other->left);\n        std::swap(right, other->right);\n        std::swap(parent, other->parent);\n\n        // Update parent pointers of children\n        if (left) left->parent = this;\n        if (right) right->parent = this;\n        if (other->left) other->left->parent = other;\n        if (other->right) other->right->parent = other;\n    }\n};\n\n// ============================================================================\n// RedBlackTree: Main Tree Class\n// ============================================================================",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 65.12761766230433,
+  "prompt_tokens_per_s": 38.19089719965246,
+  "draft_n": 706,
+  "draft_n_accepted": 545,
+  "accept_rate": 0.7719546742209632,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 104.737,
+    "prompt_per_token_ms": 26.18425,
+    "prompt_per_second": 38.19089719965246,
+    "predicted_n": 1024,
+    "predicted_ms": 15707.622,
+    "predicted_per_token_ms": 15.354469208211142,
+    "predicted_per_second": 65.12761766230433,
+    "draft_n": 706,
+    "draft_n_accepted": 545
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 85.0,
+    "power_w": 387.13,
+    "temperature_c": 70.0
+  },
+  "id": "F_off_1024_r3",
+  "class": "F_off"
+}

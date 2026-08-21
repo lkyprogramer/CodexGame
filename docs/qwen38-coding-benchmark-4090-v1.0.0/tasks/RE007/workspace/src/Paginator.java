@@ -1,0 +1,1 @@
+import java.util.*;public final class Paginator{public static Page page(List<Item>items,String cursor,int limit){int start=cursor==null?0:Integer.parseInt(cursor);int end=Math.min(items.size(),start+limit);return new Page(items.subList(start,end),end<items.size()?String.valueOf(end):null);}}

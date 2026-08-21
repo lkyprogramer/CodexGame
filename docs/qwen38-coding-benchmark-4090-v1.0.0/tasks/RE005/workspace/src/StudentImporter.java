@@ -1,0 +1,1 @@
+import java.util.*;public final class StudentImporter{private final StudentRepository repo;public StudentImporter(StudentRepository r){repo=r;}public void importAll(List<Student>s){for(Student x:s){if(repo.existsId(x.id()))throw new BatchValidationException(List.of("duplicate"));repo.saveAll(List.of(x));}}}

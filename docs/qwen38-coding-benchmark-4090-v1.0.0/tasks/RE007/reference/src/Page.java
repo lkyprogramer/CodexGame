@@ -1,0 +1,1 @@
+import java.util.List;public record Page(List<Item>items,String nextCursor){public Page{items=List.copyOf(items);}}

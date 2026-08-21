@@ -1,0 +1,45 @@
+{
+  "issues": [
+    {
+      "file": "webhook.py",
+      "line": 5,
+      "severity": "critical",
+      "category": "signed bytes mismatch",
+      "explanation": "The HMAC is computed over parsed and re-serialized JSON rather than the exact raw request bytes, changing whitespace, number and Unicode representation and breaking the sender's signature contract.",
+      "fix": "Compute HMAC over the raw body bytes before JSON parsing."
+    },
+    {
+      "file": "webhook.py",
+      "line": 6,
+      "severity": "high",
+      "category": "timing comparison",
+      "explanation": "A normal string inequality is used for the MAC, which is not a constant-time comparison.",
+      "fix": "Decode the supplied signature strictly and use hmac.compare_digest."
+    },
+    {
+      "file": "webhook.py",
+      "line": 2,
+      "severity": "critical",
+      "category": "replay protection",
+      "explanation": "No signed timestamp or bounded freshness window is checked, so a valid captured event can be replayed indefinitely, especially after process restart clears seen.",
+      "fix": "Verify a signed timestamp against a short clock window and persist replay identifiers with expiry."
+    },
+    {
+      "file": "webhook.py",
+      "line": 8,
+      "severity": "high",
+      "category": "dedup race",
+      "explanation": "The check-handler-add sequence on the global set is non-atomic; concurrent deliveries can both run handler.",
+      "fix": "Use an atomic durable insert/claim before side effects or a transactionally coupled inbox record."
+    },
+    {
+      "file": "webhook.py",
+      "line": 10,
+      "severity": "high",
+      "category": "failure semantics",
+      "explanation": "If handler performs partial side effects and raises, no state records the attempt; blind provider retry can duplicate non-idempotent effects.",
+      "fix": "Use an inbox/outbox transaction or idempotent handler keyed by event id, with explicit failed/retry states."
+    }
+  ],
+  "summary": "The receiver signs the wrong bytes, lacks robust MAC comparison and freshness checks, and has non-atomic delivery semantics."
+}

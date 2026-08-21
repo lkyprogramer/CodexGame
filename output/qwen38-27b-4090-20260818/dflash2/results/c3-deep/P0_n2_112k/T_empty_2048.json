@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 13.08244957216084,
+  "content": "# InnoDB 隔离级别详解\n\n## 四个隔离级别（从低到高）\n\n| 级别 | 名称 | 脏读 | 不可重复读 | 幻读 |\n|------|------|:----:|:----------:|:----:|\n| READ UNCOMMITTED | 读未提交 | ✅ 可能 | ✅ 可能 | ✅ 可能 |\n| READ COMMITTED | 读已提交 | ❌ | ✅ 可能 | ✅ 可能 |\n| **REPEATABLE READ** | **可重复读（默认）** | ❌ | ❌ | ❌（Next-Key Lock 抑制） |\n| SERIALIZABLE | 串行化 | ❌ | ❌ | ❌ |\n\n## 各层面机制\n\n**READ UNCOMMITTED**\n最宽松。会话 B 可以直接读到会话 A **尚未提交**的修改（脏读）。几乎从不在生产中使用。\n\n**READ COMMITTED (RC)**\n每次 `SELECT` 都会生成一个新的 **ReadView**（MVCC 快照），因此同一事务内两次查询可能看到不同结果（不可重复读）。行锁只加在**命中的行**上，不覆盖间隙。\n\n**REPEATABLE READ (RR) —— InnoDB 默认**\n- 事务中**第一次**一致性读时生成 ReadView，后续读复用该快照 → 不可重复读被消除。\n- 配合 **Next-Key Lock**（行锁 + 间隙锁）在写操作时锁定范围，从而在绝大多数场景下抑制**幻读**。\n- 注意：RR 下若同一事务先 `SELECT … FOR UPDATE` 再 `SELECT`，第二次看到的是加锁读的结果（含当前事务已修改的数据），这与纯 MVCC 快照读略有不同。\n\n**SERIALIZABLE**\n所有读操作隐式加 `LOCK IN SHARE MODE`，写操作加排他锁，事务完全串行执行。并发度最低。\n\n## 设置隔离级别\n\n```sql\n-- 会话级\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n\n-- 全局级（需 SUPER 权限，影响后续新连接）\nSET GLOBAL TRANSACTION ISOLATION LEVEL SERIALIZABLE;\n```\n\n---\n\n## 一个 DDL 示例\n\n```sql\n-- 创建一张订单表，显式指定 InnoDB 引擎与 RR 隔离级别（通常由全局配置决定，\n-- 此处用注释说明），并添加常用索引与约束。\n\nCREATE TABLE `t_order` (\n    `order_id`    BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT '订单主键',\n    `user_id`     BIGINT UNSIGNED  NOT NULL                COMMENT '下单用户',\n    `amount`      DECIMAL(12,2)    NOT NULL DEFAULT 0.00   COMMENT '订单金额',\n    `status`      TINYINT          NOT NULL DEFAULT 0      COMMENT '0-待支付 1-已支付 2-已取消',\n    `created_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    `updated_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP\n                                ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (`order_id`),\n    UNIQUE KEY `uk_user_created` (`user_id`, `created_at`),\n    KEY `idx_status` (`status`)\n)\nENGINE = InnoDB\nDEFAULT CHARSET = utf8mb4\nCOLLATE = utf8mb4_unicode_ci\nCOMMENT = '订单表（隔离级别由服务端变量 transaction_isolation 控制，默认 REPEATABLE READ）';\n```\n\n> **要点**：`ENGINE = InnoDB` 是支持 MVCC 与行/间隙锁的前提；隔离级别是**会话/全局**属性，不在表级 DDL 中指定，但 DDL 中选择的引擎决定了该表能否享受上述隔离机制。",
+  "reasoning": "The user wants me to explain InnoDB isolation levels in Chinese, and then provide one DDL example. Let me structure this clearly.\n\nInnoDB isolation levels in MySQL:\n1. READ UNCOMMITTED (读未提交)\n2. READ COMMITTED (读已提交)\n3. REPEATABLE READ (可重复读) - default\n4. SERIALIZABLE (串行化)\n\nKey concepts:\n- Dirty read (脏读): reading uncommitted data\n- Non-repeatable read (不可重复读): reading different results in same transaction\n- Phantom read (幻读): seeing new rows inserted in a range\n\nInnoDB's MVCC and Next-Key Locking help implement REPEATABLE READ effectively preventing phantom reads (in most cases).\n\nLet me write the explanation in Chinese, then provide a DDL example. DDL = Data Definition Language (CREATE, ALTER, DROP).\n\nLet me make sure my Chinese is natural and technically accurate.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 25,
+  "completion_tokens": 1025,
+  "decode_tokens_per_s": 79.80922477730381,
+  "prompt_tokens_per_s": 219.3136360446347,
+  "draft_n": 852,
+  "draft_n_accepted": 599,
+  "accept_rate": 0.7030516431924883,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 113.992,
+    "prompt_per_token_ms": 4.55968,
+    "prompt_per_second": 219.3136360446347,
+    "predicted_n": 1025,
+    "predicted_ms": 12830.597,
+    "predicted_per_token_ms": 12.5298798828125,
+    "predicted_per_second": 79.80922477730381,
+    "draft_n": 852,
+    "draft_n_accepted": 599
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22694.0,
+    "memory_free_mib": 1523.0,
+    "utilization_gpu_pct": 93.0,
+    "power_w": 412.41,
+    "temperature_c": 69.0
+  },
+  "id": "T_empty_2048",
+  "class": "T"
+}

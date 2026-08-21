@@ -1,0 +1,1 @@
+import java.util.function.Function;public interface Store{Account load(String id);void save(Account a);void append(OutboxEvent e);<T>T transaction(Function<Store,T> work);}

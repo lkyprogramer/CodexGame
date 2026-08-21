@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 8.775820777751505,
+  "content": "1. 24 GB 显存连一个 27B 的 4-bit 权重（≈13–15 GB）加上 KV cache 和 CUDA/框架开销都只剩极薄余量，两个模型仅权重就逼近 27 GB，直接 OOM。\n2. 即便把第二个模型 offload 到系统内存，每次 forward 都要经 PCIe 5.0 来回搬权重，吞吐会掉到个位 token/s，GPU 加速的意义荡然无存。\n3. 真正要\"同时\"服务两个 27B，至少需要 48–64 GB 显存（如 2×4090、A6000 或 A100），单卡 4090 在物理上就没有这个余量。",
+  "reasoning": "用户问的是为什么单张 RTX 4090 不该同时跑两个 27B 模型（比如 Llama 27B 或 Qwen 27B 之类的大语言模型）。需要用三句话说明原因。\n\nRTX 4090 的 VRAM 是 24GB。\n\n一个 27B 参数的模型：\n- FP16：27B × 2 bytes = 54GB，远超 24GB，根本放不下。\n- INT8：27B × 1 byte = 27GB，仍然超过 24GB。\n- INT4（如 GPTQ/AWQ 4-bit）：27B × 0.5 bytes ≈ 13.5GB，可以放进 24GB。\n\n所以如果要跑 27B，必须量化到 4-bit 左右。一个 27B 4-bit 大约占 13-15GB（含 KV cache 和 overhead）。\n\n两个 27B 4-bit：\n- 模型权重：~13.5GB × 2 = 27GB，已经超过 24GB 了。\n- 加上 KV cache、推理引擎开销（CUDA context、框架 overhead 等），更不可能。\n\n所以核心原因：\n1. 显存根本不够：24GB 放不下两个 27B（即使 4-bit 量化也约 27GB 权重）。\n2. 即使勉强塞进 4-bit，KV cache + 推理框架 overhead 会进一步挤压，导致 OOM。\n3. 就算用 offload 到系统内存，推理速度会极慢（PCIe 带宽瓶颈），失去 GPU 加速的意义。\n\n用户要求三句话，简洁有力。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 567,
+  "decode_tokens_per_s": 66.45153276448002,
+  "prompt_tokens_per_s": 272.66995006731537,
+  "draft_n": 421,
+  "draft_n_accepted": 335,
+  "accept_rate": 0.7957244655581948,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 117.358,
+    "prompt_per_token_ms": 3.6674375,
+    "prompt_per_second": 272.66995006731537,
+    "predicted_n": 567,
+    "predicted_ms": 8517.486,
+    "predicted_per_token_ms": 15.048561837455832,
+    "predicted_per_second": 66.45153276448002,
+    "draft_n": 421,
+    "draft_n_accepted": 335
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22534.0,
+    "memory_free_mib": 1683.0,
+    "utilization_gpu_pct": 78.0,
+    "power_w": 339.85,
+    "temperature_c": 65.0
+  },
+  "id": "A_chat",
+  "class": "A",
+  "gpu_before": {
+    "memory_used_mib": 22534.0,
+    "memory_free_mib": 1683.0,
+    "utilization_gpu_pct": 68.0,
+    "power_w": 295.52,
+    "temperature_c": 61.0
+  }
+}

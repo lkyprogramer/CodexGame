@@ -1,0 +1,1 @@
+public final class UserMapper{public UserDto toDto(User u){return new UserDto(u.id(),u.nickname().trim());}}

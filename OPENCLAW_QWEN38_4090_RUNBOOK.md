@@ -2,8 +2,8 @@
 
 机器：`192.168.10.29`（用户 `hhtele`）  
 GPU：单卡 RTX 4090 24GB  
-文档日期：2026-08-18  
-状态：**现网主力**。Qwen3.6 已停用。
+文档日期：2026-08-20  
+状态：**现网主力仍是 WORK**。另有互斥文本档 TEXT（HauhauCS Aggressive），默认 disabled，按需切换。Qwen3.6 已停用。
 
 评测与补丁细节在 `output/qwen38-27b-4090-20260818/`。本文只保留运维需要的事实。
 
@@ -23,6 +23,14 @@ GPU：单卡 RTX 4090 24GB
 | 并发 | `-np 1`（单人单槽） |
 | 空载显存 | 约 **22664–22694 MiB**，剩余约 **1.5GB** |
 | 主机 RSS | 约 **3.4GB / 62GB** |
+
+同口可切换文本档（**不同时跑**）：
+
+```text
+openclaw-qwen38-text.service        disabled（不随开机）
+模型名 openclaw/Qwen3.8-27B-TEXT
+窗口 n_ctx=170240（-c 170000，q4 KV）
+```
 
 旧服务：
 
@@ -60,6 +68,14 @@ llama-server（含空正文补丁）
 
 NGINX（未改）
   /etc/nginx/conf.d/openclaw-28343.conf
+
+文本档（HauhauCS Aggressive）
+  启动 /home/hhtele/qwen38-hauhau-text-20260820/launch/production-text-18343.sh
+  systemd /etc/systemd/system/openclaw-qwen38-text.service
+  模型 /data/models/qwen/qwen38-hauhau/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf
+  SHA256 ba36dc3c2b2ff5e0aa5d71092a8894546996a6a119ae391803dda07cdc08516d
+  日志 /var/log/llama/openclaw-qwen38-text.log
+       /var/log/llama/openclaw-qwen38-text.err.log
 ```
 
 仓库内对应副本：`output/qwen38-27b-4090-20260818/launch/`。
@@ -96,6 +112,37 @@ NGINX（未改）
 - 思考默认 **medium**，预算 4096；服务端会按 `max_tokens` 再钳一刀，给正文留余量。
 - `--cache-reuse` 在该 binary 上会被拒绝并自动关掉，不影响启动。
 - 单卡只能跑这一个大模型。
+
+---
+
+## 3b. 切换文本档 TEXT（HauhauCS Aggressive）
+
+同一 `18343` / `28343`。两个 unit 互斥，切换约 10s。
+
+```bash
+# 切到文本生成
+sudo systemctl stop openclaw-qwen38-work-64k.service
+sudo systemctl start openclaw-qwen38-text.service
+curl -sS http://127.0.0.1:18343/v1/models   # id = openclaw/Qwen3.8-27B-TEXT, n_ctx=170240
+
+# 切回 OpenClaw 工作档
+sudo systemctl stop openclaw-qwen38-text.service
+sudo systemctl start openclaw-qwen38-work-64k.service
+```
+
+TEXT 默认 **不 enable**，开机仍是 WORK。
+
+| 项 | TEXT |
+|---|---|
+| 调用名 | `openclaw/Qwen3.8-27B-TEXT` |
+| 窗口 | 170K，q4 KV |
+| 默认思考 | 关 |
+| 采样 | 0.7 / 0.80 / 20 / presence 1.5 |
+| MTP | n=2，无 p-min |
+| 空载 | ~22622 MiB / 余 ~1.6GB |
+| 关思考填充 | ~53 tok/s |
+
+详情：`output/qwen38-27b-4090-20260820-hauhau-text/reports/`。
 
 ---
 

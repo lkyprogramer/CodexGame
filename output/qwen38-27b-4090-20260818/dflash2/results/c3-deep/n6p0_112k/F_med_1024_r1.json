@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 16.27039026003331,
+  "content": "# Async Connection Pool: `apool` package\n\nHere's the full implementation. Five files: the package (`metrics.py`, `retry.py`, `breaker.py`, `pool.py`, `__init__.py`) and a test suite that runs with plain `pytest` (no `pytest-asyncio` needed).\n\n## `apool/__init__.py`\n\n```python\n\"\"\"apool: production-quality async connection pool with retries, backpressure, metrics.\"\"\"\nfrom .metrics import Gauge, Histogram, Metrics, counter, gauge, histogram\nfrom .retry import RetryExhaustedError, RetryPolicy, compute_backoff, with_retries\nfrom .breaker import CircuitBreaker, CircuitState\nfrom .pool import (\n    AcquireTimeoutError,\n    BackpressureError,\n    Connection,\n    Pool,\n    PoolClosedError,\n    PoolConfig,\n    PoolError,\n    PoolKey,\n    ShardedPool,\n    get_sharded_pool,\n    pool_scope,\n    reset_shards,\n)\n\n__all__ = [\n    \"AcquireTimeoutError\", \"BackpressureError\", \"CircuitBreaker",
+  "reasoning": "The user is asking for a production-quality Python async connection pool with retries, backpressure, and metrics. They said \"keep expanding helpers and tests until budget runs out,\" so I should build a comprehensive, complete implementation. Let me design this carefully.\n\nCore components:\n1. `AsyncPool` — generic connection pool:\n   - acquire/release with asyncio.Queue or semaphore\n   - health checks, max lifetime, idle timeout\n   - retries with exponential backoff + jitter\n   - backpressure: max queue wait, reject when full\n   - metrics: counters, gauges, histograms (custom lightweight metrics)\n   - context manager support\n   - graceful shutdown / drain\n   - circuit breaker (possibly)\n   - factory-based (no concrete DB needed) — generic connection factory\n   - per-key pools (sharding)?\n\n2. Metrics: a small Metrics class with counters, gauges, histograms, snapshot, and possibly Prometheus text exposition.\n\n3. Backpressure: bounded wait queue with timeout, `PoolFullError`.\n\n4. Retry helper: `with_retries`, exponential backoff with jitter, retryable predicate, and budget (time-based).\n\n5. Circuit breaker helper.\n\n6. Example connection (fake) for testing.\n\n7. Comprehensive test suite with pytest + pytest-asyncio... but should I avoid external deps? Tests should be runnable — use only stdlib + pytest? Writing tests with plain asyncio + a small harness would let it run without pytest-asyncio. But pytest is standard. Use pytest-asyncio if available, otherwise... Better: write tests compatible with both — use `@pytest.mark.asyncio`? That requires the plugin. Safer: write a small `run` helper using `asyncio.run` and use plain pytest test functions that call asyncio.run. This works with just pytest.\n\nLet me structure the code as a single file (or a few files). Present as a single module `pool.py` + `test_pool.py`, or a package. Given the \"budget\" framing, one well-organized module + a test file is appropriate. Actually multiple files would be clearer: `apool/__init__.py`, `apool/metrics.py`, `apool/retry.py`, `apool/pool.py`, `apool/breaker.py`, `tests/test_apool.py`. That's a lot, but \"keep expanding helpers and tests\" suggests richness. Do the full package with a few files, but maybe consolidate to keep it readable.\n\nLet me design:\n\n**metrics.py**\n- `Metrics` registry: `counter(name)`, `gauge(name)`, `histogram(name, buckets)`, lock-free (single-threaded async is fine, but counters are used cross-loop from sync context? Use `threading.Lock` for safety).\n- `Counter`, `Gauge`, `Histogram` classes with inc, set, observe.\n- `snapshot()` -> dict.\n- `prometheus_text()` exposition format.\n\n**retry.py**\n- `RetryPolicy` dataclass: max_attempts, base_delay, max_delay, jitter, multiplier, retry_on (exception tuple or predicate), deadline.\n- `async def with_retries(coro_factory, policy, on_retry=None, sleep=asyncio.sleep)`.\n- `RetryExhaustedError` with last exception and attempt count.\n- Backoff computation: `delay_for_attempt(attempt, policy)` -> min(base * mult^attempt, max) * uniform(1-jitter, 1+jitter).\n\n**breaker.py**\n- CircuitBreaker: CLOSED/OPEN/HALF_OPEN states, failure_threshold, recovery_timeout, half_open_max_callsStop thinking. State the answer or the next smallest action now.",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 37,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 63.94387440497974,
+  "prompt_tokens_per_s": 307.15335253733576,
+  "draft_n": 2216,
+  "draft_n_accepted": 653,
+  "accept_rate": 0.2946750902527076,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 37,
+    "prompt_ms": 120.461,
+    "prompt_per_token_ms": 3.2557027027027026,
+    "prompt_per_second": 307.15335253733576,
+    "predicted_n": 1024,
+    "predicted_ms": 15998.405,
+    "predicted_per_token_ms": 15.638714565004888,
+    "predicted_per_second": 63.94387440497974,
+    "draft_n": 2216,
+    "draft_n_accepted": 653
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23334.0,
+    "memory_free_mib": 883.0,
+    "utilization_gpu_pct": 90.0,
+    "power_w": 407.97,
+    "temperature_c": 71.0
+  },
+  "id": "F_med_1024_r1",
+  "class": "F_med"
+}

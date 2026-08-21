@@ -1,0 +1,1 @@
+import java.util.*;public final class Json{public static Map<String,String>parse(String s){Map<String,String>m=new HashMap<>();for(String p:s.replace("{","").replace("}","").replace("\"","").split(",")){String[]kv=p.split(":",2);if(kv.length==2)m.put(kv[0].trim(),kv[1].trim());}return m;}}

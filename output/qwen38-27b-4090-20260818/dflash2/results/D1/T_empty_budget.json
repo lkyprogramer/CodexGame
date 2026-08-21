@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 10.97158304322511,
+  "content": "## InnoDB 隔离级别\n\nInnoDB 支持 SQL 标准定义的四个隔离级别，由低到高排列：\n\n| 级别 | 脏读 | 不可重复读 | 幻读 | 说明 |\n|------|------|-----------|------|------|\n| READ UNCOMMITTED | ✗ | ✗ | ✗ | 可读到其他事务**未提交**的数据 |\n| READ COMMITTED | ✓ | ✗ | ✗ | 只能读**已提交**的数据；同一事务内两次读可能不同 |\n| **REPEATABLE READ（默认）** | ✓ | ✓ | ✓* | 同一事务内多次读结果一致；借助 **MVCC + Next-Key Lock** 解决幻读 |\n| SERIALIZABLE | ✓ | ✓ | ✓ | 所有 SELECT 隐式加 `LOCK IN SHARE MODE`，事务完全串行 |\n\n> \\* InnoDB 在 RR 级别下，通过 **Next-Key Lock**（记录锁 + 间隙锁 + 邻接锁）在写操作上基本杜绝幻读；纯 MVCC 快照读则天然不受并发插入影响。\n\n### 实现机制简述\n\n- **MVCC（多版本并发控制）**：每行隐藏 `trx_id` 和 `roll_pointer`，配合 `undo log` 构建版本链。RR 级别下事务在首次读时固定 **ReadView**，之后始终看到同一快照。\n- **锁**：\n  - **共享锁 / 排他锁**（Record Lock）\n  - **间隙锁（Gap Lock）**：锁定索引记录之间的\"空隙\"，阻止其他事务在该区间插入。\n  - **Next-Key Lock = Record Lock + Gap Lock**：RR 下 `SELECT … FOR UPDATE / LOCK IN SHARE MODE` 的默认加锁粒度。\n\n### 会话中临时调整\n\n```sql\nSET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n```\n\n> 全局/会话级默认值由 `innodb_isolation_level` 决定，InnoDB 默认即为 **REPEATABLE READ**。\n\n---\n\n## DDL 示例\n\n```sql\nCREATE TABLE orders (\n    order_id    BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,\n    user_id     BIGINT UNSIGNED  NOT NULL,\n    amount      DECIMAL(12,2)    NOT NULL DEFAULT 0.00,\n    status      TINYINT UNSIGNED NOT NULL DEFAULT 0\n                COMMENT '0=待支付 1=已支付 2=已发货 3=已完成 4=已取消',\n    created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP\n                                  ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (order_id),\n    INDEX idx_user_created (user_id, created_at),\n    INDEX idx_status (status)\n) ENGINE=InnoDB\n  DEFAULT CHARSET=utf8mb4\n  COLLATE=utf8mb4_unicode_ci\n  COMMENT='订单主表';\n```\n\n要点：\n- 显式指定 `ENGINE=InnoDB`（虽然 MySQL 8.0 起已默认，但显式写出更清晰）。\n- 使用 `utf8mb4` 以支持 emoji 等 4 字节字符。\n- 复合索引 `idx_user_created` 覆盖\"按用户查最近订单\"的高频查询。",
+  "reasoning": "用户要求我用中文解释 InnoDB 的隔离级别，然后给出一个 DDL 示例。\n\nInnoDB 支持的隔离级别：\n1. READ UNCOMMITTED（读未提交）- 最低级别，可能读到其他事务未提交的数据（脏读）\n2. READ COMMITTED（读已提交）- 只能读到已提交的数据，但同一事务内两次读取可能不同（不可重复读）\n3. REPEATABLE READ（可重复读）- 默认级别，同一事务内多次读取同一数据结果一致，通过 MVCC + Next-Key Lock 避免幻读\n4. SERIALIZABLE（串行化）- 最高级别，所有读操作加共享锁，串行执行\n\n需要解释每个级别的特点、能防止什么问题、InnoDB 的实现机制。\n\n然后给一个 DDL 示例 - 可以是一个创建表的 DDL，或者创建数据库的 DDL。我给出一个比较完整的建表示例即可。\n\n用中文回复。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 930,
+  "decode_tokens_per_s": 86.73936278033551,
+  "prompt_tokens_per_s": 231.15448824964682,
+  "draft_n": 1252,
+  "draft_n_accepted": 616,
+  "accept_rate": 0.49201277955271566,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 116.805,
+    "prompt_per_token_ms": 4.3261111111111115,
+    "prompt_per_second": 231.15448824964682,
+    "predicted_n": 930,
+    "predicted_ms": 10710.247,
+    "predicted_per_token_ms": 11.528791173304628,
+    "predicted_per_second": 86.73936278033551,
+    "draft_n": 1252,
+    "draft_n_accepted": 616
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22044.0,
+    "memory_free_mib": 2173.0,
+    "utilization_gpu_pct": 90.0,
+    "power_w": 426.06,
+    "temperature_c": 71.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22044.0,
+    "memory_free_mib": 2173.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 411.18,
+    "temperature_c": 67.0
+  }
+}

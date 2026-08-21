@@ -1,0 +1,1 @@
+public interface PaymentGateway{String charge(String orderId,long amount)throws Exception;}

@@ -1,0 +1,1 @@
+import java.util.Optional;public interface UserCache{Optional<Optional<User>>get(String id);void put(String id,Optional<User>u);void evict(String id);}

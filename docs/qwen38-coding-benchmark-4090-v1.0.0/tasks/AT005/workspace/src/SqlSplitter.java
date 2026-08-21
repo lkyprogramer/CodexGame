@@ -1,0 +1,1 @@
+import java.util.*;public final class SqlSplitter{public List<String>split(String sql){return Arrays.stream(sql.split(";")).map(String::trim).filter(s->!s.isEmpty()).toList();}}

@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 4.6397465681657195,
+  "content": "```python\nimport heapq\n\n\ndef dijkstra(graph, source):\n    \"\"\"\n    Dijkstra's shortest path algorithm.\n\n    Args:\n        graph: adjacency list dict {node: {neighbor: weight}}\n        source: starting node\n\n    Returns:\n        (distances, previous) where\n        distances: dict {node: shortest distance from source}\n        previous:  dict {node: predecessor on shortest path}\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    previous = {}\n    visited = set()\n    heap = [(0, source)]\n\n    while heap:\n        dist, u = heapq.heappop(heap)\n        if u in visited:\n            continue\n        visited.add(u)\n\n        for v, weight in graph[u].items():\n            if v in visited:\n                continue\n            new_dist = dist + weight\n            if new_dist < distances[v]:\n                distances[v] = new_dist\n                previous[v] = u\n                heapq.heappush(heap, (new_dist, v))\n\n    return distances, previous\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, and they want only the function returned. Let me think about what a good, clean implementation looks like.\n\nDijkstra's algorithm:\n1. We have a graph (typically represented as an adjacency list or dictionary)\n2. We want to find the shortest path from a source node to all other nodes (or to a specific target)\n3. We use a priority queue to always process the nearest unvisited node\n\nI'll implement it with:\n- A graph as a dictionary of dictionaries: {node: {neighbor: weight}}\n- A source node\n- Return the distances dictionary and optionally the paths\n\nLet me write a clean, standard implementation using heapq. I'll make it return both distances and the predecessor map so you can reconstruct paths.\n\nLet me think about the signature:\n- `dijkstra(graph, source)` where graph is an adjacency list with weights\n- Returns (distances, previous) where distances is a dict of node -> shortest distance, previous is a dict for path reconstruction\n\nI'll keep it simple and just return the function as requested.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 483,
+  "decode_tokens_per_s": 112.0862720129183,
+  "prompt_tokens_per_s": 174.62455720201564,
+  "draft_n": 496,
+  "draft_n_accepted": 359,
+  "accept_rate": 0.7237903225806451,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 200.43,
+    "prompt_per_token_ms": 5.726571428571429,
+    "prompt_per_second": 174.62455720201564,
+    "predicted_n": 483,
+    "predicted_ms": 4300.259,
+    "predicted_per_token_ms": 8.921699170124482,
+    "predicted_per_second": 112.0862720129183,
+    "draft_n": 496,
+    "draft_n_accepted": 359
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22044.0,
+    "memory_free_mib": 2173.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 411.18,
+    "temperature_c": 69.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22044.0,
+    "memory_free_mib": 2173.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 348.57,
+    "temperature_c": 65.0
+  }
+}

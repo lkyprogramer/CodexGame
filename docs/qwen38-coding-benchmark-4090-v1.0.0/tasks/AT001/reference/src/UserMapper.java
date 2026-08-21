@@ -1,0 +1,1 @@
+public final class UserMapper{public UserDto toDto(User u){if(u==null)throw new IllegalArgumentException("user is null");String n=u.nickname();if(n!=null){n=n.trim();if(n.isEmpty())n=null;}return new UserDto(u.id(),n);}}

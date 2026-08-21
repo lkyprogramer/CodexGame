@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 11.988826345652342,
+  "content": "```cpp\n// ============================================================================\n// Red-Black Tree Implementation in C++\n// ============================================================================\n// This file implements a self-balancing binary search tree (Red-Black Tree)\n// with the following properties:\n//   1. Every node is either red or black.\n//   2. The root is black.\n//   3. All leaves (NIL/null pointers) are black.\n//   4. If a node is red, then both its children are black.\n//   5. For every node, any simple path from the node to descendant leaf\n//      contains the same number of black nodes.\n//\n// Operations provided:\n//   - Insert\n//   - Erase\n//   - Find\n//   - Min\n//   - Max\n//   - Successor\n//   - Predecessor\n//   - Height\n//   - Size\n//   - In-order traversal\n//   - Pre-order traversal\n//   - Post-order traversal\n//   - Level-order traversal\n//   - Verification of RB tree properties\n//\n// Complexity:\n//   - Insert: O(log n)\n//   - Erase: O(log n)\n//   - Find: O(log n)\n//   - Min/Max: O(log n)\n//   - Height: O(log n)\n//\n// Author: Generated\n// Date: 2024\n// ============================================================================\n\n#include <iostream>\n#include <functional>\n#include <algorithm>\n#include <vector>\n#include <cassert>\n#include <stdexcept>\n#include <string>\n#include <queue>\n#include <sstream>\n#include <iomanip>\n#include <chrono>\n#include <random>\n\n// ============================================================================\n// Color Enumeration\n// ============================================================================\n// Represents the two possible colors of a node in a Red-Black tree.\n// RED and BLACK are the only valid states for any node.\nenum class Color {\n    RED,   // Red node: cannot have red children\n    BLACK  // Black node: must maintain black-height invariant\n};\n\n// String representation for debugging and printing\ninline std::string colorToString(Color c) {\n    switch (c) {\n        case Color::RED:   return \"RED\";\n        case Color::BLACK: return \"BLACK\";\n        default:           return \"UNKNOWN\";\n    }\n}\n\n// ============================================================================\n// Node Structure\n// ============================================================================\n// Defines the structure of a single node in the Red-Black tree.\n// Each node stores:\n//   - key: The integer value stored in the node\n//   - color: The color of the node (RED or BLACK)\n//   - left: Pointer to the left child\n//   - right: Pointer to the right child\n//   - parent: Pointer to the parent node\n//\n// Using explicit parent pointers simplifies rotations and rebalancing\n// operations by allowing upward traversal when needed.\ntemplate <typename T>\nstruct RBNode {\n    T key;          // The data stored in this node\n    Color color;    // The color of this node (RED or BLACK)\n    RBNode* left;   // Left child pointer\n    RBNode* right;  // Right child pointer\n    RBNode* parent; // Parent pointer\n\n    // Constructor\n    RBNode(const T& key, Color color, RBNode* parent = nullptr)\n        : key(key), color(color), left(nullptr), right(nullptr), parent(parent) {}\n\n    // Destructor (does not delete children; tree handles memory)\n    ~RBNode() = default;\n\n    // Check if this node is a leaf (has no children)\n    bool isLeaf() const {\n        return left == nullptr && right == nullptr;\n    }\n\n    // Check if this node has a left child\n    bool hasLeft() const {\n        return left != nullptr;\n    }\n\n    // Check if this node has a right child\n    bool hasRight() const {\n        return right != nullptr;\n    }\n\n    // Check if this node is red\n    bool isRed() const {\n        return color == Color::RED;\n    }\n\n    // Check if this node is black\n    bool isBlack() const {\n        return color == Color::BLACK;\n    }\n\n    // Get the non-null child (if exactly one child exists)\n    RBNode* nonNullChild() const {\n        if (left != nullptr) return left;\n        if (right != nullptr) return right;\n        return nullptr;\n    }\n\n    // String representation for debugging\n    std::string toString() const {\n        std::ostringstream oss;\n        oss << \"Node(\" << key << \", \" << colorToString(color) << \")\";\n        return oss.str",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 86.87903991781906,
+  "prompt_tokens_per_s": 37.607416182471184,
+  "draft_n": 920,
+  "draft_n_accepted": 735,
+  "accept_rate": 0.7989130434782609,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 106.362,
+    "prompt_per_token_ms": 26.5905,
+    "prompt_per_second": 37.607416182471184,
+    "predicted_n": 1024,
+    "predicted_ms": 11774.992,
+    "predicted_per_token_ms": 11.510256109481917,
+    "predicted_per_second": 86.87903991781906,
+    "draft_n": 920,
+    "draft_n_accepted": 735
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22406.0,
+    "memory_free_mib": 1811.0,
+    "utilization_gpu_pct": 79.0,
+    "power_w": 367.45,
+    "temperature_c": 71.0
+  },
+  "id": "F_off_1024_r2",
+  "class": "F_off"
+}

@@ -1,0 +1,45 @@
+{
+  "issues": [
+    {
+      "file": "src/UploadService.java",
+      "line": 5,
+      "severity": "critical",
+      "category": "path traversal",
+      "explanation": "Checking only '..' does not reject absolute paths, alternate separators, encoded/normalized traversal, or a filename whose normalized target escapes root.",
+      "fix": "Reject absolute paths, resolve and normalize against a canonical root, and verify the target remains below root."
+    },
+    {
+      "file": "src/UploadService.java",
+      "line": 9,
+      "severity": "critical",
+      "category": "symlink race",
+      "explanation": "Parent creation followed by Files.copy follows existing symlinks; an attacker controlling the upload tree can redirect the write outside root in a TOCTOU race.",
+      "fix": "Use a trusted non-user-writable root, walk/create components without following links, and open the final file with NOFOLLOW_LINKS or a secure directory stream."
+    },
+    {
+      "file": "src/UploadService.java",
+      "line": 6,
+      "severity": "high",
+      "category": "content validation",
+      "explanation": "The extension is case-sensitive and attacker-controlled; it does not establish that bytes are an allowed image.",
+      "fix": "Use an allowlisted normalized extension plus server-side magic-byte/decoder validation, and generate the stored filename."
+    },
+    {
+      "file": "src/UploadService.java",
+      "line": 10,
+      "severity": "high",
+      "category": "unbounded resource use",
+      "explanation": "The input stream is copied without an enforced byte limit, enabling disk exhaustion.",
+      "fix": "Stream through a hard maximum size counter, enforce quotas, and delete partial files on failure."
+    },
+    {
+      "file": "src/UploadService.java",
+      "line": 10,
+      "severity": "high",
+      "category": "overwrite",
+      "explanation": "REPLACE_EXISTING allows an upload to overwrite another user's or application file.",
+      "fix": "Use a server-generated unique name and CREATE_NEW, with ownership metadata and authorization."
+    }
+  ],
+  "summary": "The upload path is not confined securely and the service lacks content, size, and overwrite controls."
+}

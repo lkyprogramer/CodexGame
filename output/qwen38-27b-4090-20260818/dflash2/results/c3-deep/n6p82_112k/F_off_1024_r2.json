@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 12.884374720044434,
+  "content": "Here is a comprehensive, dense, and heavily commented implementation of a Red-Black Tree in C++. It includes the core operations (`insert`, `erase`, `find`) as requested, followed by an extensive suite of additional methods (traversal, query, modification, validation) and a rigorous test suite using `assert` and manual verification logic.\n\n```cpp\n#include <iostream>\n#include <cassert>\n#include <functional>\n#include <queue>\n#include <stack>\n#include <sstream>\n#include <algorithm>\n#include <chrono>\n#include <random>\n#include <vector>\n#include <string>\n#include <limits>\n#include <memory>\n\n/**\n * @file RedBlackTree.cpp\n * @brief A dense, commented implementation of a Red-Black Tree.\n * \n * Red-Black Trees are self-balancing binary search trees. They guarantee O(log n)\n * worst-case time complexity for search, insert, and delete operations.\n * \n * Properties of a Red-Black Tree:\n * 1. Every node is either red or black.\n * 2. The root is black.\n * 3. All leaves (NIL) are black.\n * 4. If a node is red, then both its children are black.\n * 5. For each node, all simple paths from the node to descendant leaves contain\n *    the same number of black nodes.\n * \n * This implementation uses a standard node-based approach with explicit pointers.\n * It includes:\n * - Insertion with rebalancing (Case 1-5 for uncle, Case 1-4 for parent).\n * - Erasure with rebalancing (Case 1-5 for sibling).\n * - Search (Find).\n * - Additional methods: Min, Max, Predecessor, Successor, Count, Traversals,\n *   Validation, and Utility functions.\n * - A comprehensive test suite.\n */\n\n// Color enum for Red-Black nodes\nenum class Color { RED, BLACK };\n\n// Node structure for the Red-Black Tree\nstruct RBNode {\n    int key;\n    Color color;\n    RBNode* left;\n    RBNode* right;\n    RBNode* parent;\n\n    RBNode(int k) : key(k), color(Color::RED), left(nullptr), right(nullptr), parent(nullptr) {}\n};\n\nclass RedBlackTree {\nprivate:\n    RBNode* root;\n    int size;\n\n    // Helper to get the color of a node, treating nullptr as BLACK\n    Color getColor(RBNode* node) const {\n        return node ? node->color : Color::BLACK;\n    }\n\n    // Helper to set the color of a node\n    void setColor(RBNode* node, Color color) {\n        if (node) node->color = color;\n    }\n\n    // Left rotate around node x\n    //       y             x\n    //      / \\           / \\\n    //     x   C   ->    A   y\n    //    / \\             / \\\n    //   A   B           B   C\n    void leftRotate(RBNode* x) {\n        RBNode* y = x->right;\n        x->right = y->left;\n        if (y->left) y->left->parent = x;\n        y->parent = x->parent;\n        if (!x->parent) {\n            root = y;\n        } else if (x == x->parent->left) {\n            x->parent->left = y;\n        } else {\n            x->parent->right = y;\n        }\n        y->left = x;\n        x->parent = y;\n    }\n\n    // Right rotate around node x\n    //     x               y\n    //    / \\             / \\\n    //   A   y    ->     x   C\n    //      / \\         / \\\n    //     B   C       A   B\n    void rightRotate(RBNode* x) {\n        RBNode* y = x->left;\n        x->left = y->right;\n        if (y->right) y->right->parent = x;\n        y->parent = x->parent;\n        if (!x->parent) {\n            root = y;\n        } else if (x == x->parent->right) {\n            x->parent->right = y;\n        } else {\n            x->parent->left = y;\n        }\n        y->right = x;\n        x->parent = y;\n    }\n\n    // Insert fix-up: restores RB properties after insertion\n    void insertFixup(RBNode* z) {\n        while (z != root",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 80.7444273124537,
+  "prompt_tokens_per_s": 37.51711718471553,
+  "draft_n": 918,
+  "draft_n_accepted": 705,
+  "accept_rate": 0.7679738562091504,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 106.618,
+    "prompt_per_token_ms": 26.6545,
+    "prompt_per_second": 37.51711718471553,
+    "predicted_n": 1024,
+    "predicted_ms": 12669.605,
+    "predicted_per_token_ms": 12.384755620723363,
+    "predicted_per_second": 80.7444273124537,
+    "draft_n": 918,
+    "draft_n_accepted": 705
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23308.0,
+    "memory_free_mib": 909.0,
+    "utilization_gpu_pct": 85.0,
+    "power_w": 351.01,
+    "temperature_c": 66.0
+  },
+  "id": "F_off_1024_r2",
+  "class": "F_off"
+}

@@ -1,0 +1,1 @@
+public final class Helper2 { public static String id(){ return "helper-2"; } }

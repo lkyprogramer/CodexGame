@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 10.495007381774485,
+  "content": "```cpp\n#include <iostream>\n#include <cassert>\n#include <cstdlib>\n#include <ctime>\n#include <string>\n#include <vector>\n#include <functional>\n#include <sstream>\n#include <algorithm>\n#include <chrono>\n\n// ============================================================================\n// RED-BLACK TREE IMPLEMENTATION\n// ============================================================================\n// A red-black tree is a self-balancing binary search tree where each node\n// has a color attribute (red or black). The tree satisfies the following\n// properties:\n// 1. Every node is either red or black.\n// 2. The root is black.\n// 3. All leaves (NIL nodes) are black.\n// 4. If a node is red, then both its children are black.\n// 5. For each node, all paths from the node to descendant leaves contain\n//    the same number of black nodes.\n//\n// These properties guarantee that the tree is approximately balanced,\n// ensuring O(log n) time complexity for insert, delete, and search operations.\n// ============================================================================\n\n// Color enumeration for red-black tree nodes\nenum class NodeColor {\n    RED,\n    BLACK\n};\n\n// Node structure for the red-black tree\nstruct RBNode {\n    int key;              // The key stored in the node\n    NodeColor color;      // The color of the node (RED or BLACK)\n    RBNode* left;         // Pointer to left child\n    RBNode* right;        // Pointer to right child\n    RBNode* parent;       // Pointer to parent node\n\n    // Constructor\n    RBNode(int k, NodeColor c = NodeColor::BLACK)\n        : key(k), color(c), left(nullptr), right(nullptr), parent(nullptr) {}\n};\n\n// Forward declaration of the tree class\nclass RedBlackTree;\n\n// ============================================================================\n// RED-BLACK TREE CLASS\n// ============================================================================\n// This class implements a red-black tree with standard operations:\n// - insert: Insert a new key into the tree\n// - erase: Remove a key from the tree\n// - find: Search for a key in the tree\n// - min: Find the minimum key\n// - max: Find the maximum key\n// - inorder: Traverse the tree in-order\n// - validate: Check if the tree satisfies all RB properties\n// - height: Get the height of the tree\n// - size: Get the number of nodes in the tree\n// ============================================================================\nclass RedBlackTree {\nprivate:\n    RBNode* root;         // Root of the tree\n    int nodeCount;        // Number of nodes in the tree\n\n    // ------------------------------------------------------------------------\n    // ROTATION OPERATIONS\n    // ------------------------------------------------------------------------\n    // Rotations are the fundamental operations for rebalancing the tree.\n    // They maintain the binary search tree property while changing the\n    // structure to maintain red-black properties.\n\n    // Left rotation around node x\n    //    x          y\n    //   / \\        / \\\n    //  T1   y  -> x   T3\n    //     / \\    / \\\n    //    T2  T3  T1  T2\n    void leftRotate(RBNode* x) {\n        // y is the right child of x\n        RBNode* y = x->right;\n        \n        // T3 becomes the right child of x\n        x->right = y->left;\n        if (y->left != nullptr) {\n            y->left->parent = x;\n        }\n        \n        // y's parent becomes x's parent\n        y->parent = x->parent;\n        \n        // If x was the root, y becomes the new root\n        if (x->parent == nullptr) {\n            root = y;\n        } else if (x == x->parent->left) {\n            // x was a left child, so y becomes the left child of x's parent\n            x->parent->left = y;\n        } else {\n            // x was a right child, so y becomes the right child of x's parent\n            x->parent->right = y;\n        }\n        \n        // x becomes the left child of y\n        y->left = x;\n        x->parent = y;\n    }\n\n    // Right rotation around node x\n    //      x        y\n    //     / \\      / \\\n    //    y   T3 -> T1  x\n    //   / \\          / \\\n    //  T1  T2       T2  T3\n    void rightRotate(RBNode* x) {\n        // y is the left child of x\n        RBNode* y = x->left;\n        \n        // T1 becomes the left child of x",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 98.91171013125671,
+  "prompt_tokens_per_s": 364.17356649603187,
+  "draft_n": 1403,
+  "draft_n_accepted": 789,
+  "accept_rate": 0.5623663578047042,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 53,
+    "prompt_ms": 145.535,
+    "prompt_per_token_ms": 2.745943396226415,
+    "prompt_per_second": 364.17356649603187,
+    "predicted_n": 1024,
+    "predicted_ms": 10342.557,
+    "predicted_per_token_ms": 10.110026392961878,
+    "predicted_per_second": 98.91171013125671,
+    "draft_n": 1403,
+    "draft_n_accepted": 789
+  },
+  "tool_calls": [],
+  "junk_repeat": true,
+  "junk_reason": "char_run",
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23302.0,
+    "memory_free_mib": 915.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 414.55,
+    "temperature_c": 70.0
+  },
+  "id": "F_off_1024_r1",
+  "class": "F_off"
+}

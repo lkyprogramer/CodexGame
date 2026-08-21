@@ -1,0 +1,1 @@
+import java.util.*;public class PublicTest{public static void main(String[]a){var x=new SqlSplitter().split("insert into t values ('a;b'); select 1;");if(x.size()!=2)throw new AssertionError(x);System.out.println("PUBLIC OK");}}

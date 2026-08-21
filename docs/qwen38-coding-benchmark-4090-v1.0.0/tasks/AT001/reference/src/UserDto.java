@@ -1,0 +1,1 @@
+public record UserDto(String id,String displayName){}

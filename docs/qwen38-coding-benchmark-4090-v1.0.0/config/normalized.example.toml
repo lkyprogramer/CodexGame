@@ -1,0 +1,31 @@
+[model]
+id = "qwen38-original-q4km"
+family = "Qwen3.8-27B"
+file = "/models/Qwen3.8-27B-Q4_K_M.gguf"
+sha256 = "REPLACE_WITH_SHA256"
+quantization = "Q4_K_M"
+template_id = "official-common-v1"
+notes = "Normalized lane; MTP disabled at server startup"
+
+[endpoint]
+base_url = "http://127.0.0.1:8080/v1"
+model = "local-model"
+api_key = "not-needed"
+timeout_seconds = 900
+
+[inference]
+lane = "normalized"
+temperature = 0.0
+top_p = 1.0
+top_k = 0
+min_p = 0.0
+seed = 42
+max_tokens = 8192
+context_size = 32768
+reasoning_effort = "medium"
+mtp_enabled = false
+tool_mode = true
+max_tool_calls = 40
+max_retries = 1
+system_prompt_file = "config/system-prompt.txt"
+extra_body = {}

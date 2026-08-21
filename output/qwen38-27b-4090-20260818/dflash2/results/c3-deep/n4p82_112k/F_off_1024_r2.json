@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 12.707141824997962,
+  "content": "```cpp\n/**\n * @file red_black_tree.hpp\n * @brief A high-performance, strictly compliant Red-Black Tree implementation in C++17.\n * \n * This file provides a template-based binary search tree that maintains balance\n * through the following Red-Black Tree properties:\n * 1. Every node is either red or black.\n * 2. The root is black.\n * 3. All leaves (NIL) are black.\n * 4. If a node is red, then both its children are black.\n * 5. For each node, all paths from the node to descendant leaves contain the same number of black nodes.\n * \n * Complexity Guarantees:\n * - Insert: O(log n)\n * - Erase: O(log n)\n * - Find: O(log n)\n * - Height: O(log n)\n * \n * Thread Safety:\n * - Not thread-safe. External synchronization required for concurrent access.\n * \n * Memory Management:\n * - Uses std::unique_ptr for automatic memory management of nodes.\n * - No memory leaks expected under normal operation.\n * \n * @author AI Assistant\n * @version 1.0.0\n * @date 2023-10-27\n */\n\n#include <iostream>\n#include <functional>\n#include <memory>\n#include <stdexcept>\n#include <algorithm>\n#include <vector>\n#include <cassert>\n#include <limits>\n#include <string>\n#include <sstream>\n\nnamespace rbt {\n\n/**\n * @enum Color\n * @brief Represents the color of a node in the Red-Black Tree.\n */\nenum class Color {\n    RED,    ///< Node is red\n    BLACK   ///< Node is black\n};\n\n/**\n * @class Node\n * @brief Internal structure representing a node in the Red-Black Tree.\n * \n * Each node stores:\n * - A key value\n * - Left and right child pointers\n * - Parent pointer (to facilitate rotations and fixes)\n * - Color (RED or BLACK)\n * \n * @tparam KeyType The type of the key stored in the node.\n */\ntemplate <typename KeyType>\nclass Node {\npublic:\n    KeyType key;                 ///< The key value stored in this node\n    Color color;                 ///< The color of this node (RED or BLACK)\n    std::unique_ptr<Node> left;  ///< Pointer to the left child\n    std::unique_ptr<Node> right; ///< Pointer to the right child\n    Node* parent;                ///< Pointer to the parent node (raw pointer for cycle avoidance)\n\n    /**\n     * @brief Constructs a new node with the specified key.\n     * @param k The key to store in the node.\n     * @param c The color of the node (default is RED for new insertions).\n     */\n    explicit Node(const KeyType& k, Color c = Color::RED)\n        : key(k), color(c), left(nullptr), right(nullptr), parent(nullptr) {}\n\n    /**\n     * @brief Copy constructor (deleted to prevent accidental copying of tree structure).\n     */\n    Node(const Node&) = delete;\n\n    /**\n     * @brief Copy assignment operator (deleted to prevent accidental copying of tree structure).\n     */\n    Node& operator=(const Node&) = delete;\n\n    /**\n     * @brief Checks if the node has a left child.\n     * @return true if left child exists, false otherwise.\n     */\n    bool hasLeft() const { return left != nullptr; }\n\n    /**\n     * @brief Checks if the node has a right child.\n     * @return true if right child exists, false otherwise.\n     */\n    bool hasRight() const { return right != nullptr; }\n\n    /**\n     * @brief Checks if the node is a leaf (no children).\n     * @return true if the node is a leaf, false otherwise.\n     */\n    bool isLeaf() const { return !hasLeft() && !hasRight(); }\n\n    /**\n     * @brief Checks if the node is red.\n     * @return true if the node is red, false otherwise.\n     */\n    bool isRed() const { return color == Color::RED; }\n\n    /**\n     * @brief Checks if the node is black.\n     * @return true if the node is black, false otherwise.\n     */\n    bool isBlack() const { return color == Color::BLACK; }\n\n    /**\n     * @brief Returns the left child node.\n     * @return Pointer to the left child, or nullptr if none.\n     */\n    Node* getLeft() { return left.get(); }\n\n    /**\n    ",
+  "reasoning": "",
+  "empty": false,
+  "finish": "length",
+  "prompt_tokens": 53,
+  "completion_tokens": 1024,
+  "decode_tokens_per_s": 81.87048201786489,
+  "prompt_tokens_per_s": 38.0778310867413,
+  "draft_n": 845,
+  "draft_n_accepted": 690,
+  "accept_rate": 0.8165680473372781,
+  "timings": {
+    "cache_n": 49,
+    "prompt_n": 4,
+    "prompt_ms": 105.048,
+    "prompt_per_token_ms": 26.262,
+    "prompt_per_second": 38.0778310867413,
+    "predicted_n": 1024,
+    "predicted_ms": 12495.346,
+    "predicted_per_token_ms": 12.214414467253176,
+    "predicted_per_second": 81.87048201786489,
+    "draft_n": 845,
+    "draft_n_accepted": 690
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23000.0,
+    "memory_free_mib": 1217.0,
+    "utilization_gpu_pct": 84.0,
+    "power_w": 392.0,
+    "temperature_c": 70.0
+  },
+  "id": "F_off_1024_r2",
+  "class": "F_off"
+}

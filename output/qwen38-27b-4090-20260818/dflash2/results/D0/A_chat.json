@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "elapsed_s": 6.400727037340403,
+  "content": "24 GB 显存连一个 27B 的 INT4 权重（≈13–16 GB）加上 KV cache 和激活值都只剩几 GB 余量，塞第二个直接 OOM。退一步说，就算用 INT2 之类的极端量化把两张权重硬压进去，留给 KV cache 的空间也不够跑几轮对话，推理瞬间崩。即便显存奇迹般地够，4090 那 1 TB/s 的显存带宽被两个模型同时抢占，单请求吞吐反而比串行排队更差，纯粹是花两份调度开销换零收益。",
+  "reasoning": "用户问的是：为什么单张 RTX 4090 不该同时跑两个 27B 模型。要求用三句话说明。\n\n让我分析一下：\n\nRTX 4090 显存：24 GB GDDR6X。\n\n一个 27B 参数模型（比如 Qwen2.5-27B、Llama 3.1 32B 之类的）：\n- FP16/BF16：27B × 2 bytes = 54 GB 显存\n- INT8 量化：27B × 1 byte ≈ 27 GB\n- INT4 量化：27B × 0.5 bytes ≈ 13.5 GB，加上 KV cache、激活值等，大约 14-16 GB\n\n所以一个 27B 模型即使 INT4 量化也差不多 14-16 GB，两个就是 28-32 GB，远超 24 GB。\n\n即使 INT8，一个就要 27 GB，一个都塞不下。\n\n所以核心原因：\n1. 显存根本不够——24 GB 连一个 27B（非极端量化）都紧张，两个更不可能。\n2. 即使勉强用 INT4 塞下两个，KV cache 和激活值会把显存撑爆，推理直接 OOM。\n3. 就算假设显存够了，带宽也是瓶颈——4090 的 1 TB/s 带宽被两个模型分摊，实际吞吐不升反降，不如串行跑。\n\n用户要求三句话，简洁有力。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 484,
+  "decode_tokens_per_s": 78.65876865316156,
+  "prompt_tokens_per_s": 270.4324383709826,
+  "draft_n": 720,
+  "draft_n_accepted": 304,
+  "accept_rate": 0.4222222222222222,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 118.329,
+    "prompt_per_token_ms": 3.69778125,
+    "prompt_per_second": 270.4324383709826,
+    "predicted_n": 484,
+    "predicted_ms": 6140.447,
+    "predicted_per_token_ms": 12.713140786749483,
+    "predicted_per_second": 78.65876865316156,
+    "draft_n": 720,
+    "draft_n_accepted": 304
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22028.0,
+    "memory_free_mib": 2189.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 423.58,
+    "temperature_c": 72.0
+  },
+  "id": "A_chat",
+  "class": "A",
+  "gpu_before": {
+    "memory_used_mib": 22028.0,
+    "memory_free_mib": 2189.0,
+    "utilization_gpu_pct": 15.0,
+    "power_w": 165.29,
+    "temperature_c": 64.0
+  }
+}

@@ -1,0 +1,1 @@
+import java.util.*;public final class PermissionResolver{public boolean allowed(Set<String>grants,String required){return grants.contains(required);} }

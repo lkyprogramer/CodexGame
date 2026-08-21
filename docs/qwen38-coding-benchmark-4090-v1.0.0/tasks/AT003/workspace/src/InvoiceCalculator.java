@@ -1,0 +1,1 @@
+public final class InvoiceCalculator{public long totalCents(Invoice i){double total=0;for(Line l:i.lines())total+=Double.parseDouble(l.unitPrice())*l.quantity();return (long)(total*100);}}

@@ -1,0 +1,91 @@
+{
+  "issues": [
+    {
+      "key": "RAW_BODY",
+      "required": true,
+      "term_groups": [
+        [
+          "raw",
+          "original"
+        ],
+        [
+          "body",
+          "bytes"
+        ],
+        [
+          "json.dumps",
+          "re-serialize",
+          "canonical"
+        ]
+      ]
+    },
+    {
+      "key": "COMPARE_DIGEST",
+      "required": true,
+      "term_groups": [
+        [
+          "compare_digest",
+          "constant-time",
+          "timing"
+        ],
+        [
+          "signature",
+          "hmac"
+        ]
+      ]
+    },
+    {
+      "key": "TIMESTAMP",
+      "required": true,
+      "term_groups": [
+        [
+          "timestamp",
+          "freshness",
+          "time window"
+        ],
+        [
+          "replay"
+        ]
+      ]
+    },
+    {
+      "key": "DEDUP_RACE",
+      "required": true,
+      "term_groups": [
+        [
+          "race",
+          "atomic",
+          "concurrent"
+        ],
+        [
+          "seen",
+          "dedup"
+        ],
+        [
+          "handler",
+          "check-add"
+        ]
+      ]
+    },
+    {
+      "key": "HANDLER_FAILURE",
+      "required": false,
+      "term_groups": [
+        [
+          "handler",
+          "side effect"
+        ],
+        [
+          "failure",
+          "retry"
+        ],
+        [
+          "idempotent",
+          "transaction",
+          "inbox"
+        ]
+      ]
+    }
+  ],
+  "pass_threshold": 0.8
+}

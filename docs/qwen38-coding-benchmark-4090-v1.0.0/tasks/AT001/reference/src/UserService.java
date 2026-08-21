@@ -1,0 +1,1 @@
+public final class UserService{private final UserRepository repo;private final UserMapper mapper=new UserMapper();public UserService(UserRepository r){repo=r;}public UserDto get(String id){return mapper.toDto(repo.find(id));}}

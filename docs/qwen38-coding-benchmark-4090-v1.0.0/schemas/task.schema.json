@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "category": {
+      "enum": [
+        "single_file",
+        "bug_fix",
+        "repo_engineering",
+        "agent_tool",
+        "long_context",
+        "code_review"
+      ]
+    },
+    "difficulty": {
+      "maximum": 5,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "id": {
+      "pattern": "^[A-Z]{2}[0-9]{3}$",
+      "type": "string"
+    },
+    "language": {
+      "enum": [
+        "java",
+        "python"
+      ]
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "task_type": {
+      "enum": [
+        "patch",
+        "agent",
+        "review"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "weight": {
+      "exclusiveMinimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "category",
+    "language",
+    "difficulty",
+    "task_type",
+    "prompt_file",
+    "workspace_dir",
+    "verifier"
+  ],
+  "title": "QCB task metadata",
+  "type": "object"
+}

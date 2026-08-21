@@ -1,0 +1,1 @@
+import java.util.Set;public final class AuthorizationService{private final PermissionResolver resolver=new PermissionResolver();public boolean can(Set<String>g,String r){return resolver.allowed(g,r);}}

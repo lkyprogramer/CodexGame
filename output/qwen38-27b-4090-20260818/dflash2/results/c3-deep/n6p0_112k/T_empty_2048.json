@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 11.01904789172113,
+  "content": "# InnoDB 隔离级别\n\nInnoDB 支持 SQL 标准的四种事务隔离级别，从低到高依次为：\n\n| 隔离级别 | 脏读 | 不可重复读 | 幻读 |\n|---------|------|-----------|------|\n| `READ UNCOMMITTED` | ✅ 可能 | ✅ 可能 | ✅ 可能 |\n| `READ COMMITTED` | ❌ | ✅ 可能 | ✅ 可能 |\n| `REPEATABLE READ`（**默认**） | ❌ | ❌ | ⚠️ 通常无（MVCC + 间隙锁） |\n| `SERIALIZABLE` | ❌ | ❌ | ❌ |\n\n### 各级别要点\n\n- **READ UNCOMMITTED（读未提交）**：事务可以读取其他事务尚未提交的数据（\"脏读\"）。InnoDB 中极少使用。\n- **READ COMMITTED（读已提交）**：只能读到其他事务已提交的数据。每次 `SELECT` 都会生成一个全新的 Read View，因此同一事务内多次读取可能得到不同结果（不可重复读）。\n- **REPEATABLE READ（可重复读，默认）**：事务内第一次 `SELECT` 生成 Read View，后续快照读复用该 View，保证同一事务内多次读取结果一致。配合 **MVCC**（多版本并发控制）和**间隙锁（Gap Lock）**，在大多数场景下也能防止幻读。\n- **SERIALIZABLE（串行化）**：所有 `SELECT` 自动升级为 `SELECT ... LOCK IN SHARE MODE`（加共享锁），写操作加排他锁，事务完全串行执行，并发度最低。\n\n### 设置方式\n\n```sql\n-- 会话级\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n\n-- 全局级（需 SUPER 权限）\nSET GLOBAL TRANSACTION ISOLATION LEVEL SERIALIZABLE;\n```\n\n---\n\n## 一个 DDL 示例\n\n```sql\nCREATE TABLE orders (\n    order_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n    user_id    BIGINT UNSIGNED NOT NULL,\n    amount     DECIMAL(12,2)   NOT NULL DEFAULT 0.00,\n    status     TINYINT         NOT NULL DEFAULT 0 COMMENT '0=待支付 1=已支付 2=已取消',\n    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (order_id),\n    INDEX idx_user_status (user_id, status)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci\n  COMMENT='订单表';\n```\n\n> 关键点：`ENGINE=InnoDB` 显式指定存储引擎，只有 InnoDB 才支持上述四种隔离级别、MVCC 和行级锁。",
+  "reasoning": "The user wants me to:\n1. Explain InnoDB isolation levels in Chinese\n2. Provide one DDL example\n\nLet me structure this clearly. InnoDB supports 4 isolation levels (ANSI SQL standard):\n- READ UNCOMMITTED\n- READ COMMITTED\n- REPEATABLE READ (default)\n- SERIALIZABLE\n\nI'll explain in Chinese, then give one DDL example. The DDL example should be relevant - perhaps showing how to set isolation level at session/database level, or a CREATE TABLE example. Since the user said \"one DDL example,\" I'll keep it to one. A good DDL example in context could be a CREATE TABLE or an ALTER TABLE that relates to InnoDB, or perhaps a SET TRANSACTION ISOLATION LEVEL (though that's DCL/DDL-ish). Actually, SET is more of a DCL statement. Let me think...\n\nDDL examples: CREATE, ALTER, DROP. In context of InnoDB isolation levels, a relevant DDL might be creating a table with InnoDB engine, or altering database/table settings. Let me just give a straightforward DDL example - maybe a CREATE TABLE with InnoDB engine specification, since that's the most natural DDL in this context.\n\nLet me write the explanation in Chinese as requested.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 25,
+  "completion_tokens": 879,
+  "decode_tokens_per_s": 81.58341704615809,
+  "prompt_tokens_per_s": 214.01177920832762,
+  "draft_n": 1476,
+  "draft_n_accepted": 636,
+  "accept_rate": 0.43089430894308944,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 116.816,
+    "prompt_per_token_ms": 4.67264,
+    "prompt_per_second": 214.01177920832762,
+    "predicted_n": 879,
+    "predicted_ms": 10761.991,
+    "predicted_per_token_ms": 12.257392938496583,
+    "predicted_per_second": 81.58341704615809,
+    "draft_n": 1476,
+    "draft_n_accepted": 636
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 23334.0,
+    "memory_free_mib": 883.0,
+    "utilization_gpu_pct": 92.0,
+    "power_w": 417.66,
+    "temperature_c": 74.0
+  },
+  "id": "T_empty_2048",
+  "class": "T"
+}

@@ -1,0 +1,41 @@
+{
+  "http": 200,
+  "elapsed_s": 9.401845362968743,
+  "content": "1. **显存直接爆**：4090 只有 24 GB，一个 27B 模型即便 INT4 量化、再算上 KV cache 和运行时开销也要吃掉 ~16 GB，两个模型叠加远超物理上限，OOM 是必然结局。\n2. **极限量化也救不了**：就算硬压到 Q2/Q3 让权重勉强塞进 24 GB，留给 KV cache 和中间激活的余量几乎为零，生成十几个 token 后仍会触发显存不足。\n3. **带宽被摊薄，延迟翻倍**：4090 的 1 TB/s 显存带宽被两个模型交替抢用，每个模型的有效吞吐减半，用户感知到的 TTFT 和 TPS 都会跌到不可用的水平。",
+  "reasoning": "用户问的是：为什么单张4090不该同时跑两个27B（27B参数的模型）。要求用三句话说明。\n\n让我分析一下：\n- 单张4090的显存是24GB\n- 27B参数的模型，即使是FP16也需要 27×2 = 54GB 显存，INT4量化大约需要 27×0.5 = 13.5GB（加上KV cache、激活值等，实际可能15-18GB）\n- 两个27B模型，即使INT4量化，每个大约需要13-15GB显存，两个就是26-30GB，超过24GB\n- 即使能勉强装下（比如用更激进的量化），KV cache和运行时开销也会爆显存\n- 而且两个模型同时推理，显存需求是叠加的\n\n三句话要简洁有力：\n\n1. 显存不够：4090只有24GB，单个27B模型即使INT4量化加上KV cache和运行时开销也接近16-18GB，两个直接爆显存（32GB+）。\n2. 就算量化到极致（Q2/Q3），两个模型挤进24GB后几乎没有余量给KV cache，实际生成几个token就会OOM。\n3. 带宽和延迟：4090的显存带宽1TB/s，两个模型交替/并发推理，每个模型分到的有效带宽减半，延迟翻倍，体验极差。\n\n让我精炼成三句话，每句一个核心论点。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 521,
+  "decode_tokens_per_s": 56.861803619231935,
+  "prompt_tokens_per_s": 275.8596908647339,
+  "draft_n": 288,
+  "draft_n_accepted": 245,
+  "accept_rate": 0.8506944444444444,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 116.001,
+    "prompt_per_token_ms": 3.62503125,
+    "prompt_per_second": 275.8596908647339,
+    "predicted_n": 521,
+    "predicted_ms": 9144.979,
+    "predicted_per_token_ms": 17.586498076923075,
+    "predicted_per_second": 56.861803619231935,
+    "draft_n": 288,
+    "draft_n_accepted": 245
+  },
+  "tool_calls": [],
+  "junk_repeat": false,
+  "junk_reason": null,
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22698.0,
+    "memory_free_mib": 1519.0,
+    "utilization_gpu_pct": 83.0,
+    "power_w": 349.63,
+    "temperature_c": 71.0
+  },
+  "id": "A_chat",
+  "class": "A"
+}
