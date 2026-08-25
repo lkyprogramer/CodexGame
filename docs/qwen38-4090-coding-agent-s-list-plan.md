@@ -1,10 +1,11 @@
 # Qwen3.8-27B S 名单：4090 Coding Agent 部署与测试方案
 
-状态：**方案文档，尚未授权替换现网 WORK。**  
-日期：2026-08-20  
+状态：**方案文档，尚未授权替换现网 WORK。** WORK core 96 已于 2026-08-20 跑完并冻结。  
+日期：2026-08-21（据 core 基线修订 smoke 门与对照数字；**部署旋钮不改**）  
 机器：`192.168.10.29` 单卡 RTX 4090 24GB  
 评测包：`docs/qwen38-coding-benchmark-4090-v1.0.0/`（QCB-4090 v1.0.0）  
-运维真源：`OPENCLAW_QWEN38_4090_RUNBOOK.md`
+运维真源：`OPENCLAW_QWEN38_4090_RUNBOOK.md`  
+基线报告：`output/qwen38-qcb-4090-baseline/reports/work-core-full.md`
 
 本文回答一件事：在 **OpenAI 工具协议 + 本机 llama.cpp + QCB「读仓库 → 打补丁 → 过隐藏测试」** 这条路径上，S 名单里谁才是真正适合当 coding agent 的模型。不是 HumanEval pass@1，也不是 tok/s。
 
@@ -12,13 +13,14 @@
 
 ## 0. 结论先行（怎么测、先测谁、什么时候能换现网）
 
-1. **现网 WORK 的 QCB core 96 是冻结基线。** 进程还在跑时禁止占 GPU。磁盘下载可以并行，systemd 切换不行。
-2. **第一个测 Sharp 模板。** 权重不变，复用现有 `UD-Q4_K_XL`。这是唯一干净的「只改 Agent 行为」对照。
-3. **然后按权重改动测：grug-v1.1 → Fable-Distill → Salience-27B-R5 → Cold Fusion V1.1。** 全部 Q4_K_M（或作者 MTP 等价档），hf-mirror 下载，同一 `18343` 互斥切换。
-4. **主赛道是 Optimized，对齐现网 WORK，不是 Normalized。** 两赛道禁止混榜。本轮不做 FastMTP / DFlash2。
-5. **正式换现网** 至少要过：core 配对 Hard 非劣、CBI +2pp 或预声明阈值、最差类别无不可接受回退、空转（`tool_budget_exhausted` + `patch_bytes=0`）下降。未经授权不得 `enable` 候选 unit。
+1. **现网 WORK 的 QCB core 96 已冻结。** Hard 46.9% / CBI 46.7% / CR Hard 0/12 / exhausted 16/96。排名只对这 96 对 `(task, seed)`，不对 smoke 25%。
+2. **部署旋钮与 WORK 锁死，不因 core 暴露的截断/空转去拧。** 112K、q8 KV、MTP n=2、medium、temp 1.0、`max_tokens=8192`、`max_tool_calls=40`。拧了就不再是同一套可部署系统。
+3. **第一个测 Sharp 模板。** 权重不变，复用现有 `UD-Q4_K_XL`。这是唯一干净的「只改 Agent 行为」对照。
+4. **然后按权重改动测：grug-v1.1 → Fable-Distill → Salience-27B-R5 → Cold Fusion V1.1。** 全部 Q4_K_M（或作者 MTP 等价档），hf-mirror 下载，同一 `18343` 互斥切换。
+5. **smoke 只做协议/灾难门，不做智力分。** core 已证明 AT001/RE007 在 smoke 挂、三 seed 却 3/3。Hard 低于 3/12 或 CR 0/2 **不得**单独淘汰。
+6. **正式换现网** 至少要过：core 配对 Hard 非劣、CBI +2pp、agent/repo 无崩、空转下降。未经授权不得 `enable` 候选 unit。
 
-作者卡片上的 HumanEval / ARC 数字只作背景。WORK smoke 已经证明：短闭环能过，长 Agent 环过不了。筛选标准跟着 QCB，不跟着作者宣传。
+作者卡片上的 HumanEval / ARC 数字只作背景。筛选标准跟着冻结的 WORK core，不跟着 smoke，也不跟着作者宣传。
 
 ---
 
@@ -37,13 +39,14 @@
 - 不替换 18343 现网，除非另有明确授权。
 - 不把 Normalized 和 Optimized 合成一张总榜。
 - 不测 FastMTP / DFlash2 / 新 llama.cpp 构建。本轮锁现网 binary。
-- 不加 `max_tool_calls` 刷分。WORK smoke 空转已经打满 40 次；加预算只会更贵。
+- 不加 `max_tool_calls` 刷分。WORK core 仍有 16/96 打满 40 次；加预算只会更贵。
+- 不把 `max_tokens` 从 8192 抬高来「修」Java 补丁截断。截断是要测的模型行为，抬高就和 WORK 不可比。
 - 不把 HumanEval / MBPP / ARC 当 coding-agent 智力分。
 - 不在候选之间比「失败得快」。效率只在质量门槛过了之后比成功任务。
 
 ### 1.3 完成标准
 
-- WORK core 96 行冻结，审计通过，成为唯一对照基线。
+- WORK core 96 行已冻结（审计通过，见 `work-core-full.md`），成为唯一对照基线。
 - S 名单 5 个 Config 都有：SHA256、启动命令、模板哈希、显存、smoke 报告。
 - smoke 存活者有 Latin-square core（32×3），配对比较报告。
 - 最终给出分类结论，而不是单一 1–N：最佳 Coding Agent / 最佳成功任务小时 / 仅模板提升 / 不推荐及原因。
@@ -70,26 +73,23 @@
 | core 日志 | `/home/hhtele/qcb-4090-baseline/logs-core.out` |
 | core JSONL | `.../results/work/work-udq4xl-optimized-112k-mtp2-optimized-core.jsonl` |
 
-**WORK smoke（n=1，仅筛趋势，不当正式智力分）：**
+**WORK core（冻结对照，32×3，seeds 11/29/47）：**
 
 | 指标 | 值 | 含义 |
 |---|---|---|
-| Hard Success | 3/12 = 25% | 过隐藏测试的完整任务 |
-| CBI | 25.7% | 六类等权 |
-| Worst Category | 0%（n=1 无统计意义） | repo / long-context / review 全挂 |
-| Invalid output | 0 | 基础设施干净 |
-| Valid tool JSON | 96.7% | 不是格式坏了 |
-| 主要失败 | SF002 / RE001 / AT001 打满 40 次；AT001 `patch_bytes=0`；CR JSON 格式 | **空转、补丁没打准、审查格式**，不是不会写函数 |
+| Hard Success | **46.9%（45/96）** | 正式智力分 |
+| CBI | **46.7%** | 六类等权 |
+| Worst Category | **6.0%（code_review，Hard 0/12）** | 审查结构性失败 |
+| `tool_budget_exhausted` | **16/96** | 空转；其中 AT003/29 仍 Hard PASS |
+| Invalid / 基础设施 | 0 / 0 | 工具协议干净 |
+| Valid tool JSON | 95.6% | 不是格式坏了 |
+| 不稳题 | 17/32 = 53.1% | 必须 3 seed，禁止用 smoke 排名 |
+| 稳过 3/3 | AT001 AT002 BF004 BF008 RE007 SF008 SF012 | |
+| 稳挂 0/3 | AT005 BF005 RE003 RE005 CR001–004 | |
 
-core 96 没跑完之前，任何「谁更强」的结论都暂停。SSH 断了不影响：core 是 `nohup`、PPID=1、TTY=`?`。进程没了但行数 < 96，同一命令加 `--resume`，禁止 `--overwrite`。
+**WORK smoke（n=1，只留作协议对照，不当智力分）：** Hard 3/12。AT001/RE007 smoke 挂、core 3/3。CR 两边都是 0。
 
-检查：
-
-```bash
-ssh hhtele@192.168.10.29 'wc -l /home/hhtele/qcb-4090-baseline/results/work/work-udq4xl-optimized-112k-mtp2-optimized-core.jsonl; pgrep -af "qcb|run_suite" | grep -v grep'
-```
-
-满 96 行后才进入 GPU 切换窗口。
+完整报告：`output/qwen38-qcb-4090-baseline/reports/work-core-full.md`。GPU 切换只需用户授权停 OpenClaw。
 
 ---
 
@@ -204,11 +204,14 @@ weights + GGUF + template + 同一 llama-server + 启动旗标 + 请求参数
 | MTP | n=2，若 GGUF 含 MTP 头 | grug 主文件预计无头 → MTP off，单列 |
 | 思考 | **medium**，经 `chat_template_kwargs` | 禁止靠默认 xhigh「看起来更努力」 |
 | 采样 | temp 1.0 / top_p 0.95 / top_k 20 / min_p 0 / presence 0 | 对齐 WORK，不是 example.toml 的 0.0 |
-| `max_tokens` | 8192 | 无 |
-| `max_tool_calls` | 40 | 不加 |
-| 窗口 | 先试 `-c 112000` | 载入后余量 < 800 MiB 或 decode OOM → 65536，新 ID |
+| `max_tokens` | 8192 | **不抬。** core 的 Java `reached end of file while parsing` 是测项，不是配方缺陷 |
+| `max_tool_calls` | 40 | **不加。** core 仍 16/96 打满 |
+| 窗口 | 先试 `-c 112000` | WORK 空载 22730 MiB、core 未 OOM。候选只有余量 < 800 MiB 才降到 65536，新 ID |
 | QCB `lane` | `optimized` | 无 |
 | `extra_body` | 必须带 `chat_template_kwargs` | 无 |
+| Hard 计数 | `verification.passed` | 不以 `outcome` 为准。AT003/29 是 exhausted 但仍 Hard PASS |
+
+core 还证明：**不要为了「更稳」改 temp=0 或关 MTP**——那是 Normalized，不能和现网 WORK 配对。53% 不稳题是这套 live 配方的方差，候选必须在同一方差下比。
 
 Normalized（Q4_K_M、32K、MTP off、temp 0、尽量同一模板）是 **第二波**，用来回答「权重本身有没有变好」。本轮不跑，除非 Optimized 出现「某个模型只在怪模板下能活」的争议。
 
@@ -216,8 +219,8 @@ Normalized（Q4_K_M、32K、MTP off、temp 0、尽量同一模板）是 **第二
 
 | 阶段 | Suite | Seeds | 何时跑 | 目的 |
 |---|---|---|---|---|
-| 0 | WORK core | 11,29,47（现网已在跑；smoke 用过 42） | **正在跑，勿打断** | 冻结基线 |
-| 1 | smoke 12×1 | 42（与 WORK smoke 同 seed，可配对） | Sharp 先，其余按 §3.1 | 杀工具损坏 / 必空转 / 部署不稳 |
+| 0 | WORK core | 11,29,47 | **已完成，已冻结** | 对照基线 |
+| 1 | smoke 12×1 | 42（与 WORK smoke 同 seed，只作协议对照） | Sharp 先，其余按 §3.1 | 杀工具损坏 / 部署不稳；**不排名** |
 | 2 | core 32×3 | 11,29,47 | 仅 smoke 存活者 | 正式质量+效率 |
 | 3 | finalists 27×5 | +71,97 | 最多 3 个 | 稳方差 |
 | 诊断 | 单题 | 任意 | 不并入正榜 | 看空转轨迹 |
@@ -249,7 +252,7 @@ smoke 阶段模型少、题短，允许按「一个模型 12 题」串行，Shar
 
 ### 4.4 smoke 存活门（预声明，禁止事后改）
 
-相对 WORK smoke（Hard 3/12、invalid 0、valid-tool 96.7%、至少 3 题打满预算）：
+core 之后 smoke **只做协议/灾难门**。禁止再用 Hard ≥ 3/12 当质量门槛——WORK 自己 smoke 3/12，其中 AT001/RE007 到 core 变成 3/3。
 
 **立刻淘汰（不进 core）：**
 
@@ -258,25 +261,39 @@ smoke 阶段模型少、题短，允许按「一个模型 12 题」串行，Shar
 3. Hard = 0/12 **且** 全部 AT/RE 的 `patch_bytes=0`（根本不会打补丁）。
 4. 工具协议不可用：连续非法 JSON / 非 OpenAI `tool_calls`，QCB 无法驱动。
 
-**进 core：**
+**不得单独淘汰：**
 
-- Hard ≥ 3/12，或
-- Hard ≥ 2/12 **且** `tool_budget_exhausted` 题数 < WORK，或
-- AT/RE 出现至少一次成功 `apply_patch` 且公开测试有过绿。
+- Hard 2/12 或 3/12（与 WORK smoke 同级或略差）。
+- CR001/CR002 全挂（WORK core 审查 0/12 Hard）。
+- SF002 / AT001 打满 40 次（WORK smoke 也这样，core 却可能过）。
 
-**观察项（不单独淘汰，进 core 报告）：** CR JSON 是否合法；SF002 是否仍 40 次空转；reasoning token 中位数。
+**进 core：** 过上述四条灾难门即可。有一次 AT/RE `patch_bytes>0` 就足够证明「会打补丁」。
 
-### 4.5 core 上「B 优于 WORK」门槛（QCB `docs/06`）
+**观察项（记入 smoke 报告，不挡 core）：** CR001 是否合法 JSON；Java 是否 `reached end of file while parsing`；exhausted 题号。
+
+### 4.5 core 上「B 优于 WORK」门槛（对照已冻结的 96 样本）
+
+配对键：`(task_id, seed) ∈ {32 题} × {11,29,47}`。Hard 以 `verification.passed` 为准。
+
+WORK 锚点：Hard 46.9% · CBI 46.7% · agent_tool Hard 58.3% · repo Hard 41.7% · CR Hard 0/12（CI 6.0%）· exhausted 16/96 · 合法工具率 95.6%。
 
 同时满足才允许讨论换现网：
 
-- 六类等权配对 Hard 差的 95% CI 下界 ≥ −3pp；
-- CBI 至少 +2pp（或报告里预先改阈值，本轮不改）；
-- 最差类别无不可接受回退（repo_engineering / agent_tool 相对 WORK 不得崩到接近 0，若 WORK core 该类本身为 0 则改为「不得更差且应出现至少 1 个 Hard pass」）；
+- 六类等权配对 Hard 差的 95% CI 下界 ≥ −3pp（相对 46.9%）；
+- CBI 至少 +2pp（相对 46.7%，即 ≥ 48.7%；本轮不改阈值）；
+- **不可接受回退：** agent_tool Hard 掉到 30% 以下，或 repo_engineering Hard 掉到 20% 以下。CR Hard 继续 0 **不是否决**（WORK 已是地板），但不得写成「审查也赢了」；
 - 成功任务耗时下降不是因为早失败；
-- `tool_budget_exhausted` 下降，或 AT/RE 的 `apply_patch` 次数/字节上升。
+- `tool_budget_exhausted` **少于 16/96**，或 BF005/AT003/RE001 上出现 Hard PASS 且 `patch_bytes>0`。
 
 多模型 McNemar 用 Holm。缺 `(task, seed)` 的模型不进正式配对。
+
+**即使未过换现网门槛，也要单独报告这三个 WORK 缺口有没有动：**
+
+| 观察项 | WORK 基线 | 怎样算有用 |
+|---|---|---|
+| 空转 | exhausted 16/96；BF005 3/3 打满 | 次数下降；BF005 至少 1 个 seed 停手并过测 |
+| Java 补丁截断 | 多次 `reached end of file while parsing` | 同类 verifier 细节减少 |
+| 审查交卷 | CR001 2/3 非法 JSON；CR002–004 required issue 永远缺 | CR001 三 seed 都能解析；召回上升。Hard 仍可能 0 |
 
 最终分类输出（不要只给总分）：
 
@@ -297,7 +314,7 @@ smoke 阶段模型少、题短，允许按「一个模型 12 题」串行，Shar
 - 候选 unit **禁止 enable**。开机仍是 WORK。
 - 下载走 `https://hf-mirror.com/`。GitHub 源码本轮不碰。
 - 现网 GGUF 只读，不 `gguf-new-metadata` 改它。Sharp 只用 `--chat-template-file`。
-- 评测时 OpenClaw 等于停机。必须在 core 结束后、用户确认的窗口里切。
+- 评测时 OpenClaw 等于停机。WORK core 已结束，只需用户确认的窗口里切。
 
 ### 5.2 磁盘布局
 
@@ -325,7 +342,7 @@ smoke 阶段模型少、题短，允许按「一个模型 12 题」串行，Shar
 
 体积预算：四份 Q4 ≈ 70 GB。根盘清理后可用约 700 GB，足够。不要下 Q8 / BF16。
 
-### 5.3 下载（GPU 空闲不必等，core 跑着就能下）
+### 5.3 下载（不占 GPU，可立刻下）
 
 环境：
 
@@ -589,20 +606,20 @@ python3 scripts/compare_models.py \
 
 ## 7. 日程（墙钟，单卡串行）
 
-经验来自 WORK smoke：简单 PASS 20–80 s；空转题可到 850 s。按「平均 3–6 min/题、坏题 15 min」估。
+经验来自 **WORK core 实测**：96 样本墙钟合计 4.47 h（约 2.8 min/题）；成功中位 119 s；exhausted 中位 377 s。smoke 里单题仍可能到 850 s，但 core 全套按 **~5 h/模型** 估，不再用 12–24 h。
 
 | 步骤 | GPU？ | 估时 | 依赖 |
 |---|---|---|---|
-| A. 等 WORK core 96 | 已被占用 | 视当前进度，可能仍需十余小时 | 已在跑 |
-| B. hf-mirror 下载 4 GGUF + Sharp | 否 | ~1 h | 可与 A 并行 |
+| A. WORK core 96 | 已完成 | 4.5 h（实测） | 冻结 |
+| B. hf-mirror 下载 4 GGUF + Sharp | 否 | ~1 h | 可现在做 |
 | C. 写 systemd / toml / 哈希 | 否 | 30 min | B |
-| D. Sharp smoke 12 | 是 | 1–3 h | A 结束 + 授权切 GPU |
-| E. 其余最多 4 个 smoke | 是 | 4–12 h | D 的门 |
-| F. 2–4 个存活者 × core 96，拉丁方 3 seed | 是 | 每个模型 12–24 h | E |
+| D. Sharp smoke 12 | 是 | 1–3 h | 授权切 GPU |
+| E. 其余最多 4 个 smoke | 是 | 4–8 h | D 的灾难门 |
+| F. 存活者 × core 96，拉丁方 3 seed | 是 | **~5 h/模型** | E |
 | G. 审计 + 配对 + 分类结论 | 否 | 2–4 h | F |
 | H. 切回 WORK | 是 | 1 min | 任何评测窗口结束 |
 
-日历：**下载可今天做；GPU 评测从 core 结束后起，完整 S 名单 core 可能要 4–7 个自然日。** 若只想尽快知道「有没有能打补丁的」，D+E smoke 一天内能出。
+日历：下载可立刻做。5 个候选若全进 core，GPU 大约 **1.5–2 个自然日**（5×5 h + smoke + 切换），不是一周。OpenClaw 在 D–F 期间不可用。建议按「一个候选 smoke + 切回 WORK」分窗，除非明确接受连续停机。
 
 OpenClaw 在 D–F 期间不可用。建议按「一个候选 smoke + 切回 WORK」分窗，而不是连续占满一周，除非明确接受停机。
 
@@ -612,9 +629,9 @@ OpenClaw 在 D–F 期间不可用。建议按「一个候选 smoke + 切回 WOR
 
 **零、冻结**
 
-- [ ] `wc -l` core JSONL = 96
-- [ ] WORK core 审计通过
-- [ ] 生成 WORK core 报告，复制到 `output/qwen38-qcb-4090-baseline/reports/`
+- [x] `wc -l` core JSONL = 96
+- [x] WORK core 审计通过
+- [x] 生成 WORK core 报告，`output/qwen38-qcb-4090-baseline/reports/work-core-full.md`
 - [ ] 用户确认可以停 OpenClaw
 
 **一、下载（可提前）**
@@ -631,8 +648,8 @@ OpenClaw 在 D–F 期间不可用。建议按「一个候选 smoke + 切回 WOR
 - [ ] stop WORK，start eval `CANDIDATE=sharp`
 - [ ] `/props` 含 terseness
 - [ ] 最小 tools 请求成功
-- [ ] QCB smoke seed 42
-- [ ] 对照 WORK smoke：Hard、空转、`apply_patch`、CR JSON
+- [ ] QCB smoke seed 42（只判协议/灾难门，不和 3/12 Hard 比谁聪明）
+- [ ] 记录：exhausted 题号、Java EOF、CR001 JSON 是否合法
 - [ ] 切回 WORK，除非连续评测已授权
 
 **三、权重候选 smoke**
@@ -671,7 +688,8 @@ OpenClaw 在 D–F 期间不可用。建议按「一个候选 smoke + 切回 WOR
 | MTP acceptance < 50% | Cold Fusion / bartowski 卡警告 | 关 MTP 新 Config，不覆盖 |
 | `pkill -f` 误杀 SSH | 历史事故 | 只用 systemctl |
 | core JSONL `--overwrite` | 会毁掉基线 | 禁止 |
-| 把 smoke 25% 当智力分 | 已有记忆结论 | 正式只看 core 配对 |
+| 把 smoke 25% 当智力分 | core 已打脸（AT001/RE007） | 正式只看 core 96 配对 |
+| 抬 `max_tokens` / `max_tool_calls` 修截断和空转 | core 根因是停手和闭合补丁 | 配方锁死；当测项报，不当旋钮 |
 | 作者 ARC/HumanEval | Fable ARC +0.046；grug HE 94.5 | 不进决策表 |
 | 评测占 18343 | 单卡 | 窗口外切回 WORK |
 | Normalized/Optimized 混读 | QCB 06 | 报告标题写死 lane |
@@ -683,18 +701,18 @@ OpenClaw 在 D–F 期间不可用。建议按「一个候选 smoke + 切回 WOR
 - FastMTP、DFlash2、新编 llama.cpp。
 - Pearson / Ridge 量化第二轮（QCB `docs/10` 矩阵里有，本文件不管）。
 - Hauhau TEXT、任何 uncensored 当 coding agent。
-- 给空转模型加 `max_tool_calls`。
+- 给空转模型加 `max_tool_calls`，或把 `max_tokens` 从 8192 抬高来「修」截断。
 - 把 Dirk GGUF 和 Sharp flag 同时当两个主候选（重复权重）。Dirk 只作 Sharp 失效时的备援。
 - 未授权 `systemctl enable` 候选、改 NGINX、改 28343 鉴权。
-- 在 WORK core 未满 96 时抢 GPU。
+- 用 smoke Hard 给候选排名或淘汰。
 
 ---
 
-## 11. 决策表（core 跑完再填）
+## 11. 决策表（候选 core 跑完再填）
 
 | Config | Hard | CBI | Worst | tool_budget_exhausted | apply_patch 成功题 | 成功任务 P50 s | 成功 completion token P50 | 判定 |
 |---|---|---|---|---|---|---|---|---|
-| WORK（基线） | | | | | | | | 冻结对照 |
+| WORK（基线） | 46.9% | 46.7% | CR 6.0% | 16/96 | 见 full 报告 | 119.1 s | 10790 | 冻结对照 |
 | original-sharp | | | | | | | | 模板-only |
 | grug-v1.1 | | | | | | | | |
 | fable-distill | | | | | | | | |
