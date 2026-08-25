@@ -1,6 +1,6 @@
 # QCB-4090 现网 WORK 基线状态
 
-日期：2026-08-20
+日期：2026-08-21
 
 ## apt
 
@@ -15,26 +15,16 @@
 - Config：`work-udq4xl-optimized-112k-mtp2`
 - 端点：`http://127.0.0.1:18343/v1`，`openclaw/Qwen3.8-27B-WORK`
 - **smoke × seed 42：完成，审计通过**
-- **core × 11,29,47：已在 4090 后台跑**（96 样本，预计数小时）
+- **core × 11,29,47：完成，审计通过**（96/96，无缺无重，artifact 108 份齐全）
 
 ## smoke 摘要
 
-Hard Success **25%**（3/12）。审计 `passed=true`，无基础设施错误。
+Hard Success **25%**（3/12）。n=1，不当智力分。详见 `work-smoke.md`。
 
-| 题 | 结果 |
-|---|---|
-| SF001 | PASS |
-| SF002 | FAIL `tool_budget_exhausted` |
-| BF001 | FAIL（完成但隐藏测试未过） |
-| BF004 | PASS |
-| RE001 | FAIL `tool_budget_exhausted` |
-| RE004 / RE007 | FAIL |
-| AT001 | FAIL `tool_budget_exhausted` |
-| AT002 | PASS |
-| LC001 / CR001 / CR002 | FAIL |
+## core 摘要（冻结基线）
 
-工具：213 次调用，合法率 96.7%，操作成功 50.5%。仓库/Agent 题容易把 40 次预算烧光。Decode 中位 78.3 tok/s，MTP accept 59.4%，峰值显存 22730 MiB。
+Hard **46.9%（45/96）**，CBI **46.7%**，Worst **code_review 6.0%**。invalid 0，基础设施 0。`tool_budget_exhausted` 16/96。审查 0/12 Hard。
 
-这是 coding-agent 基线，不是 HumanEval。core 跑完后再出正式横评。
+完整报告：[`work-core-full.md`](work-core-full.md) · 机器表：[`work-core.md`](work-core.md)
 
-远程日志：`/home/hhtele/qcb-4090-baseline/logs-core.out`
+这是后续 Sharp / grug / Fable / Salience / Cold Fusion 的对照。未经授权不换 18343。
