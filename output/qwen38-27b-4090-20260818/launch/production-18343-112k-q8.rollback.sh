@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Production Qwen3.8-27B WORK: Dynamic V3 UD-Q4_K_XL, 200K q4 KV, native MTP n=2.
-# Rollback: production-18343-112k-q8.rollback.sh (old GGUF bee238…, 112K q8).
+# Rollback: previous WORK (old UD-Q4_K_XL, 112K q8 KV, MTP n=2).
+# cp this over production-18343.sh and restart the unit.
 set -euo pipefail
 
 export PATH=/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}
 
 BIN="${LLAMA_SERVER_BIN:-/home/hhtele/llama.cpp-qwen38-20260817/build/bin/llama-server}"
-MODEL="${QWEN38_MODEL:-/data/models/qwen/qwen38/Qwen3.8-27B-UD-Q4_K_XL-dv3.gguf}"
+MODEL="${QWEN38_MODEL:-/data/models/qwen/qwen38/Qwen3.8-27B-UD-Q4_K_XL.gguf}"
 
 REASONING_CUTOFF='Stop thinking. State the answer or the next smallest action now.'
 
@@ -19,20 +19,20 @@ exec "$BIN" \
   -ngl 999 \
   --split-mode none \
   --main-gpu 0 \
-  -c 200000 \
+  -c 112000 \
   -b 1024 \
   -ub 512 \
   -np 1 \
   -t 12 \
   -fa on \
   --jinja \
-  --cache-type-k q4_0 \
-  --cache-type-v q4_0 \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
   --spec-default \
   --spec-type draft-mtp \
   --spec-draft-n-max 2 \
-  --spec-draft-type-k q4_0 \
-  --spec-draft-type-v q4_0 \
+  --spec-draft-type-k q8_0 \
+  --spec-draft-type-v q8_0 \
   --temperature 1.0 \
   --top_p 0.95 \
   --top_k 20 \
@@ -43,7 +43,7 @@ exec "$BIN" \
   --chat-template-kwargs '{"enable_thinking":true,"reasoning_effort":"medium","preserve_thinking":false}' \
   --cache-prompt \
   --cache-ram 2048 \
+  --cache-reuse 256 \
   --slot-prompt-similarity 0.10 \
   --metrics \
-  --predict 32768 \
-  --no-mmproj
+  --predict 32768

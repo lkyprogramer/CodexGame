@@ -1,0 +1,31 @@
+[model]
+id = "v3-udq4xl-200k-q4-mtp2"
+family = "Qwen3.8-27B"
+file = "/data/models/qwen/qwen38/Qwen3.8-27B-UD-Q4_K_XL-dv3.gguf"
+sha256 = "3f227079003add2511437e5b1e94812e363385225bf6a9b47b0054a72bc8b01e"
+quantization = "UD-Q4_K_XL-Dynamic-V3"
+template_id = "official-jinja-medium"
+notes = "Live WORK: Dynamic V3, 200K q4 KV, native MTP n=2, medium thinking"
+
+[endpoint]
+base_url = "http://127.0.0.1:18343/v1"
+model = "openclaw/Qwen3.8-27B-WORK"
+api_key = "not-needed"
+timeout_seconds = 900
+
+[inference]
+lane = "optimized"
+temperature = 1.0
+top_p = 0.95
+top_k = 20
+min_p = 0.0
+seed = 42
+max_tokens = 8192
+context_size = 200000
+reasoning_effort = "medium"
+mtp_enabled = true
+tool_mode = true
+max_tool_calls = 40
+max_retries = 1
+system_prompt_file = "config/system-prompt.txt"
+extra_body = { chat_template_kwargs = { enable_thinking = true, reasoning_effort = "medium", preserve_thinking = false } }
