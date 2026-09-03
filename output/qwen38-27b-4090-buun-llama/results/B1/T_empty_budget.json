@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 14.367382931988686,
+  "content": "## InnoDB 隔离级别详解\n\nInnoDB 引擎支持 SQL 标准的四种隔离级别，通过 **MVCC（多版本并发控制）** 和 **锁机制（记录锁、间隙锁、Next-Key Lock）** 协同实现：\n\n| 隔离级别 | 脏读 | 不可重复读 | 幻读 | InnoDB 实现要点 |\n|---------|------|-----------|------|---------------|\n| **READ UNCOMMITTED**（读未提交） | 可能 | 可能 | 可能 | 读取时不使用一致性读视图，直接读最新数据（含未提交修改） |\n| **READ COMMITTED**（读已提交） | 否 | 可能 | 可能 | **每条 SELECT 语句**都会生成一个新的 ReadView，只看到已提交版本 |\n| **REPEATABLE READ**（可重复读）★默认 | 否 | 否 | 基本避免 | **事务内第一条读语句**生成 ReadView，整个事务复用；配合 **Next-Key Lock**（记录锁 + 间隙锁）阻止幻读 |\n| **SERIALIZABLE**（串行化） | 否 | 否 | 否 | 所有普通 SELECT 隐式加 `LOCK IN SHARE MODE`，读写完全串行 |\n\n### 关键机制补充\n\n- **MVCC**：每行有 `trx_id` 和 `roll_pointer`，undo log 保存历史版本。ReadView 中记录当前活跃事务列表，据此判断可见性。\n- **Next-Key Lock**：RR 级别下，范围扫描（如 `WHERE age > 20`）会对索引记录及其间隙加锁，防止其他事务在间隙中插入新行，从而消除幻读。\n- **当前读 vs 快照读**：`SELECT ... FOR UPDATE / LOCK IN SHARE MODE` 是当前读，直接读最新版本并加锁；普通 SELECT 是快照读，走 MVCC。\n\n### 设置方式\n\n```sql\n-- 会话级\nSET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;\n\n-- 全局级（需 SUPER 权限）\nSET GLOBAL TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n```\n\n---\n\n## DDL 示例\n\n下面创建一个带索引的订单表，索引对 Next-Key Lock 的幻读控制至关重要：\n\n```sql\nCREATE TABLE `t_order` (\n    `id`          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT '主键',\n    `user_id`     BIGINT UNSIGNED  NOT NULL                COMMENT '用户ID',\n    `amount`      DECIMAL(10,2)    NOT NULL DEFAULT 0.00   COMMENT '订单金额',\n    `status`      TINYINT UNSIGNED NOT NULL DEFAULT 1      COMMENT '1-待支付 2-已支付 3-已取消',\n    `created_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',\n    `updated_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP\n                                ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',\n    PRIMARY KEY (`id`),\n    KEY `idx_user_status` (`user_id`, `status`)   -- 复合索引，RR 下范围扫描会触发 Next-Key Lock\n) ENGINE=InnoDB\n  DEFAULT CHARSET=utf8mb4\n  COLLATE=utf8mb4_unicode_ci\n  COMMENT='订单主表';\n```\n\n> **为什么强调索引？** 在 RR 级别下，`SELECT * FROM t_order WHERE user_id = 1 AND status = 1 FOR UPDATE;` 会利用 `idx_user_status` 做当前读，并在匹配记录及相邻间隙上施加 Next-Key Lock，从而阻止并发事务在相同范围内插入\"幻行\"。若无合适索引，InnoDB 会退化为全表扫描 + 全表加锁，性能急剧下降。",
+  "reasoning": "The user wants me to:\n1. Explain isolation levels in InnoDB in Chinese\n2. Give one DDL example\n\nLet me structure this clearly. I'll explain the four standard SQL isolation levels as implemented in InnoDB, how InnoDB achieves them (MVCC, locking), and then provide a DDL example.\n\nIsolation levels in InnoDB:\n- READ UNCOMMITTED (RU) - 读未提交\n- READ COMMITTED (RC) - 读已提交\n- REPEATABLE READ (RR) - 可重复读 (InnoDB default)\n- SERIALIZABLE (S) - 串行化\n\nInnoDB uses MVCC (Multi-Version Concurrency Control) and locking mechanisms to achieve these levels.\n\n- RU: Reads the latest version of rows, no consistency snapshot. Uses MVCC but reads the latest committed... actually no, RU reads uncommitted data. In InnoDB, it reads the latest version including uncommitted.\n- RC: Uses a new read view for each statement. Solves dirty reads and non-repeatable reads. Still has phantom reads (but InnoDB with next-key locks helps).\n- RR: Uses a single read view for the entire transaction (created at first read). Solves dirty reads, non-repeatable reads, and mostly phantom reads (via next-key locks). This is the default.\n- S: All reads are locked, writes are locked. Full serialization.\n\nDDL example: I'll give a CREATE TABLE statement or ALTER TABLE. Let me give a simple CREATE TABLE.\n\nLet me write this in Chinese as requested.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 1149,
+  "decode_tokens_per_s": 80.65271370035985,
+  "prompt_tokens_per_s": 212.8884228121772,
+  "draft_n": 948,
+  "draft_n_accepted": 676,
+  "accept_rate": 0.7130801687763713,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 126.827,
+    "prompt_per_token_ms": 4.6972962962962965,
+    "prompt_per_second": 212.8884228121772,
+    "predicted_n": 1149,
+    "predicted_ms": 14233.867,
+    "predicted_per_token_ms": 12.398838850174217,
+    "predicted_per_second": 80.65271370035985,
+    "draft_n": 948,
+    "draft_n_accepted": 676,
+    "kv_bpv": 16.0
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 18606.0,
+    "memory_free_mib": 5611.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 420.52,
+    "temperature_c": 71.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 18606.0,
+    "memory_free_mib": 5611.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 403.93,
+    "temperature_c": 69.0
+  }
+}

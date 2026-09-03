@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 5.041472837910987,
+  "content": "```python\ndef dijkstra(graph, source):\n    import heapq\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    heap = [(0, source)]\n    while heap:\n        dist, node = heapq.heappop(heap)\n        if dist > distances[node]:\n            continue\n        for neighbor, weight in graph[node]:\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(heap, (new_dist, neighbor))\n    return distances\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, and they want only the function returned (no explanations, no extra code).\n\nLet me think about the standard Dijkstra implementation:\n- Takes a graph (adjacency list or dictionary), a source node\n- Returns shortest distances from source to all nodes\n- Could also return paths, but typically \"shortest path\" algorithm refers to computing distances\n\nLet me write a clean implementation:\n\n```python\ndef dijkstra(graph, source):\n    import heapq\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    heap = [(0, source)]\n    while heap:\n        dist, node = heapq.heappop(heap)\n        if dist > distances[node]:\n            continue\n        for neighbor, weight in graph[node]:\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(heap, (new_dist, neighbor))\n    return distances\n```\n\nThis is clean, uses a min-heap for O((V+E)logV) complexity, handles the standard adjacency list format where graph[node] is a list of (neighbor, weight) tuples.\n\nThe user said \"Return only the function\" so I'll just give the function with no surrounding explanation.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 425,
+  "decode_tokens_per_s": 88.6512033041809,
+  "prompt_tokens_per_s": 175.9510152373579,
+  "draft_n": 312,
+  "draft_n_accepted": 268,
+  "accept_rate": 0.8589743589743589,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 198.919,
+    "prompt_per_token_ms": 5.683400000000001,
+    "prompt_per_second": 175.9510152373579,
+    "predicted_n": 425,
+    "predicted_ms": 4782.789,
+    "predicted_per_token_ms": 11.280162735849055,
+    "predicted_per_second": 88.6512033041809,
+    "draft_n": 312,
+    "draft_n_accepted": 268,
+    "kv_bpv": 4.5
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22972.0,
+    "memory_free_mib": 1245.0,
+    "utilization_gpu_pct": 89.0,
+    "power_w": 382.35,
+    "temperature_c": 59.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22972.0,
+    "memory_free_mib": 1245.0,
+    "utilization_gpu_pct": 84.0,
+    "power_w": 348.88,
+    "temperature_c": 54.0
+  }
+}

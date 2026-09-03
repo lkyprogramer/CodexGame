@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 9.800525614991784,
+  "content": "一张 4090 只有 24 GB 显存，而一个 27B 模型即便 4-bit 量化也吃掉约 15 GB，两份权重加在一起 ~30 GB，第一句结论就是：**直接 OOM，进程都起不来。**\n\n就算你把量化压到 3-bit 勉强塞下权重，KV cache、激活值、CUDA context 和 cuBLAS 工作区这些\"隐形开销\"还会再抢几 GB，第二份模型的 KV cache 根本分不到连续空间，推理中途就会 crash。\n\n退一万步假设显存真挤进去了，单卡那 1 TB/s 的显存带宽和 162 个 SM 同时服务两路 attention + FFN，每路的有效带宽和算力都腰斩，延迟和吞吐都会雪崩——不如老老实实上两张卡各跑一个。",
+  "reasoning": "用户问的是：为什么单卡 4090 不该同时跑两个 27B（模型），要求用三句话说明。\n\n让我分析：\n- 4090 显存：24 GB GDDR6X\n- 27B 模型：以 Qwen2.5-27B、Yi-34B 等为例，27B 参数的模型\n  - FP16/BF16：27B × 2 bytes = 54 GB（远超 24 GB）\n  - INT8：27B × 1 byte = 27 GB（还是超 24 GB）\n  - INT4：27B × 0.5 bytes ≈ 13.5 GB（勉强能跑一个，但加上 KV cache、激活值等，非常紧张）\n  - GPTQ 4-bit 或 AWQ 4-bit：大约 14-15 GB 权重，加上 KV cache 和运行时开销，一个 27B 就已经把 24 GB 吃得很满了。\n\n所以核心问题是：\n1. 显存根本不够——一个 27B 以 4-bit 量化已经占用 ~14-15 GB，两个就是 ~28-30 GB，远超 24 GB，OOM 是必然的。\n2. 即使勉强用更激进的量化（比如 3-bit），KV cache、激活值、CUDA 上下文等开销也会让两张 27B 无法共存。\n3. 就算假设显存够（实际上不够），单卡带宽和计算单元同时服务两个推理请求，延迟和吞吐都会严重恶化，不如用两张卡各跑一个。\n\n用户要求三句话，我精炼一下：\n\n第一句：显存硬限制——单张 4090 只有 24 GB，一个 27B 模型即便 4-bit 量化也要 ~15 GB，两个就是 ~30 GB，直接 OOM。\n第二句：即使压到极端量化，KV cache + 激活值 + CUDA 运行时开销也会让第二份权重无处安放。\n第三句：退一步讲，即便挤进显存，单卡 1 TB/s 的显存带宽和 SM 资源被两路推理争抢，延迟和吞吐都会雪崩，不如分两张卡。\n\n好，三句话，简洁有力。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 715,
+  "decode_tokens_per_s": 74.16953493624017,
+  "prompt_tokens_per_s": 278.82822438701356,
+  "draft_n": 638,
+  "draft_n_accepted": 397,
+  "accept_rate": 0.622257053291536,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 114.766,
+    "prompt_per_token_ms": 3.5864375,
+    "prompt_per_second": 278.82822438701356,
+    "predicted_n": 715,
+    "predicted_ms": 9626.594,
+    "predicted_per_token_ms": 13.482624649859943,
+    "predicted_per_second": 74.16953493624017,
+    "draft_n": 638,
+    "draft_n_accepted": 397,
+    "kv_bpv": 4.125
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 21734.0,
+    "memory_free_mib": 2483.0,
+    "utilization_gpu_pct": 80.0,
+    "power_w": 426.69,
+    "temperature_c": 75.0
+  },
+  "id": "A_chat",
+  "class": "A",
+  "gpu_before": {
+    "memory_used_mib": 21734.0,
+    "memory_free_mib": 2483.0,
+    "utilization_gpu_pct": 96.0,
+    "power_w": 354.04,
+    "temperature_c": 72.0
+  }
+}

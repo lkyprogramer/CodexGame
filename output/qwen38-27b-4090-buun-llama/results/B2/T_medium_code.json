@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 6.527436343021691,
+  "content": "```python\nimport heapq\n\ndef dijkstra(graph, source):\n    \"\"\"\n    Dijkstra's shortest path algorithm.\n\n    Args:\n        graph: adjacency dict {node: {neighbor: weight, ...}, ...}\n        source: starting node\n\n    Returns:\n        dict mapping each node to its shortest distance from source.\n    \"\"\"\n    dist = {node: float('inf') for node in graph}\n    dist[source] = 0\n    heap = [(0, source)]\n    visited = set()\n\n    while heap:\n        d, u = heapq.heappop(heap)\n        if u in visited:\n            continue\n        visited.add(u)\n        for v, w in graph[u].items():\n            if w < 0:\n                raise ValueError(\"Dijkstra does not support negative edge weights.\")\n            nd = d + w\n            if nd < dist[v]:\n                dist[v] = nd\n                heapq.heappush(heap, (nd, v))\n\n    return dist\n```",
+  "reasoning": "The user wants a Dijkstra shortest path algorithm implementation in Python. They want only the function returned, no extra explanation.\n\nLet me implement a clean, standard Dijkstra's algorithm. I'll use heapq for the priority queue. The function should take a graph (adjacency list), a source node, and return distances to all nodes.\n\nStandard signature: `dijkstra(graph, source)` where graph is a dict of adjacency lists (or dict of dict), and it returns a dict of distances.\n\nLet me write a clean implementation:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    heap = [(0, source)]\n    visited = set()\n    \n    while heap:\n        dist, node = heapq.heappop(heap)\n        if node in visited:\n            continue\n        visited.add(node)\n        for neighbor, weight in graph[node].items():\n            if weight < 0:\n                raise ValueError(\"Dijkstra's algorithm does not support negative edge weights.\")\n            new_dist = distances[node] + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances\n```\n\nThis assumes `graph` is a dict where keys are nodes and values are dicts of {neighbor: weight}. That's a common format. Let me keep it simple and clean. The user said \"return only the function\" so I'll just give the function with the import.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 565,
+  "decode_tokens_per_s": 90.038616029843,
+  "prompt_tokens_per_s": 170.90511348099537,
+  "draft_n": 412,
+  "draft_n_accepted": 360,
+  "accept_rate": 0.8737864077669902,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 204.792,
+    "prompt_per_token_ms": 5.8512,
+    "prompt_per_second": 170.90511348099537,
+    "predicted_n": 565,
+    "predicted_ms": 6263.979,
+    "predicted_per_token_ms": 11.106345744680851,
+    "predicted_per_second": 90.038616029843,
+    "draft_n": 412,
+    "draft_n_accepted": 360,
+    "kv_bpv": 4.125
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 21710.0,
+    "memory_free_mib": 2507.0,
+    "utilization_gpu_pct": 71.0,
+    "power_w": 404.22,
+    "temperature_c": 72.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 21710.0,
+    "memory_free_mib": 2507.0,
+    "utilization_gpu_pct": 86.0,
+    "power_w": 383.94,
+    "temperature_c": 70.0
+  }
+}

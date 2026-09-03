@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 9.718568820040673,
+  "content": "一、**显存根本不够：** 4090 只有 24 GB 显存，一个 27B 模型即使用 INT4 量化后权重也要吃掉 ≈ 14–16 GB，两个模型的权重加起来就已逼近甚至超过 24 GB，FP16 下更是需要 > 108 GB，直接 OOM。\n\n二、**权重只是冰山一角：** 推理时 KV cache、中间激活、CUDA workspace 还要再抢好几 GB；两个 27B 共享同一块 24 GB，生成第一个 token 时就会触发显存溢出，根本走不到\"同时跑\"那一步。\n\n三、**就算硬塞进去也等于没跑：** 极限量化后留给每个模型的 KV cache 可能只够几十个 token 的上下文，大量页被 swap 到系统内存，延迟从毫秒级跌到分钟级——名义上\"两个都在跑\"，实际上不可用。",
+  "reasoning": "用户问的是：为什么单张4090不该同时跑两个27B（参数）模型。要求用三句话说明。\n\n让我分析一下：\n- 4090的显存是24GB\n- 27B参数的模型，用FP16需要约54GB显存，用INT8需要约27GB，用INT4/GPTQ需要约14-15GB\n- 即使量化到INT4，一个27B模型大约需要14-16GB显存（模型权重）+ KV cache + 激活值等\n- 两个27B INT4模型：28-32GB，远超24GB\n- 即使是FP16，一个27B就需要54GB，根本放不下\n\n所以核心原因：\n1. 显存根本不够：24GB连一个27B的FP16都放不下，INT4勉强放一个，两个绝对放不下。\n2. 即使硬塞，KV cache和推理时的中间激活值会进一步爆显存，导致OOM。\n3. 退一步说，就算显存勉强够（比如用极低的量化），两张模型的KV cache共享24GB，推理速度会极慢，且频繁swap到CPU，实际不可用。\n\n让我用三句话简洁有力地表达：\n\n第一句：显存硬伤——24GB连一个27B的FP16（~54GB）都装不下，INT4勉强塞一个（~14-16GB），两个直接爆显存OOM。\n第二句：就算极限量化到INT3/INT2把权重压进去，推理时的KV cache、激活值、CUDA workspace还要额外吃好几GB，两个模型共享24GB必然在生成第一步就触发OOM。\n第三句：退一万步假设能\"跑起来\"，24GB被两个模型瓜分后KV cache极小（可能只够几十个token的上下文），推理时大量swap到系统内存，延迟从毫秒级跌到分钟级，等于没跑。\n\n三句话，简洁、有数据、有层次（放不下→即使放下也OOM→即使不OOM也没法用）。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 32,
+  "completion_tokens": 677,
+  "decode_tokens_per_s": 70.83838379921971,
+  "prompt_tokens_per_s": 276.8213982940881,
+  "draft_n": 628,
+  "draft_n_accepted": 362,
+  "accept_rate": 0.5764331210191083,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 32,
+    "prompt_ms": 115.598,
+    "prompt_per_token_ms": 3.6124375,
+    "prompt_per_second": 276.8213982940881,
+    "predicted_n": 677,
+    "predicted_ms": 9542.849,
+    "predicted_per_token_ms": 14.116640532544379,
+    "predicted_per_second": 70.83838379921971,
+    "draft_n": 628,
+    "draft_n_accepted": 362,
+    "kv_bpv": 4.5
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22990.0,
+    "memory_free_mib": 1227.0,
+    "utilization_gpu_pct": 88.0,
+    "power_w": 401.46,
+    "temperature_c": 67.0
+  },
+  "id": "A_chat",
+  "class": "A",
+  "gpu_before": {
+    "memory_used_mib": 22990.0,
+    "memory_free_mib": 1227.0,
+    "utilization_gpu_pct": 96.0,
+    "power_w": 309.64,
+    "temperature_c": 62.0
+  }
+}

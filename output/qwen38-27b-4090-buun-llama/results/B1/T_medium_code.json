@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 12.378784105996601,
+  "content": "```python\nimport heapq\n\ndef dijkstra(graph, source):\n    \"\"\"\n    Args:\n        graph: dict of dict, e.g. {A: {B: 1, C: 4}, B: {C: 2}, C: {}}\n        source: starting node\n    Returns:\n        (distances, predecessors) where distances maps each node to its\n        shortest distance from source, and predecessors maps each node to\n        the previous node on the shortest path (None for source/unreachable).\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    for neighbors in graph.values():\n        for n in neighbors:\n            if n not in distances:\n                distances[n] = float('inf')\n    distances[source] = 0\n\n    predecessors = {node: None for node in distances}\n    visited = set()\n    heap = [(0, source)]\n\n    while heap:\n        dist, current = heapq.heappop(heap)\n        if current in visited:\n            continue\n        visited.add(current)\n        for neighbor, weight in graph[current].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                predecessors[neighbor] = current\n                heapq.heappush(heap, (new_dist, neighbor))\n\n    return distances, predecessors\n```",
+  "reasoning": "The user wants a Dijkstra shortest path implementation in Python, returned as just the function. Let me think about the best way to implement this.\n\nKey considerations:\n- Dijkstra's algorithm finds shortest paths from a source node to all other nodes in a graph with non-negative edge weights.\n- I'll use a priority queue (heapq) for efficiency.\n- The graph representation: I'll use an adjacency list. The most common representation is a dictionary where keys are nodes and values are lists of (neighbor, weight) tuples, or a dictionary of dictionaries.\n- I'll return both distances and predecessors for path reconstruction.\n\nLet me write a clean implementation:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    \"\"\"\n    graph: dict of dict, e.g., {A: {B: 1, C: 4}, B: {C: 2}, ...}\n    source: starting node\n    returns: (distances, predecessors)\n    \"\"\"\n    distances = {node: float('inf') for node in graph}\n    distances[source] = 0\n    predecessors = {node: None for node in graph}\n    visited = set()\n    heap = [(0, source)]\n    \n    while heap:\n        dist, current = heapq.heappop(heap)\n        if current in visited:\n            continue\n        visited.add(current)\n        for neighbor, weight in graph[current].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                predecessors[neighbor] = current\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances, predecessors\n```\n\nWait, I should also handle the case where neighbors might not be keys in the graph itself (directed graphs). Let me adjust - I'll initialize distances for all nodes including those that only appear as neighbors.\n\nLet me refine:\n\n```python\nimport heapq\n\ndef dijkstra(graph, source):\n    distances = {}\n    predecessors = {}\n    for node in graph:\n        distances[node] = float('inf')\n        for neighbor in graph[node]:\n            if neighbor not in distances:\n                distances[neighbor] = float('inf')\n    distances[source] = 0\n    for node in distances:\n        predecessors[node] = None\n    \n    visited = set()\n    heap = [(0, source)]\n    \n    while heap:\n        dist, current = heapq.heappop(heap)\n        if current in visited:\n            continue\n        visited.add(current)\n        for neighbor, weight in graph[current].items():\n            new_dist = dist + weight\n            if new_dist < distances[neighbor]:\n                distances[neighbor] = new_dist\n                predecessors[neighbor] = current\n                heapq.heappush(heap, (new_dist, neighbor))\n    \n    return distances, predecessors\n```\n\nThe user said \"Return only the function.\" So I should just give the function code, no extra explanation. I'll include the import inside or assume it's available. Actually, let me include the import as part of the function or just before it. Since they said \"only the function,\" I'll include the import within or just note it. Let me just include `import heapq` at the top of the code block since it's needed.\n\nActually, to be truly \"only the function,\" I could put the import inside the function. That's a bit unusual but ensures it's self-contained. Or I can just include the import line above. I think including the import line above is fine - it's still essentially \"the function\" with its dependency.\n\nLet me keep it simple and clean.\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 35,
+  "completion_tokens": 1093,
+  "decode_tokens_per_s": 89.81888909333013,
+  "prompt_tokens_per_s": 164.10429531271245,
+  "draft_n": 806,
+  "draft_n_accepted": 689,
+  "accept_rate": 0.8548387096774194,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 35,
+    "prompt_ms": 213.279,
+    "prompt_per_token_ms": 6.093685714285714,
+    "prompt_per_second": 164.10429531271245,
+    "predicted_n": 1093,
+    "predicted_ms": 12157.799,
+    "predicted_per_token_ms": 11.133515567765569,
+    "predicted_per_second": 89.81888909333013,
+    "draft_n": 806,
+    "draft_n_accepted": 689,
+    "kv_bpv": 16.0
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 18606.0,
+    "memory_free_mib": 5611.0,
+    "utilization_gpu_pct": 87.0,
+    "power_w": 409.91,
+    "temperature_c": 71.0
+  },
+  "id": "T_medium_code",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 18542.0,
+    "memory_free_mib": 5675.0,
+    "utilization_gpu_pct": 89.0,
+    "power_w": 402.31,
+    "temperature_c": 63.0
+  }
+}

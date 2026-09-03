@@ -1,0 +1,48 @@
+{
+  "http": 200,
+  "elapsed_s": 12.336665838956833,
+  "content": "# InnoDB 隔离级别（Isolation Levels）\n\nInnoDB 是 MySQL 默认的存储引擎，遵循 SQL 标准定义了 **四种** 事务隔离级别，由低到高依次为：\n\n## 1. READ UNCOMMITTED（读未提交）\n\n- 一个事务可以**看到**其他事务**尚未提交**的修改。\n- 可能出现 **脏读（Dirty Read）**：读到了别人后来回滚的数据。\n- 性能最高，但数据一致性最差，**极少使用**。\n\n## 2. READ COMMITTED（读已提交，RC）\n\n- 一个事务只能读到其他事务**已经提交**的数据。\n- 解决了脏读，但仍可能出现 **不可重复读（Non-repeatable Read）**：同一事务内两次 SELECT 同一行，结果可能不同（因为中间有别人提交了更新）。\n- Oracle 数据库的默认级别。\n\n## 3. REPEATABLE READ（可重复读，RR）✅ MySQL/InnoDB 默认\n\n- 事务内对同一行的多次读取，结果**始终一致**，无论其他事务是否提交了修改。\n- 通过 **MVCC（多版本并发控制）+ 间隙锁（Gap Lock）** 实现。\n- 解决了脏读和不可重复读，InnoDB 下还基本解决了 **幻读（Phantom Read）**（快照读场景）。\n- 这是绝大多数 MySQL 业务的首选级别。\n\n## 4. SERIALIZABLE（串行化）\n\n- 所有事务**串行执行**，读操作加共享锁，写操作加排他锁。\n- 彻底消除脏读、不可重复读、幻读。\n- 并发度最低，吞吐量最差，一般只在极端一致性要求下使用。\n\n> **一句话总结**：隔离级别越高 → 一致性越好 → 并发性能越差。InnoDB 用 MVCC + 锁机制让 RR 级别在大多数场景下兼顾了性能与一致性，因此被设为默认。\n\n---\n\n## DDL 示例\n\n下面是一个典型的建表 DDL，创建一张订单表（InnoDB 引擎，默认 RR 隔离级别下工作）：\n\n```sql\nCREATE TABLE IF NOT EXISTS `orders` (\n    `id`          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT '主键',\n    `order_no`    VARCHAR(32)      NOT NULL                COMMENT '订单编号',\n    `user_id`     BIGINT UNSIGNED  NOT NULL                COMMENT '用户ID',\n    `amount`      DECIMAL(10,2)    NOT NULL DEFAULT 0.00   COMMENT '订单金额',\n    `status`      TINYINT          NOT NULL DEFAULT 0      COMMENT '0-待付款 1-已付款 2-已取消',\n    `created_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    `updated_at`  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (`id`),\n    UNIQUE KEY `uk_order_no` (`order_no`),\n    KEY `idx_user_id` (`user_id`)\n) ENGINE = InnoDB\n  DEFAULT CHARSET = utf8mb4\n  COLLATE = utf8mb4_unicode_ci\n  COMMENT = '订单表';\n```\n\n要点：\n- `ENGINE = InnoDB`：显式指定使用 InnoDB（支持事务和上述隔离级别）。\n- 唯一索引 `uk_order_no` + 普通索引 `idx_user_id`：在 RR 级别下，InnoDB 会对这些索引加 **间隙锁（Gap Lock）** 来防止幻读。\n- `utf8mb4`：完整支持 emoji 等 4 字节 UTF-8 字符。",
+  "reasoning": "用户要求我用中文解释 InnoDB 的隔离级别，然后给出一个 DDL 示例。让我仔细组织一下：\n\n1. InnoDB 的四种隔离级别：\n   - READ UNCOMMITTED（读未提交）\n   - READ COMMITTED（读已提交）\n   - REPEATABLE READ（可重复读）—— MySQL 默认\n   - SERIALIZABLE（串行化）\n\n2. 需要解释每种隔离级别的特点、能解决什么问题、存在的问题。\n\n3. DDL 示例：用户要求一个 DDL 示例。DDL 是数据定义语言，如 CREATE、ALTER、DROP。我可以给一个创建表的 DDL 示例，或者设置隔离级别的语句。不过设置隔离级别是 SET 语句，不是严格意义上的 DDL。我还是给一个 CREATE TABLE 的 DDL 示例吧，这样更符合\"DDL\"的定义。或者也可以给一个 ALTER TABLE 设置字符集的示例。\n\n让我用中文清晰、结构化地回答。\n",
+  "empty": false,
+  "finish": "stop",
+  "prompt_tokens": 27,
+  "completion_tokens": 998,
+  "decode_tokens_per_s": 81.9830052601513,
+  "prompt_tokens_per_s": 236.21427259127057,
+  "draft_n": 796,
+  "draft_n_accepted": 599,
+  "accept_rate": 0.7525125628140703,
+  "accept_length": null,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 27,
+    "prompt_ms": 114.303,
+    "prompt_per_token_ms": 4.233444444444444,
+    "prompt_per_second": 236.21427259127057,
+    "predicted_n": 998,
+    "predicted_ms": 12161.057,
+    "predicted_per_token_ms": 12.197649949849549,
+    "predicted_per_second": 81.9830052601513,
+    "draft_n": 796,
+    "draft_n_accepted": 599,
+    "kv_bpv": 4.5
+  },
+  "tool_calls": [],
+  "error": null,
+  "gpu_after": {
+    "memory_used_mib": 22972.0,
+    "memory_free_mib": 1245.0,
+    "utilization_gpu_pct": 88.0,
+    "power_w": 396.76,
+    "temperature_c": 64.0
+  },
+  "id": "T_empty_budget",
+  "class": "T",
+  "gpu_before": {
+    "memory_used_mib": 22972.0,
+    "memory_free_mib": 1245.0,
+    "utilization_gpu_pct": 89.0,
+    "power_w": 374.77,
+    "temperature_c": 57.0
+  }
+}
