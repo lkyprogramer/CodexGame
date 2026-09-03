@@ -1,0 +1,23 @@
+model: local/qwen38-work
+harness: codebuddy-code/2.109.3
+dataset: datasets/wb-bench-code-v1.0/tasks
+harness_backend: local
+model_connection: local_proxy
+n_attempts: 1
+n_concurrent_trials: 1
+record_full_io: true
+extra_allowed_hosts:
+  - host.docker.internal
+task_selection:
+  mode: name
+  names:
+    - bug_fix-easy-a_crash_in_local
+    - feature-easy-add_python_dotenv_disabled
+    - tool_behavior-easy-diagnostics_and_observability
+    - bug_fix-medium-error_key_uses_data_key
+    - data_reporting-medium-audit_event_export
+    - feature-medium-add_support_for_dependencies
+    - product_policy-medium-coupon_eligibility
+    - api_contract-hard-markup_errors
+    - data_quality-hard-label_conflicts
+    - data_reporting-hard-invoice_line_export
