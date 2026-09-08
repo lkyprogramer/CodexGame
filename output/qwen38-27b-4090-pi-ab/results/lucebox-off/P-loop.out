@@ -1,0 +1,19 @@
+===== P-loop lane=lucebox-off 2026-09-04T16:09:41 =====
+**1. Files in `apps/game-runtime/src/runtime/`:**
+`agentOutput.ts`, `codexEvents.ts`, `config.ts`, `contentStore.ts`, `GameRuntimeServer.ts`, `metrics.ts`, `modelList.ts`, `prompting.ts`, `replay.ts`, `stateStore.ts`, `types.ts`
+
+**2. Grep results (src only):**
+- `GameRuntimeServer.ts:135` — `private reconnectAttempts = 0;`
+- `GameRuntimeServer.ts:216` — reset to 0 on connect
+- `GameRuntimeServer.ts:1115-1118` — increment + circuit-breaker guard
+- `GameRuntimeServer.ts:1122,1128,1133` — backoff delay, feed message, `reconnect()` call
+- `GameRuntimeServer.ts:1137-1160` — `reconnect()` impl, failure re-enters `handleDisconnect()`
+- `config.ts:40` — `maxReconnectAttempts: 5`
+
+**3. Guard section** (lines 1110–1135): `handleDisconnect()` increments `reconnectAttempts`; if it exceeds `maxReconnectAttempts` (5), it sets `phase = "error"` and emits a non-recoverable `circuit_breaker` error, halting retries. Otherwise it schedules `reconnect()` with linear backoff (1s × attempts, capped at 10s).
+
+**4. Highest-risk bug if the guard were removed:** `reconnect()`'s catch block calls `handleDisconnect()` again, which schedules another `reconnect()` — an unbounded retry loop. If the Codex app-server stays dead, the runtime would spawn a new process every ~10s forever (process churn, fd/port exhaustion, stale threads), while `phase` remains `"running"` so the autoplay loop keeps issuing turns into a disconnected client and the client never sees a terminal error. Smallest fix: keep the counter check (or equivalently, cap total attempts and set `phase = "error"` + emit `circuit_breaker`), i.e. restore the `maxReconnectAttempts` guard as-is.
+
+**5.** Re-read AGENTS.md (done above).
+
+{"tick":200,"protocol":"v1"}

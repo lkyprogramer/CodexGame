@@ -1,0 +1,22 @@
+===== P-loop lane=lucebox-on 2026-09-04T16:10:09 =====
+**1. Files in `apps/game-runtime/src/runtime/`:**
+`agentOutput.ts`, `codexEvents.ts`, `config.ts`, `contentStore.ts`, `GameRuntimeServer.ts`, `metrics.ts`, `modelList.ts`, `prompting.ts`, `replay.ts`, `stateStore.ts`, `types.ts`
+
+**2. Grep results (src only):**
+- `GameRuntimeServer.ts:135` — `private reconnectAttempts = 0;`
+- `GameRuntimeServer.ts:216` — reset to 0 on connect
+- `GameRuntimeServer.ts:1115-1118` — increment + guard check
+- `GameRuntimeServer.ts:1122` — backoff delay
+- `GameRuntimeServer.ts:1133` — `void this.reconnect()`
+- `GameRuntimeServer.ts:1137` — `private async reconnect()`
+- `GameRuntimeServer.ts:1160` — `reconnect_failed` error emit
+- `config.ts:40` — `maxReconnectAttempts: 5`
+
+**3. Guard section (lines 1110-1163):** `handleDisconnect()` increments `reconnectAttempts`; if it exceeds `maxReconnectAttempts` (5), it sets `phase = "error"` and emits a non-recoverable `circuit_breaker` error, halting retries. Otherwise it schedules `reconnect()` with linear backoff (1s × attempts, capped 10s). `reconnect()` restarts the codex client, resumes all threads, and on failure re-enters `handleDisconnect()`.
+
+**4. Highest-risk bug if the guard were removed:**
+Without the circuit breaker, a persistently failing codex app-server (e.g., crashed binary, bad `codexBin` path) would trigger an unbounded reconnect loop: `reconnect()` fails → `handleDisconnect()` → `setTimeout` → `reconnect()` forever, each cycle spawning a new child process and issuing `thread/resume` RPCs. This would exhaust file descriptors and CPU, starve the event loop, and leave the session in a zombie state where `phase` stays `"running"` but no turns ever complete — the client sees perpetual "reconnecting" feed messages with no terminal error. The smallest fix is to keep the `maxReconnectAttempts` check (already present at line 1116) and ensure `phase = "error"` is set so the scheduler/autoplay loop stops; no architectural change needed, just don't delete that 3-line guard.
+
+**5.** Re-read AGENTS.md (done above).
+
+{"tick":200,"protocol":"v1"}

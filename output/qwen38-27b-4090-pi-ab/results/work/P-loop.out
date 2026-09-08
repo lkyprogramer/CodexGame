@@ -1,0 +1,18 @@
+===== P-loop lane=work  =====
+**1. Files in `apps/game-runtime/src/runtime/`:**
+`agentOutput.ts`, `codexEvents.ts`, `config.ts`, `contentStore.ts`, `GameRuntimeServer.ts`, `metrics.ts`, `modelList.ts`, `prompting.ts`, `replay.ts`, `stateStore.ts`, `types.ts`
+
+**2. Grep hits (src only):**
+- `GameRuntimeServer.ts:135` — `private reconnectAttempts = 0;`
+- `GameRuntimeServer.ts:216` — `this.reconnectAttempts = 0;` (reset on connect)
+- `GameRuntimeServer.ts:1115-1133` — `handleDisconnect` increment + circuit breaker
+- `GameRuntimeServer.ts:1137-1160` — `reconnect()` + `reconnect_failed` error
+- `config.ts:40` — `maxReconnectAttempts: 5`
+- (also `dist/` build artifacts — not source)
+
+**3. The guard** (`GameRuntimeServer.ts:1111-1134`): `handleDisconnect()` increments `reconnectAttempts`; if it exceeds `runtimeConfig.maxReconnectAttempts` (5), it sets `phase = "error"` and emits a non-recoverable `circuit_breaker` error. Otherwise it schedules `reconnect()` with backoff `min(10_000, attempts * 1_000)` ms. Notably, `reconnect()`'s `catch` block calls `await this.handleDisconnect()` again — so failed reconnects directly recycle into the counter.
+
+**4. Highest-risk bug without the guard:** The `handleDisconnect` → `reconnect` → `handleDisconnect` cycle would be unbounded: every failed `codexClient.restart()`/`thread/resume` immediately re-enters `handleDisconnect`, and because `reconnect()` is `await`ed within the same handler chain, an unhealthy codex app-server produces a near-tight infinite retry loop (backoff only bounds success-path delay, since the failure path re-invokes `handleDisconnect` synchronously), pinning the process in perpetual restart attempts, exhausting the stdio child process, leaking pending `turn/start` promises, and leaving the session forever in `running` with no terminal state the client can observe. Smallest fix: keep a hard cap — i.e., retain the `reconnectAttempts > maxReconnectAttempts` check and, if the config knob were removed, hardcode the ceiling in `handleDisconnect` (e.g., `> 5`) so failure always transitions to a terminal `error` phase.
+
+**5.** Re-read AGENTS.md (`tickMs = 200`, protocol version `v1`):
+{"tick":200,"protocol":"v1"}

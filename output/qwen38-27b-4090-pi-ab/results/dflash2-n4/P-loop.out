@@ -1,0 +1,25 @@
+===== P-loop lane=dflash2-n4 2026-09-04T16:15:26 =====
+**1. Files in `apps/game-runtime/src/runtime/`:**
+`agentOutput.ts`, `codexEvents.ts`, `config.ts`, `contentStore.ts`, `GameRuntimeServer.ts`, `metrics.ts`, `modelList.ts`, `prompting.ts`, `replay.ts`, `stateStore.ts`, `types.ts`
+
+**2. Grep results (file:line):**
+- `apps/game-runtime/src/runtime/config.ts:40` — `maxReconnectAttempts: 5`
+- `apps/game-runtime/src/runtime/GameRuntimeServer.ts:135` — `private reconnectAttempts = 0;`
+- `GameRuntimeServer.ts:216` — `this.reconnectAttempts = 0;` (reset on start)
+- `GameRuntimeServer.ts:1115` — `this.reconnectAttempts += 1;`
+- `GameRuntimeServer.ts:1116` — `if (this.reconnectAttempts > runtimeConfig.maxReconnectAttempts)`
+- `GameRuntimeServer.ts:1118` — `emitError("circuit_breaker", ...)`
+- `GameRuntimeServer.ts:1122` — backoff `delay = min(10_000, attempts * 1_000)`
+- `GameRuntimeServer.ts:1133` — `void this.reconnect();`
+- `GameRuntimeServer.ts:1137` — `private async reconnect()`
+- `GameRuntimeServer.ts:1154` — "Codex reconnect complete." feed
+- `GameRuntimeServer.ts:1160` — `emitError("reconnect_failed", ...)`
+
+**3. The guard (GameRuntimeServer.ts ~1109–1134):** `handleDisconnect()` increments `reconnectAttempts`; if it exceeds `maxReconnectAttempts` it sets `phase = "error"` and emits a non-recoverable `circuit_breaker` error, otherwise it schedules `reconnect()` with capped linear backoff. `reconnect()` restarts the codex client, resumes all gameplay threads + the builder thread, refreshes the model catalog, and re-broadcasts session state; on failure it loops back into `handleDisconnect()`.
+
+**4. Highest-risk bug if the guard were removed:** `reconnect()`'s catch calls `handleDisconnect()` again, and with no attempt ceiling a persistently failing codex app-server (crashed binary, bad `codexBin`, or stdio transport wedge) would drive an unbounded restart/reconnect loop — each cycle killing and respawning the codex process, re-issuing `thread/resume` for stale thread IDs, and spamming the client with `agent.feed`/`error` frames, while the session is stuck in `running` with no terminal `error` state. The smallest fix: restore the cap check at the top of `handleDisconnect()` (compare `reconnectAttempts` against `runtimeConfig.maxReconnectAttempts`, set `phase = "error"`, and emit the non-recoverable `circuit_breaker` error).
+
+**5.** Re-read AGENTS.md.
+```json
+{"tick": 200, "protocol": "v1"}
+```
