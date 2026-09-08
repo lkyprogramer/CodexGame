@@ -1,0 +1,72 @@
+{
+  "research_date": "2026-09-07",
+  "purpose": "NInfer architecture and RTX4090 Qwen3.8-27B long-agent suitability",
+  "hardware": {
+    "gpu": "RTX4090",
+    "vram_gib_nominal": 24,
+    "ram_gb_user_reported": 64,
+    "ssd_gb_user_reported": 600,
+    "last_confirmed_driver": "545.23.08",
+    "nvidia_smi_cuda_display": "12.3",
+    "nvcc_version": "UNCONFIRMED",
+    "cpu": "UNCONFIRMED",
+    "os_distribution": "UNCONFIRMED"
+  },
+  "code": [
+    {
+      "repository": "Neroued/ninfer",
+      "branch": "master",
+      "commit": "487f89773f07cb18a2fb841fe0971ec9634d409b",
+      "role": "upstream design and DFlash2 artifact contract"
+    },
+    {
+      "repository": "tensorninja/ninfer-4090",
+      "branch": "tensorninja",
+      "commit": "44a2c6c3392c9d51e76a895ed97bf1867530d252",
+      "role": "audited Ada long-agent candidate"
+    },
+    {
+      "repository": "sergiuszm/ninfer-4090",
+      "branch": "rtx4090-port",
+      "commit": null,
+      "role": "community base, not locked for deployment in this report"
+    }
+  ],
+  "artifact_contracts": [
+    {
+      "source": "HF model-card retrieval and pinned 4090 Dockerfile",
+      "filename": "qwen3_8_27b.ninfer",
+      "bytes": 18210531328,
+      "sha256": "eec39564993d6e9c7d5e383382a760f093465c9d163ec9a1bd6b80199514bf3e",
+      "download_revision": null,
+      "actual_bytes_downloaded": false,
+      "description": "old measured MTP/vision artifact; expected by audited Ada fork"
+    },
+    {
+      "source": "pinned upstream GitHub model-card source",
+      "filename": "qwen3_8_27b.ninfer",
+      "bytes": 20437336576,
+      "sha256": "0634abb07024221de141456cf04a42ab74b18bc38e1b781c6eb2e062a467eec3",
+      "download_revision": null,
+      "actual_bytes_downloaded": false,
+      "description": "new DFlash2-bearing artifact; do not substitute into old fork without loader audit"
+    }
+  ],
+  "deployment_traps": [
+    "Fork Dockerfile floating HF resolve/main URL paired with old immutable SHA256; upstream card has changed but retrieved HF card still documents old bytes.",
+    "Fork README single-lane profile differs from Docker CMD max-concurrency=4.",
+    "Fork native compiler floor is CUDA12.8; Dockerfile CUDA13.2.0. Driver545 compatibility is unverified and not a supported stock build.",
+    "L1 retained-lane threshold is not an additional independent GPU KV allocation.",
+    "HTTP accepted thinking/tool fields differ from SGLang and vLLM; do not silently strip unsupported semantic constraints."
+  ],
+  "verification": {
+    "source_review": "DONE",
+    "report_reference_consistency": "CHECKED",
+    "model_binary_sha256": "NOT_RUN",
+    "gpu_build": "NOT_RUN",
+    "kernel_tests": "NOT_RUN",
+    "hardware_performance": "NOT_RUN",
+    "pi_java_agent": "NOT_RUN"
+  },
+  "recommended_decision": "QUALIFY_EXISTING_FORK_BEFORE_CUSTOM_KERNEL_WORK"
+}
