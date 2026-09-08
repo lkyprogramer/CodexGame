@@ -1,9 +1,11 @@
 # OpenClaw Qwen3.8-27B · RTX 4090 现网与无审核档部署运维
 
+> **现网 NInfer 的部署 / 使用 / 优化以 [`openclaw-qwen38-ninfer.md`](openclaw-qwen38-ninfer.md) 为准。** 本文保留 llama.cpp WORK 与 TEXT 的回滚细节。
+
 机器：`192.168.10.29`，用户 `hhtele`  
 GPU：单卡 RTX 4090 24GB  
-文档日期：2026-08-25  
-范围：现网 WORK（Dynamic V3）与无审核 TEXT（HauhauCS Aggressive）。同一端口、互斥 systemd，不能双开。
+文档日期：2026-08-25（NInfer 切流 2026-09-08）  
+范围：现网默认是 **NInfer**（调用名仍为 `openclaw/Qwen3.8-27B-WORK`）。llama.cpp WORK 与无审核 TEXT 仍互斥、可回滚，不能双开。
 
 仓库内启动脚本副本：
 
@@ -16,22 +18,18 @@ GPU：单卡 RTX 4090 24GB
 
 ## 1. 现状一览
 
-| | WORK（开机默认） | TEXT（无审核，按需） |
-|---|---|---|
-| systemd | `openclaw-qwen38-work-64k.service` | `openclaw-qwen38-text.service` |
-| 开机 | **enabled** | **disabled** |
-| 调用名 | `openclaw/Qwen3.8-27B-WORK` | `openclaw/Qwen3.8-27B-TEXT` |
-| 权重 | Unsloth UD-Q4_K_XL **Dynamic V3** | HauhauCS Aggressive Q4_K_P |
-| 文件 | `/data/models/qwen/qwen38/Qwen3.8-27B-UD-Q4_K_XL-dv3.gguf` | `/data/models/qwen/qwen38-hauhau/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf` |
-| SHA256 | `3f227079003add2511437e5b1e94812e363385225bf6a9b47b0054a72bc8b01e` | `ba36dc3c2b2ff5e0aa5d71092a8894546996a6a119ae391803dda07cdc08516d` |
-| 大小（API `meta.size`） | 17548181504 | 17912397824 |
-| 窗口 | `-c 200000` → `n_ctx=200192` | 同左 |
-| KV | q4_0 | q4_0 |
-| MTP | `draft-mtp` n=2，草稿 KV 也 q4 | 同左 |
-| 思考默认 | medium，budget 4096 | 同左（2026-08-25 已与 WORK 对齐） |
-| 采样 | 1.0 / 0.95 / 20 / presence 0 | 同左 |
-| 空载显存 | **22958 / 1259 MiB** | **23306 / 911 MiB**（权重更大，余量更紧） |
-| 用途 | OpenClaw coding agent | 无审核闲聊 / 文本；不当开机 |
+| | NInfer（开机默认） | llama.cpp WORK（回滚） | TEXT（无审核，按需） |
+|---|---|---|---|
+| systemd | `openclaw-qwen38-ninfer.service` | `openclaw-qwen38-work-64k.service` | `openclaw-qwen38-text.service` |
+| 开机 | **enabled** | **disabled** | **disabled** |
+| 调用名 | `openclaw/Qwen3.8-27B-WORK` | 同左 | `openclaw/Qwen3.8-27B-TEXT` |
+| 权重 | `qwen3_8_27b.ninfer` 16.96 GiB MTP | Unsloth UD-Q4_K_XL Dynamic V3 | HauhauCS Aggressive Q4_K_P |
+| 窗口 | 262144 | `n_ctx=200192` | 同 WORK |
+| KV | `rk4v4-e8` | q4_0 | q4_0 |
+| MTP | n=3 `--lm-head-draft` | draft-mtp n=2 | 同 WORK |
+| 思考默认 | medium（兼容层注入；引擎默认 thinking on） | medium，budget 4096 | 同 WORK |
+| 空载显存 | ~22600 MiB | **22958 / 1259 MiB** | **23306 / 911 MiB** |
+| 用途 | OpenClaw coding agent | 回滚 | 无审核闲聊；不当开机 |
 
 本机 API：`http://127.0.0.1:18343/v1`  
 对外：`http://192.168.10.29:28343/v1`（NGINX Bearer，配置 `/etc/nginx/conf.d/openclaw-28343.conf`）
@@ -217,7 +215,16 @@ LimitNOFILE=1048576
 WantedBy=multi-user.target
 ```
 
-**不要 `systemctl enable` TEXT。** 开机必须是 WORK。
+**不要 `systemctl enable` TEXT。** 开机必须是 NInfer（`openclaw-qwen38-ninfer.service`）。
+
+回滚 llama.cpp WORK：
+
+```bash
+sudo systemctl disable --now openclaw-qwen38-ninfer.service
+sudo systemctl enable --now openclaw-qwen38-work-64k.service
+```
+
+NInfer 对外仍是 18343 / 28343。引擎在 `127.0.0.1:18030`，`openai_compat_proxy.py` 把 llama.cpp 的 `chat_template_kwargs` 转成 NInfer 字段并默认 `reasoning_effort=medium`。
 
 ---
 
