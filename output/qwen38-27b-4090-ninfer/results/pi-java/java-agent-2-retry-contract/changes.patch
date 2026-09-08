@@ -1,0 +1,17 @@
+diff --git a/src/main/java/com/acme/retry/RetryingClient.java b/src/main/java/com/acme/retry/RetryingClient.java
+index 1c1cd47..c633f54 100644
+--- a/src/main/java/com/acme/retry/RetryingClient.java
++++ b/src/main/java/com/acme/retry/RetryingClient.java
+@@ -3,9 +3,10 @@ public final class RetryingClient {
+  private final RetryPolicy policy; public RetryingClient(RetryPolicy p){this.policy=p;}
+  public <T> T execute(CheckedOperation<T> op) throws Exception {
+    Exception last=null;
+-   for(int attempt=0; attempt<=policy.maxAttempts(); attempt++) {
++   for(int attempt=1; attempt<=policy.maxAttempts(); attempt++) {
+      try { return op.run(); } catch(Exception e) { last=e; }
+    }
+-   throw new IllegalStateException("retry exhausted", last);
++   if(last==null) throw new IllegalStateException("retry exhausted");
++   throw last;
+  }
+ }

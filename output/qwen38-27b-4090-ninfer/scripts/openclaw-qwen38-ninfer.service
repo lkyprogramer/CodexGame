@@ -1,0 +1,23 @@
+[Unit]
+Description=OpenClaw Qwen3.8 27B NInfer 262K rk4v4-e8 MTP n=3 (primary)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+Conflicts=openclaw-qwen38-work-64k.service openclaw-qwen38-text.service openclaw-qwen36-mtp4-128k.service
+
+[Service]
+Type=simple
+User=hhtele
+Group=docker
+WorkingDirectory=/home/hhtele/ninfer-4090
+ExecStart=/home/hhtele/ninfer-4090/launch/production-18343.sh
+ExecStop=/home/hhtele/ninfer-4090/launch/production-stop.sh
+Restart=always
+RestartSec=5
+TimeoutStartSec=300
+StandardOutput=append:/var/log/llama/openclaw-qwen38-ninfer.log
+StandardError=append:/var/log/llama/openclaw-qwen38-ninfer.err.log
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
