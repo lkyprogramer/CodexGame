@@ -1,0 +1,47 @@
+[
+  {
+    "tag": "cache-cold",
+    "ok": true,
+    "error": null,
+    "prompt_tokens": 99699,
+    "completion_tokens": 512,
+    "cached_tokens": null,
+    "ttft_s": 50.727,
+    "wall_s": 57.59,
+    "decode_tps": 74.6,
+    "prefill_tps": 1965.4,
+    "text": "The user wants me to:\n1. Remember the release marker\n2. Analyze reconnect invariants\n\nLet me identify the release marker first:\n- `RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4 do-not-alter marker for long-context retrieval.`\n- This appears at repo-line 0002149 (between repo-line 0002148 and repo-line 0002150)\n\nNow let me analyze the reconnect invariants:\n\nEvery line has:\n- `module=exam-runtime`\n- `state=ACTIVE`\n- `invariant=idempotent-reconnect`\n- `public final long tickMs=<value>`\n\nThe tenants cycle through t00 to t96 (97 tenants total).\n\nThe tickMs values follow a pattern. Let me trace them:\n- t00: 50, t01: 100, t02: 150, t03: 200, t04: 250, t05: 300, t06: 350\n- t07: 50, t08: 100, t09: 150, t10: 200, t11: 250, t12: 300, t13: 350\n- t14: 50, t15: 100, t16: 150, t17: 200, t18: 250, t19: 300, t20: 350\n- ...\n\nSo the pattern is: tickMs = 50 + (position_in_cycle * 50), where the cycle is 7 tenants long.\n\nWait, let me re-examine. The tenants go t00 through t96, that's 97 tenants. But the tickMs pattern repeats every 7 lines:\n- Position 0 in cycle: 50\n- Position 1 in cycle: 100\n- Position 2 in cycle: 150\n- Position 3 in cycle: 200\n- Position 4 in cycle: 250\n- Position 5 in cycle:",
+    "needle": "JAVA-AGENT-100000-N7Q4",
+    "needle_ok": true
+  },
+  {
+    "tag": "cache-exact",
+    "ok": true,
+    "error": null,
+    "prompt_tokens": 99699,
+    "completion_tokens": 512,
+    "cached_tokens": null,
+    "ttft_s": 1.446,
+    "wall_s": 8.578,
+    "decode_tps": 71.78,
+    "prefill_tps": 68957.38,
+    "text": "The user is asking me to remember the release marker and analyze reconnect invariants from this Java repository snapshot.\n\nLet me identify the key elements:\n\n1. **Release marker**: `RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4` - found at repo-line 0002149 (between repo-line 0002148 and repo-line 0002150).\n\n2. **Reconnect invariants**: Every line has `invariant=idempotent-reconnect`. Let me analyze the pattern:\n\n- All lines share: `module=exam-runtime`, `state=ACTIVE`, `invariant=idempotent-reconnect`\n- The `tenant` field cycles through t00 to t96 (97 tenants) in a repeating pattern\n- The `tickMs` field cycles through values: 50, 100, 150, 200, 250, 300, 350 (7 values) in a repeating pattern\n\nLet me verify the patterns:\n\nLooking at the first few lines:\n- t00: 50\n- t01: 100\n- t02: 150\n- t03: 200\n- t04: 250\n- t05: 300\n- t06: 350\n- t07: 50\n- t08: 100\n- t09: 150\n- t10: 200\n- t11: 250\n- t12: 300\n- t13: 350\n- t14: 50\n- ...\n\nSo the tickMs pattern is: 50, 100, 150, 200, 250, 300, 350 repeating every 7 lines.\n\nThe tenant pattern is: t00, t01, t02, ..., t96, then back to t00, t01, ... (97 tenants cycling).\n\nLet me verify: 97 tenants \u00d7 7 tick values = 679 per full cycle of both. But the tick pattern repeats every 7, and",
+    "needle": "JAVA-AGENT-100000-N7Q4",
+    "needle_ok": true
+  },
+  {
+    "tag": "cache-append",
+    "ok": true,
+    "error": null,
+    "prompt_tokens": 104939,
+    "completion_tokens": 512,
+    "cached_tokens": null,
+    "ttft_s": 5.015,
+    "wall_s": 13.7,
+    "decode_tps": 58.95,
+    "prefill_tps": 20925.35,
+    "text": "The user is asking me to:\n1. Re-evaluate only what changed (the new TOOL_RESULT tail)\n2. State the original RELEASE_NEEDLE exactly\n\nLet me analyze what changed:\n- The new tool result shows a repeating pattern of `reconnectAttempt` cycling through 0, 1, 2 for each line, with all `status=OK`.\n- This is a 3-cycle pattern: 0, 1, 2, 0, 1, 2, ...\n- All statuses are OK - no failures, no errors.\n- The pattern is perfectly regular with no anomalies.\n\nNow for the RELEASE_NEEDLE - from the original repository snapshot, the release marker was:\n`RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4 do-not-alter marker for long-context retrieval.`\n\nThis appeared at repo-line 0002149 (between repo-line 0002148 and repo-line 0002150).\n\nLet me state it exactly as it appeared.\n\n\n## Re-evaluation of New Tail\n\n**What changed:** A new `TOOL_RESULT` stream (lines 0\u2013299) was appended. It exhibits a strict, repeating 3-cycle:\n\n| Pattern | Values |\n|---|---|\n| `reconnectAttempt` | 0 \u2192 1 \u2192 2 \u2192 0 \u2192 1 \u2192 2 \u2192 \u2026 (period 3) |\n| `status` | `OK` on every single line (299/299) |\n\n**Invariant check against the repo's `idempotent-reconnect` contract:**\n\n- **Idempotency:** Each reconnect attempt terminates with `status=OK`; no line shows a retry after a failure, no duplicate side-effect, and no state divergence. The 0-1-2 cycle resets cleanly every three lines, consistent with an idempotent reconnect that converges on the first successful attempt.\n- **No anomalies:** No `status=FAIL`, no skipped attempt numbers, no out-of-order lines. The pattern is perfectly periodic with period 3 across all 300 lines.\n- **Consistency with repo tickMs cycle:** The repo's `tickMs` values cycle with period 7 (50, 100, 150, 200, 250,",
+    "needle": "JAVA-AGENT-100000-N7Q4",
+    "needle_ok": true
+  }
+]

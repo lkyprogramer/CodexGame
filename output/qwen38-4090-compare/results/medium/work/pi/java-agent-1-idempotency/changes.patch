@@ -1,0 +1,25 @@
+diff --git a/src/main/java/com/acme/order/OrderService.java b/src/main/java/com/acme/order/OrderService.java
+index 53861c7..9510452 100644
+--- a/src/main/java/com/acme/order/OrderService.java
++++ b/src/main/java/com/acme/order/OrderService.java
+@@ -1,16 +1,12 @@
+ package com.acme.order;
+-import java.util.*;
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.atomic.AtomicLong;
+ public final class OrderService {
+-  private final Map<String, Reservation> reservations = new HashMap<>();
++  private final Map<String, Reservation> reservations = new ConcurrentHashMap<>();
+   private final AtomicLong sequence = new AtomicLong();
+   public Reservation reserve(String orderId, int amount) {
+-    Reservation old = reservations.get(orderId);
+-    if (old != null) return old;
+-    Reservation created = new Reservation(orderId, amount, sequence.incrementAndGet());
+-    Thread.yield();
+-    reservations.put(orderId, created);
+-    return created;
++    return reservations.computeIfAbsent(orderId, id -> new Reservation(id, amount, sequence.incrementAndGet()));
+   }
+   public int size() { return reservations.size(); }
+ }

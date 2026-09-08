@@ -1,0 +1,47 @@
+[
+  {
+    "tag": "cache-cold",
+    "ok": true,
+    "error": null,
+    "prompt_tokens": 99699,
+    "completion_tokens": 512,
+    "cached_tokens": 0,
+    "ttft_s": 56.456,
+    "wall_s": 66.091,
+    "decode_tps": 53.15,
+    "prefill_tps": 1775.49,
+    "text": "The user wants me to:\n1. Remember the release marker\n2. Analyze reconnect invariants\n\nLet me identify the release marker first:\n- `RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4 do-not-alter marker for long-context retrieval.` (at repo-line 0002149)\n\nNow let me analyze the reconnect invariants. Looking at the data:\n\nEvery line has:\n- `module=exam-runtime`\n- `state=ACTIVE`\n- `invariant=idempotent-reconnect`\n- `tenant=tXX` (cycling through t00 to t96, which is 97 tenants)\n- `tickMs` values cycling through: 50, 100, 150, 200, 250, 300, 350 (7 values)\n\nLet me verify the patterns:\n\n**Tenant cycling**: t00, t01, t02, ..., t96, then back to t00, t01, ... This is a cycle of 97 tenants.\n\n**tickMs cycling**: 50, 100, 150, 200, 250, 300, 350, then back to 50, 100, ... This is a cycle of 7 values.\n\nLet me verify:\n- Line 0: t00, tickMs=50\n- Line 1: t01, tickMs=100\n- Line 2: t02, tickMs=150\n- Line 3: t03, tickMs=200\n- Line 4: t04Stop thinking. State the answer or the next smallest action now.50\n- Line 5: t05, tickMs=300\n- Line 6: t06, tickMs=350\n- Line 7: t07, tickMs=50\n- Line 8: t08, tickMs=100\n\nSo the pattern is:\n- Tenant index = line_number mod 97\n- tickMs = 50 + (line_number mod 7) * 50\n\nLet me verify:\n- Line 0: tenant",
+    "needle": "JAVA-AGENT-100000-N7Q4",
+    "needle_ok": true
+  },
+  {
+    "tag": "cache-exact",
+    "ok": true,
+    "error": null,
+    "prompt_tokens": 4,
+    "completion_tokens": 512,
+    "cached_tokens": 99695,
+    "ttft_s": 0.631,
+    "wall_s": 9.021,
+    "decode_tps": 60.92,
+    "prefill_tps": 16.0,
+    "text": "The user wants me to:\n1. Remember the release marker\n2. Analyze reconnect invariants\n\nLet me identify the release marker first:\n- `RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4 do-not-alter marker for long-context retrieval.` (found at repo-line 0002149)\n\nNow let me analyze the reconnect invariants:\n\nLooking at the data, every line has:\n- `module=exam-runtime`\n- `state=ACTIVE`\n- `invariant=idempotent-reconnect`\n\nThe tenants cycle through t00 to t96 (97 tenants total).\n\nThe tickMs values cycle through: 50, 100, 150, 200, 250, 300, 350 (7 values).\n\nLet me verify the pattern:\n- Line 0: t00, tickMs=50\n- Line 1: t01, tickMs=100\n- Line 2: t02, tickMs=150\n- Line 3: t03, tickMs=200\n- Line 4: t04, tickMs=250\n- Line 5: t05, tickMs=300\n- Line 6: t06, tickMs=350\n- Line 7: t07, tickMs=50\n- Line 8: t08, tickMs=100\n...\n\nSo the pattern is:\n- Tenant cycles: t00, t01, ..., t96, t00, t01, ... (97 tenants)\n- tickMs cycles: 50,Stop thinking. State the answer or the next smallest action now.**Release Marker:** `RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4` (repo-line 0002149)\n\n**Reconnect Invariant Analysis:**\n\nEvery line in the snapshot declares the same invariant: **`idempotent-reconnect`** under `module=exam-runtime`, `state=ACTIVE`.\n\n**Structural pattern:**\n\n| Dimension | Cycle | Period |\n|-----------|-------|--------|\n| Tenant | t00 \u2192 t96 | 97 |",
+    "needle": "JAVA-AGENT-100000-N7Q4",
+    "needle_ok": true
+  },
+  {
+    "tag": "cache-append",
+    "ok": true,
+    "error": null,
+    "prompt_tokens": 5238,
+    "completion_tokens": 512,
+    "cached_tokens": 99695,
+    "ttft_s": 4.994,
+    "wall_s": 15.868,
+    "decode_tps": 47.07,
+    "prefill_tps": 1127.1,
+    "text": "The user asks me to:\n1. Re-evaluate only what changed in the new tail (TOOL_RESULT lines)\n2. State the original RELEASE_NEEDLE exactly\n\nThe new tail shows TOOL_RESULT lines from 0 to 299, all with status=OK and reconnectAttempt cycling 0,1,2 in a repeating pattern. This is a new data stream that didn't exist before. The key observations:\n- All statuses are OK\n- reconnectAttempt cycles 0\u21921\u21922\u21920\u21921\u21922... perfectly\n- No failures, no anomalies\n- This confirms the idempotent-reconnect invariant: every reconnect attempt succeeds (status=OK), and the attempt counter resets cleanly (0,1,2 cycle), demonstrating idempotency \u2014 repeated reconnects produce the same successful outcome without side effects.\n\nThe RELEASE_NEEDLE from the original repo snapshot was:\n`RELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4 do-not-alter marker for long-context retrieval.`\n\nIt appeared at repo-line 0002149.\n\nLet me state it exactly as it appeared.\n**RELEASE_NEEDLE (stated exactly):**\n\n```\nRELEASE_NEEDLE=JAVA-AGENT-100000-N7Q4 do-not-alter marker for long-context retrieval.\n```\n\n**Re-evaluation of the new tail (what changed):**\n\nThe tool returned 300 new `TOOL_RESULT` lines (line 0\u2013299) that were not present in the original repo snapshot. Key observations:\n\n1. **Status**: Every single line reports `status=OK`. Zero failures across all 300 reconnect events.\n2. **reconnectAttempt cycle**: The counter follows a strict, repeating `0 \u2192 1 \u2192 2 \u2192 0 \u2192 1 \u2192 2 \u2026` pattern with period 3. No attempt exceeds 2, and the sequence never breaks.\n3. **Invariant confirmation**: This runtime evidence is consistent with the `invariant=idempotent-reconnect` declared on every repo-line. The idempotency is demonstrated by:\n   - Repeated reconnects always terminate in `OK` (no state corruption or escalation).\n   - The attempt counter resets to 0 after each full 0-1-2 cycle, indicating each reconnect episode is self-contained and leaves no residual state that would alter the next episode's",
+    "needle": "JAVA-AGENT-100000-N7Q4",
+    "needle_ok": true
+  }
+]
