@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "rank": 256,
+  "seeds": [
+    17
+  ],
+  "learning_rate": 0.001,
+  "weight_decay": 0.01,
+  "grad_clip": 1.0,
+  "optimizer": "AdamW",
+  "precision": "bf16-forward-fp32-optimizer",
+  "warmup_steps": 100,
+  "microbatch_tokens": 64,
+  "effective_batch_tokens": 1024,
+  "max_epochs": 3,
+  "max_steps": 6000,
+  "max_rank_trials": 3,
+  "rank_trial_values": [
+    128,
+    256,
+    512
+  ],
+  "max_targeted_repair_rounds": 2,
+  "label_token_stages": [
+    4096,
+    32768,
+    262144
+  ],
+  "max_extension_labels": 262144,
+  "state_anchor": {
+    "layers_per_batch": 1,
+    "value_heads_per_batch": 4,
+    "initial_window": 32,
+    "qualified_window": 128,
+    "detach_boundaries": true
+  },
+  "losses": {
+    "attention": 1.0,
+    "preconv_qkv": 1.0,
+    "exp_g_beta": 0.2,
+    "final_hidden": 0.5,
+    "state_anchor": 0.1
+  },
+  "group_split": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15
+  },
+  "seed_is_not_independent_task": true
+}

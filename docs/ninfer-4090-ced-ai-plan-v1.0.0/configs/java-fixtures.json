@@ -1,0 +1,415 @@
+{
+  "schema_version": 1,
+  "kind": "fixture_spec_not_implemented_java_repositories",
+  "candidate_must_not_read_ground_truth": true,
+  "fixtures": [
+    {
+      "id": "J01",
+      "title": "金额舍入",
+      "candidate_requirement": "金额格式化使用HALF_EVEN，不能从double构造BigDecimal后再舍入。",
+      "protected_judge_assertions": "1.005→1.00；1.015→1.02；-1.005→-1.00；数值字符串保持十进制精度。",
+      "repository_group": "ced-fixture-j01",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J02",
+      "title": "整数溢出",
+      "candidate_requirement": "订单总额累计要检测long溢出并抛ArithmeticException，不能静默回绕。",
+      "protected_judge_assertions": "MAX_VALUE+1失败；MAX_VALUE+0成功；负边界同样检查。",
+      "repository_group": "ced-fixture-j02",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J03",
+      "title": "日期区间",
+      "candidate_requirement": "按Asia/Shanghai日历日期查询闭开区间[start,end)，边界转Instant准确。",
+      "protected_judge_assertions": "start时刻包含；end时刻排除；2026-09-01的本地零点转换正确。",
+      "repository_group": "ced-fixture-j03",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J04",
+      "title": "分页偏移",
+      "candidate_requirement": "page从1开始，pageSize为1..100，计算offset使用long并校验非法入参。",
+      "protected_judge_assertions": "page1 offset0；page3 size20 offset40；page0/size101非法；大page不int溢出。",
+      "repository_group": "ced-fixture-j04",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J05",
+      "title": "稳定去重",
+      "candidate_requirement": "按用户ID保留首次出现顺序，不能使用无序HashSet输出。",
+      "protected_judge_assertions": "[b,a,b,c,a]→[b,a,c]；空集合成功；null按契约拒绝。",
+      "repository_group": "ced-fixture-j05",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J06",
+      "title": "LRU更新",
+      "candidate_requirement": "更新已有key同时刷新最近使用顺序，容量不可越界。",
+      "protected_judge_assertions": "cap2 putA,putB,getA,putC淘汰B；updateA不增size。",
+      "repository_group": "ced-fixture-j06",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J07",
+      "title": "幂等并发",
+      "candidate_requirement": "同一requestId并发提交只执行一次副作用，后续得到同一已提交结果。",
+      "protected_judge_assertions": "32线程同key副作用1次；两个不同key各1次；异常尝试不被当已完成。",
+      "repository_group": "ced-fixture-j07",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J08",
+      "title": "重试边界",
+      "candidate_requirement": "只对指定瞬时异常重试，最多3次尝试，保留原始中断标记。",
+      "protected_judge_assertions": "两次瞬时失败后成功共3次；不可重试异常1次；中断不吞掉。",
+      "repository_group": "ced-fixture-j08",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J09",
+      "title": "CSV解析",
+      "candidate_requirement": "处理引号内逗号和双引号转义，明确拒绝未闭合引号。",
+      "protected_judge_assertions": "a,\"b,c\",\"d\"\"e\"解析3列；空末列保留；未闭合失败。",
+      "repository_group": "ced-fixture-j09",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J10",
+      "title": "查询参数编码",
+      "candidate_requirement": "HTTP query component按UTF-8编码，空格为%20，保留键值结构。",
+      "protected_judge_assertions": "中文、+、&、=与空值正确；不对整条URL重复编码。",
+      "repository_group": "ced-fixture-j10",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J11",
+      "title": "路径边界",
+      "candidate_requirement": "相对文件名只能解析到指定根内，拒绝..逃逸与绝对路径。",
+      "protected_judge_assertions": "正常a/b可用；../secret与绝对路径拒绝；规范化后在根内。",
+      "repository_group": "ced-fixture-j11",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J12",
+      "title": "空配置覆盖",
+      "candidate_requirement": "可选配置只有present时覆盖默认，false/0不能被当成未提供。",
+      "protected_judge_assertions": "显式false覆盖true；显式0保留；缺项使用默认。",
+      "repository_group": "ced-fixture-j12",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J13",
+      "title": "DTO映射",
+      "candidate_requirement": "更新DTO不应把缺失字段覆盖为null，但显式clear标记应清空。",
+      "protected_judge_assertions": "省略name保留；给name更新；clearName=true清空且冲突入参拒绝。",
+      "repository_group": "ced-fixture-j13",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J14",
+      "title": "排序一致性",
+      "candidate_requirement": "按score降序、id升序，Comparator满足传递性且不使用减法溢出。",
+      "protected_judge_assertions": "极大/极小score排序正确；同score按id；随机三元组传递性。",
+      "repository_group": "ced-fixture-j14",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J15",
+      "title": "缓存失效",
+      "candidate_requirement": "更新实体后只失效对应cache key，删除后不返回旧实体。",
+      "protected_judge_assertions": "updateA不影响B；deleteA后read不存在；key规范一致。",
+      "repository_group": "ced-fixture-j15",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J16",
+      "title": "Outbox提交边界",
+      "candidate_requirement": "业务提交成功才发布事件，发布失败保持可重试状态。",
+      "protected_judge_assertions": "业务rollback事件0；提交事件1；发布失败不标done；重试后done。",
+      "repository_group": "ced-fixture-j16",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J17",
+      "title": "游标分页",
+      "candidate_requirement": "同时间戳记录按(timestamp,id)稳定翻页，不漏不重。",
+      "protected_judge_assertions": "相同timestamp跨页全部覆盖；空页结束；cursor非法拒绝。",
+      "repository_group": "ced-fixture-j17",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J18",
+      "title": "字符截断",
+      "candidate_requirement": "按Unicode code point数截断，不能拆代理对。",
+      "protected_judge_assertions": "A😀B截2→A😀；0→空；超长保留原串；负limit非法。",
+      "repository_group": "ced-fixture-j18",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J19",
+      "title": "权限匹配",
+      "candidate_requirement": "权限路径匹配必须区分完整segment，/admin不能匹配/administrator。",
+      "protected_judge_assertions": "/admin与/admin/users允许；/administrator拒绝；规范化规则一致。",
+      "repository_group": "ced-fixture-j19",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J20",
+      "title": "资源关闭",
+      "candidate_requirement": "读取失败和正常结束都关闭stream，主异常保留，关闭异常为suppressed。",
+      "protected_judge_assertions": "成功close1次；读取throw仍close1次；双异常保留主因。",
+      "repository_group": "ced-fixture-j20",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J21",
+      "title": "线程本地清理",
+      "candidate_requirement": "请求退出时清除ThreadLocal，异常分支也清理，防止线程池串用户。",
+      "protected_judge_assertions": "复用单线程pool两个user不串；异常请求后下一请求无残留。",
+      "repository_group": "ced-fixture-j21",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J22",
+      "title": "唯一约束冲突",
+      "candidate_requirement": "并发创建同业务key时返回既有对象，不把所有数据库错误吞成成功。",
+      "protected_judge_assertions": "duplicate-key走查询；网络/语法异常传播；不同key不误复用。",
+      "repository_group": "ced-fixture-j22",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J23",
+      "title": "批量部分失败",
+      "candidate_requirement": "批量结果按原输入顺序返回逐项状态，不因一个失败丢失其他结果。",
+      "protected_judge_assertions": "成功/失败/成功保序；结果数等于输入数；失败原因明确。",
+      "repository_group": "ced-fixture-j23",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    },
+    {
+      "id": "J24",
+      "title": "多文件接口兼容",
+      "candidate_requirement": "调整service实现但保留旧controller路径、请求字段及返回结构。",
+      "protected_judge_assertions": "旧路由和字段仍可用；新增边界测试通过；保护API快照不被修改。",
+      "repository_group": "ced-fixture-j24",
+      "required_validation": [
+        "broken_revision_fails",
+        "reference_revision_passes",
+        "candidate_patch_clean_judge"
+      ],
+      "seeds": [
+        17,
+        41,
+        73
+      ]
+    }
+  ]
+}

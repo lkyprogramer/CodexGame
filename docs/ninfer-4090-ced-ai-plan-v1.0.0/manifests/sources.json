@@ -1,0 +1,98 @@
+{
+  "retrieved_on": "2026-09-11",
+  "baseline_sha": "44a2c6c3392c9d51e76a895ed97bf1867530d252",
+  "sources": [
+    {
+      "id": "S01",
+      "title": "固定提交与当前HEAD",
+      "url": "https://github.com/tensorninja/ninfer-4090/commit/44a2c6c3392c9d51e76a895ed97bf1867530d252",
+      "evidence": "已读取GitHub commit集合；默认分支当前HEAD"
+    },
+    {
+      "id": "S02",
+      "title": "构建要求",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/CMakeLists.txt",
+      "evidence": "CMake3.28/CUDA>=12.8/sm_89/BUILD_TESTING"
+    },
+    {
+      "id": "S03",
+      "title": "性能与INT8 prefill限制",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/docs/performance.md",
+      "evidence": "仓库报告，不是本次对用户主机测量"
+    },
+    {
+      "id": "S04",
+      "title": "GDN/ReplaySSM接口",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/include/ninfer/ops/gated_delta_net.h",
+      "evidence": "FP64 oracle、张量shape、Replay T=2..16"
+    },
+    {
+      "id": "S05",
+      "title": "原生CED结构与训练",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash",
+      "evidence": "仅用于区分原生CED与既有Qwen近似改造，不引用其成绩作为本项目依据"
+    },
+    {
+      "id": "S06",
+      "title": "Qwen3.8-27B模型状态",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/docs/maintainer/qwen3.8-27b-model.md",
+      "evidence": "64层、GDN/attention形状、final hidden、MTP"
+    },
+    {
+      "id": "S07",
+      "title": "TextContext执行实现",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/runtime/text_context_impl.h",
+      "evidence": "run_layers、gdn_mix、prefill_impl、mtp_prefill_chunk"
+    },
+    {
+      "id": "S08",
+      "title": "卷积历史合同",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/include/ninfer/ops/causal_conv1d_silu.h",
+      "evidence": "BF16 [C,3] oldest→newest"
+    },
+    {
+      "id": "S09",
+      "title": "仓库工程与训练职责",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/AGENTS.md",
+      "evidence": "外部训练分工；新增近似路径需显式扩展合同"
+    },
+    {
+      "id": "S10",
+      "title": "Continuation缓存合同",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/docs/continuation-cache.md",
+      "evidence": "state inventory、compatibility、L1/L2/L3与aliases"
+    },
+    {
+      "id": "S11",
+      "title": "测试注册与skip合同",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/tests/CMakeLists.txt",
+      "evidence": "SKIP_RETURN_CODE77、实际已有测试名"
+    },
+    {
+      "id": "S12",
+      "title": "现有状态容器",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/state/decoder_state.cpp",
+      "evidence": "逐层paged KV与GDN pool"
+    },
+    {
+      "id": "S13",
+      "title": "已有GDN实现目录",
+      "url": "https://github.com/tensorninja/ninfer-4090/tree/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/ops/linear_attention/gated_delta_net",
+      "evidence": "正确目录；不是src/ops/gated_delta_net"
+    },
+    {
+      "id": "S14",
+      "title": "当前runtime prefill入口",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/runtime/text_prefill_impl.h",
+      "evidence": "prefill_text_chunk/configure_text_card"
+    }
+  ],
+  "user_records": [
+    {
+      "id": "U01",
+      "title": "d6f1461e-1648-4dbf-925a-7e087c9483ac.md",
+      "record_date": "2026-09-08",
+      "description": "用户Library中的部署与优化文档；本包只保留必要配置摘要，不复制secret或完整用户文档"
+    }
+  ]
+}

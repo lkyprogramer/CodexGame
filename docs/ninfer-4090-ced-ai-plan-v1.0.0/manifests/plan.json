@@ -1,0 +1,1963 @@
+{
+  "schema_version": 1,
+  "title": "NInfer-4090 Late-State Prefill AI Plan",
+  "version": "1.0.0",
+  "created_on": "2026-09-11",
+  "baseline_sha": "44a2c6c3392c9d51e76a895ed97bf1867530d252",
+  "delivery_kind": "plan_not_engine_implementation",
+  "phases": [
+    {
+      "id": "P0",
+      "title": "冻结基线、资源预检与实验护栏",
+      "goal": "建立可归因、可恢复、单GPU串行的实验基座。",
+      "entry": "用户后续明确授权执行；CPU工作无需停生产。",
+      "gate": "原生基线可复现，保护测试通过，资源/输入分布足以支持冷prefill实验。",
+      "suites": [
+        "environment",
+        "guard",
+        "harness",
+        "native-baseline"
+      ],
+      "optional": false,
+      "tasks": [
+        "P0-T01",
+        "P0-T02",
+        "P0-T03",
+        "P0-T04",
+        "P0-T05"
+      ],
+      "gate_task": "P0-G",
+      "document": "phases/P0.md"
+    },
+    {
+      "id": "P1",
+      "title": "分层执行与Teacher-state注入",
+      "goal": "在完全没有预测误差的条件下，证明跳过晚层prefill后状态能正确接回原runtime。",
+      "entry": "P0-G=PASS。",
+      "gate": "oracle注入合同通过；原生off路径不变；Teacher路径与真实性能路径严格分离。",
+      "suites": [
+        "range-contract",
+        "oracle-no-spec",
+        "off-regression"
+      ],
+      "optional": false,
+      "tasks": [
+        "P1-T01",
+        "P1-T02",
+        "P1-T03",
+        "P1-T04",
+        "P1-T05"
+      ],
+      "gate_task": "P1-G",
+      "document": "phases/P1.md"
+    },
+    {
+      "id": "P2",
+      "title": "StateOnly GDN与状态写入原语",
+      "goal": "用真实Teacher输入重建状态，验证省略readout的数学、数值和资源开销。",
+      "entry": "P1-G=PASS。",
+      "gate": "独立oracle通过、conv完整、长T无状态轨迹爆炸，净成本预算可继续。",
+      "suites": [
+        "state-only-numerical",
+        "conv-kv-state",
+        "state-only-performance"
+      ],
+      "optional": false,
+      "tasks": [
+        "P2-T01",
+        "P2-T02",
+        "P2-T03",
+        "P2-T04",
+        "P2-T05"
+      ],
+      "gate_task": "P2-G",
+      "document": "phases/P2.md"
+    },
+    {
+      "id": "P3",
+      "title": "有界数据与Predictor训练",
+      "goal": "训练小型late-state预测器，给出未见repo/session上的可学习性证据。",
+      "entry": "P2-G=PASS；Teacher与训练进程分时独占GPU。",
+      "gate": "数据无泄漏、资源合格、token/state损失有正向信号；不冒充端到端通过。",
+      "suites": [
+        "dataset-integrity",
+        "training-reload",
+        "predictor-shadow"
+      ],
+      "optional": false,
+      "tasks": [
+        "P3-T01",
+        "P3-T02",
+        "P3-T03",
+        "P3-T04",
+        "P3-T05",
+        "P3-T06"
+      ],
+      "gate_task": "P3-G",
+      "document": "phases/P3.md"
+    },
+    {
+      "id": "P4",
+      "title": "CED-16冷Prefill闭环与非空尾部",
+      "goal": "实现真实请求到预测前缀、原生尾部和target输出；先no-spec。",
+      "entry": "P3-G=PASS，固定一个ced16 Predictor。",
+      "gate": "至少24项质量smoke通过；64K/128K冷TTFT研发Gate通过；来源/回退正确。",
+      "suites": [
+        "ced16-no-spec",
+        "tail-rollback",
+        "ced16-performance"
+      ],
+      "optional": false,
+      "tasks": [
+        "P4-T01",
+        "P4-T02",
+        "P4-T03",
+        "P4-T04",
+        "P4-T05"
+      ],
+      "gate_task": "P4-G",
+      "document": "phases/P4.md"
+    },
+    {
+      "id": "P5",
+      "title": "MTP、缓存来源与续接一致性",
+      "goal": "让合格CED16与MTP3及现有continuation机制正确协同。",
+      "entry": "P4-G=PASS；no-spec与MTP分别保留证据。",
+      "gate": "MTP所有状态完备，缓存不会混源，取消/恢复安全；与nativeMTP3公平对比。",
+      "suites": [
+        "mtp-state",
+        "cache-provenance",
+        "continuation",
+        "cancel-and-sampling"
+      ],
+      "optional": false,
+      "tasks": [
+        "P5-T01",
+        "P5-T02",
+        "P5-T03",
+        "P5-T04",
+        "P5-T05"
+      ],
+      "gate_task": "P5-G",
+      "document": "phases/P5.md"
+    },
+    {
+      "id": "P6",
+      "title": "200K与真实Java/Pi资格化",
+      "goal": "在目标Agent循环中证明范围内的净收益，公开质量证据的统计边界。",
+      "entry": "P5-G=PASS；固定CED16 Predictor/config，不继续调测试集。",
+      "gate": "所有required correctness通过，真实长度和loop有效；质量/性能门槛达标；统计不足仅private opt-in。",
+      "suites": [
+        "long-context",
+        "java-fixtures",
+        "pi-loop",
+        "paired-statistics",
+        "qualification"
+      ],
+      "optional": false,
+      "tasks": [
+        "P6-T01",
+        "P6-T02",
+        "P6-T03",
+        "P6-T04",
+        "P6-T05"
+      ],
+      "gate_task": "P6-G",
+      "document": "phases/P6.md"
+    },
+    {
+      "id": "P7",
+      "title": "有条件拓展CED24与CED32",
+      "goal": "只在CED16真有效后尝试更激进split，独立训练和统一资格化。",
+      "entry": "P6-G=PASS；opt_in_extended_splits=true。",
+      "gate": "P7A与P7B各自统一Gate；失败保留上一合格档，不强行32/32。",
+      "suites": [
+        "ced24-subgate",
+        "ced32-subgate",
+        "split-decision"
+      ],
+      "optional": true,
+      "tasks": [
+        "P7-T01",
+        "P7-T02",
+        "P7-T03",
+        "P7-T04"
+      ],
+      "gate_task": "P7-G",
+      "document": "phases/P7.md"
+    },
+    {
+      "id": "P8",
+      "title": "默认关闭的交付、恢复演练与报告",
+      "goal": "交付最高合格实验档及可复现证据，保持生产配置不被暗改。",
+      "entry": "P6-G=PASS即可；P7可不执行。",
+      "gate": "新制品/启动方式/文档一致、off默认、原生恢复成功；未做GPU测试明确标记。",
+      "suites": [
+        "release-consistency",
+        "rollback-rehearsal",
+        "final-evidence"
+      ],
+      "optional": false,
+      "tasks": [
+        "P8-T01",
+        "P8-T02",
+        "P8-T03",
+        "P8-T04"
+      ],
+      "gate_task": "P8-G",
+      "document": "phases/P8.md"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "P0-T01",
+      "phase": "P0",
+      "title": "只读冻结真实环境与源码映射",
+      "owner": "Harness",
+      "depends_on": [],
+      "files": [
+        "NEW tools/ced_lab/preflight.py",
+        "NEW tools/ced_lab/resolve_sources.py",
+        "NEW tests/ced_lab/test_preflight.py"
+      ],
+      "contract": "preflight(config)->EnvironmentManifest；resolve_sources(repo,sha)->SourceMap。输出实际binary/artifact/image/toolchain身份，不从nvidia-smi推导nvcc。",
+      "steps": [
+        "读取07规定的非secret字段；校验base SHA与镜像ID，取得可用GPU/RAM/磁盘；记录原生产active/enabled。",
+        "创建独立LAB_ROOT和基线/candidate副本，锁定44a2c6c；只能在实验副本写文件。用08的grep并读调用关系解析五个source_map键。",
+        "生成environment.json、source-map-resolved.json、experiment-resolved.json；路径保护使用realpath，拒绝生产目录及其子目录。"
+      ],
+      "cases": [
+        "路径是生产目录/符号链接指向生产目录：拒绝且零写入",
+        "toolkit12.3被误选：明确失败；CUDA13.2容器记录完整",
+        "artifact SHA错误/空GPU/磁盘不足：BLOCKED，不自动下载或清理"
+      ],
+      "outputs": [
+        "runs/P0/environment.json",
+        "runs/P0/source-map-resolved.json",
+        "configs/experiment-resolved.json"
+      ],
+      "failure_action": "只读检查不符则停止在P0，保留实际信息；不要升级生产或替换权重。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P0-T02",
+      "phase": "P0",
+      "title": "独占GPU与维护恢复保护",
+      "owner": "Harness",
+      "depends_on": [
+        "P0-T01"
+      ],
+      "files": [
+        "NEW tools/ced_lab/guard.py",
+        "NEW tests/ced_lab/test_guard.py"
+      ],
+      "contract": "run_guarded(argv,config)->RunExit；仅allow_production_pause=true且白名单unit允许stop/start；watchdog与原active状态绑定。",
+      "steps": [
+        "先实现mock systemctl/docker/NVML适配器；建立file lock、原子maintenance记录与路径/端口白名单。",
+        "实现授权检查、外部watchdog、超时、SIGTERM/INT收尾；只能结束当前run创建的实验进程；原inactive不得自动start。",
+        "用mock先演练每一步失败；真实GPU时同一guard内串行切oracle/candidate，结束后health检查生产原model。"
+      ],
+      "cases": [
+        "未授权且生产active：不调用stop，返回BLOCKED_RESOURCE",
+        "实验timeout/parent death/恢复命令失败：恢复动作和退出码明确",
+        "原inactive、抢锁、未知GPU进程：不得改原状态或杀进程"
+      ],
+      "outputs": [
+        "tools/ced_lab/guard.py",
+        "runs/P0/guard-tests.json",
+        "runs/P0/restore-proof.json"
+      ],
+      "failure_action": "恢复保护不通过则禁止任何真实GPU实验；不能以trap声称覆盖SIGKILL/掉电。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P0-T03",
+      "phase": "P0",
+      "title": "统一Phase runner、证据格式和失败检测",
+      "owner": "Harness",
+      "depends_on": [
+        "P0-T01"
+      ],
+      "files": [
+        "NEW tools/ced_lab/run_phase.py",
+        "NEW tools/ced_lab/result_schema.py",
+        "NEW tools/ced_lab/suites.json",
+        "NEW tests/ced_lab/test_runner.py"
+      ],
+      "contract": "run_phase(--phase,--config,--out)产生05规定证据并返回0/2/3/4。suite注册所有未来检查，但缺文件/测试名必须BLOCKED而不是PASS。",
+      "steps": [
+        "实现argv列表执行、超时、脱敏日志、raw metrics写入；禁止shell=True执行模型生成内容。",
+        "CTest从结构化测试结果读取实际count和skip；required suite至少一个测试，exit77转换为未取得证据。",
+        "Gate按manifests/gates.json锁定检查ID；没有GPU、empty metrics、NaN、missing evidence、非当前SHA结果一律不允许PASS。"
+      ],
+      "cases": [
+        "CTest 0 tests/全部SKIP/metric NaN：拒绝PASS",
+        "某command exit1但外层tee返回0：仍FAIL",
+        "旧commit证据、缺PredictorSHA或样本不足：INCONCLUSIVE/BLOCKED"
+      ],
+      "outputs": [
+        "tools/ced_lab/suites.json",
+        "runs/P0/harness-tests.json"
+      ],
+      "failure_action": "证据机制不可靠先修，不通过更多真实样本掩盖。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P0-T04",
+      "phase": "P0",
+      "title": "建立固定请求与Java测试夹具清单",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P0-T01"
+      ],
+      "files": [
+        "NEW tools/ced_lab/build_fixtures.py",
+        "NEW tools/ced_lab/fixture_manifest.py",
+        "NEW tests/ced_lab/test_fixtures.py"
+      ],
+      "contract": "build_fixtures(spec,tokenizer)->固定request corpus；Java题按configs/java-fixtures.json建broken/reference/judge三份隔离仓库。",
+      "steps": [
+        "用真实tokenizer形成4K/32K/64K/128K/200K渲染prompt并记录精确token IDs或digest；保存system/tools/medium设置。",
+        "生成长上下文12类定位fixture；初始Java先生成4个代表用例，完整24题在P6完成；训练和test按repo/session分离。",
+        "设计标签泄漏检测：candidate workspace没有答案、reference patch和judge目录；broken fail/reference pass后才标valid。"
+      ],
+      "cases": [
+        "字符长度接近但token不足目标：fixture无效",
+        "broken版本也通过：fixture无效，不计统计",
+        "同repo同时出现在train/test或candidate可读judge：直接FAIL"
+      ],
+      "outputs": [
+        "runs/P0/fixture-manifest.json",
+        "runs/P0/native-request-corpus.jsonl"
+      ],
+      "failure_action": "不能生成足够有效fixture则只交付工具状态，不编造质量基线。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P0-T05",
+      "phase": "P0",
+      "title": "原生A/B基线、瓶颈和收益上界测量",
+      "owner": "Runtime",
+      "depends_on": [
+        "P0-T02",
+        "P0-T03",
+        "P0-T04"
+      ],
+      "files": [
+        "NEW tools/ced_lab/bench_native.py",
+        "NEW tools/ced_lab/analyze_profile.py"
+      ],
+      "contract": "baseline manifest同时包含native-no-spec和native-MTP3，性能阶段切分与cold/warm分布。",
+      "steps": [
+        "在CUDA13.2容器构建baseline，显式BUILD_TESTING=ON；选择native相关CPU/GPU测试，再跑原制品smoke。",
+        "按06矩阵记录冷输入、warm append、root rewrite、MTP3；记录early/late/attention/GDN/MLP/restore时间，排除Teacher tap开销。",
+        "估算T_new=T_early+T_predictor+T_state_build+T_tail+T_MTP+T_other；先检查显存余量与晚层可节省时间，冻结Gate阈值、计时定义和采样。"
+      ],
+      "cases": [
+        "cache off但reused tokens非零：本次cold样本无效",
+        "实际prompt+output超过capacity：拒绝，不截断后冒充200K",
+        "64K/128K重复波动过大：INCONCLUSIVE；不得选最快一次"
+      ],
+      "outputs": [
+        "runs/P0/native-baseline.json",
+        "runs/P0/bottleneck.json",
+        "runs/P0/resource-budget.json",
+        "runs/P0/thresholds.lock.json"
+      ],
+      "failure_action": "若主要耗时不在未缓存prefill或理论净收益不足1.10×，给出NO-GO/局部实验结论，不盲目训练。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P1-T01",
+      "phase": "P1",
+      "title": "新增range执行与策略纯函数",
+      "owner": "Runtime",
+      "depends_on": [
+        "P0-G"
+      ],
+      "files": [
+        "MOD src/targets/qwen3_8/impl/runtime/text_context.h",
+        "MOD src/targets/qwen3_8/impl/runtime/text_context_impl.h",
+        "NEW src/targets/qwen3_8/impl/runtime/late_state_policy.h",
+        "NEW src/targets/qwen3_8/impl/runtime/late_state_policy.cpp",
+        "NEW tests/targets/qwen3_8_27b/test_ced_policy.cpp"
+      ],
+      "contract": "run_layers_range签名、LateStateConfig/Plan采用03；原run_layers委托[0,64)，不改Phase枚举或普通decode。",
+      "steps": [
+        "先写区间、split、tail和unsupported profile测试；空区间合法但不更新state，越界抛错。",
+        "把循环边界参数化，保持layer body、tap位置、scope和算子phase原样；新增27B support trait。",
+        "原生路径必须仍调用[0,64)；任何新mode未启用时不加载Predictor、不分配附加scratch。"
+      ],
+      "cases": [
+        "[0,64)与旧native相同运算计数和输出",
+        "[0,48)+[48,64)同一chunk不丢tap/MLP",
+        "split47/tail0/negative range：reject"
+      ],
+      "outputs": [
+        "ninfer_ced_policy_test"
+      ],
+      "failure_action": "若off结果改变，先回到等价range改造，不进入Teacher注入。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P1-T02",
+      "phase": "P1",
+      "title": "Teacher张量tap与完整状态清单",
+      "owner": "Runtime",
+      "depends_on": [
+        "P1-T01"
+      ],
+      "files": [
+        "NEW tools/ced_lab/teacher_inventory.py",
+        "MOD src/targets/qwen3_8/impl/runtime/text_context_impl.h",
+        "NEW tests/targets/qwen3_8_27b/test_ced_teacher_inventory.cpp"
+      ],
+      "contract": "TeacherInventory包含03的late KV、conv、recurrent、frontier、hidden、identity；no-spec明确不含MTP。",
+      "steps": [
+        "在split后tap h_split；只在测试/export开关下收集晚层实际pre-conv投影、K/V、g/beta、h_final。",
+        "没有可观测fused中间量时新增只用于export的instrumented epilogue，并与原算子represented输出比较。",
+        "生成带SHA/shape/dtype/codec/chunk/token范围的清单；tap-disabled零额外D2H，dump独立计时。"
+      ],
+      "cases": [
+        "遗漏conv或frontier：清单验证失败",
+        "fused tap重算导致数值不一致：拒绝Teacher标签",
+        "tap关闭时没有新增拷贝/文件写入"
+      ],
+      "outputs": [
+        "runs/P1/teacher-inventory.json",
+        "ninfer_ced_teacher_inventory_test"
+      ],
+      "failure_action": "Teacher标签不忠实则不能训练或做注入对照。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P1-T03",
+      "phase": "P1",
+      "title": "只允许实验使用的状态导出与注入",
+      "owner": "Runtime",
+      "depends_on": [
+        "P1-T02"
+      ],
+      "files": [
+        "NEW tools/ced_lab/oracle_injection.py",
+        "NEW tests/targets/qwen3_8_27b/test_ced_oracle.cpp",
+        "MOD src/targets/qwen3_8/impl/runtime/session_snapshot_impl.h"
+      ],
+      "contract": "Oracle注入只在test target或显式离线工具暴露，不能通过普通HTTP请求启用。注入点是p，不是最终输出之后。",
+      "steps": [
+        "Teacher完整运行[0,p)，序列化晚层状态；退出Teacher进程后candidate运行early-only[0,p)。",
+        "导入相同encoded KV和bit-preserving conv/recurrent，校验layer frontier全部p；运行同一非空tail和128步decode。",
+        "用实际artifact/codec/position校验，拒绝不匹配；记录state hash和第一分歧层/元素，不只检查自然语言看起来正常。"
+      ],
+      "cases": [
+        "1K/4K/32K，p落在chunk边界和边界±1均通过",
+        "故意打乱conv历史、改KV页位置或SHA：必须被检测",
+        "无Teacher文件的真实candidate启动不需要oracle输入"
+      ],
+      "outputs": [
+        "ninfer_ced_oracle_test",
+        "runs/P1/oracle-diff.json"
+      ],
+      "failure_action": "注入state不等价则仅定位state合同；不开始任何ML训练。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P1-T04",
+      "phase": "P1",
+      "title": "阶段耗时与额外内存可观测性",
+      "owner": "Harness",
+      "depends_on": [
+        "P1-T01"
+      ],
+      "files": [
+        "MOD include/ninfer/types.h",
+        "MOD src/serve/request_log.h",
+        "MOD src/serve/request_log.cpp",
+        "MOD tests/test_request_log.cpp"
+      ],
+      "contract": "新增late_state_* stats；未启用时off字段语义明确，现有指标不被偷换分母。",
+      "steps": [
+        "按03分离early/predictor/state/tail/MTP阶段；GPU事件测量与hostwall不混加双重计时。",
+        "将Teacher export成本放入独立diagnostics项，确保正式性能runner拒绝teacher_mode样本。",
+        "新增schema版本/nullable指标和zero-vs-absent测试，保证关功能不影响现有协议输出。"
+      ],
+      "cases": [
+        "Teacher样本被性能分析器拒绝",
+        "字段缺失/NaN/不满足阶段总和界限：FAIL",
+        "mode off保持原日志必需字段含义"
+      ],
+      "outputs": [
+        "runs/P1/metrics-schema-tests.json"
+      ],
+      "failure_action": "无法归因就先修计时，不计算加速比。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P1-T05",
+      "phase": "P1",
+      "title": "原生off回归与oracle基准固化",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P1-T03",
+        "P1-T04"
+      ],
+      "files": [
+        "NEW tools/ced_lab/check_oracle.py",
+        "MOD tests/CMakeLists.txt",
+        "NEW tests/ced_lab/test_oracle_report.py"
+      ],
+      "contract": "P1 fixture产出可被P2/P4/P5复用的state/oracle摘要，不把Teacher raw数据纳入git。",
+      "steps": [
+        "注册ninfer_ced_policy_test、teacher_inventory_test、oracle_test并设置真实制品缺失为未验证。",
+        "对原A和候选B(off)跑相同短输出、prefix真实测试、schema和memory检查。",
+        "生成P1 oracle golden digest与明确的determinism/profile条件，失配必须定位而非更新golden。"
+      ],
+      "cases": [
+        "off memory增加超过预算或速度劣化>3%：阻止推进",
+        "golden没有base/profile hash：无效",
+        "真实artifact test被skip：Gate不能PASS"
+      ],
+      "outputs": [
+        "runs/P1/oracle-golden-manifest.json",
+        "runs/P1/off-regression.json"
+      ],
+      "failure_action": "把原生回归与新实验隔离，修复后整个P1统一复验。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P2-T01",
+      "phase": "P2",
+      "title": "定义StateOnly Op与独立FP64参考",
+      "owner": "Kernel",
+      "depends_on": [
+        "P1-G"
+      ],
+      "files": [
+        "NEW include/ninfer/ops/gated_delta_net_state_only.h",
+        "NEW tests/test_gated_delta_net_state_only.cpp",
+        "NEW tests/ced_lab/test_state_oracle.py"
+      ],
+      "contract": "接口和shape严格按03；oracle独立于CUDA实现，small-T允许高精度逐token参考。",
+      "steps": [
+        "实现CPU FP64 reference，区分raw K normalization和already-normalized输入；按Hv/Hqk映射。",
+        "声明workspace query、alias和合法维度；先用无实现/错误实现验证测试确实失败。",
+        "为05列出的T/初始state/g/beta/head矩阵生成固定fixtures并保留represented输入。"
+      ],
+      "cases": [
+        "Q不存在时state正确；scale不能误乘state",
+        "g=0,beta=0 state不变；zero K只衰减",
+        "partial alias/坏shape/T0：reject"
+      ],
+      "outputs": [
+        "StateOnly Op contract",
+        "ninfer_gdn_state_only_test"
+      ],
+      "failure_action": "数学参考或shape未钉死前不写高性能kernel。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P2-T02",
+      "phase": "P2",
+      "title": "实现sm_89 large-T StateOnly路径",
+      "owner": "Kernel",
+      "depends_on": [
+        "P2-T01"
+      ],
+      "files": [
+        "NEW src/ops/linear_attention/gated_delta_net/state_only.cu",
+        "MOD @source_map.gdn_large_t_launcher",
+        "MOD @source_map.gdn_state_passing_kernel",
+        "MOD src/CMakeLists.txt"
+      ],
+      "contract": "沿现有chunked state passing保留有限精度边界；不生成Q readout或per-token完整S轨迹。",
+      "steps": [
+        "先做小T递推路径以连通测试，再提取现有大T算法的state-only部分；不要改原gated_delta_net默认实现。",
+        "删仅输出相关的Q/readout/scratch，保留必要normalized K/V/gates中间量；完整声明最大workspace。",
+        "使用CUDA事件和独立oracle测试；profile T=1024/2048和长序列多chunk推进，检查实际选路。"
+      ],
+      "cases": [
+        "所有固定数值fixtures满足05误差带",
+        "T=16/17/1024边界不误用Replay域",
+        "memory allocation随chunk而非总上下文平方增长"
+      ],
+      "outputs": [
+        "state_only.cu",
+        "runs/P2/state-only-error.json",
+        "runs/P2/state-only-kernel-profile.json"
+      ],
+      "failure_action": "高性能路径误差不合格可保留参考路径供诊断，但不能宣称性能Gate通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P2-T03",
+      "phase": "P2",
+      "title": "卷积历史与Attention KV构造器",
+      "owner": "Runtime",
+      "depends_on": [
+        "P1-G",
+        "P2-T01"
+      ],
+      "files": [
+        "NEW src/targets/qwen3_8/impl/runtime/late_state_prefill_impl.h",
+        "NEW tests/targets/qwen3_8_27b/test_ced_state_build.cpp"
+      ],
+      "contract": "build_late_state_chunk消费03张量、对应层weights和绝对position；使用原conv与原KV codec，不另写数学近似。",
+      "steps": [
+        "用Teacher pre-conv QKV运行原width4 conv；保留末3列、提取K/V，调用StateOnly。",
+        "用Teacher未norm K和V运行原K norm/RoPE和layer_view append；初期BF16短fixture，再rk4v4-e8。",
+        "实现chunk写入前容量检查、frontier只在全层完成后提交；输入p不包含tail。"
+      ],
+      "cases": [
+        "T1/2/3时history由旧状态与新输入拼接正确",
+        "每层KV只写对应页；sentinel相邻页不改变",
+        "RoPE位置偏移一位、QK分组错误均触发对照失败"
+      ],
+      "outputs": [
+        "ninfer_ced_state_build_test",
+        "runs/P2/teacher-state-reconstruction.json"
+      ],
+      "failure_action": "卷积或KV构造错误时不归因于Predictor，因为此时输入来自Teacher。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P2-T04",
+      "phase": "P2",
+      "title": "流式workspace与容量计划",
+      "owner": "Runtime",
+      "depends_on": [
+        "P2-T02",
+        "P2-T03"
+      ],
+      "files": [
+        "MOD src/targets/qwen3_8/impl/runtime/workspace_recipe.h",
+        "MOD src/targets/qwen3_8/impl/runtime/layouts_impl.h",
+        "NEW tests/targets/qwen3_8_27b/test_ced_memory.cpp"
+      ],
+      "contract": "workspace最大值由chunk/head/split定义；不得占用全部n×late_outputs buffer，保留native262144。",
+      "steps": [
+        "按一个late head/block消费输出并复用scratch，计算live-range重叠关系。",
+        "加入predictor预留权重预算和MTP暂留预算；启动期容量不足失败，不运行中临时malloc扩张。",
+        "对1024/2048chunk、262144capacity做dry-plan与实测峰值比对。"
+      ],
+      "cases": [
+        "额外scratch>声明容量：canary/allocator测试失败",
+        "开功能后native262144不能加载：不满足目标",
+        "200K输入显存峰值仍有至少512MiB余量"
+      ],
+      "outputs": [
+        "ninfer_ced_memory_test",
+        "runs/P2/memory-plan.json"
+      ],
+      "failure_action": "不足时先降低自身scratch/rank预算，不改原KV容量掩盖。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P2-T05",
+      "phase": "P2",
+      "title": "StateOnly数值误差与成本裁决",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P2-T02",
+        "P2-T03",
+        "P2-T04"
+      ],
+      "files": [
+        "NEW tools/ced_lab/bench_state_only.py",
+        "NEW tools/ced_lab/check_numerics.py"
+      ],
+      "contract": "报告math oracle误差、native额外误差和相对可省晚层时间；不用短Replay性能外推。",
+      "steps": [
+        "逐fixture输出native和new的NRMSE/max/分层分位数，检查误差随chunk和序列深度。",
+        "只用Teacher张量测state-build成本，Predictor成本用预算保守估算，计算净时间余量。",
+        "StateOnly微基准加上KV写入、conv、launch、同步一起纳入P4所需成本上限。"
+      ],
+      "cases": [
+        "仅报快kernel而忽略KV写入：报告无效",
+        "误差阈值根据candidate结果回调：禁止",
+        "保守净收益上限≤1.10×：STOP/NO-GO"
+      ],
+      "outputs": [
+        "runs/P2/numerics-summary.json",
+        "runs/P2/feasibility.json"
+      ],
+      "failure_action": "若状态构造成本已吞掉可省计算，则不继续大规模训练。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-T01",
+      "phase": "P3",
+      "title": "数据manifest、分组划分和预算器",
+      "owner": "ML",
+      "depends_on": [
+        "P2-G"
+      ],
+      "files": [
+        "NEW ced-research/data_manifest.py",
+        "NEW ced-research/tests/test_data_manifest.py",
+        "NEW tools/ced_lab/data_budget.py"
+      ],
+      "contract": "同repo/session及重复文件只能在一个split；最多128GiBrolling数据，Teacher处理token与标签token分开。",
+      "steps": [
+        "实现带source_group、split、positions、shard、dtype、SHA的manifest与去重键。",
+        "先划group再采样窗口，锁定test，不让训练checkpoint选择读test结果。",
+        "实现写前预算、2GiB shard上限、原子rename与完整性标记，越限停导出。"
+      ],
+      "cases": [
+        "同group跨split、路径穿越、truncated shard：reject",
+        "百万token预算超过限额：preflight拒绝",
+        "删除data只允许自有manifest引用且非生产路径"
+      ],
+      "outputs": [
+        "ced-research/data_manifest.py",
+        "runs/P3/dataset-plan.json"
+      ],
+      "failure_action": "数据划分/存储不可信就停止训练。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-T02",
+      "phase": "P3",
+      "title": "Teacher流式导出和anchor采样",
+      "owner": "ML",
+      "depends_on": [
+        "P3-T01"
+      ],
+      "files": [
+        "NEW tools/ced_lab/export_teacher.py",
+        "NEW ced-research/shard_reader.py",
+        "NEW ced-research/tests/test_shard_reader.py"
+      ],
+      "contract": "标签来自P1 actual tap；保存pre-conv、raw attention投影、g/beta、h_split、h_final，按04有限连续窗口。",
+      "steps": [
+        "先4096标签验证plumbing，再32768标签做learnability；覆盖不同绝对位置，不保存全序列所有层。",
+        "每个state-anchor只保存选中层/head的S0与目标state，FP32；conv history保持represented bits。",
+        "将工具trace、teacherSHA、token位置与manifest一致性校验，导出后卸载Teacher再训练。"
+      ],
+      "cases": [
+        "t/t+1错位或h_split选在norm前后错误：一致性测试失败",
+        "从不同precision路径重算标签：拒绝",
+        "导出中断后半shard不被reader读取"
+      ],
+      "outputs": [
+        "data/teacher-manifest.json",
+        "runs/P3/teacher-export.json"
+      ],
+      "failure_action": "原始标签不完整不可自动补零；重新导出损坏shard。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-T03",
+      "phase": "P3",
+      "title": "共享trunk与逐层head离线训练",
+      "owner": "ML",
+      "depends_on": [
+        "P3-T02"
+      ],
+      "files": [
+        "NEW ced-research/model.py",
+        "NEW ced-research/train.py",
+        "NEW ced-research/tests/test_predictor.py"
+      ],
+      "contract": "Predictor输出布局遵循03；初始rank256，包含MTP h_final head，参数<200M，固定训练上限。",
+      "steps": [
+        "实现5120→rank共享trunk、独立heads与gate参数化；编写shape/causal/no-future-token测试。",
+        "按04逐head反传、梯度累计，训练集统计归一化冻结；固定优化器、seed和依赖lock。",
+        "记录每head train/validation误差、步数、峰值VRAM；最多3epochs/6000steps，自动early-stop不是无限试验。"
+      ],
+      "cases": [
+        "sample t预测不读取t之后激活",
+        "checkpoint重载同输入输出一致，dtype符合manifest",
+        "NaN/Inf立即停止；参数/VRAM/磁盘超预算停止"
+      ],
+      "outputs": [
+        "predictors/ced16-pointwise.pt",
+        "ced-research/requirements.lock",
+        "runs/P3/train-pointwise.json"
+      ],
+      "failure_action": "训练不能收敛先检查标签/尺度，不立即增加到大模型。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-T04",
+      "phase": "P3",
+      "title": "状态损失与长程free-running验证",
+      "owner": "ML",
+      "depends_on": [
+        "P3-T03"
+      ],
+      "files": [
+        "NEW ced-research/state_loss.py",
+        "NEW ced-research/validate_state.py",
+        "NEW ced-research/tests/test_state_loss.py"
+      ],
+      "contract": "训练state-anchor与部署free-running分开；只对小窗口/选中heads反传，不加载完整27B梯度。",
+      "steps": [
+        "实现FP32小窗口递推与S0/conv注入训练，初始1层4heads32token，达标再128token。",
+        "在未见长上下文特征上，从自身生成状态连续推进；记录局部teacher-forced和from-zero误差差异。",
+        "将pointwise-only与state-loss版本配对比较；最多两次针对性修订，数据累计不越界。"
+      ],
+      "cases": [
+        "candidate validation偷读Teacher S0：判泄漏",
+        "局部误差低但长程state爆炸：不合格",
+        "截断BPTT跨batch残留state串样本：检测并失败"
+      ],
+      "outputs": [
+        "predictors/ced16-state.pt",
+        "runs/P3/state-generalization.json"
+      ],
+      "failure_action": "无可学习性信号则NO-GO；不以更大tail假装训练已成功。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-T05",
+      "phase": "P3",
+      "title": "Predictor导出到现有ninfer容器并绑定",
+      "owner": "Runtime",
+      "depends_on": [
+        "P3-T03"
+      ],
+      "files": [
+        "NEW ced-research/export_predictor.py",
+        "NEW tools/convert/qwen3_8_27b/convert_late_state_predictor.py",
+        "NEW src/targets/qwen3_8_27b/impl/late_state_predictor.h",
+        "NEW src/targets/qwen3_8_27b/impl/late_state_predictor.cpp",
+        "NEW tests/targets/qwen3_8_27b/test_ced_predictor.cpp"
+      ],
+      "contract": "独立late-state-predictor/v1 .ninfer制品，固定shape和baseSHA；不更改原base文件。",
+      "steps": [
+        "定义容器metadata与tensor inventory并实现转换，FP32gate与BF16weights边界显式。",
+        "27B私有binder校验split/head/layer/base hash，启动期加载；复用已有linear/nativeCUDA route，不加载PyTorch进server。",
+        "建立Python→C++输出parity；不同head独立检查，不以最终自然语言评估替代tensor校验。"
+      ],
+      "cases": [
+        "错baseSHA/缺head/维度错误/非法dtype：加载前reject",
+        "C++与Python represented输出在声明误差内",
+        "off模式未读取Predictor文件、无额外权重分配"
+      ],
+      "outputs": [
+        "predictors/ced16-r256.ninfer",
+        "ninfer_ced_predictor_test",
+        "runs/P3/export-parity.json"
+      ],
+      "failure_action": "导出parity失败先修格式与cast，不重训练掩盖。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-T06",
+      "phase": "P3",
+      "title": "Shadow可学习性报告与受控checkpoint选择",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P3-T04",
+        "P3-T05"
+      ],
+      "files": [
+        "NEW ced-research/select_checkpoint.py",
+        "NEW tools/ced_lab/predictor_shadow.py"
+      ],
+      "contract": "只依据validation和资源选择checkpoint；test封存；报告不是CED端到端验收。",
+      "steps": [
+        "对holdout特征以runtime predictor生成late inputs，调用P2构造器并与Teacher state比较。",
+        "输出逐层/位置/长度的误差、h_final误差和显存/吞吐；分离训练初始化和真实from-zero条件。",
+        "选一个ced16候选，冻结PredictorSHA与datasetSHA；尚未满足质量证据时只标prequalified。"
+      ],
+      "cases": [
+        "选checkpoint时访问final test：实验失效",
+        "仅平均误差改善但个别层爆炸：不推进",
+        "多个checkpoint挑最好test分数：禁止"
+      ],
+      "outputs": [
+        "runs/P3/learnability-report.md",
+        "predictors/selected.json"
+      ],
+      "failure_action": "没有候选通过资源和稳定性检查则停P3，不创建虚假selected记录。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P4-T01",
+      "phase": "P4",
+      "title": "Admission策略与新增CLI参数",
+      "owner": "Runtime",
+      "depends_on": [
+        "P3-G"
+      ],
+      "files": [
+        "MOD @source_map.serve_options_parser",
+        "MOD @source_map.cli_options_parser",
+        "MOD src/targets/qwen3_8/impl/runtime/late_state_policy.cpp",
+        "MOD tests/test_serve_options.cpp",
+        "MOD tests/test_cli_options.cpp"
+      ],
+      "contract": "实现03中--late-state-*参数；off默认，auto仅文本C1无LoRA、冷输入、长度资格内。",
+      "steps": [
+        "参数解析与cross-field校验：split匹配artifact，tail>=1，min_uncached和qualified_context有效。",
+        "原生prefix命中优先；未资格化model/media/adapter并不启用LSP。P4 spec!=none时明确拒绝LSP。",
+        "admission先规划完整内存和metadata再修改lane；各跳过原因写结构化字段。"
+      ],
+      "cases": [
+        "mode off无需Predictor；auto缺Predictor失败",
+        "4096短prompt走native，不伪造CED使用",
+        "Vision/C2/LoRA请求不进入半支持路径"
+      ],
+      "outputs": [
+        "runs/P4/admission-contract.json"
+      ],
+      "failure_action": "参数或兼容性不清楚先fail closed，不在计算中途补救。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P4-T02",
+      "phase": "P4",
+      "title": "流式early-prefix与late synthesis主执行",
+      "owner": "Runtime",
+      "depends_on": [
+        "P4-T01"
+      ],
+      "files": [
+        "MOD src/targets/qwen3_8/impl/runtime/late_state_prefill_impl.h",
+        "MOD src/targets/qwen3_8/impl/runtime/text_prefill_impl.h",
+        "MOD src/targets/qwen3_8/impl/runtime/program_impl.h"
+      ],
+      "contract": "逐chunk early[0,s)+预测晚层，输入范围严格[0,p)，不先跑tail，完成全层才推进frontier。",
+      "steps": [
+        "在现有Program/request plan中接入LSP，使用startup-fixed predictor/workspace；不复制另一个Program。",
+        "逐层/逐head消费预测输出，复用P2conv/KV/StateOnly；positions用原PreparedPrompt。",
+        "所有层完成同chunk之后更新进度；任何异常保留可回退点，不发布半完整continuation。"
+      ],
+      "cases": [
+        "trace显示晚层旧前缀MLP没有被偷偷执行",
+        "candidate运行无teacher文件、无未来token数据",
+        "每层frontier在chunk提交后相等，页数与tokens对应"
+      ],
+      "outputs": [
+        "runs/P4/synthesis-trace.json"
+      ],
+      "failure_action": "不能真正跳过晚层计算就不能把结果称为CED加速。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P4-T03",
+      "phase": "P4",
+      "title": "非空tail、首token和事务性回退",
+      "owner": "Runtime",
+      "depends_on": [
+        "P4-T02"
+      ],
+      "files": [
+        "MOD src/targets/qwen3_8/impl/runtime/late_state_prefill_impl.h",
+        "MOD src/targets/qwen3_8/impl/runtime/request_plan_impl.h",
+        "NEW tests/targets/qwen3_8_27b/test_ced_tail.cpp"
+      ],
+      "contract": "完成p后全层执行[p,n)，至少一个tail token；final hidden/logits来自原native层；异常需清洁重算。",
+      "steps": [
+        "按02顺序执行tail，覆盖p恰好chunk边界及±1，确认早期层未重复推进。",
+        "首token使用现有sampling与绝对position；no-spec连续输出128/2048token，保留Approximate origin。",
+        "在prediction/KV/conv/首token前注入失败，rollback到合法checkpoint或清lane，native重算；fallback耗时完整计入。"
+      ],
+      "cases": [
+        "tail1/512/1024/2048/4096输出可验证；tail0拒绝",
+        "故障后未清approx状态却标native：测试必须抓到",
+        "first-token位置和max_new边界正确，无越界KV"
+      ],
+      "outputs": [
+        "ninfer_ced_tail_test",
+        "runs/P4/rollback-tests.json"
+      ],
+      "failure_action": "首token/rollback失败为阻断性错误；不得继续MTP。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P4-T04",
+      "phase": "P4",
+      "title": "no-spec质量与误差分解",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P4-T03"
+      ],
+      "files": [
+        "NEW tools/ced_lab/evaluate_ced.py",
+        "NEW tests/targets/qwen3_8_27b/test_ced_no_spec.cpp",
+        "MOD tests/CMakeLists.txt"
+      ],
+      "contract": "比较A native、B off、C learned三臂；独立smoke、长检索、Teacher-forced KL各自报告。",
+      "steps": [
+        "运行24个smoke任务和L01/L02/L06/L08/L11；candidate不得接触答案和Teacher tensor。",
+        "将Teacher注入、Teacher inputs StateOnly、learned inputs StateOnly三层对照分离，定位实现/数值/学习误差。",
+        "在同token序列计算full-vocab KL/NLL，并报告自由生成patch与结构化任务的实际成功率。"
+      ],
+      "cases": [
+        "关键任务baseline成功candidate失败：阻止通过",
+        "greedy文本不同但语义同义不能替代编译测试",
+        "full-vocab padding rows未mask：诊断结果无效"
+      ],
+      "outputs": [
+        "ninfer_ced_no_spec_test",
+        "runs/P4/quality-smoke.json",
+        "runs/P4/kl.json"
+      ],
+      "failure_action": "先查state/position/训练分布，不能靠降低seed数或删失败题通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P4-T05",
+      "phase": "P4",
+      "title": "CED16性能与tail受控消融",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P4-T04"
+      ],
+      "files": [
+        "NEW tools/ced_lab/bench_ced.py",
+        "NEW tools/ced_lab/ablate_tail.py"
+      ],
+      "contract": "固定s48/rank/codec/chunk；每个tail是独立profile；64K/128K Gate以全部成本TTFT为准。",
+      "steps": [
+        "对tail512/1024/2048/4096先做validation，选满足质量的最小或更优tail；final test前冻结。",
+        "各长度5次配对A/B/C；记录early/predictor/state/tail与额外memory，绝不排除fallback成本。",
+        "达到1.10×及置信下界要求才进入P5；输出短输入native、cold与warm预计比例，保留无收益结论。"
+      ],
+      "cases": [
+        "tail调参读final test：本轮失效",
+        "通过减输出budget或关闭thinking制造提速：不合格",
+        "性能只来自换chunk/codec：消融不能归因CED"
+      ],
+      "outputs": [
+        "runs/P4/performance.json",
+        "runs/P4/ced16-qualified-config.json"
+      ],
+      "failure_action": "质量/性能取交集，无交集则NO-GO；不是挑单项最好数字。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P5-T01",
+      "phase": "P5",
+      "title": "扩展Teacher oracle到MTP完整状态",
+      "owner": "Runtime",
+      "depends_on": [
+        "P4-G"
+      ],
+      "files": [
+        "MOD tools/ced_lab/teacher_inventory.py",
+        "MOD tests/targets/qwen3_8_27b/test_ced_oracle.cpp",
+        "MOD src/targets/qwen3_8/impl/runtime/text_context_impl.h"
+      ],
+      "contract": "P1 oracle追加MTP KV、shifted alignment、hidden/pending/draft/checkpoint；不是仅保存末token。",
+      "steps": [
+        "按现有mtp_prefill_chunk与mtp alignment逻辑列出必要segment，导出真实final hidden列。",
+        "同prompt Teacher与injected候选串行运行MTP3，检查第一次spec round和后续128token。",
+        "构造chunk边界t/t+1、prompt最后列使用generated token以及tool checkpoint回退的fixture。"
+      ],
+      "cases": [
+        "缺MTP旧prefix KV或拿h_split替代h_final：失败",
+        "最后列shift错一位：首spec round发现分歧",
+        "Teacher file误在普通serve route启用：安全测试失败"
+      ],
+      "outputs": [
+        "runs/P5/mtp-oracle.json"
+      ],
+      "failure_action": "MTP Teacher注入还不正确时，不调接受率也不训练第二个大draft模型。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P5-T02",
+      "phase": "P5",
+      "title": "预测final hidden与MTP前缀准备",
+      "owner": "Runtime",
+      "depends_on": [
+        "P5-T01"
+      ],
+      "files": [
+        "MOD src/targets/qwen3_8/impl/runtime/late_state_prefill_impl.h",
+        "MOD src/targets/qwen3_8/impl/runtime/text_context_impl.h",
+        "MOD src/targets/qwen3_8_27b/impl/late_state_predictor.cpp",
+        "NEW tests/targets/qwen3_8_27b/test_ced_mtp.cpp"
+      ],
+      "contract": "旧前缀用P3 final-hidden head，tail用真正h_final；MTP stem/KV append仍为原生实现，target decode不改权重。",
+      "steps": [
+        "按chunk保存必要一列bridge，使用token[t+1]与h_final[t]，最后列等待首生成token后准备。",
+        "不保留整个200K hidden；预测head输出即消费到MTP KV；记录额外cost和memory。",
+        "测试MTP3、greedy/采样、draft全拒绝/全接受、容量边界与turn checkpoint；验收相对于相同approx state target。"
+      ],
+      "cases": [
+        "MTP纠正被宣称恢复native分布：报告不合格",
+        "MTP准备耗时漏出TTFT：性能样本无效",
+        "接受长度为0/全长，frontier与GDN/conv一致"
+      ],
+      "outputs": [
+        "ninfer_ced_mtp_test",
+        "runs/P5/mtp-cost-acceptance.json"
+      ],
+      "failure_action": "MTP路线不稳定可保留no-spec实验档，但不能替代现网MTP3默认。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P5-T03",
+      "phase": "P5",
+      "title": "Approximate provenance全链路持久化",
+      "owner": "Runtime",
+      "depends_on": [
+        "P4-G"
+      ],
+      "files": [
+        "MOD src/targets/qwen3_8/impl/runtime/program.h",
+        "MOD src/targets/qwen3_8/impl/runtime/continuation_image.h",
+        "MOD src/targets/qwen3_8/impl/runtime/session_snapshot_impl.h",
+        "MOD src/targets/qwen3_8/impl/runtime/prefix_identity.cpp",
+        "NEW tests/targets/qwen3_8_27b/test_ced_provenance.cpp"
+      ],
+      "contract": "03来源字段覆盖lane、checkpoint、snapshot和compatibility key；exact tail或decode不会把origin改为Native。",
+      "steps": [
+        "给首次合成frontier绑定predictor/split/tail/profile，在turn checkpoint同步保存。",
+        "提升变更后image framing/兼容版本，实验namespace独立；导入缺来源或不匹配的image安全miss。",
+        "stable-prefix和session alias带完整兼容域，不能因prompt_cache_key相同而复用。"
+      ],
+      "cases": [
+        "same tokens但Predictor/split/codec不同：miss",
+        "approx→正常decode100轮→存储：仍Approximate",
+        "故意去除origin字段或版本：reject/miss，不默认Native"
+      ],
+      "outputs": [
+        "ninfer_ced_provenance_test",
+        "runs/P5/provenance-tests.json"
+      ],
+      "failure_action": "来源泄漏是阻断级错误；停用所有approx缓存直到修复。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P5-T04",
+      "phase": "P5",
+      "title": "L1/L2与可选L3的恢复/会话测试",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P5-T02",
+        "P5-T03"
+      ],
+      "files": [
+        "NEW tools/ced_lab/test_cache_sessions.py",
+        "NEW tests/targets/qwen3_8_27b/test_ced_cache.cpp",
+        "MOD tests/test_continuation_cache.cpp"
+      ],
+      "contract": "P4 cold-only扩为同profile approximate续接；native prefix命中仍优先走native。L3不默认开启。",
+      "steps": [
+        "构造A→B→A会话、相同/不同predictor、同key改root/tools、L1逐出L2恢复，验证effective frontier。",
+        "明确区分warm native与warm approximate；追加suffix只按原state合法继续，不重新洗来源。",
+        "仅显式选L3耐久suite时用实验目录做真实多轮保存重启；校验corrupt/truncated image安全miss。"
+      ],
+      "cases": [
+        "restore image计时包括decode/hostcopy，不只记录传输",
+        "同key不同会话不污染结果",
+        "L3未测必须SKIPPED_OPTIONAL，不写“持久化已验证”"
+      ],
+      "outputs": [
+        "ninfer_ced_cache_test",
+        "runs/P5/cache-matrix.json"
+      ],
+      "failure_action": "没有完整恢复证据就关闭对应tier的approx复用，不扩大声明。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P5-T05",
+      "phase": "P5",
+      "title": "取消、fallback、协议和sampling综合回归",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P5-T04"
+      ],
+      "files": [
+        "NEW tests/targets/qwen3_8_27b/test_ced_lifecycle.cpp",
+        "MOD tests/test_openai_schema.cpp",
+        "MOD tests/test_responses_schema.cpp",
+        "MOD tests/test_anthropic_schema.cpp",
+        "MOD tests/CMakeLists.txt"
+      ],
+      "contract": "生产API兼容；C1限定不影响原生其他请求；Spec sampling不把不同分布的输出要求逐字相同。",
+      "steps": [
+        "在prefix synth、tail、MTP prepare、spec verify/fold和stream发布边界取消，检查没有半提交state。",
+        "原生off所有相关协议、tool-call、reasoning字段回归；临时兼容proxy匹配medium而不改生产。",
+        "与nativeMTP3比较decode、acceptance、TTFT、cache热点；数值correctness与吞吐分开判定。"
+      ],
+      "cases": [
+        "stream中断后下一请求继承错误状态：FAIL",
+        "unsupported请求进入LSP：FAIL",
+        "phase suite有SKIP或空结果：Gate不通过"
+      ],
+      "outputs": [
+        "ninfer_ced_lifecycle_test",
+        "runs/P5/integration-report.json"
+      ],
+      "failure_action": "先保证状态与协议，再讨论速度；不改客户端语义来绕开失败。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P6-T01",
+      "phase": "P6",
+      "title": "完整长上下文12类用例与边界",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P5-G"
+      ],
+      "files": [
+        "MOD tools/ced_lab/build_fixtures.py",
+        "NEW tools/ced_lab/run_long_context.py"
+      ],
+      "contract": "按06生成12类×位置×长度矩阵，必须actual 200000输入，output余量明确。",
+      "steps": [
+        "在64K/128K/200K覆盖五位置，加入历史纠正/跨文件引用/日志干扰；tokenizer数据固定。",
+        "native与candidate同fixture配对，输出精确评分和原始回答，retrieval与code类分开统计。",
+        "另做262144总容量附近native fallback、超资格范围和tail边界，用runtime stats确认实际路由。"
+      ],
+      "cases": [
+        "只设置max-context200K但prompt短：无效",
+        "输入被截断后评分成功：无效",
+        "早期信息丢失而平均检索率掩盖：逐类别报失败"
+      ],
+      "outputs": [
+        "runs/P6/long-context-results.jsonl"
+      ],
+      "failure_action": "200K失败只能降低资格化范围并明确记录，不能保留“200K已验证”。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P6-T02",
+      "phase": "P6",
+      "title": "24个Java独立夹具与可信评分",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P5-G"
+      ],
+      "files": [
+        "MOD tools/ced_lab/build_fixtures.py",
+        "NEW tools/ced_lab/judge_java.py",
+        "NEW tests/ced_lab/test_java_judge.py"
+      ],
+      "contract": "按configs/java-fixtures.json建24个独立bug repo；judge在独立clean副本对candidate patch评分，不信任Agent自报。",
+      "steps": [
+        "为每题生成broken/ref和隐藏assertions；broken必须红、reference必须绿，并记录实际编译命令。",
+        "使用Java8兼容源码、离线Maven依赖；测试环境只允许实验目录、受限命令和无secret网络。",
+        "candidate patch拷贝到clean judge目录，禁止修改protected test、跳过测试或只返回成功文本。"
+      ],
+      "cases": [
+        "Agent删测试/改pom跳过/写假报告：判失败",
+        "reference补丁未通过：fixture剔除并修复，不计结果",
+        "候选未改代码但声称done：按真实测试判定"
+      ],
+      "outputs": [
+        "runs/P6/java-fixture-validation.json",
+        "runs/P6/judge-contract.json"
+      ],
+      "failure_action": "评分链不可信就不输出模型能力数字。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P6-T03",
+      "phase": "P6",
+      "title": "Pi真实工具循环和生产形状对齐",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P6-T01",
+        "P6-T02"
+      ],
+      "files": [
+        "NEW tools/ced_lab/run_pi_suite.py",
+        "NEW tools/ced_lab/pi_transport_audit.py"
+      ],
+      "contract": "24题×3seed，20工具调用/300秒/4096输出预算，model字段与reasoning medium对齐；不能用单HTTP替代。",
+      "steps": [
+        "把同一Pi版本、prompt模板、tools、模型名和兼容层参数冻结；临时proxy不触碰生产。",
+        "串行native/candidate完整循环，记录每轮prompt cache、输入改写、实际读取/写入/编译/测试和最终patch。",
+        "加入多轮append与root rewrite，按warm/cold拆分真实时间；对外部编译时间和模型时间分别统计。"
+      ],
+      "cases": [
+        "Pi未实际调用工具或测试：不算Agent样本",
+        "reasoning effort/native-candidate不同：试验无效",
+        "任务超时/失败不能从耗时分母删除"
+      ],
+      "outputs": [
+        "runs/P6/pi-episodes.jsonl",
+        "runs/P6/pi-patches/",
+        "runs/P6/transport-audit.json"
+      ],
+      "failure_action": "没运行Pi只能标HTTP proxy evidence，不给出Pi已通过结论。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P6-T04",
+      "phase": "P6",
+      "title": "消融、置信区间与退化审查",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P6-T03"
+      ],
+      "files": [
+        "NEW ced-research/statistics.py",
+        "NEW tools/ced_lab/summarize_campaign.py",
+        "NEW ced-research/tests/test_statistics.py"
+      ],
+      "contract": "paired bootstrap以task/repo为cluster；强制保留失败样本；无数据不输出0误差。",
+      "steps": [
+        "计算A/B/C配对TTFT/totalmakespan、native成功candidate失败的harm事件、成功率差和统计区间。",
+        "分离LSP、MTP、cache、tail、chunk影响；只使用validation选定档位，test结果不再驱动调参。",
+        "给出small-sample private资格和production_quality_proven=false；可选严格CP扩展测试独立列出预算。"
+      ],
+      "cases": [
+        "同任务3seed被当独立n：统计测试失败",
+        "全0差bootstrap被当绝对无损证明：禁止",
+        "样本数不足或缺baseline：返回INCONCLUSIVE而非0%退化"
+      ],
+      "outputs": [
+        "runs/P6/statistics.json",
+        "runs/P6/ablation.md"
+      ],
+      "failure_action": "无法支持更强结论就缩小声明，不隐瞒置信区间。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P6-T05",
+      "phase": "P6",
+      "title": "CED16统一晋级/停止裁决",
+      "owner": "Integrator",
+      "depends_on": [
+        "P6-T04"
+      ],
+      "files": [
+        "NEW tools/ced_lab/qualify.py",
+        "NEW tests/ced_lab/test_qualification.py"
+      ],
+      "contract": "qualification依据05门槛，输出scope、qualified_context、cache/MTP支持、生产默认是否仍off。",
+      "steps": [
+        "核对P0至P5证据SHA与当前candidate二进制/ Predictor一致；实现变化必须回开受影响Gate。",
+        "所有质量/资源/性能门槛求交，选validated profile；不能把不同配置的最佳项拼成一个虚构配置。",
+        "若PASS private_opt_in，解锁P8及可选P7；若FAIL给NO-GO和原生恢复证明。"
+      ],
+      "cases": [
+        "统计不足却production_quality_proven=true：拒绝",
+        "MTP3失败只no-spec通过却发布MTP3：拒绝",
+        "性能配置与质量配置不同：拒绝"
+      ],
+      "outputs": [
+        "runs/P6/qualification.json",
+        "runs/P6/ced16-decision.md"
+      ],
+      "failure_action": "没有同一配置同时满足所有门槛就不晋级。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P7-T01",
+      "phase": "P7",
+      "title": "P7A：CED24独立数据、训练和接入",
+      "owner": "ML",
+      "depends_on": [
+        "P6-G"
+      ],
+      "files": [
+        "MOD ced-research/model.py",
+        "MOD ced-research/train.py",
+        "MOD src/targets/qwen3_8_27b/impl/late_state_predictor.cpp",
+        "NEW configs/ced24.json"
+      ],
+      "contract": "split40对应18GDN/6attention；从h40训练新Predictor，不能把ced16权重硬套到更多层。",
+      "steps": [
+        "按新shape重算参数、标签、workspace；保持128GiB rolling预算，不复制两份全数据。",
+        "复用P1/P2 Teacher与StateOnly验证，按P3约束训练新heads并冻结新SHA。",
+        "使用相同holdout、nativebaseline、MTP/cache profile准备完整P4-P6缩放配置。"
+      ],
+      "cases": [
+        "用ced16 predictor加载s40：必须reject",
+        "state/VRAM超预算：停止该split",
+        "任何off regression影响其他split：修复再测"
+      ],
+      "outputs": [
+        "predictors/ced24-r256.ninfer",
+        "runs/P7A/config.json"
+      ],
+      "failure_action": "可学习性不足最多两轮有根据修复；失败保留ced16。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P7-T02",
+      "phase": "P7",
+      "title": "P7A统一验证与CED32解锁条件",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P7-T01"
+      ],
+      "files": [
+        "MOD tools/ced_lab/run_phase.py",
+        "MOD tools/ced_lab/qualify.py"
+      ],
+      "contract": "P7A全体改造完成后统一重复相关P1-P6 Gate；通过且有更佳质量/速度交集才解锁P7B。",
+      "steps": [
+        "运行state injection、memory、no-spec/MTP、cache、long-context与Pi同一manifest；不能只测cold吞吐。",
+        "相对ced16要求同等质量且cold TTFT至少再改善5%，或有明确可用性理由，否则没有升级价值。",
+        "输出P7A gate.json和best_profile；P7A失败或无净收益则P7B保持NOT_RUN。"
+      ],
+      "cases": [
+        "P7A未PASS就执行P7B：runner拒绝",
+        "仅速度更快但质量新增退化：不晋级",
+        "通过用更长tail改善质量却不计成本：无效"
+      ],
+      "outputs": [
+        "runs/P7A/gate.json",
+        "runs/P7A/decision.md"
+      ],
+      "failure_action": "失败不影响ced16的有效证据，除非发现共享实现根因。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P7-T03",
+      "phase": "P7",
+      "title": "P7B：CED32独立实现与训练",
+      "owner": "ML",
+      "depends_on": [
+        "P7-T02"
+      ],
+      "files": [
+        "NEW configs/ced32.json",
+        "MOD ced-research/model.py",
+        "MOD src/targets/qwen3_8_27b/impl/late_state_predictor.cpp"
+      ],
+      "contract": "split32对应24GDN/8attention；只在P7A统一通过后运行，参数200M/weights512MiB限制不变。",
+      "steps": [
+        "以h32导出新分组窗口并训练，不推定更浅hidden有同等可预测性。",
+        "重新检查MTP final-hidden、conv、长程state误差和追加memory；profile identity完全独立。",
+        "把shared runtime变更对ced16/ced24重跑off与状态回归；更激进档不能破坏已有档。"
+      ],
+      "cases": [
+        "s32 state漂移随length加剧：停止",
+        "100K快但200K性能/质量失格：不能宣称更优",
+        "权重驻留三套造成OOM：仅加载所选一套"
+      ],
+      "outputs": [
+        "predictors/ced32-r256.ninfer",
+        "runs/P7B/config.json"
+      ],
+      "failure_action": "无需为达到“理论2×”无限加训练；失败回到best validated split。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P7-T04",
+      "phase": "P7",
+      "title": "P7B统一验证与最终Pareto选择",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P7-T03"
+      ],
+      "files": [
+        "MOD tools/ced_lab/run_phase.py",
+        "MOD tools/ced_lab/qualify.py",
+        "NEW tools/ced_lab/compare_splits.py"
+      ],
+      "contract": "每个split以自身完整Gate和相同fixed workload对比，最终选择质量、TTFT、MTP、VRAM的可行交集。",
+      "steps": [
+        "完整重复P7A的统一验证；所有质量和性能结果用相同PredictorSHA/config配对。",
+        "列出native、ced16、ced24、ced32和NOT_RUN/FAIL原因；不要隐藏失败档。",
+        "选实际最佳profile；可能仍是ced16。若需要在private/test之间区分资格，分别输出。"
+      ],
+      "cases": [
+        "跨profile拼数字：reject",
+        "分支共享修改后旧证据不匹配：重开相关Gate",
+        "没有完整P7B证据则保持NOT_RUN，不写已完成"
+      ],
+      "outputs": [
+        "runs/P7B/gate.json",
+        "runs/P7/split-comparison.md",
+        "runs/P7/best-profile.json"
+      ],
+      "failure_action": "P7B失败时P7总结可完成为“已裁决但未晋级”，P8只使用已通过profile。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P8-T01",
+      "phase": "P8",
+      "title": "封装候选构建与固定制品",
+      "owner": "Integrator",
+      "depends_on": [
+        "P6-G"
+      ],
+      "files": [
+        "NEW tools/ced_lab/package_candidate.py",
+        "NEW docs/late-state-prefill.md",
+        "MOD README.md",
+        "MOD docs/README.md"
+      ],
+      "contract": "一个选中Predictor+一个candidate image，独立tag，base保持只读；启动默认off，显式auto才启用。",
+      "steps": [
+        "从qualification选择已通过profile；若P7有best则读取其完整Gate，否则用ced16。",
+        "构建ninfer-4090-ced:<sha>，写清source/base/predictor/dependency身份，不覆盖原44a2c6c tag。",
+        "同步runtime/CLI/cache文档和支持矩阵；移除实验中废弃的生产路径，保留必要离线工具。"
+      ],
+      "cases": [
+        "默认启动加载Predictor或启用LSP：FAIL",
+        "tag覆盖baseline、base文件变化：FAIL",
+        "文档参数不在--help或不在parser tests：FAIL"
+      ],
+      "outputs": [
+        "release/manifest.json",
+        "release/launch-native.sh",
+        "release/launch-lsp.sh"
+      ],
+      "failure_action": "只输出候选制品，不修改production unit/NGINX或切流。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P8-T02",
+      "phase": "P8",
+      "title": "隔离环境的发布与回退演练",
+      "owner": "Harness",
+      "depends_on": [
+        "P8-T01"
+      ],
+      "files": [
+        "NEW tools/ced_lab/rehearse_release.py",
+        "NEW tests/ced_lab/test_release_guard.py"
+      ],
+      "contract": "演练仅使用实验端口和namespace；生产恢复到原active状态，不启用旧WORK/TEXT。",
+      "steps": [
+        "在授权维护窗口加载candidate，执行native off短回归和selected LSP完整smoke。",
+        "停candidate并恢复原镜像/原unit，检查model id、reasoning兼容字段、health与原文件hash。",
+        "模拟启动失败、Predictor缺失、磁盘满、cache版本不匹配；确认不会把错误状态带回原生。"
+      ],
+      "cases": [
+        "原来inactive被强行启动：FAIL",
+        "失败演练后生产端口仍被实验占据：FAIL",
+        "恢复日志无health或model检查：证据不足"
+      ],
+      "outputs": [
+        "release/rollback-proof.json",
+        "release/protected-files-diff.json"
+      ],
+      "failure_action": "恢复失败停止发布并明确报告；不把实验进程还在跑当作恢复。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P8-T03",
+      "phase": "P8",
+      "title": "证据审查、支持矩阵和风险披露",
+      "owner": "Evaluation",
+      "depends_on": [
+        "P8-T01",
+        "P8-T02"
+      ],
+      "files": [
+        "NEW tools/ced_lab/audit_release.py",
+        "NEW docs/late-state-prefill-evaluation.md"
+      ],
+      "contract": "最终报告分clearly measured / inferred / untested；只对实际通过的split/context/spec/cache组合声明支持。",
+      "steps": [
+        "核对所有报告SHA、raw metrics、test count和skip；Teacher注入与learned推理分开。",
+        "报告A/B/C的TTFT、decode、Agent成功率、完成时间、内存、训练成本与失败样本；给small-sample限制。",
+        "任何release代码影响数值/调度/缓存需重跑相关Phase及P6；仅docs改变可引用相同binary证据。"
+      ],
+      "cases": [
+        "未运行200K却支持矩阵标yes：FAIL",
+        "SKIP写成通过或target预测写实测：FAIL",
+        "仅展示最好的seed或成功任务：FAIL"
+      ],
+      "outputs": [
+        "release/FINAL-REPORT.md",
+        "release/support-matrix.json",
+        "release/evidence-index.json"
+      ],
+      "failure_action": "证据缺口清楚列出，不使用“已全部验证”笼统收尾。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P8-T04",
+      "phase": "P8",
+      "title": "交付AI接手说明与生产启用边界",
+      "owner": "Integrator",
+      "depends_on": [
+        "P8-T03"
+      ],
+      "files": [
+        "NEW release/OPERATIONS.md",
+        "NEW release/AI-HANDOFF.md",
+        "NEW release/NO-GO-OR-LIMITATIONS.md"
+      ],
+      "contract": "用户拿到一套固定入口、配置、回退与边界说明；生产启用需另一明确授权。",
+      "steps": [
+        "写启动、查询metrics、cache隔离、停机恢复命令，全部指向独立tag与受保护base。",
+        "保留private_opt_in资格字段，未达到统计门槛不声称无损；无收益档明确NO-GO。",
+        "生成校验和与最终zip，不含模型secret、原始私有prompt或巨型Teacher标签；原模型权重不打包。"
+      ],
+      "cases": [
+        "压缩包包含token/password/private dataset：阻止交付",
+        "handoff引用不存在脚本或浮动latest：FAIL",
+        "生产默认off与文档一致"
+      ],
+      "outputs": [
+        "release/ninfer-ced-candidate.zip",
+        "release/SHA256SUMS",
+        "release/AI-HANDOFF.md"
+      ],
+      "failure_action": "只交付证据充分的能力；不自行安装到生产。",
+      "resource": "cpu",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P0-G",
+      "phase": "P0",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P0-T01",
+        "P0-T02",
+        "P0-T03",
+        "P0-T04",
+        "P0-T05"
+      ],
+      "files": [
+        "EVIDENCE runs/P0/"
+      ],
+      "contract": "原生基线可复现，保护测试通过，资源/输入分布足以支持冷prefill实验。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：environment, guard, harness, native-baseline；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P0/gate.json",
+        "runs/P0/phase-report.md",
+        "runs/P0/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P1-G",
+      "phase": "P1",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P1-T01",
+        "P1-T02",
+        "P1-T03",
+        "P1-T04",
+        "P1-T05"
+      ],
+      "files": [
+        "EVIDENCE runs/P1/"
+      ],
+      "contract": "oracle注入合同通过；原生off路径不变；Teacher路径与真实性能路径严格分离。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：range-contract, oracle-no-spec, off-regression；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P1/gate.json",
+        "runs/P1/phase-report.md",
+        "runs/P1/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P2-G",
+      "phase": "P2",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P2-T01",
+        "P2-T02",
+        "P2-T03",
+        "P2-T04",
+        "P2-T05"
+      ],
+      "files": [
+        "EVIDENCE runs/P2/"
+      ],
+      "contract": "独立oracle通过、conv完整、长T无状态轨迹爆炸，净成本预算可继续。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：state-only-numerical, conv-kv-state, state-only-performance；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P2/gate.json",
+        "runs/P2/phase-report.md",
+        "runs/P2/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P3-G",
+      "phase": "P3",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P3-T01",
+        "P3-T02",
+        "P3-T03",
+        "P3-T04",
+        "P3-T05",
+        "P3-T06"
+      ],
+      "files": [
+        "EVIDENCE runs/P3/"
+      ],
+      "contract": "数据无泄漏、资源合格、token/state损失有正向信号；不冒充端到端通过。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：dataset-integrity, training-reload, predictor-shadow；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P3/gate.json",
+        "runs/P3/phase-report.md",
+        "runs/P3/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P4-G",
+      "phase": "P4",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P4-T01",
+        "P4-T02",
+        "P4-T03",
+        "P4-T04",
+        "P4-T05"
+      ],
+      "files": [
+        "EVIDENCE runs/P4/"
+      ],
+      "contract": "至少24项质量smoke通过；64K/128K冷TTFT研发Gate通过；来源/回退正确。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：ced16-no-spec, tail-rollback, ced16-performance；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P4/gate.json",
+        "runs/P4/phase-report.md",
+        "runs/P4/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P5-G",
+      "phase": "P5",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P5-T01",
+        "P5-T02",
+        "P5-T03",
+        "P5-T04",
+        "P5-T05"
+      ],
+      "files": [
+        "EVIDENCE runs/P5/"
+      ],
+      "contract": "MTP所有状态完备，缓存不会混源，取消/恢复安全；与nativeMTP3公平对比。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：mtp-state, cache-provenance, continuation, cancel-and-sampling；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P5/gate.json",
+        "runs/P5/phase-report.md",
+        "runs/P5/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P6-G",
+      "phase": "P6",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P6-T01",
+        "P6-T02",
+        "P6-T03",
+        "P6-T04",
+        "P6-T05"
+      ],
+      "files": [
+        "EVIDENCE runs/P6/"
+      ],
+      "contract": "所有required correctness通过，真实长度和loop有效；质量/性能门槛达标；统计不足仅private opt-in。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：long-context, java-fixtures, pi-loop, paired-statistics, qualification；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P6/gate.json",
+        "runs/P6/phase-report.md",
+        "runs/P6/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P7-G",
+      "phase": "P7",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P7-T01",
+        "P7-T02",
+        "P7-T03",
+        "P7-T04"
+      ],
+      "files": [
+        "EVIDENCE runs/P7/"
+      ],
+      "contract": "P7A与P7B各自统一Gate；失败保留上一合格档，不强行32/32。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：ced24-subgate, ced32-subgate, split-decision；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P7/gate.json",
+        "runs/P7/phase-report.md",
+        "runs/P7/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "P8-G",
+      "phase": "P8",
+      "title": "阶段统一集成测试、证据审查与Gate",
+      "owner": "Integrator",
+      "depends_on": [
+        "P8-T01",
+        "P8-T02",
+        "P8-T03",
+        "P8-T04"
+      ],
+      "files": [
+        "EVIDENCE runs/P8/"
+      ],
+      "contract": "新制品/启动方式/文档一致、off默认、原生恢复成功；未做GPU测试明确标记。",
+      "steps": [
+        "冻结本Phase全部改造合并后的同一集成提交、binary和PredictorSHA；先确认依赖Gate，不能重用不匹配证据。",
+        "一次性运行本Phase完整required suites：release-consistency, rollback-rehearsal, final-evidence；GPU串行独占，先CPU契约后真实制品，不把Task局部测试当整体验收。",
+        "检查actual cases/skip/exit code/raw metrics，按05门槛判PASS/FAIL/INCONCLUSIVE/BLOCKED；完成生产恢复检查，输出phase-report与gate.json。"
+      ],
+      "cases": [
+        "任何required检查缺失、0 cases或SKIP：禁止PASS",
+        "所有性能和质量必须来自同一个config与Predictor",
+        "故障后的原生恢复和受保护文件diff必须有证据"
+      ],
+      "outputs": [
+        "runs/P8/gate.json",
+        "runs/P8/phase-report.md",
+        "runs/P8/evidence-index.json"
+      ],
+      "failure_action": "阻止下一必需Phase；按09最多两轮有根据修复重验。P7失败可由P6合格档进入P8，不自动宣称激进档通过。",
+      "resource": "gpu-exclusive",
+      "status": "NOT_RUN"
+    }
+  ],
+  "subgate_conditions": {
+    "P7-T03": {
+      "requires": "P7A",
+      "status": "PASS"
+    }
+  },
+  "initial_state": "NOT_RUN",
+  "default_production_enable": false
+}

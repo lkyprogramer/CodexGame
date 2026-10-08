@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "all_thresholds_are_proposed_not_measured": true,
+  "status_values": [
+    "NOT_RUN",
+    "PASS",
+    "FAIL",
+    "INCONCLUSIVE",
+    "BLOCKED_RESOURCE",
+    "SKIPPED_OPTIONAL"
+  ],
+  "rules": {
+    "required_skips_allowed": false,
+    "required_min_cases": 1,
+    "current_config_identity_required": true,
+    "teacher_injection_counts_as_quality_evidence": false,
+    "private_opt_in_is_production_proof": false,
+    "task_local_pass_unlocks_phase": false
+  },
+  "thresholds": {
+    "off_max_regression_fraction": 0.03,
+    "cold_ced16_min_median_speedup": 1.1,
+    "cold_speedup_ci95_lower_exclusive": 1.0,
+    "cold_ced16_stretch_speedup": 1.15,
+    "decode_min_native_fraction": 0.95,
+    "decode_min_tokens_per_second": 20,
+    "hot_p50_max_native_ratio": 1.03,
+    "hot_p95_max_native_ratio": 1.05,
+    "agent_target_median_speedup": 1.05,
+    "quality_observed_min_delta_pp": -2.0,
+    "gpu_min_free_mib": 512,
+    "performance_repeats": 5,
+    "predictor_max_parameters": 200000000,
+    "predictor_max_runtime_weight_mib": 512,
+    "new_peak_target_mib": 1024,
+    "dataset_max_gib": 128,
+    "checkpoint_max_gib": 8,
+    "logs_max_gib": 8,
+    "production_harm_probability_upper95_max": 0.02,
+    "bootstrap_samples": 10000,
+    "bootstrap_seed": 20260911,
+    "p3_validation_loss_ratio_max": 0.8,
+    "p3_free_running_state_p95_nrmse_max": 0.5,
+    "p3_64k_to_32k_error_ratio_max": 2.0
+  },
+  "phases": [
+    {
+      "phase": "P0",
+      "gate_task": "P0-G",
+      "required_checks": [
+        "environment",
+        "guard",
+        "harness",
+        "native-baseline"
+      ],
+      "criterion": "原生基线可复现，保护测试通过，资源/输入分布足以支持冷prefill实验。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P1",
+      "gate_task": "P1-G",
+      "required_checks": [
+        "range-contract",
+        "oracle-no-spec",
+        "off-regression"
+      ],
+      "criterion": "oracle注入合同通过；原生off路径不变；Teacher路径与真实性能路径严格分离。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P2",
+      "gate_task": "P2-G",
+      "required_checks": [
+        "state-only-numerical",
+        "conv-kv-state",
+        "state-only-performance"
+      ],
+      "criterion": "独立oracle通过、conv完整、长T无状态轨迹爆炸，净成本预算可继续。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P3",
+      "gate_task": "P3-G",
+      "required_checks": [
+        "dataset-integrity",
+        "training-reload",
+        "predictor-shadow"
+      ],
+      "criterion": "数据无泄漏、资源合格、token/state损失有正向信号；不冒充端到端通过。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P4",
+      "gate_task": "P4-G",
+      "required_checks": [
+        "ced16-no-spec",
+        "tail-rollback",
+        "ced16-performance"
+      ],
+      "criterion": "至少24项质量smoke通过；64K/128K冷TTFT研发Gate通过；来源/回退正确。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P5",
+      "gate_task": "P5-G",
+      "required_checks": [
+        "mtp-state",
+        "cache-provenance",
+        "continuation",
+        "cancel-and-sampling"
+      ],
+      "criterion": "MTP所有状态完备，缓存不会混源，取消/恢复安全；与nativeMTP3公平对比。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P6",
+      "gate_task": "P6-G",
+      "required_checks": [
+        "long-context",
+        "java-fixtures",
+        "pi-loop",
+        "paired-statistics",
+        "qualification"
+      ],
+      "criterion": "所有required correctness通过，真实长度和loop有效；质量/性能门槛达标；统计不足仅private opt-in。",
+      "optional": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P7",
+      "gate_task": "P7-G",
+      "required_checks": [
+        "ced24-subgate",
+        "ced32-subgate",
+        "split-decision"
+      ],
+      "criterion": "P7A与P7B各自统一Gate；失败保留上一合格档，不强行32/32。",
+      "optional": true,
+      "status": "NOT_RUN"
+    },
+    {
+      "phase": "P8",
+      "gate_task": "P8-G",
+      "required_checks": [
+        "release-consistency",
+        "rollback-rehearsal",
+        "final-evidence"
+      ],
+      "criterion": "新制品/启动方式/文档一致、off默认、原生恢复成功；未做GPU测试明确标记。",
+      "optional": false,
+      "status": "NOT_RUN"
+    }
+  ]
+}
