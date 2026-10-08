@@ -1,0 +1,29 @@
+{
+  "kind": "LOCAL_JDK_FIXTURE_VALIDATION_NOT_AGENT_RUN",
+  "java_version": "openjdk version \"21.0.11\" 2026-04-21\nOpenJDK Runtime Environment (build 21.0.11+10-1-deb13u2-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.11+10-1-deb13u2-Debian, mixed mode, sharing)\n",
+  "records": [
+    {
+      "case": "java-agent-1-idempotency",
+      "baseline_exit": 1,
+      "baseline_output": "Exception in thread \"main\" java.lang.AssertionError: idempotency broken: seq=[1, 2, 3] size=1\n\tat com.acme.order.OrderServiceTest.main(OrderServiceTest.java:10)\n",
+      "temporary_control_fix_exit": 0,
+      "temporary_control_output": "PASS OrderServiceTest\n"
+    },
+    {
+      "case": "java-agent-2-retry-contract",
+      "baseline_exit": 1,
+      "baseline_output": "Exception in thread \"main\" java.lang.IllegalStateException: retry exhausted\n\tat com.acme.retry.RetryingClient.execute(RetryingClient.java:9)\n\tat com.acme.retry.RetryingClientTest.main(RetryingClientTest.java:9)\nCaused by: java.io.IOException: terminal\n\tat com.acme.retry.RetryingClientTest.main(RetryingClientTest.java:8)\n",
+      "temporary_control_fix_exit": 0,
+      "temporary_control_output": "PASS RetryingClientTest\n"
+    },
+    {
+      "case": "java-agent-3-reconnect-loop",
+      "baseline_exit": 1,
+      "baseline_output": "Exception in thread \"main\" java.lang.AssertionError: heartbeat timeout must be measured in milliseconds\n\tat com.acme.runtime.ReconnectCoordinatorTest.main(ReconnectCoordinatorTest.java:9)\n",
+      "temporary_control_fix_exit": 0,
+      "temporary_control_output": "PASS ReconnectCoordinatorTest\n"
+    }
+  ],
+  "original_files_unchanged": 23,
+  "note": "Fixes existed only in a deleted temporary directory. No GPU or model was used."
+}

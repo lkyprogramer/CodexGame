@@ -1,0 +1,110 @@
+[
+  {
+    "id": "S01",
+    "title": "NInfer DFlash2 数学、selector q、40MiB ring、提交合同",
+    "url": "https://github.com/Neroued/ninfer/blob/b88c0f6fc7e999f13eb2fcf7fc9105ed79a91868/docs/maintainer/qwen3.8-27b-dflash2.md",
+    "reviewed": "读取算法前455行；基于上游源码，不是本机复现"
+  },
+  {
+    "id": "S02",
+    "title": "NInfer DFlash2 制品、66对象后缀、W8与BF16分配",
+    "url": "https://github.com/Neroued/ninfer/blob/b88c0f6fc7e999f13eb2fcf7fc9105ed79a91868/docs/maintainer/qwen3.8-27b-artifact.md",
+    "reviewed": "读取前210行；W8主体/BF16 conv-selector，不能简单称为全W4"
+  },
+  {
+    "id": "S03",
+    "title": "44a small-T launcher",
+    "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/ops/launcher/gqa_attention_decode.cu",
+    "reviewed": "附件全文及GitHub核对；T=1..6"
+  },
+  {
+    "id": "S04",
+    "title": "44a build instantiations",
+    "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/CMakeLists.txt",
+    "reviewed": "附件全文；foreach RANGE 1 6"
+  },
+  {
+    "id": "S05",
+    "title": "44a E8 lattice/Root与读写路径",
+    "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/ops/kernel/gqa_attention_decode_i8.cuh",
+    "reviewed": "附件全文+GitHub258..280；半陪集近似不可静默修成另一格式"
+  },
+  {
+    "id": "S06",
+    "title": "44a prefill性能计划",
+    "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/docs/maintainer/prefill-throughput-plan.md",
+    "reviewed": "附件全文关键节，尤其约716..725：E8 lattice是encode-side"
+  },
+  {
+    "id": "S07",
+    "title": "DFlash2公开AL/吞吐表",
+    "url": "https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2",
+    "reviewed": "Exa全文；H200/SGLang/xhigh/K7，不是4090 medium"
+  },
+  {
+    "id": "S08",
+    "title": "vLLM 4090 recipe",
+    "url": "https://github.com/kernel-sanders/qwen38-27b-rtx4090-vision/blob/36317835f2224c620f4d604bd57bf0a70f14cade/README.md",
+    "reviewed": "此前核对并结合附件；本轮仅作既有控制组来源，不能拿headline当本机成绩"
+  },
+  {
+    "id": "S09",
+    "title": "SuffixDecoding项目/混合调度与场景差异",
+    "url": "https://suffix-decoding.github.io/",
+    "reviewed": "Exa全文；SWE-Bench端到端采用4xH100/并发8"
+  },
+  {
+    "id": "S10",
+    "title": "SuffixDecoding实现来源",
+    "url": "https://github.com/snowflakedb/ArcticInference",
+    "reviewed": "项目页确认代码仓库；具体移植提交必须由T05固定，不声称已审阅全部实现"
+  },
+  {
+    "id": "S11",
+    "title": "SageAttention公开core head维度限制",
+    "url": "https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py",
+    "reviewed": "本轮读取260..390；所读函数>128拒绝，varlen causal条件不可照搬"
+  },
+  {
+    "id": "S12",
+    "title": "SageAttention 256维未开放说明",
+    "url": "https://github.com/thu-ml/SageAttention/issues/47",
+    "reviewed": "web读取维护者答复；与当前core相互核对"
+  },
+  {
+    "id": "S13",
+    "title": "SageAttention-ada用途与真实vs合成差异",
+    "url": "https://github.com/fblissjr/SageAttention-ada",
+    "reviewed": "Exa全文；主要ComfyUI/DiT，不是已验证Qwen d256 paged kernel"
+  },
+  {
+    "id": "S14",
+    "title": "Ada资源与FP8硬件说明",
+    "url": "https://docs.nvidia.com/cuda/ada-tuning-guide/index.html",
+    "reviewed": "NVIDIA官方：100KiB/SM，99KiB/block，>48KiB需opt-in"
+  },
+  {
+    "id": "S15",
+    "title": "NVIDIA profiling权限；R610能力模式",
+    "url": "https://developer.nvidia.com/nvidia-development-tools-solutions-ERR_NVGPUCTRPERM-permission-issue-performance-counters",
+    "reviewed": "web；sudo/CAP_SYS_ADMIN或条件CAP_PERFMON，不必全局开放计数器"
+  },
+  {
+    "id": "S16",
+    "title": "NVIDIA Nsight Compute profiling guide",
+    "url": "https://docs.nvidia.com/nsight-compute/ProfilingGuide/",
+    "reviewed": "web；profiling samples不得混入生产吞吐"
+  },
+  {
+    "id": "S17",
+    "title": "Reddit历史帖镜像线索",
+    "url": "https://reddit.sentinel-team.org/posts/1vtz2ub/snapshots/2026-08-21T19%3A43%3A59.644708Z",
+    "reviewed": "Exa摘要，二手镜像，排除出决定性性能依据"
+  },
+  {
+    "id": "S18",
+    "title": "Kern既有运行时设计",
+    "url": "https://github.com/pegainfer-project/kern/tree/5188aaf8dc992ebe635f111d17c269969706da27",
+    "reviewed": "以本轮附件源码巡检报告为主；不重复声称本轮编译过Kern"
+  }
+]

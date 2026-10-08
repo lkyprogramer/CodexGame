@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Selected candidate qualification facts; values require linked raw evidence",
+  "type": "object",
+  "required": ["quality_pass", "state_pass", "sampling_pass", "artifact_pass", "paired_gain_lcb", "paired_n", "aa_noise_abs", "task_wall_ratio", "capacity", "headroom_mib", "ooms", "heldout_complete", "measurement_complete"],
+  "properties": {
+    "quality_pass": {"type": "boolean"},
+    "state_pass": {"type": "boolean"},
+    "sampling_pass": {"type": "boolean"},
+    "artifact_pass": {"type": "boolean"},
+    "heldout_complete": {"type": "boolean"},
+    "measurement_complete": {"type": "boolean"},
+    "paired_gain_lcb": {"type": "number", "description": "Direction-normalized paired ratio lower bound MINUS ONE, using the more conservative of bootstrap and t-interval (tools.metrics.paired_summary.ci95_low). ratio 1.04 -> gain fraction 0.04, not 1.04."},
+    "paired_n": {"type": "integer", "minimum": 0, "description": "Number of aligned ABBA pairs behind paired_gain_lcb for the primary bucket; gate requires >= 8 (docs/02 §3)."},
+    "aa_noise_abs": {"type": "number", "minimum": 0, "description": "max |ratio-1| observed in the baseline-vs-baseline (A/A) run of the same harness and bucket; gate requires <= 0.03."},
+    "task_wall_ratio": {"type": "number", "exclusiveMinimum": 0, "description": "Candidate wall time / baseline wall time"},
+    "capacity": {"type": "integer", "minimum": 1, "description": "Verified input+output+template tokens; protected value is 200192 (docs/02 §3), not the production 262144."},
+    "headroom_mib": {"type": "number", "minimum": 0},
+    "ooms": {"type": "integer", "minimum": 0}
+  },
+  "additionalProperties": true
+}

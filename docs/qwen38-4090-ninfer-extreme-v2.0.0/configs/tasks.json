@@ -1,0 +1,374 @@
+[
+  {
+    "id": "T00",
+    "title": "冻结实际环境、源码、制品与构建输入",
+    "depends_on": [],
+    "branch": "foundation",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T00.md",
+    "source_paths": [
+      "CMakeLists.txt",
+      "src/CMakeLists.txt",
+      "Dockerfile"
+    ],
+    "new_paths": [
+      "lab/runtime-lock.json",
+      "lab/source-diff-review.md",
+      "lab/memory-ledger.json"
+    ]
+  },
+  {
+    "id": "T01",
+    "title": "Mac控制器、GPU lease与真实验证adapter",
+    "depends_on": [
+      "T00"
+    ],
+    "branch": "foundation",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T01.md",
+    "source_paths": [
+      "tests/CMakeLists.txt",
+      "apps/serve/main.cpp"
+    ],
+    "new_paths": [
+      "tests/lab/lab_validate.cpp",
+      "lab/start_profile.py",
+      "lab/qualification.local.json"
+    ]
+  },
+  {
+    "id": "T02",
+    "title": "扩展每轮round计数（复用已有request/metrics账本）与20轨迹账本",
+    "depends_on": [
+      "T01"
+    ],
+    "branch": "foundation",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T02.md",
+    "source_paths": [
+      "src/targets/qwen3_8/impl/runtime/mtp_impl.h",
+      "src/ops/wrapper/speculative_round.cpp",
+      "tests/test_serve_metrics.cpp"
+    ],
+    "new_paths": [
+      "src/targets/qwen3_8/impl/telemetry/round_metrics.h",
+      "lab/import_request_traces.py"
+    ]
+  },
+  {
+    "id": "T03",
+    "title": "有界控制实验：rk8与现成DFlash2机会测量",
+    "depends_on": [
+      "T02"
+    ],
+    "branch": "foundation",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T03.md",
+    "source_paths": [],
+    "new_paths": [
+      "lab/profiles/rk8-200k.json",
+      "lab/profiles/vllm-dflash-fast.json",
+      "lab/decision.json"
+    ]
+  },
+  {
+    "id": "T04",
+    "title": "扩展现有精确采样器：ProposalBatch合同与Sparse16 q",
+    "depends_on": [
+      "T02"
+    ],
+    "branch": "algorithm",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T04.md",
+    "source_paths": [
+      "src/ops/kernel/speculative_round.cuh",
+      "src/ops/launcher/speculative_round.cu",
+      "tests/ops/test_speculative_round.cpp"
+    ],
+    "new_paths": [
+      "src/targets/qwen3_8/impl/speculation/proposal_contract.h",
+      "tests/lab/test_proposal_contract.cpp"
+    ]
+  },
+  {
+    "id": "T05",
+    "title": "会话内有界SuffixIndex",
+    "depends_on": [
+      "T02"
+    ],
+    "branch": "suffix",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T05.md",
+    "source_paths": [],
+    "new_paths": [
+      "src/targets/qwen3_8/impl/speculation/suffix_index.h",
+      "src/targets/qwen3_8/impl/speculation/suffix_index.cpp",
+      "tests/lab/test_suffix_index.cpp"
+    ]
+  },
+  {
+    "id": "T06",
+    "title": "Suffix链延长 + 现有MTP（v1零bridge；v2条件启动）",
+    "depends_on": [
+      "T04",
+      "T05"
+    ],
+    "branch": "suffix",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T06.md",
+    "source_paths": [
+      "src/targets/qwen3_8/impl/runtime/mtp_impl.h",
+      "src/targets/qwen3_8/impl/runtime/speculative_target_impl.h",
+      "src/targets/qwen3_8/impl/state/round_state.cpp",
+      "src/ops/kernel/speculative_round.cuh"
+    ],
+    "new_paths": [
+      "src/targets/qwen3_8/impl/speculation/hybrid_policy.h",
+      "tests/lab/test_hybrid_transition.cpp"
+    ]
+  },
+  {
+    "id": "T07",
+    "title": "W8合法验证路径、资源完整性与DFlash2收益前置门",
+    "depends_on": [
+      "T01"
+    ],
+    "branch": "dflash",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T07.md",
+    "source_paths": [
+      "src/CMakeLists.txt",
+      "src/ops/launcher/gqa_attention_decode.cu",
+      "src/ops/kernel/gqa_attention_decode_i8.cuh",
+      "tests/ops/test_gqa_attention.cpp"
+    ],
+    "new_paths": [
+      "tests/lab/test_verify_width.cpp",
+      "lab/width-audit.json"
+    ]
+  },
+  {
+    "id": "T08",
+    "title": "DFlash2 companion转换与不可变artifact绑定",
+    "depends_on": [
+      "T00",
+      "T03"
+    ],
+    "branch": "dflash",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T08.md",
+    "source_paths": [
+      "src/targets/qwen3_8_27b",
+      "tests/test_ninfer_artifact_reader.cpp"
+    ],
+    "new_paths": [
+      "lab/convert_dflash2_companion.py",
+      "lab/artifact-binding.json",
+      "tests/lab/test_dflash2_inventory.cpp"
+    ]
+  },
+  {
+    "id": "T09",
+    "title": "DFlash2动态卷积、conditioning与selector算子",
+    "depends_on": [
+      "T04",
+      "T07",
+      "T08"
+    ],
+    "branch": "dflash",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T09.md",
+    "source_paths": [
+      "src/targets/qwen3_8/impl/runtime/dflash_context_impl.h",
+      "src/targets/qwen3_8/impl/runtime/dflash_impl.h"
+    ],
+    "new_paths": [
+      "src/targets/qwen3_8/impl/runtime/dflash2_impl.h",
+      "tests/lab/test_dflash2_math.cpp"
+    ]
+  },
+  {
+    "id": "T10",
+    "title": "DFlash2状态事务、采样、Graph、恢复与会话持久化（新功能）",
+    "depends_on": [
+      "T09"
+    ],
+    "branch": "dflash",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T10.md",
+    "source_paths": [
+      "src/targets/qwen3_8/impl/state/round_state.cpp",
+      "src/targets/qwen3_8/impl/runtime/speculative_target_impl.h",
+      "src/targets/qwen3_8/impl/runtime/session_snapshot_impl.h",
+      "src/targets/qwen3_8/impl/runtime/continuation_image.h",
+      "tests/test_continuation_cache.cpp"
+    ],
+    "new_paths": [
+      "tests/lab/test_dflash2_lifecycle.cpp",
+      "lab/profiles/dflash2-w8.json"
+    ]
+  },
+  {
+    "id": "T11",
+    "title": "成本路由与窄/宽profile选择",
+    "depends_on": [
+      "T06"
+    ],
+    "branch": "routing",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T11.md",
+    "new_paths": [
+      "lab/cost-model.json",
+      "tests/lab/test_cost_policy.cpp"
+    ],
+    "depends_on_source_paths": [
+      "src/targets/qwen3_8/impl/speculation/hybrid_policy.h"
+    ],
+    "source_paths": []
+  },
+  {
+    "id": "T12",
+    "title": "W16 packed4 decode优化",
+    "depends_on": [
+      "T07",
+      "T06"
+    ],
+    "branch": "kernel",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T12.md",
+    "source_paths": [
+      "src/ops/launcher/gqa_attention_decode.cu",
+      "src/ops/kernel/gqa_attention_decode_i8.cuh",
+      "src/CMakeLists.txt"
+    ],
+    "new_paths": [
+      "tests/lab/test_verify16.cpp",
+      "bench/lab/verify_width_bench.cu"
+    ]
+  },
+  {
+    "id": "T13",
+    "title": "d256 prefill Attention低风险与FP8研究",
+    "depends_on": [
+      "T02",
+      "T15"
+    ],
+    "branch": "prefill",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T13.md",
+    "source_paths": [
+      "src/ops/kernel/gqa_attention_prefill_i8.cuh",
+      "tests/ops/test_gqa_attention.cpp"
+    ],
+    "new_paths": [
+      "tests/lab/test_prefill_d256.cpp",
+      "lab/profiles/prefill-d256.json",
+      "bench/lab/prefill_d256_bench.cu"
+    ]
+  },
+  {
+    "id": "T14",
+    "title": "A4 IMMA独立可行性尖峰",
+    "depends_on": [
+      "T13"
+    ],
+    "branch": "high-risk",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T14.md",
+    "source_paths": [
+      "src/ops/common/int8_rowsplit_gemm.cuh"
+    ],
+    "new_paths": [
+      "bench/lab/s4_probe.cu",
+      "lab/a4-feasibility.md"
+    ]
+  },
+  {
+    "id": "T15",
+    "title": "复用Java/长上下文与真实轨迹资格集",
+    "depends_on": [
+      "T01",
+      "T02"
+    ],
+    "branch": "quality",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T15.md",
+    "source_paths": [],
+    "new_paths": [
+      "lab/heldout-manifest.json",
+      "lab/quality-adapter.py",
+      "lab/capacity-probes.json"
+    ]
+  },
+  {
+    "id": "T16",
+    "title": "最终配对、定向soak与发布证据",
+    "depends_on": [
+      "T03",
+      "T15"
+    ],
+    "branch": "release",
+    "enabled": true,
+    "status": "NOT_STARTED",
+    "file": "tasks/T16.md",
+    "source_paths": [],
+    "new_paths": [
+      "lab/qualification-facts.json",
+      "lab/release-review.md"
+    ]
+  },
+  {
+    "id": "T17",
+    "title": "按真实miss触发的近史anchors",
+    "depends_on": [
+      "T02"
+    ],
+    "branch": "conditional-cache",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T17.md",
+    "source_paths": [
+      "src/targets/qwen3_8/impl/state/round_state.cpp",
+      "tests/test_continuation_cache.cpp"
+    ],
+    "new_paths": [
+      "tests/lab/test_branch_anchor.cpp",
+      "lab/cache-miss-review.md"
+    ]
+  },
+  {
+    "id": "T18",
+    "title": "有证据时做draft-head Ada MMA小补丁",
+    "depends_on": [
+      "T02"
+    ],
+    "branch": "conditional-kernel",
+    "enabled": false,
+    "status": "NOT_STARTED",
+    "file": "tasks/T18.md",
+    "source_paths": [
+      "src/ops/linear/w8/w8_small_t.cu",
+      "src/ops/linear/q4/q4_small_t_mma.cu"
+    ],
+    "new_paths": [
+      "bench/lab/proposal_head_bench.cu",
+      "lab/head-route-audit.md"
+    ]
+  }
+]

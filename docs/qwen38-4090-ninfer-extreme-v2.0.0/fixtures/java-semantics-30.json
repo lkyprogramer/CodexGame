@@ -1,0 +1,212 @@
+[
+  {
+    "id": "JQ01",
+    "name": "int-overflow",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q00 { public static String value() { int x=Integer.MAX_VALUE; return Integer.toString(x+1); } }\n```",
+    "expected_value": "-2147483648",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ02",
+    "name": "long-promotion",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q01 { public static String value() { int a=100000; int b=100000; return Long.toString((long)a*b); } }\n```",
+    "expected_value": "10000000000",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ03",
+    "name": "late-cast",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q02 { public static String value() { int a=100000; int b=100000; return Long.toString((long)(a*b)); } }\n```",
+    "expected_value": "1410065408",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ04",
+    "name": "negative-division",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q03 { public static String value() {  return Integer.toString(-7/3); } }\n```",
+    "expected_value": "-2",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ05",
+    "name": "negative-mod",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q04 { public static String value() {  return Integer.toString(-7%3); } }\n```",
+    "expected_value": "-1",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ06",
+    "name": "floor-div",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q05 { public static String value() {  return Integer.toString(Math.floorDiv(-7,3)); } }\n```",
+    "expected_value": "-3",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ07",
+    "name": "unsigned-shift",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q06 { public static String value() {  return Integer.toString(-1 >>> 30); } }\n```",
+    "expected_value": "3",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ08",
+    "name": "shift-distance",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q07 { public static String value() { int x=1; return Integer.toString(x << 32); } }\n```",
+    "expected_value": "1",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ09",
+    "name": "bigdecimal-equals",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q08 { public static String value() { var a=new java.math.BigDecimal(\"1.0\"); var b=new java.math.BigDecimal(\"1.00\"); return Boolean.toString(a.equals(b)); } }\n```",
+    "expected_value": "false",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ10",
+    "name": "bigdecimal-order",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q09 { public static String value() { var a=new java.math.BigDecimal(\"1.0\"); var b=new java.math.BigDecimal(\"1.00\"); return Integer.toString(a.compareTo(b)); } }\n```",
+    "expected_value": "0",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ11",
+    "name": "money-exact",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q10 { public static String value() {  return new java.math.BigDecimal(\"0.1\").add(new java.math.BigDecimal(\"0.2\")).toPlainString(); } }\n```",
+    "expected_value": "0.3",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ12",
+    "name": "round-half-even",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q11 { public static String value() {  return new java.math.BigDecimal(\"2.345\").setScale(2,java.math.RoundingMode.HALF_EVEN).toPlainString(); } }\n```",
+    "expected_value": "2.34",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ13",
+    "name": "atomic-id",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q12 { public static String value() { var a=new java.util.concurrent.atomic.AtomicLong(9); long x=a.getAndIncrement(); return x+\":\"+a.get(); } }\n```",
+    "expected_value": "9:10",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ14",
+    "name": "compute-once",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q13 { public static String value() { var m=new java.util.concurrent.ConcurrentHashMap<String,Integer>(); var n=new java.util.concurrent.atomic.AtomicInteger(); m.computeIfAbsent(\"a\",k->n.incrementAndGet());m.computeIfAbsent(\"a\",k->n.incrementAndGet()); return m.get(\"a\")+\":\"+n.get(); } }\n```",
+    "expected_value": "1:1",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ15",
+    "name": "put-if-absent",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q14 { public static String value() { var m=new java.util.concurrent.ConcurrentHashMap<String,String>(); m.put(\"a\",\"old\");var v=m.putIfAbsent(\"a\",\"new\"); return v+\":\"+m.get(\"a\"); } }\n```",
+    "expected_value": "old:old",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ16",
+    "name": "remove-old-mapping",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q15 { public static String value() { var m=new java.util.concurrent.ConcurrentHashMap<String,String>();m.put(\"s\",\"new\");boolean r=m.remove(\"s\",\"old\"); return r+\":\"+m.get(\"s\"); } }\n```",
+    "expected_value": "false:new",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ17",
+    "name": "list-overload",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q16 { public static String value() { var a=new java.util.ArrayList<Integer>(java.util.List.of(1,2,1));a.remove(Integer.valueOf(1)); return a.toString(); } }\n```",
+    "expected_value": "[2, 1]",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ18",
+    "name": "list-index-remove",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q17 { public static String value() { var a=new java.util.ArrayList<Integer>(java.util.List.of(1,2,1));a.remove(1); return a.toString(); } }\n```",
+    "expected_value": "[1, 1]",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ19",
+    "name": "array-view",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q18 { public static String value() { String[] a={\"x\",\"y\"};var l=java.util.Arrays.asList(a);a[0]=\"z\"; return l.get(0); } }\n```",
+    "expected_value": "z",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ20",
+    "name": "optional-lazy",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q19 { public static String value() { var c=new java.util.concurrent.atomic.AtomicInteger();var s=java.util.Optional.of(\"x\").orElseGet(()->Integer.toString(c.incrementAndGet())); return s+\":\"+c.get(); } }\n```",
+    "expected_value": "x:0",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ21",
+    "name": "optional-eager",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q20 { public static String value() { var c=new java.util.concurrent.atomic.AtomicInteger();var s=java.util.Optional.of(\"x\").orElse(Integer.toString(c.incrementAndGet())); return s+\":\"+c.get(); } }\n```",
+    "expected_value": "x:1",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ22",
+    "name": "timeout-exact",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q21 { public static String value() { long last=1000,now=6000,timeout=5000; return Boolean.toString(now-last>timeout); } }\n```",
+    "expected_value": "false",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ23",
+    "name": "clock-rollback",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q22 { public static String value() { long last=6000,now=1000,timeout=5000; return Boolean.toString(now-last>timeout); } }\n```",
+    "expected_value": "false",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ24",
+    "name": "duration-unit",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q23 { public static String value() {  return Long.toString(java.time.Duration.ofSeconds(5).toMillis()); } }\n```",
+    "expected_value": "5000",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ25",
+    "name": "retry-count",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q24 { public static String value() { int calls=0;for(int attempt=1;attempt<=3;attempt++){calls++;} return Integer.toString(calls); } }\n```",
+    "expected_value": "3",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ26",
+    "name": "retry-success",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q25 { public static String value() { int calls=0;for(int attempt=1;attempt<=4;attempt++){calls++;if(calls==2)break;} return Integer.toString(calls); } }\n```",
+    "expected_value": "2",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ27",
+    "name": "future-chain",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q26 { public static String value() { var f=java.util.concurrent.CompletableFuture.completedFuture(3).thenApply(x->x+4); return Integer.toString(f.join()); } }\n```",
+    "expected_value": "7",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ28",
+    "name": "utf16-units",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q27 { public static String value() { String s=\"A\\uD83D\\uDE00B\"; return s.length()+\":\"+s.codePointCount(0,s.length()); } }\n```",
+    "expected_value": "4:3",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ29",
+    "name": "linked-map-order",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q28 { public static String value() { var m=new java.util.LinkedHashMap<String,Integer>();m.put(\"b\",2);m.put(\"a\",1);m.put(\"b\",3); return m.keySet().toString(); } }\n```",
+    "expected_value": "[b, a]",
+    "oracle": "javac/java real execution in generation environment"
+  },
+  {
+    "id": "JQ30",
+    "name": "try-finally",
+    "prompt": "按 Java 17 语义计算下面 value() 返回的字符串。只输出 JSON 对象 {\"value\":\"返回字符串\"}，不修改代码、不调用外部资源。\n```java\npublic final class Q29 { public static String value() { int x=1; try{x=2;}finally{x=3;} return Integer.toString(x); } }\n```",
+    "expected_value": "3",
+    "oracle": "javac/java real execution in generation environment"
+  }
+]
