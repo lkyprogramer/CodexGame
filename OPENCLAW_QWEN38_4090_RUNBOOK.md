@@ -16,3 +16,5 @@ llama.cpp WORK / TEXT 回滚与无审核档：
 | llama.cpp WORK | `openclaw-qwen38-work-64k.service` **disabled**，回滚用 |
 | 无审核 | `openclaw-qwen38-text.service` **disabled** |
 | API | 本机 `127.0.0.1:18343` / 对外 `192.168.10.29:28343`（NGINX Bearer） |
+
+另一档 **Qwen3.8-next**（Strata GSQ-RCO IQ3_S，128K）与上表互斥，开机不会拉起。部署、切换和验收见 **[`docs/openclaw-qwen38-next.md`](docs/openclaw-qwen38-next.md)**。

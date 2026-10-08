@@ -1,0 +1,52 @@
+diff --git a/include/strata/core/vmm.hpp b/include/strata/core/vmm.hpp
+index 0c9f816..d8bcf0b 100644
+--- a/include/strata/core/vmm.hpp
++++ b/include/strata/core/vmm.hpp
+@@ -33,7 +33,7 @@ public:
+     void release();
+     uint8_t* base() const { return (uint8_t*) (uintptr_t) base_; }
+     int64_t chunks() const { return (int64_t) h_.size(); }
+-    bool mapped(int64_t i) const { return i >= 0 && i < chunks() && h_[(size_t) i] != 0; }
++    bool mapped(int64_t i) const { return i >= 0 && i < chunks() && h_[(std::size_t) i] != 0; }
+     int64_t mapped_count() const;
+     /// Maps chunks [lo, hi) that are not mapped yet, each to `take()` or, when that returns 0, to a new chunk.
+     /// Readable and writable when it returns; false: out of memory (what was mapped stays mapped).
+diff --git a/src/core/vmm.cpp b/src/core/vmm.cpp
+index d66f17b..b626ffa 100644
+--- a/src/core/vmm.cpp
++++ b/src/core/vmm.cpp
+@@ -25,9 +25,15 @@ struct Api {
+ template <class F> bool resolve(const char* name, F& f) {
+     cudaDriverEntryPointQueryResult q{};
+     void* p = nullptr;
++#if CUDART_VERSION >= 12050
+     if (cudaGetDriverEntryPointByVersion(name, &p, 12000, cudaEnableDefault, &q) != cudaSuccess ||
+         q != cudaDriverEntryPointSuccess || p == nullptr)
+         return false;
++#else
++    if (cudaGetDriverEntryPoint(name, &p, cudaEnableDefault, &q) != cudaSuccess ||
++        q != cudaDriverEntryPointSuccess || p == nullptr)
++        return false;
++#endif
+     f = (F) p;
+     return true;
+ }
+diff --git a/tools/mtp_fetch.py b/tools/mtp_fetch.py
+index eb1b7ce..dd28e55 100644
+--- a/tools/mtp_fetch.py
++++ b/tools/mtp_fetch.py
+@@ -138,7 +138,13 @@ def check_range(status, content_range, start, end):
+ 
+ 
+ def pinned():
+-    """The tensors' hashes are the pinned revision's: they apply when this run reads that revision."""
++    """The tensors' hashes are the pinned revision's: they apply when this run reads that revision.
++
++    STRATA_MTP_VERIFY_PINNED=1 still checks those hashes when the files come from another revision
++    URL. ModelScope has this checkpoint at master, not at the pinned commit. A mismatch aborts the fetch.
++    """
++    if os.environ.get("STRATA_MTP_VERIFY_PINNED") == "1":
++        return True
+     return REPO == PINNED
+ 
+ 
