@@ -1,0 +1,150 @@
+{
+  "repository": "tensorninja/ninfer-4090",
+  "base_commit": "44a2c6c3392c9d51e76a895ed97bf1867530d252",
+  "subject": "feat(engine): measure board energy and attribute it to prefill and decode",
+  "base_request_log_schema": 19,
+  "diagnostic_overlay": {
+    "image_tag_reported": "ninfer-4090:prepare-detail",
+    "image_id_prefix_reported": "9c2dec8b9ff0",
+    "schema_reported": 20,
+    "review_reported_files_changed": 11,
+    "review_reported_added_lines": 125,
+    "review_reported_removed_lines": 11,
+    "review_verdict": "OBSERVATION_ONLY_REPORTED",
+    "diff_bytes_in_package": false,
+    "full_image_id_in_package": false,
+    "status": "CAPTURE_ACTUAL_DIFF_AND_FULL_IMAGE_ID_ON_EXECUTION"
+  },
+  "files": [
+    {
+      "id": "S01",
+      "path": "src/targets/qwen3_8/impl/frontend/processor.cpp",
+      "git_blob_sha": "3ee949d441ab0c8ce537f672a9afd73f070cfb13",
+      "purpose": "encode_rendered_chat：整段编码后逐边界重新编码前缀",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/processor.cpp#L537-L589",
+      "region_policy": "key region re-read at pinned commit",
+      "line_start": 537,
+      "line_end": 589
+    },
+    {
+      "id": "S02",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.h",
+      "git_blob_sha": "e90338a3d5d7bfad98aec62269616dcf8a000f39",
+      "purpose": "旧版只有 encode/decode，无 encode_with_boundaries",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.h#L1-L52",
+      "region_policy": "key region re-read at pinned commit",
+      "line_start": 1,
+      "line_end": 52
+    },
+    {
+      "id": "S03",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "git_blob_sha": "1f4e15f4a0b3539045ee27cfe480dfcb40f06d56",
+      "purpose": "added token 配置限制、按 ID 排序",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S04",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "git_blob_sha": "1f4e15f4a0b3539045ee27cfe480dfcb40f06d56",
+      "purpose": "NFC、Qwen 分词、字符串 BPE 全候选扫描",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S05",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "git_blob_sha": "1f4e15f4a0b3539045ee27cfe480dfcb40f06d56",
+      "purpose": "added token 最早位置匹配、相同位置保留较早 ID",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.cpp#L636-L674",
+      "region_policy": "key region re-read at pinned commit",
+      "line_start": 636,
+      "line_end": 674
+    },
+    {
+      "id": "S06",
+      "path": "src/targets/qwen3_8/impl/frontend/chat_template.cpp",
+      "git_blob_sha": "9795c6f4ca0ed9f43ebd9e01aeaa30883ebfa2c8",
+      "purpose": "StablePrefix/StableTurn/Rolling hints 随工具历史生成",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/chat_template.cpp#L345-L467",
+      "region_policy": "key region re-read at pinned commit",
+      "line_start": 345,
+      "line_end": 467
+    },
+    {
+      "id": "S07",
+      "path": "src/targets/qwen3_8/impl/frontend/frontend.cpp",
+      "git_blob_sha": "47ca07a8b285f7df6a47896f984699f179e9813e",
+      "purpose": "prepare/count_tokens/prepare_tokens 三条路径",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/frontend.cpp",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S08",
+      "path": "src/targets/qwen3_8/export/ninfer/targets/qwen3_8/prepared_prompt.h",
+      "git_blob_sha": "f355971c481c2752546ac5efee11bb3fa51aafb9",
+      "purpose": "本提交的 PromptIdentity 和 PrepareStats",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/export/ninfer/targets/qwen3_8/prepared_prompt.h",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S09",
+      "path": "src/targets/qwen3_8/export/ninfer/targets/qwen3_8/frontend.h",
+      "git_blob_sha": "c2d8ddd4c73c1197e40602be707ae1ad00a3e3be",
+      "purpose": "Frontend 持有 shared_ptr<const Impl>；工厂签名",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/export/ninfer/targets/qwen3_8/frontend.h",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S10",
+      "path": "tests/CMakeLists.txt",
+      "git_blob_sha": "7c3644b1605d8d3e5ad32b4417c48761e352046e",
+      "purpose": "真实 CTest target 与 SKIP_RETURN_CODE 77",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/tests/CMakeLists.txt",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S11",
+      "path": "tests/targets/qwen3_8/test_frontend.cpp",
+      "git_blob_sha": "e5b00db7ea8db2ca7bf39dcc8f3d7cd4c06f8660",
+      "purpose": "FrontendTestAccess、两种模板 fixture、合成 tokenizer resources",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/tests/targets/qwen3_8/test_frontend.cpp",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S12",
+      "path": "CMakeLists.txt",
+      "git_blob_sha": "c61d22f2e8c67415d5ca001570e917d3ada4ea46",
+      "purpose": "C++20、CUDA>=12.8、sm_89、BUILD_TESTING",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/CMakeLists.txt",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S13",
+      "path": "src/targets/qwen3_8/CMakeLists.txt",
+      "git_blob_sha": "453d5c27ac86ad44275c69acccebad6390e724ab",
+      "purpose": "frontend 源文件进入 ninfer_engine",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/CMakeLists.txt",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S14",
+      "path": "AGENTS.md",
+      "git_blob_sha": "9fe1fa110b946faabeb6980f153f4918f6329bb6",
+      "purpose": "原仓治理规则、产品目标及所有权边界",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/AGENTS.md",
+      "region_policy": "symbol-first; no unverified line ranges"
+    },
+    {
+      "id": "S15",
+      "path": "src/targets/qwen3_8/impl/frontend/resources.cpp",
+      "git_blob_sha": "7a6f936b9a9e5ec854dbef60b0146c250442bb1a",
+      "purpose": "六份嵌入 frontend 资源的绑定/提取",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/resources.cpp",
+      "region_policy": "symbol-first; no unverified line ranges"
+    }
+  ],
+  "docpack_version": "2.0.0",
+  "lock_evidence": "All 15 blob references reported matched by Claude review; key scanner/processor/header/template objects re-read via GitHub in this revision. Execution must verify all blobs locally."
+}

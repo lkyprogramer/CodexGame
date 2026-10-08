@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NInfer product gate report v2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scope",
+    "base_commit",
+    "gates",
+    "release_ready",
+    "production_deployed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "scope": {
+      "const": "NINFER_PRODUCT_VALIDATION"
+    },
+    "base_commit": {
+      "const": "44a2c6c3392c9d51e76a895ed97bf1867530d252"
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "evidence_files",
+          "commands"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "G0",
+              "G1",
+              "G2",
+              "G3",
+              "G4",
+              "G5",
+              "G6",
+              "G7"
+            ]
+          },
+          "status": {
+            "enum": [
+              "NOT_RUN",
+              "IN_PROGRESS",
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "READY_NOT_EXECUTED"
+            ]
+          },
+          "evidence_files": {
+            "type": "array"
+          },
+          "commands": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "release_ready": {
+      "type": "boolean"
+    },
+    "production_deployed": {
+      "type": "boolean"
+    }
+  }
+}
