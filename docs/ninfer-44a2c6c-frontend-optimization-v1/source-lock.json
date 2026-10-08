@@ -1,0 +1,149 @@
+{
+  "repository": "tensorninja/ninfer-4090",
+  "base_commit": "44a2c6c3392c9d51e76a895ed97bf1867530d252",
+  "subject": "feat(engine): measure board energy and attribute it to prefill and decode",
+  "base_request_log_schema": 19,
+  "diagnostic_overlay": {
+    "image_tag_reported": "ninfer-4090:prepare-detail",
+    "schema_reported": 20,
+    "source_available": false,
+    "status": "must capture and review local diff before integration"
+  },
+  "files": [
+    {
+      "id": "S01",
+      "path": "src/targets/qwen3_8/impl/frontend/processor.cpp",
+      "git_blob_sha": "3ee949d441ab0c8ce537f672a9afd73f070cfb13",
+      "line_start": 530,
+      "line_end": 615,
+      "purpose": "encode_rendered_chat：整段编码后逐边界重新编码前缀",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/processor.cpp#L530-L615"
+    },
+    {
+      "id": "S02",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.h",
+      "git_blob_sha": "e90338a3d5d7bfad98aec62269616dcf8a000f39",
+      "line_start": 1,
+      "line_end": 65,
+      "purpose": "旧版只有 encode/decode，无 encode_with_boundaries",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.h#L1-L65"
+    },
+    {
+      "id": "S03",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "git_blob_sha": "1f4e15f4a0b3539045ee27cfe480dfcb40f06d56",
+      "line_start": 160,
+      "line_end": 303,
+      "purpose": "added token 配置限制、按 ID 排序",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.cpp#L160-L303"
+    },
+    {
+      "id": "S04",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "git_blob_sha": "1f4e15f4a0b3539045ee27cfe480dfcb40f06d56",
+      "line_start": 418,
+      "line_end": 601,
+      "purpose": "NFC、Qwen 分词、字符串 BPE 全候选扫描",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.cpp#L418-L601"
+    },
+    {
+      "id": "S05",
+      "path": "src/targets/qwen3_8/impl/frontend/tokenizer.cpp",
+      "git_blob_sha": "1f4e15f4a0b3539045ee27cfe480dfcb40f06d56",
+      "line_start": 636,
+      "line_end": 674,
+      "purpose": "added token 最早位置匹配、相同位置保留较早 ID",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/tokenizer.cpp#L636-L674"
+    },
+    {
+      "id": "S06",
+      "path": "src/targets/qwen3_8/impl/frontend/chat_template.cpp",
+      "git_blob_sha": "9795c6f4ca0ed9f43ebd9e01aeaa30883ebfa2c8",
+      "line_start": 305,
+      "line_end": 497,
+      "purpose": "StablePrefix/StableTurn/Rolling hints 随工具历史生成",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/chat_template.cpp#L305-L497"
+    },
+    {
+      "id": "S07",
+      "path": "src/targets/qwen3_8/impl/frontend/frontend.cpp",
+      "git_blob_sha": "47ca07a8b285f7df6a47896f984699f179e9813e",
+      "line_start": 848,
+      "line_end": 990,
+      "purpose": "prepare/count_tokens/prepare_tokens 三条路径",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/frontend.cpp#L848-L990"
+    },
+    {
+      "id": "S08",
+      "path": "src/targets/qwen3_8/export/ninfer/targets/qwen3_8/prepared_prompt.h",
+      "git_blob_sha": "f355971c481c2752546ac5efee11bb3fa51aafb9",
+      "line_start": 40,
+      "line_end": 110,
+      "purpose": "本提交的 PromptIdentity 和 PrepareStats",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/export/ninfer/targets/qwen3_8/prepared_prompt.h#L40-L110"
+    },
+    {
+      "id": "S09",
+      "path": "src/targets/qwen3_8/export/ninfer/targets/qwen3_8/frontend.h",
+      "git_blob_sha": "c2d8ddd4c73c1197e40602be707ae1ad00a3e3be",
+      "line_start": 112,
+      "line_end": 153,
+      "purpose": "Frontend 持有 shared_ptr<const Impl>；工厂签名",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/export/ninfer/targets/qwen3_8/frontend.h#L112-L153"
+    },
+    {
+      "id": "S10",
+      "path": "tests/CMakeLists.txt",
+      "git_blob_sha": "7c3644b1605d8d3e5ad32b4417c48761e352046e",
+      "line_start": 1,
+      "line_end": 220,
+      "purpose": "真实 CTest target 与 SKIP_RETURN_CODE 77",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/tests/CMakeLists.txt#L1-L220"
+    },
+    {
+      "id": "S11",
+      "path": "tests/targets/qwen3_8/test_frontend.cpp",
+      "git_blob_sha": "e5b00db7ea8db2ca7bf39dcc8f3d7cd4c06f8660",
+      "line_start": 1,
+      "line_end": 148,
+      "purpose": "FrontendTestAccess、两种模板 fixture、合成 tokenizer resources",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/tests/targets/qwen3_8/test_frontend.cpp#L1-L148"
+    },
+    {
+      "id": "S12",
+      "path": "CMakeLists.txt",
+      "git_blob_sha": "c61d22f2e8c67415d5ca001570e917d3ada4ea46",
+      "line_start": 1,
+      "line_end": 135,
+      "purpose": "C++20、CUDA>=12.8、sm_89、BUILD_TESTING",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/CMakeLists.txt#L1-L135"
+    },
+    {
+      "id": "S13",
+      "path": "src/targets/qwen3_8/CMakeLists.txt",
+      "git_blob_sha": "453d5c27ac86ad44275c69acccebad6390e724ab",
+      "line_start": 1,
+      "line_end": 19,
+      "purpose": "frontend 源文件进入 ninfer_engine",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/CMakeLists.txt#L1-L19"
+    },
+    {
+      "id": "S14",
+      "path": "AGENTS.md",
+      "git_blob_sha": "9fe1fa110b946faabeb6980f153f4918f6329bb6",
+      "line_start": 1,
+      "line_end": 230,
+      "purpose": "原仓治理规则、产品目标及所有权边界",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/AGENTS.md#L1-L230"
+    },
+    {
+      "id": "S15",
+      "path": "src/targets/qwen3_8/impl/frontend/resources.cpp",
+      "git_blob_sha": "7a6f936b9a9e5ec854dbef60b0146c250442bb1a",
+      "line_start": 1,
+      "line_end": 47,
+      "purpose": "六份嵌入 frontend 资源的绑定/提取",
+      "url": "https://github.com/tensorninja/ninfer-4090/blob/44a2c6c3392c9d51e76a895ed97bf1867530d252/src/targets/qwen3_8/impl/frontend/resources.cpp#L1-L47"
+    }
+  ]
+}
