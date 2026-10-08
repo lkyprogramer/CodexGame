@@ -5,6 +5,8 @@ GPU：单卡 RTX 4090 24GB
 文档日期：2026-09-08  
 范围：现网默认推理栈。llama.cpp WORK / TEXT 只作回滚，不当开机。
 
+2026-09-30 起开机镜像已换成 B0+B1。当前镜像、启动脚本、回滚和这次改动见 [`openclaw-qwen38-ninfer-b0-b1-20260930.md`](openclaw-qwen38-ninfer-b0-b1-20260930.md)。下文里的 `ninfer-4090:44a2c6c` 不是现在的开机镜像。
+
 不要把 NGINX token、SSH 密码、sudo 口令写进 git。
 
 对照：
@@ -184,6 +186,7 @@ TEXT 仍按旧文档按需开，开完必须切回 **NInfer**，不要 enable TE
 | 本机 / 隧道 | `http://127.0.0.1:18343/v1` | 无 |
 | 局域网 OpenClaw | `http://192.168.10.29:28343/v1` | `Authorization: Bearer <NGINX token>` |
 | 引擎直连 | `http://127.0.0.1:18030/v1` | 无；**不要给上层用**（无 medium 注入、无 kwargs 兼容） |
+| Prometheus `/metrics` | 本机 `http://127.0.0.1:18343/metrics`；28343 / 公网 `1082/metrics` 需 **同一 Bearer** | 引擎内部计数，不是模型对错 |
 
 `model` 填 **`openclaw/Qwen3.8-27B-WORK`**。兼容层还会把 `qwen3.8-27b` 等别名改写成这个 id。
 
@@ -228,6 +231,19 @@ NInfer 支持的 effort：`none` / `low` / `medium` / `xhigh`。**不支持** ll
 ### 4.4 流式
 
 `stream: true`。`stream_options` 只保留 `include_usage`，其它键会被兼容层丢掉（否则 NInfer 400）。
+
+`usage` 按 OpenAI Chat Completions 补 `prompt_tokens_details.cached_tokens`（从引擎 `timings.cache_n` 映射；未命中为 0）。流式必须 `stream_options.include_usage=true`，字段在 choices 为空的 usage 包上。
+
+引擎算力对账走 `GET /metrics`（Prometheus text），不是 `usage.cached_tokens`。episode 前后各抓一次，看差值：
+
+| 计数器 | 含义 |
+|---|---|
+| `llamacpp:prompt_tokens_total` | **真正重算的 prefill**（不含 cache） |
+| `ninfer:prefix_cache_hit_tokens_total` | 引擎 prefix cache 命中 token |
+| `ninfer:requests_total` | 请求数；中途归零视为进程重启 |
+| `ninfer:continuation_stable_prefix_restores_total` | 稳定前缀续上次数 |
+
+`usage.prompt_tokens_details.cached_tokens`（Pi 的 cacheRead）和上述计数器是两条线：前者是 OpenAI-compat 回给客户端的命中；后者才是 balanced 成本门要用的 prefillTokensDelta。`llamacpp:prompt_tokens_total` 的增量不应在「只改消息、KV 仍有效」时暴涨。`requests_total` 归零则本段 delta 作废。
 
 ### 4.5 工具 / Agent
 
