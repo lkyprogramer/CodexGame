@@ -1,0 +1,8 @@
+{
+ "note": "Example orchestrator plan for ALREADY RUNNING candidate. The controller must generate qualification.local.json with verified launcher/cleanup + numeric/cache/lifecycle gates in T22. This example is intentionally not a release suite.",
+ "stages": [
+  {"id":"http-64k","argv":["python3","-m","poc_tools.http_probe","--payload","work/prompts/perf-65536-17.json","--out","results/http-64k.json","--trace"],"timeout_s":300,"required":true},
+  {"id":"java","argv":["python3","-m","poc_tools.java_runner","--out-dir","results/pi-java","--timeout","240"],"timeout_s":900,"required":true},
+  {"id":"decision","argv":["python3","-m","poc_tools.cli","report","results/evidence.json","--out","results/decision.json"],"timeout_s":30,"required":true}
+ ]
+}
