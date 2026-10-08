@@ -45,6 +45,78 @@ HOP = {
 }
 
 
+def _as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def inject_openai_usage(obj: dict[str, Any], cache_n: int | None = None) -> int:
+    """Fill OpenAI usage.prompt_tokens_details.cached_tokens from timings.cache_n.
+
+    Returns the latest known cache hit count so stream chunks can carry it forward.
+    """
+    timings = obj.get("timings")
+    if isinstance(timings, dict) and timings.get("cache_n") is not None:
+        cache_n = _as_int(timings.get("cache_n"), cache_n or 0)
+    usage = obj.get("usage")
+    if not isinstance(usage, dict):
+        return cache_n or 0
+    cached = cache_n if cache_n is not None else 0
+    details = usage.get("prompt_tokens_details")
+    if not isinstance(details, dict):
+        details = {}
+    if details.get("cached_tokens") is None:
+        details["cached_tokens"] = cached
+    details.setdefault("cache_write_tokens", 0)
+    usage["prompt_tokens_details"] = details
+    ctd = usage.get("completion_tokens_details")
+    if not isinstance(ctd, dict):
+        ctd = {}
+    ctd.setdefault("reasoning_tokens", 0)
+    usage["completion_tokens_details"] = ctd
+    obj["usage"] = usage
+    return _as_int(details.get("cached_tokens"), cached)
+
+
+def inject_openai_usage_json(raw: bytes) -> bytes:
+    try:
+        obj = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return raw
+    if isinstance(obj, dict):
+        inject_openai_usage(obj)
+        return json.dumps(obj, ensure_ascii=False).encode("utf-8")
+    return raw
+
+
+def rewrite_sse_event(event: bytes, cache_n: int) -> tuple[bytes, int]:
+    lines = event.split(b"\n")
+    out: list[bytes] = []
+    for line in lines:
+        payload = line
+        prefix = b""
+        if line.startswith(b"data:"):
+            prefix = b"data:"
+            payload = line[5:]
+            if payload.startswith(b" "):
+                prefix += b" "
+                payload = payload[1:]
+        stripped = payload.strip()
+        if prefix and stripped and stripped != b"[DONE]":
+            try:
+                obj = json.loads(stripped.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                out.append(line)
+                continue
+            if isinstance(obj, dict):
+                cache_n = inject_openai_usage(obj, cache_n)
+                line = prefix + json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        out.append(line)
+    return b"\n".join(out), cache_n
+
+
 def rewrite_body(raw: bytes, content_type: str) -> bytes:
     if "json" not in content_type.lower():
         return raw
@@ -195,6 +267,18 @@ class Handler(BaseHTTPRequestHandler):
                 if self.command != "HEAD":
                     self.wfile.write(payload)
                 return
+            is_sse = "event-stream" in content_type.lower()
+            is_json = "json" in content_type.lower() and not is_sse
+            if is_json:
+                payload = inject_openai_usage_json(resp.read())
+                self.send_response(resp.status, resp.reason)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(payload)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(payload)
+                return
             self.send_response(resp.status, resp.reason)
             skip = HOP | {"content-length"}
             for key, val in resp.getheaders():
@@ -206,11 +290,34 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Connection", "close")
             self.end_headers()
             if self.command != "HEAD":
+                pending = b""
+                cache_n = 0
                 while True:
                     buf = resp.read(8192)
                     if not buf:
                         break
-                    self.wfile.write(b"%x\r\n" % len(buf) + buf + b"\r\n")
+                    if is_sse:
+                        pending += buf
+                        while b"\n\n" in pending or b"\r\n\r\n" in pending:
+                            if b"\r\n\r\n" in pending and (
+                                b"\n\n" not in pending
+                                or pending.find(b"\r\n\r\n") < pending.find(b"\n\n")
+                            ):
+                                event, pending = pending.split(b"\r\n\r\n", 1)
+                                sep = b"\r\n\r\n"
+                            else:
+                                event, pending = pending.split(b"\n\n", 1)
+                                sep = b"\n\n"
+                            rewritten, cache_n = rewrite_sse_event(event, cache_n)
+                            out = rewritten + sep
+                            self.wfile.write(b"%x\r\n" % len(out) + out + b"\r\n")
+                            self.wfile.flush()
+                    else:
+                        self.wfile.write(b"%x\r\n" % len(buf) + buf + b"\r\n")
+                        self.wfile.flush()
+                if is_sse and pending:
+                    rewritten, cache_n = rewrite_sse_event(pending, cache_n)
+                    self.wfile.write(b"%x\r\n" % len(rewritten) + rewritten + b"\r\n")
                     self.wfile.flush()
                 self.wfile.write(b"0\r\n\r\n")
                 self.wfile.flush()

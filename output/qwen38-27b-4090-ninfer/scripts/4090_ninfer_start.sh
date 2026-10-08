@@ -10,9 +10,17 @@ L1="${NINFER_L1_MIB:-6144}"
 L2="${NINFER_L2_MIB:-8192}"
 L3="${NINFER_L3_MIB:-16384}"
 CACHE="${NINFER_CACHE:-l1-l2}"
+TURN_CKPT="${NINFER_TURN_CKPT:-0}"
+REQLOG="${NINFER_REQUEST_LOG:-/var/log/ninfer/ninfer-request.jsonl}"
 CACHE_EXTRA=()
 if [[ "$CACHE" == *l3* ]]; then
   CACHE_EXTRA+=(--continuation-cache-dir /var/cache/ninfer --continuation-cache-namespace local --continuation-cache-l3-mib "$L3")
+fi
+if [[ "$TURN_CKPT" != 0 ]]; then
+  CACHE_EXTRA+=(--turn-checkpoints "$TURN_CKPT")
+fi
+if [[ -n "$REQLOG" ]]; then
+  CACHE_EXTRA+=(--request-log-jsonl "$REQLOG")
 fi
 # Recreate unless NINFER_KEEP=1. Skipping restart would reuse old --draft-tokens.
 if docker ps --format '{{.Names}}' | grep -qx ninfer-4090; then
@@ -27,9 +35,11 @@ fi
 sleep 3
 docker rm -f ninfer-4090 >/dev/null 2>&1 || true
 mkdir -p /home/hhtele/ninfer-4090/cache /home/hhtele/ninfer-4090/logs
+: > /home/hhtele/ninfer-4090/logs/ninfer-request.jsonl
 docker run -d --name ninfer-4090 --gpus all --restart=no --network host \
   -v "$MODEL:/opt/ninfer/models/qwen3_8_27b.ninfer:ro" \
   -v /home/hhtele/ninfer-4090/cache:/var/cache/ninfer \
+  -v /home/hhtele/ninfer-4090/logs:/var/log/ninfer \
   ninfer-4090:44a2c6c \
   /opt/ninfer/models/qwen3_8_27b.ninfer \
   --model-id qwen3.8-27b \
@@ -47,7 +57,7 @@ docker run -d --name ninfer-4090 --gpus all --restart=no --network host \
   --preserve-thinking
 for i in $(seq 1 180); do
   if curl -fsS --max-time 2 http://127.0.0.1:18030/v1/models >/dev/null 2>&1; then
-    echo NINFER_READY ${i}s ctx=$CTX kv=$KVDTYPE draft=$DRAFT l1=$L1 cache=$CACHE
+    echo NINFER_READY ${i}s ctx=$CTX kv=$KVDTYPE draft=$DRAFT l1=$L1 cache=$CACHE ckpt=$TURN_CKPT log=$REQLOG
     nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader || true
     docker inspect ninfer-4090 --format '{{json .Args}}' || true
     exit 0
