@@ -2,6 +2,8 @@
 
 核对日期：2026-10-08。当时工作区是 `v0.1.40.1`（`82f46a8`），相对上游有 3 个已修改文件。`v0.1.40.3` 里这三处都已经有等价实现。升级后不要把旧 diff `git apply` 回去。
 
+2026-10-09 更新：现行是 `/home/hhtele/strata-0.1.41`（tag `v0.1.41`，`fb58e0d`），是新目录里的干净克隆，`check-after-upgrade.sh` 退出码 0，不需要任何补丁。`/home/hhtele/strata` 仍是带 3 处补丁的 v0.1.40.1，留作回滚，下面的步骤只适用于它。今后的升级按 [`../openclaw-qwen38-next.md`](../openclaw-qwen38-next.md) 第 9 节在新目录里做，不原地 pull。
+
 | 本机改动 | v0.1.40.3 |
 |---|---|
 | `src/core/vmm.cpp`：`CUDART_VERSION < 12050` 时改用 `cudaGetDriverEntryPoint` | 提交 `b4182a8`（#1071，2026-10-06）已做同样分支，并多清一次失败查询留下的 sticky CUDA error |
@@ -21,7 +23,7 @@ git pull --ff-only
 
 `checkout` 之后、`pull` 之前，这棵树暂时编不过 CUDA 12.3。不要在这个窗口重编或重启服务。不要 `git stash pop` 把旧 diff 盖回新文件上。
 
-`./update.sh` 在 pull 之后还会跑 `setup.sh --update`。4090（sm_89）走的是现成引擎，不是用 `/usr/local/cuda-12.3` 重编。现成包是 CUDA 13.0，随 pip 轮子带运行库；这台驱动 610.57.04，高于 setup 要求的 580。系统里的 CUDA 12.3 保持不动。要继续用 12.3 自己编，才用 `setup.sh --build`，并且验收脚本必须是 0。
+不要用 `./update.sh`。它在 pull 之后跑 `setup.sh --update`，有现成引擎才下载，否则本机编译。原先这里写「4090 走 CUDA 13.0 现成引擎」是错的：v0.1.40 到 v0.1.41 的 Release 都没有 Linux 现成引擎，本机 `engine/BUILD.json` 是 `source: local`，实际会用 `setup.py` 自己挑的 nvcc 编译。要编译就用 `build-engine-only.sh`（钉 CUDA 12.3、挡 sudo），并且验收脚本必须是 0。系统里的 CUDA 12.3 保持不动。
 
 若验收失败，只补缺的那一处，按下面的上游写法，不要套 0.1.40.1 的旧 diff。
 
