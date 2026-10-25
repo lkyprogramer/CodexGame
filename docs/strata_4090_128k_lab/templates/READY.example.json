@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "status": "READY",
+  "reviewed": false,
+  "pr": 3453,
+  "baseline_sha": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+  "pr_head_sha": "17dd3a912da9f5e015608a2727f3b4aea1f945a8",
+  "candidate_sha": "REPLACE_WITH_COMMITTED_PORT_SHA",
+  "eligibility_note": "Explain actual production parameters and mechanism evidence; NOT_APPLICABLE is a valid alternative status.",
+  "activation": {
+    "off": "LAB_PR_3453 enabled=0",
+    "on": "LAB_PR_3453 enabled=1"
+  },
+  "common": {
+    "env": {},
+    "args": {},
+    "config": {}
+  },
+  "off": {
+    "env": {
+      "STRATA_LAB_PR3453": "0"
+    },
+    "args": {},
+    "config": {}
+  },
+  "on": {
+    "env": {
+      "STRATA_LAB_PR3453": "1"
+    },
+    "args": {},
+    "config": {}
+  },
+  "unit_commands": [
+    [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests_laboratory",
+      "-v"
+    ]
+  ],
+  "review_record": "REPLACE_WITH_REVIEW_RECORD_PATH",
+  "scope_audit": "REPLACE_WITH_PORT_AUDIT_PATH",
+  "quality_risk": "Specify exact kernels vs changed placement/rounding vs approximate algorithm",
+  "note": "STRATA_LAB_* markers and gates are new requirements of this pack, not upstream flags; implement and test before READY.",
+  "gpu_validation": "NOT_RUN"
+}

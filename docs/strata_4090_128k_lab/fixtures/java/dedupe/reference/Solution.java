@@ -1,0 +1,1 @@
+import java.util.*; public class Solution {public static List<String> normalize(List<String> in){LinkedHashSet<String> s=new LinkedHashSet<>();if(in!=null)for(String v:in)if(v!=null){v=v.trim().toLowerCase(Locale.ROOT);if(!v.isEmpty())s.add(v);}return new ArrayList<>(s);}}

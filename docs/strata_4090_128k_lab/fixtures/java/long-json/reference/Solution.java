@@ -1,0 +1,1 @@
+public class Solution {public static String idsJson(long[] a){StringBuilder b=new StringBuilder("[");if(a!=null)for(int i=0;i<a.length;i++){if(i>0)b.append(',');b.append('"').append(a[i]).append('"');}return b.append(']').toString();}}
