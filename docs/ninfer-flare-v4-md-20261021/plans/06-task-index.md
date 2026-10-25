@@ -1,0 +1,27 @@
+# 当前任务索引
+
+19任务、4门禁；K0选择C0-T01，不把其它路线变为必做。
+
+- [PERF-READY 已有P4证据的开发准入，非性能资格](phases/PERF-READY.md)
+- [K0-GATE 单个实验的归因和预算准入](phases/K0-GATE.md)
+- [K4-QUALIFIED 选中候选隔离资格](phases/K4-QUALIFIED.md)
+- [K4-GATE 独立生产发布与实际回退门禁](phases/K4-GATE.md)
+- [K0-T01 复用P4身份，定位真实Chat执行链](tasks/K0-T01.md)
+- [K0-T02 最小归因与容量尾轮观测](tasks/K0-T02.md)
+- [K0-T04 选择一个实验并冻结净收益合同](tasks/K0-T04.md)
+- [K1-T01 GDN correction记录及独立数值参考](tasks/K1-T01.md)
+- [K1-T02 Correction提交事务与整轮净收益](tasks/K1-T02.md)
+- [K2-T01 一个实测SM89热点的最小kernel实验](tasks/K2-T01.md)
+- [K3-T01 按GPU最后消费者复用workspace](tasks/K3-T01.md)
+- [K3-T02 有限独立投影fork/join实验](tasks/K3-T02.md)
+- [H1-T01 有界Lookup与既有MTP同宽融合](tasks/H1-T01.md)
+- [H1-T07 复用统一Target sampling与状态资格](tasks/H1-T07.md)
+- [H2-T01 草稿词表头裁剪或稀疏投影实验](tasks/H2-T01.md)
+- [H3-T01 W8整链扩宽实验](tasks/H3-T01.md)
+- [H4-T01 W16按需扩宽实验](tasks/H4-T01.md)
+- [H6-T01 DFlash2匹配27B资产的块草稿实验](tasks/H6-T01.md)
+- [H7-T01 全局历史草稿检索实验](tasks/H7-T01.md)
+- [S0-T01 Utility/restore成本驱动的有限策略实验](tasks/S0-T01.md)
+- [UP-T01 上游性能改动选择性或完整合并对照](tasks/UP-T01.md)
+- [K4-T01 选中候选的一次共同资格与可复现报告](tasks/K4-T01.md)
+- [C0-T01 统一SHA-256的非SHA-NI CPU路径加速](tasks/C0-T01.md)
