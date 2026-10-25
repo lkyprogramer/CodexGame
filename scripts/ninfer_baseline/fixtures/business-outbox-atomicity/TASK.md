@@ -1,0 +1,2 @@
+In-memory transactional outbox simulation: failure to create event must not commit order, retries create exactly one order and one event; duplicate submit has no side effects.
+This is a synthetic business-contract fixture using plain Java, not a production or framework integration test. First run ./verify.sh, inspect source and tests, then fix src/main only. Do not change existing test assertions or verifier. New regression tests may be proposed in final text; the frozen verifier remains protected. Preserve public signatures.

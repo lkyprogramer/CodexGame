@@ -1,0 +1,2 @@
+Product cache including negative lookups must reflect create/update/delete. Repository is an in-memory map, no Redis.
+This is a synthetic business-contract fixture using plain Java, not a production or framework integration test. First run ./verify.sh, inspect source and tests, then fix src/main only. Do not change existing test assertions or verifier. New regression tests may be proposed in final text; the frozen verifier remains protected. Preserve public signatures.

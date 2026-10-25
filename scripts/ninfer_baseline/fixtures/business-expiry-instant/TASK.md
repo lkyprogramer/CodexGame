@@ -1,0 +1,2 @@
+Token expiry is based on Instant: expired exactly at expiry or after; timezone display offset must not change validity. Fixed instants make test deterministic.
+This is a synthetic business-contract fixture using plain Java, not a production or framework integration test. First run ./verify.sh, inspect source and tests, then fix src/main only. Do not change existing test assertions or verifier. New regression tests may be proposed in final text; the frozen verifier remains protected. Preserve public signatures.

@@ -1,0 +1,2 @@
+Resource close must run on success and failure. When work and close both fail, work exception is primary and close exception suppressed. Implement Java resource lifecycle, no external I/O.
+This is a synthetic business-contract fixture using plain Java, not a production or framework integration test. First run ./verify.sh, inspect source and tests, then fix src/main only. Do not change existing test assertions or verifier. New regression tests may be proposed in final text; the frozen verifier remains protected. Preserve public signatures.

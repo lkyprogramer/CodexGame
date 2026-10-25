@@ -1,0 +1,2 @@
+Serialize nullable JSON string values with valid escaping for quotes, backslashes, LF, TAB and control U+0001. No Jackson dependency; explicit minimal string codec contract.
+This is a synthetic business-contract fixture using plain Java, not a production or framework integration test. First run ./verify.sh, inspect source and tests, then fix src/main only. Do not change existing test assertions or verifier. New regression tests may be proposed in final text; the frozen verifier remains protected. Preserve public signatures.

@@ -1,0 +1,2 @@
+Active orders sorted by ID. total counts filtered rows before pagination. Page is zero-based; reject negative page and nonpositive size.
+This is a synthetic business-contract fixture using plain Java, not a production or framework integration test. First run ./verify.sh, inspect source and tests, then fix src/main only. Do not change existing test assertions or verifier. New regression tests may be proposed in final text; the frozen verifier remains protected. Preserve public signatures.

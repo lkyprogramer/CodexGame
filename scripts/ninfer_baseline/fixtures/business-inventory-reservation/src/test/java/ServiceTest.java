@@ -1,0 +1,4 @@
+import java.util.*;
+public class ServiceTest { static void eq(Object actual,Object expected){if(!Objects.equals(actual,expected))throw new AssertionError("expected="+expected+" actual="+actual);}static void yes(boolean value){if(!value)throw new AssertionError("contract violated");}public static void main(String[]args)throws Exception{
+var s=new Service();try{s.reserve(-2);throw new AssertionError();}catch(IllegalArgumentException ok){}try{s.reserve(0);throw new AssertionError();}catch(IllegalArgumentException ok){}eq(s.stock,5);var won=new java.util.concurrent.atomic.AtomicInteger();Thread a=new Thread(()->{if(s.reserve(4))won.incrementAndGet();});Thread b=new Thread(()->{if(s.reserve(4))won.incrementAndGet();});a.start();b.start();a.join();b.join();eq(won.get(),1);eq(s.stock,1);yes(!s.reserve(2));eq(s.stock,1);
+System.out.println("PASS business-inventory-reservation");}}
