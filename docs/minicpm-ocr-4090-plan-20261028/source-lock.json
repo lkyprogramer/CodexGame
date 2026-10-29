@@ -1,0 +1,151 @@
+{
+  "date": "2026-10-28",
+  "status": "PLANNING_LOCK_NOT_DEPLOYED",
+  "official_repository": {
+    "url": "https://github.com/OpenBMB/MiniCPM-OCR.git",
+    "commit": "62d5e649c32be2271f2c8c66ec8307f3d7373903"
+  },
+  "vllm": {
+    "url": "https://github.com/vllm-project/vllm.git",
+    "commit": "18343393b4da41a7e8027efbc4c7e77c28301bf0"
+  },
+  "transformers": {
+    "url": "https://github.com/huggingface/transformers.git",
+    "commit": "549e5b410733fb50e8efbbe4aa585cb89f6478ea"
+  },
+  "dependencies": {
+    "python_minor": "3.12",
+    "python_patch": "RESOLVE_AT_BUILD",
+    "torch": "2.14.0",
+    "torchvision": "0.29.0",
+    "sdk_source_version": "1.0.2",
+    "paddlepaddle_cpu": "3.2.1",
+    "paddlex": "3.4.2",
+    "gcc_major": 13,
+    "uv": "0.10.10",
+    "cuda_nvcc": "13.0.48",
+    "cuda_runtime": "13.0.96",
+    "full_transitive_wheel_lock": "REQUIRED_BEFORE_RELEASE"
+  },
+  "base_image": {
+    "candidate_tag": "nvidia/cuda:13.2.0-cudnn-devel-ubuntu24.04",
+    "observed_local_image_id": "sha256:0295ed02df9ba05c19c22833ba937805839715ccd13ed8bed3dc4b35ea807b1d",
+    "observed_repo_digest": "docker.m.daocloud.io/nvidia/cuda@sha256:9a8b00be0596b5a2a088249ef1d5ed8e5cdd45bc662a4e6937e57af0cc495d1f",
+    "final_release_image_digest": "NOT_BUILT"
+  },
+  "main_model": {
+    "hf_repository": "openbmb/MiniCPM-OCR-1.0",
+    "hf_revision": "d10038c4954c2a4f7be159165f319a0aad57c7a2",
+    "modelscope_repository": "OpenBMB/MiniCPM-OCR-1.0",
+    "modelscope_revision": "master",
+    "branch_is_immutable": false,
+    "admission_rule": "Every required file must match the recorded SHA-256, not only the model weight",
+    "weights_bytes": 2600969816,
+    "files_sha256": {
+      "model.safetensors": "83f4e433b044fd23f9ea7eb3acbc7d59e4fe11a1fdf3c3129b7021d0ab4f8fd4",
+      "config.json": "762025491b206967a3c29c3e36ff2cccd8af6a8c750360b61dc91882b573f759",
+      "generation_config.json": "7cecf81e246f8db6bcc4c14f22313dd7decf2d6a70dd1b45c4d237a2e6927405",
+      "chat_template.jinja": "c6a5f1387c6baa0befecc39e36f293e44baba865a9c7809ac93fae1604b2c210",
+      "preprocessor_config.json": "7b46cf09f350fa1cd3bfd4d20fe8b8532e76dcc5d892a0052660f803c8ad532b",
+      "processor_config.json": "b71fbc3e22a7dbe04622e1a2641e8553375bc1434875ac438066c58a88b974b1",
+      "tokenizer.json": "6269eb38f25c20c0f2ba676577f2e5603f79eab3be573dfdaa727ca6eeb5522d",
+      "tokenizer_config.json": "74f51078120066292803d9dfe5437f67b778c5ef6d16eb04dbc6a3f7a13e5826"
+    }
+  },
+  "draft_model": {
+    "hf_repository": "openbmb/MiniCPM-OCR-1.0-DSpark",
+    "hf_revision": "038915ad18182b759e356632b6b16b55efd29952",
+    "modelscope_repository": "OpenBMB/MiniCPM-OCR-1.0-DSpark",
+    "weights_bytes": 594599898,
+    "files_sha256": {
+      "model.safetensors": "3e6332e05e2539898a0691db381e3a85877728a754561f9e3d13e597e44c672b",
+      "config.json": "ba0a9ed774ca1e5e4d7d97517379e477c7e8b6c151154e4b0556b0abd449d2e3"
+    },
+    "remaining_runtime_file_manifest": "FREEZE_BEFORE_DSPARK",
+    "baseline_enabled": false
+  },
+  "layout_model": {
+    "name": "PP-DocLayoutV3",
+    "archive_url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-DocLayoutV3_infer.tar",
+    "archive_sha256": "98b9bac88c80f6bc0fda7e0bfc2cae180020371c0b2edbb1eb498a70ace751b1",
+    "extracted_file_manifest": "FREEZE_AFTER_VERIFIED_EXTRACTION"
+  },
+  "baseline": {
+    "dtype": "bfloat16",
+    "max_model_len": 16384,
+    "max_num_seqs": 4,
+    "gpu_memory_utilization": 0.65,
+    "max_num_batched_tokens": 8192,
+    "layout_device": "cpu",
+    "region_workers": 4,
+    "page_workers": 1,
+    "overlap_layout": false,
+    "upright_enabled": false,
+    "prompt_reserve_tokens": 8192,
+    "speculative_config": null,
+    "pdf_render_dpi": 300,
+    "pdf_render_dpi_requires_deployment_patch": false,
+    "upstream_pdf_render_dpi": 144,
+    "attention_backend": "FLASH_ATTN",
+    "mm_encoder_attention_backend": "FLASH_ATTN",
+    "run_mode": "full",
+    "input_limit": 0,
+    "thinking_enabled": false,
+    "region_timeout_seconds": 120,
+    "transient_retry_max": 1,
+    "strict_deadlines_require_sdk_adaptation": true,
+    "sampling": {
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "top_k": -1,
+      "repetition_penalty": 1.0,
+      "profile": "C0"
+    },
+    "prefix_cache_enabled_primary": false,
+    "mm_processor_cache_enabled_primary": false,
+    "cache_cli_preflight_required": true,
+    "pipeline_executor": "shared_admission_controlled_executor",
+    "executor_implemented": false,
+    "sdk_queue_mode_within_admitted_page": "serial",
+    "native_full_document_sdk_cli_is_C0": false,
+    "native_concurrent_mode_ignores_page_workers": true,
+    "pdf_render_source": "common_executor",
+    "native_staged_pdf_render_300_requires_patch": true
+  },
+  "unresolved_release_items": [
+    "Final image digest and full wheel lock",
+    "Exact Python patch and compiler package versions",
+    "All downloaded/extracted model file hashes",
+    "SDK adaptation diff and focused test evidence",
+    "Render engine and fonts hashes",
+    "Ground truth and grouped split hashes",
+    "Upright optional models complete manifests",
+    "Evaluator source versions and normalization rules"
+  ],
+  "provenance": {
+    "official_install_config": "https://github.com/OpenBMB/MiniCPM-OCR/blob/62d5e649c32be2271f2c8c66ec8307f3d7373903/pyproject.toml",
+    "layout_checksum_source": "https://github.com/OpenBMB/MiniCPM-OCR/blob/62d5e649c32be2271f2c8c66ec8307f3d7373903/sdk/minicpmvocr/layouts/download.py",
+    "main_modelscope_metadata": "https://modelscope.cn/api/v1/models/OpenBMB/MiniCPM-OCR-1.0/repo/files?Revision=master&Recursive=true",
+    "draft_modelscope_metadata": "https://modelscope.cn/api/v1/models/OpenBMB/MiniCPM-OCR-1.0-DSpark/repo/files?Revision=master&Recursive=true"
+  },
+  "comparison_contract": "comparison-contract.json",
+  "native_policy_reference": {
+    "profile": "N0",
+    "temperature": 0.01,
+    "top_p": 0.001,
+    "top_k": 1,
+    "repetition_penalty": 1.0,
+    "not_mixed_with_C0": true,
+    "pipeline_variant": "sdk_staged_bulk",
+    "queue_mode": "concurrent",
+    "page_workers_one_guarantees_serial_pages": false,
+    "result_must_not_be_mixed_with_C0": true
+  },
+  "shared_runtime_candidate_for_ovis": {
+    "vllm_commit": "18343393b4da41a7e8027efbc4c7e77c28301bf0",
+    "transformers_commit": "549e5b410733fb50e8efbbe4aa585cb89f6478ea",
+    "ovis_architecture_registered": true,
+    "ovis_runtime_validated": false,
+    "vllm_0_22_1_does_not_support_minicpm_ocr": true
+  }
+}

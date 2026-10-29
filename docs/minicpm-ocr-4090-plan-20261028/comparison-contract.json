@@ -1,0 +1,716 @@
+{
+  "contract_version": "2.1.0",
+  "date": "2026-10-28",
+  "status": "PLAN_ONLY_NOT_EXECUTED",
+  "authority": {
+    "cross_model_variables": "comparison-plan.md",
+    "shared_scenes_and_absolute_quality_gates": "README.md sections 7-10",
+    "minicpm_deployment": "deployment-details.md",
+    "ovis_deployment": "ovis-deployment.md",
+    "implementation_status": "Runners, adapters, GT and measurements are planned; no model scores exist"
+  },
+  "candidate_priority": {
+    "minicpm_ocr_1_0": "equal",
+    "ovisocr3": "equal",
+    "standard_baselines_before_acceleration": true
+  },
+  "source_manifests": {
+    "primary": "corpus-inventory.json",
+    "local_supplement": "local-supplement-candidates.json",
+    "public_supplement": "public-source-manifest.json",
+    "primary_candidates": 31,
+    "local_supplement_candidates": 56,
+    "public_supplement_candidates": 6,
+    "total_candidates_before_admission_dedup": 93,
+    "legacy_doc_compatibility_candidates": 2,
+    "admitted_count": null,
+    "admission_status": "FREEZE_COMMON_SET_AFTER_GT_PROVENANCE_AND_DEDUP"
+  },
+  "shared_controls": {
+    "gpu_host": "jssh 29",
+    "gpu_model": "RTX 4090 24GB",
+    "simultaneous_model_services": 1,
+    "dtype": "bfloat16",
+    "max_model_len": 16384,
+    "gpu_memory_utilization": 0.65,
+    "max_num_seqs": 4,
+    "max_num_batched_tokens": 8192,
+    "outer_page_admission_primary": 1,
+    "outer_page_admission_capacity_sweep": [
+      1,
+      2,
+      4
+    ],
+    "native_region_dispatch_limit_minicpm": 4,
+    "cpu_quota_total_candidate_cores_proposed": 8,
+    "runtime_ram_total_candidate_gib_proposed": 32,
+    "resource_limits_require_preflight": true,
+    "sampling": {
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "top_k": -1,
+      "repetition_penalty": 1.0,
+      "thinking_enabled": false,
+      "no_repeat_ngram_size": "OMIT_UNSUPPORTED_FIELD",
+      "seed": 20261028,
+      "seed_is_determinism_guarantee": false
+    },
+    "pdf_render_dpi": 300,
+    "page_color_mode": "RGB",
+    "native_image_dpi_if_unknown": null,
+    "orientation_policy_primary": "NONE_EXCEPT_COMMON_EXIF_NORMALIZATION_WITH_TRANSFORM",
+    "identical_decoded_rgb_pixel_hash_required": true,
+    "output_safety_margin_tokens": 512,
+    "output_ceiling_per_request_tokens": 8192,
+    "crop_output_limits": {
+      "text": 4096,
+      "table": 8192,
+      "display_formula": 2048,
+      "inline_formula": 1024,
+      "seal_or_short_field": 2048
+    },
+    "effective_output_formula": "min(task_limit,8192,16384-actual_input_tokens-512)",
+    "input_tokens_include_images_prompts_and_previous_page_content": true,
+    "model_specific_tokenizers_allowed": true,
+    "model_specific_prompts_required_and_hashed": true,
+    "native_encoder_difference_recorded": true,
+    "region_timeout_seconds": 120,
+    "page_deadline_seconds": 300,
+    "document_deadline_seconds": 1800,
+    "transient_retries_max": 1,
+    "retry_counts_inside_original_deadline": true,
+    "shared_ground_truth_and_family_split": true,
+    "ground_truth_visible_to_e2e_model": false,
+    "prefix_cache_enabled_primary": false,
+    "mm_processor_cache_enabled_primary": false,
+    "effective_cache_control_requires_preflight": true,
+    "cache_cli_flags": [
+      "--no-enable-prefix-caching",
+      "--mm-processor-cache-gb",
+      "0"
+    ],
+    "all_internal_encoder_caches_claimed_disabled": false,
+    "other_encoder_cache_behavior": "record native behavior; fresh model process per timed run; unique pixels excluding warmup; repeated hot-cache separate",
+    "page_executor": {
+      "kind": "shared_admission_controlled_executor",
+      "implementation_status": "NOT_IMPLEMENTED",
+      "native_full_document_staged_cli_allowed_in_C0": false,
+      "minicpm_sdk_queue_mode_within_admitted_page": "serial",
+      "serial_stage_order": [
+        "page_admitted",
+        "current_page_raster_if_D0",
+        "current_page_layout_and_crops",
+        "current_page_regions_and_supplemental_calls",
+        "artifacts_complete",
+        "page_terminal",
+        "next_page_admitted"
+      ],
+      "later_page_raster_layout_regions_before_admission_allowed": false,
+      "admission_constraint_scope": "timed execution; common offline pixel-freeze audit is allowed, discarded, and never substituted for timed D0 rendering",
+      "offline_audit_storage_cache_claim": "source preaccessed; storage cache uncontrolled, not cold",
+      "page_deadline_origin": "executor page_admitted monotonic timestamp",
+      "sdk_native_page_timing_is_D0_timing": false,
+      "backend_and_layout_instance_reuse": "within run; cold initialization recorded separately",
+      "evidence": [
+        "page_id",
+        "monotonic_timestamp",
+        "page_admitted",
+        "raster_start",
+        "layout_start",
+        "region_start",
+        "region_end",
+        "artifacts_complete",
+        "page_terminal"
+      ],
+      "global_region_dispatch_limit": 4,
+      "capacity_sweep_uses_same_executor": true
+    }
+  },
+  "profiles": [
+    {
+      "id": "C0-S0",
+      "kind": "native_stack_end_to_end_common_policy",
+      "candidates": [
+        "minicpm_standard",
+        "ovis_standard"
+      ],
+      "priority": "primary",
+      "interpretation": "Complete-system result; native engine versions differ",
+      "page_admission": 1,
+      "max_native_active_sequences": 4,
+      "minicpm_layout": "CPU PP-DocLayoutV3",
+      "ovis_layout": "native structured page generation",
+      "gt_crops_as_input": false,
+      "all_extra_calls_and_exports_charged": true,
+      "page_admission_implementation": "shared_admission_controlled_executor",
+      "native_sdk_full_document_staged_is_valid_substitute": false
+    },
+    {
+      "id": "C0-R0",
+      "kind": "common_correct_crops",
+      "candidates": [
+        "minicpm_standard",
+        "ovis_standard"
+      ],
+      "priority": "primary_diagnostic",
+      "same_crop_pixel_hash_required": true,
+      "region_concurrency_sweep": [
+        1,
+        2,
+        4
+      ],
+      "semantic_task_mapping": "comparison-plan.md section 4.2",
+      "e2e_replacement_allowed": false
+    },
+    {
+      "id": "C0-LOAD",
+      "kind": "same_external_page_load",
+      "candidates": [
+        "minicpm_standard",
+        "ovis_standard"
+      ],
+      "page_admission_sweep": [
+        1,
+        2,
+        4
+      ],
+      "global_region_dispatch_minicpm": 4,
+      "implementation_gate": "Single bounded test dispatcher required before admission > 1; no four SDK workers per client multiplication",
+      "page_admission_implementation": "shared_admission_controlled_executor",
+      "native_sdk_full_document_staged_is_valid_substitute": false
+    },
+    {
+      "id": "C1-S0",
+      "kind": "shared_runtime_end_to_end",
+      "priority": "conditional",
+      "runtime_candidate_vllm": "18343393b4da41a7e8027efbc4c7e77c28301bf0",
+      "runtime_candidate_transformers": "549e5b410733fb50e8efbbe4aa585cb89f6478ea",
+      "status": "ARCHITECTURE_REGISTERED_BOTH_MODEL_COMPATIBILITY_UNTESTED",
+      "required_before_reporting": [
+        "processor and tokenizer load",
+        "weight and kernel load",
+        "real image and full document smoke",
+        "same effective runtime/TF and neutral sampling"
+      ],
+      "page_admission_implementation": "shared_admission_controlled_executor",
+      "native_sdk_full_document_staged_is_valid_substitute": false
+    },
+    {
+      "id": "C1-R0",
+      "kind": "shared_runtime_correct_crops",
+      "priority": "conditional",
+      "same_compatibility_gate_as": "C1-S0"
+    },
+    {
+      "id": "N0",
+      "kind": "native_policy_reference_inside_common_external_envelope",
+      "official_benchmark_reproduction_claim": false,
+      "minicpm_sampling": {
+        "temperature": 0.01,
+        "top_p": 0.001,
+        "top_k": 1,
+        "repetition_penalty": 1.0
+      },
+      "ovis_sampling": {
+        "temperature": 0.0,
+        "native_other_parameters_recorded": true
+      },
+      "mixed_with_C0_ranking": false,
+      "minicpm_native_pipeline_variant": "sdk_staged_bulk",
+      "page_workers_one_guarantees_serial_pages": false
+    },
+    {
+      "id": "M1",
+      "kind": "minicpm_dspark",
+      "requires": [
+        "Both standard baselines complete",
+        "Mini absolute quality and stability pass",
+        "Matching main and draft locked",
+        "Speculative activation evidence"
+      ],
+      "reference_profile": "C0-S0",
+      "same_budget_and_sampling_as_reference": true,
+      "new_winner_claim_against_ovis_requires_separate_labelled_system_table": true
+    },
+    {
+      "id": "O1-16K",
+      "kind": "ovis_extended_tasks",
+      "tasks": [
+        "X01",
+        "X02",
+        "X03",
+        "X04"
+      ],
+      "crosspage_max_images": 2,
+      "stage1_conditions": [
+        "raw output retained",
+        "finish_reason != length",
+        "valid prior parse"
+      ],
+      "predicted_vs_oracle_prior_separate": true,
+      "budget_overflow_status": "FAIL_BUDGET_NOT_SILENT_RESIZE_OR_TRUNCATION",
+      "native_crosspage_binding_scope": "one merge per pair; earlier last table and later first table",
+      "general_fragment_matching_implemented": false,
+      "missing_reliable_system_binding_action": "UNSUPPORTED_OR_FAIL_AND_KEEP_ORIGINALS_NO_WRITEBACK",
+      "table_fragment_audit_required": true
+    },
+    {
+      "id": "LONGCTX_EXPLORATION",
+      "kind": "optional_new_envelope",
+      "enabled": false,
+      "overwrites_16k_failures": false,
+      "requires_new_shared_or_explicitly_unmatched_budget_record": true
+    }
+  ],
+  "task_sets": {
+    "shared_core": [
+      "Q01",
+      "Q02",
+      "Q03",
+      "Q04",
+      "Q05",
+      "Q06",
+      "Q07",
+      "Q08",
+      "Q09",
+      "Q10",
+      "Q11",
+      "Q12",
+      "Q13",
+      "Q14",
+      "Q15",
+      "Q16",
+      "Q17",
+      "Q18",
+      "Q19",
+      "Q20",
+      "Q21",
+      "Q22"
+    ],
+    "extended": [
+      {
+        "id": "X01",
+        "name": "adjacent_crosspage_table",
+        "minimum_positive_original_pairs_target": 10
+      },
+      {
+        "id": "X02",
+        "name": "recursive_3plus_page_table",
+        "minimum_original_chains_target": 3
+      },
+      {
+        "id": "X03",
+        "name": "unrelated_pages_and_false_merge_negatives",
+        "minimum_negative_original_pairs_target": 10
+      },
+      {
+        "id": "X04",
+        "name": "figure_caption_and_optional_flowchart_mermaid",
+        "flowcharts_target": 5,
+        "other_figures_target": 5
+      }
+    ],
+    "quality_scope": "All admitted originals; global minimums do not replace actual available counts; missing scenes remain GAP"
+  },
+  "normalization": {
+    "ir_adapter": "deterministic and versioned; no LLM repair",
+    "raw_and_processed_scores_separate": true,
+    "captions_not_inserted_into_transcription_cer": true,
+    "image_text_supplement_uses_only_model_predicted_boxes_in_e2e": true,
+    "gt_boxes_only_in_region_diagnostic": true,
+    "unsupported_geometry_style_or_confidence": "UNSUPPORTED_OR_UNAVAILABLE_NOT_ZERO_OR_FABRICATED"
+  },
+  "measurement": {
+    "quality": [
+      "strict_CER",
+      "NFC_whitespace_CER",
+      "WER",
+      "text_block_recall",
+      "critical_token_EM",
+      "formula_render_and_structure",
+      "table_TEDS",
+      "table_TEDS_struct",
+      "cell_CER",
+      "reading_order_pair_accuracy",
+      "hallucination_insertions",
+      "style_coverage",
+      "crosspage_link_F1",
+      "reconstruction_TEDS",
+      "figure_factuality_nodes_edges_labels"
+    ],
+    "speed": [
+      "page_document_complete_latency",
+      "first_complete_page_latency",
+      "all_attempts_batch_wallclock",
+      "completed_page_per_second",
+      "good_page_per_second",
+      "GT_aligned_character_per_second"
+    ],
+    "resource": [
+      "total_CPU_seconds",
+      "all_process_peak_RSS",
+      "peak_and_steady_VRAM",
+      "GPU_J_batch_raw",
+      "GPU_J_batch_idle_adjusted",
+      "J_per_attempted_page",
+      "J_per_good_page",
+      "model_calls_per_page",
+      "input_and_output_tokens_diagnostic_only"
+    ],
+    "operations": [
+      "cold_install_and_rebuild_walltime",
+      "download_bytes",
+      "model_image_and_cache_disk_bytes",
+      "cold_load_and_JIT",
+      "retry_first_and_final_failure_rates",
+      "timeouts",
+      "truncation",
+      "invalid_schema",
+      "offline_success",
+      "rollback_success"
+    ],
+    "sampling_hz_minimum": 1,
+    "p95_minimum_observations_initial": 200,
+    "p99_minimum_observations_reference": 1000,
+    "p99_stability_guarantee": false,
+    "energy_short_page_attribution": "Batch integration only at 1Hz",
+    "monetary_cost_without_user_unit_prices": "UNAVAILABLE",
+    "cpu_or_whole_system_energy_without_reliable_meter": "UNAVAILABLE",
+    "timing_scopes": {
+      "D0": "Native PDF/PNG/JPEG admitted to full artifacts; actual common rasterization included",
+      "P0": "Ready common page pixels admitted to artifacts; rasterization excluded",
+      "R0": "Same correct crop recognition; not full-page result",
+      "I0": "Optional Word conversion plus D0; separate profile"
+    },
+    "primary_complete_document_scope": "D0",
+    "offline_annotation_and_scoring_in_online_latency": false
+  },
+  "statistics": {
+    "quality_pair_unit": "same source/page/crop",
+    "bootstrap_cluster_unit": "source_family_id",
+    "synthetic_variants_and_repeat_runs_are_independent_quality_samples": false,
+    "annotator_model_identity": "BLINDED",
+    "performance_schedule": "6 balanced paired blocks, frozen order with seed; e.g. AB BA BA AB AB BA",
+    "e2e_unique_gold_pages_per_block_minimum": 40,
+    "quality_absolute_gates": "README.md section 9.3",
+    "comparative_noninferiority_CER_percentage_points": 0.1,
+    "comparative_noninferiority_table_or_formula_score": 0.005,
+    "speed_practical_improvement_fraction": 0.1,
+    "paired_speedup_CI_lower_bound_required": 1.0,
+    "minicpm_dspark_adoption_speedup_fraction": 0.15,
+    "minicpm_dspark_p95_max_regression_fraction": 0.05,
+    "no_new_critical_errors_required": true,
+    "minimum_families_for_stable_cluster_interpretation": 20,
+    "small_sample_status": "DESCRIPTIVE_WITH_UNSTABLE_CI_NOT_GENERALIZATION",
+    "fresh_model_process_for_every_timed_candidate_run": true,
+    "performance_primary_inputs_pixel_unique_and_not_warmup": true
+  },
+  "failure_accounting": {
+    "failed_readable_gt_as_prediction": "empty string: all GT characters deleted",
+    "extra_output": "insertions",
+    "empty_gt": "false_positive_chars_pages_not_CER",
+    "failed_pages_remain_in_fixed_batch_walltime": true,
+    "common_success_subset": "secondary only, coverage and failures remain primary",
+    "statuses": [
+      "PASS",
+      "FAIL",
+      "FAIL_BUDGET",
+      "GAP",
+      "UNSUPPORTED",
+      "NOT_RUN",
+      "UNAVAILABLE",
+      "NOT_COMPARABLE",
+      "UNSCORED"
+    ],
+    "scores_before_execution": null
+  },
+  "completion": {
+    "both_standard_deployments_required_for_full_two_model_comparison": true,
+    "partial_independent_progress_allowed": true,
+    "no_unmeasured_overall_winner": true,
+    "report_tables": [
+      "admission_and_per_source_coverage",
+      "Q01_Q22_X01_X04_capabilities",
+      "paired_quality_by_scene",
+      "serial_and_capacity_speed_resources_energy",
+      "native_vs_shared_runtime_and_deployment_complexity",
+      "Mini_standard_vs_DSpark",
+      "Ovis_extended_task_pred_vs_oracle"
+    ]
+  },
+  "model_source_locks": {
+    "minicpm": "source-lock.json",
+    "ovis": "ovis-source-lock.json"
+  },
+  "review_changes": {
+    "reviewer": "gpt-6-astra",
+    "reasoning_effort": "max",
+    "findings": [
+      "P1-1 page admission",
+      "P2-1 table fragment writeback",
+      "P2-2 per-page good predicate"
+    ],
+    "runtime_execution_validated": false
+  },
+  "crosspage_writeback_contract": {
+    "native_pipeline_max_merges_per_pair": 1,
+    "default_binding": {
+      "earlier_table_index": "last",
+      "later_table_index": 0
+    },
+    "original_fragment_id": [
+      "original_page_id",
+      "zero_based_table_index"
+    ],
+    "required_fragment_record": [
+      "original_html_hash",
+      "original_visible_text_hash",
+      "original_span",
+      "operand_fragment_ids",
+      "original_fragment_ancestry"
+    ],
+    "unambiguous_single_table_pages_can_use_default_binding": true,
+    "multi_table_requires_reliable_system_binding": true,
+    "gt_bindings_allowed_in_predicted_track": false,
+    "no_system_binding_action": "NO_WRITEBACK_PRESERVE_ORIGINALS_AND_REPORT_UNSUPPORTED_OR_FAIL",
+    "helper_explicit_binding_equals_full_pipeline_multi_merge_support": false,
+    "unselected_tables_and_non_table_content_must_be_preserved": true,
+    "fixture_cases": [
+      "single_boundary_merge",
+      "multi_table_one_boundary_merge",
+      "non_boundary_continuation",
+      "two_independent_merges_same_pair",
+      "unselected_side_table_preserved"
+    ],
+    "general_matching_adapter_in_this_document_fix": false,
+    "initial_multi_table_operand_writeback_enabled": false,
+    "default_last_first_counts_as_reliable_multi_table_binding": false,
+    "multi_table_enablement_requires": "separate versioned system fragment selection/binding adapter, evidence and profile; not implemented in this document repair"
+  },
+  "page_acceptance_policy": {
+    "id": "page-good-v1",
+    "status": "PROPOSED_DEFAULTS_FREEZE_BEFORE_BLIND_RUN_NOT_MODEL_RESULT",
+    "corpus_gates_unchanged": true,
+    "corpus_aggregate_pass_implies_each_page_good": false,
+    "required_case_fields": [
+      "acceptance_rule_id",
+      "GT_version",
+      "scorer_version",
+      "unit_kind",
+      "required_tasks",
+      "required_text_groups",
+      "required_output_units",
+      "critical_assertions",
+      "GT_complete_for_required_tasks"
+    ],
+    "applicability_frozen_before_predictions": true,
+    "decision_order": [
+      "execution failure, missing/unsupported required output, invalid/incomplete artifacts, wrong identity, truncation, overflow or critical/severe order error => false",
+      "otherwise missing required GT, required metric unavailable, or missing frozen rule/GT/scorer version => null (UNSCORED)",
+      "otherwise AND every applicable page gate; all true => true, any false => false"
+    ],
+    "text_profile_limits": {
+      "printed_chinese": {
+        "strict_CER_max": 0.01
+      },
+      "printed_english": {
+        "strict_CER_max": 0.005,
+        "WER_max": 0.02
+      },
+      "technical_zh_en": {
+        "strict_CER_max": 0.01
+      },
+      "handwritten": {
+        "strict_CER_max": 0.05
+      },
+      "handwritten_name": {
+        "strict_CER_max": 0.03
+      },
+      "seal_text": {
+        "strict_CER_max": 0.05
+      }
+    },
+    "page_gates": {
+      "execution_complete": true,
+      "required_outputs_and_artifacts_valid": true,
+      "identity_mapping_valid": true,
+      "truncated_regions_max": 0,
+      "context_overflows_max": 0,
+      "critical_errors_max": 0,
+      "text_groups": "all declared nonempty readable groups pass their frozen text_profile_limits",
+      "text_block_recall_min": 0.99,
+      "critical_text_block_recall": 1.0,
+      "empty_readable_text_gt_hallucinated_characters_max": 0,
+      "table_applicable": {
+        "all_gt_tables_matched_or_missing_scored": true,
+        "HTML_valid_required": true,
+        "page_mean_TEDS_min": 0.95,
+        "page_mean_TEDS_struct_min": 0.97,
+        "page_pooled_cell_CER_max": 0.01,
+        "critical_cell_assertions_all_pass": true
+      },
+      "formula_applicable": {
+        "all_gt_formulas_matched_or_missing_scored": true,
+        "page_render_success_fraction_min": 0.99,
+        "page_structure_agreement_fraction_min": 0.95,
+        "critical_formula_assertions_all_pass": true,
+        "EM_and_CDM_not_added_as_hidden_hard_gates": true
+      },
+      "reading_order_applicable": {
+        "page_pair_accuracy_min": 0.99,
+        "severe_order_errors_max": 0
+      },
+      "required_style_applicable": "all frozen range assertions pass; unsupported required style is false",
+      "required_resource_applicable": "all required references resolve and retain original page/region identity"
+    },
+    "not_applicable_requires_explicit_GT_declaration": true,
+    "missing_GT_or_required_metric_may_be_treated_as_not_applicable": false,
+    "good_numerator": "count(is_good is true)",
+    "primary_quality_throughput_requires_complete_required_GT_for_fixed_workload": true,
+    "good_page_per_second_denominator": "total wallclock of all submitted workload, including retries/failures/timeouts",
+    "zero_good_pages": {
+      "good_page_per_second": 0,
+      "J_per_good_page": null,
+      "J_per_good_page_reason": "NO_GOOD_PAGES"
+    },
+    "incomplete_GT_workload_primary_good_page_per_second": null,
+    "incomplete_GT_workload_status": "UNAVAILABLE_FOR_PRIMARY_COMPARISON; known subset diagnostic and completion rate only",
+    "unit_counts": "full page, long image and crop separate; four essay images never become thirty independent pages",
+    "crop_metric_name": "good-region/s, never mixed into full-page rate",
+    "selfcheck_fixture": {
+      "case": "100 equal-length Chinese pages; other required gates pass",
+      "groups": [
+        {
+          "count": 90,
+          "strict_CER": 0.0
+        },
+        {
+          "count": 10,
+          "strict_CER": 0.1
+        }
+      ],
+      "expected_corpus_micro_CER": 0.01,
+      "expected_corpus_macro_CER": 0.01,
+      "expected_good_count": 90,
+      "expected_not_good_count": 10,
+      "expected_good_count_is_100": false
+    },
+    "additional_fixture_cases": [
+      "execution_failed",
+      "required_GT_missing",
+      "required_table_output_missing",
+      "required_style_unsupported",
+      "blank_page_hallucination",
+      "zero_good_pages"
+    ]
+  },
+  "contract_selfchecks": {
+    "purpose": "Specification fixtures only; not proof of an implemented executor, scorer or OCR model",
+    "page_admission_fixtures": [
+      {
+        "id": "serial_valid",
+        "expected_valid": true,
+        "pages": [
+          {
+            "page": "p1",
+            "admitted": 0.0,
+            "raster_start": 0.1,
+            "layout_start": 0.2,
+            "artifacts_complete": 0.9,
+            "terminal": 1.0,
+            "region_spans": [
+              [
+                0.3,
+                0.8
+              ]
+            ]
+          },
+          {
+            "page": "p2",
+            "admitted": 1.1,
+            "raster_start": 1.2,
+            "layout_start": 1.3,
+            "artifacts_complete": 1.9,
+            "terminal": 2.0,
+            "region_spans": [
+              [
+                1.4,
+                1.8
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "id": "workers_one_but_cross_page_overlap",
+        "expected_valid": false,
+        "pages": [
+          {
+            "page": "p1",
+            "admitted": 0.0,
+            "raster_start": 0.1,
+            "layout_start": 0.2,
+            "artifacts_complete": 0.9,
+            "terminal": 1.0,
+            "region_spans": [
+              [
+                0.3,
+                0.8
+              ]
+            ]
+          },
+          {
+            "page": "p2",
+            "admitted": 0.4,
+            "raster_start": 0.5,
+            "layout_start": 0.6,
+            "artifacts_complete": 1.2,
+            "terminal": 1.3,
+            "region_spans": [
+              [
+                0.7,
+                1.1
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "id": "five_simultaneous_regions",
+        "expected_valid": false,
+        "pages": [
+          {
+            "page": "p1",
+            "admitted": 0.0,
+            "raster_start": 0.1,
+            "layout_start": 0.2,
+            "artifacts_complete": 1.1,
+            "terminal": 1.2,
+            "region_spans": [
+              [
+                0.3,
+                1.0
+              ],
+              [
+                0.3,
+                1.0
+              ],
+              [
+                0.3,
+                1.0
+              ],
+              [
+                0.3,
+                1.0
+              ],
+              [
+                0.3,
+                1.0
+              ]
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
