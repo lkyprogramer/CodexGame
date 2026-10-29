@@ -32,7 +32,7 @@ class Integration(unittest.TestCase):
             p=Path(t);rows=[]
             for rnd in range(5):
                 for arm,dt in [('base',10),('off',10),('on',8)]:
-                    rows.append({'phase':'measured','round':rnd,'arm':arm,'case_id':'Q','group':'quality','request_sha256':'same',
+                    rows.append({'phase':'measured','round':rnd,'arm':arm,'case_id':'Q','group':'quality','request_sha256':hash_obj({'request':'same'}),
                                  'metrics':{'wall_s':dt,'prompt_tokens':12},'score':{'pass':not(rnd==3 and arm=='on'),'reason':'test'}})
             (p/'requests.jsonl').write_text('\n'.join(json.dumps(x) for x in rows))
             report=summarize(p)
@@ -41,11 +41,17 @@ class Integration(unittest.TestCase):
     def test_clean_pairs_remain_screening_only(self):
         with tempfile.TemporaryDirectory() as t:
             p=Path(t);rows=[]
+            stratum={'group':'quality','cache_state':'sequence_controlled','scenario':'fixture','context_bucket':'short'}
             for rnd in range(5):
                 for arm,dt in [('base',10),('off',10),('on',8)]:
-                    rows.append({'phase':'measured','round':rnd,'arm':arm,'case_id':'Q','group':'quality','request_sha256':'same',
-                                 'metrics':{'wall_s':dt,'prompt_tokens':12},'score':{'pass':True,'reason':'test'}})
+                    rows.append({'phase':'measured','round':rnd,'arm':arm,'case_id':'Q','group':'quality','request_sha256':hash_obj({'request':'same'}),
+                                 **stratum,'metrics':{'wall_s':dt,'prompt_tokens':12},'score':{'pass':True,'reason':'test'}})
             (p/'requests.jsonl').write_text('\n'.join(json.dumps(x) for x in rows))
+            # A complete planned campaign, not observed rows alone, may pass screening.
+            (p/'campaign.json').write_text(json.dumps({'schema_version':2,'mode':'PR_EXPERIMENT','rounds':5,
+                'arms':['base','off','on'],'comparisons':[['base','off'],['off','on']],'case_ids':['Q'],
+                'cases':[{'id':'Q','request_sha256':hash_obj({'request':'same'}),**stratum}],'primary_metric':'wall_s'}))
+            (p/'COMPLETION.json').write_text('{"state":"COMPLETE","final_audit":"PASS"}')
             self.assertEqual(summarize(p)['decision'],'CANDIDATE_FOR_HOLDOUT_NOT_PRODUCTION')
 
 if __name__=='__main__':unittest.main()

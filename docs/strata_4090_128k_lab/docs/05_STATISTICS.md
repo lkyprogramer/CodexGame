@@ -27,6 +27,36 @@ HTTP/CUDA错误、NaN、OOM、超限、错误工具调用、空回复、未执�
 
 以上3%/5%是本实验的工程决策阈值，不是Strata官方标准。它们可在**看结果之前**按用户目标修改并留档。
 
+## 正式采用门（2026-10-26 从 v2 包收编，项目政策）
+
+上面的筛选门决定“能否进入留出集”。进生产前再过下面的正式门；阈值在首次实验前冻结一次，看完候选结果后不得再改：
+
+- **最小有意义改善** `m = max(3%, 2 × A/A 噪声)`，A/A 噪声 = 预登记的配对 round ratio 相对 1 的绝对偏差中位数。按已测噪声（引擎 ms/窗口约 ±0.75%，decode 组级约 ±2%），decode 类改动的 m 在 3%～4%。
+- **主指标**：时间 ratio（candidate / base）的 95% 配对区间上界 ≤ 1 − m。修复明确正确性 / 缓存失效问题的项例外：主时间 ratio 上界 ≤ 1.03 且质量门通过即可（#1536 属于这一类）。
+- **关键非目标场景**：冻结的时间 ratio 95% 区间上界 ≤ 1.03；OOM、错误率、严重尾延迟单独审查。尾部数据不够就标 INSUFFICIENT，不用均值代替；少于 1000 个请求不宣称 p99。
+- 状态机：`IDEA → ELIGIBLE → MICRO_PASS → NUMERIC_PASS → SCENARIO_PASS → HOLDOUT_PASS → COMBINATION_PASS → READY_FOR_DEPLOY`；旁路状态 `NOT_APPLICABLE / NO_GAIN / QUALITY_REGRESSION / BLOCKED / INSUFFICIENT / REJECTED`。没有目标机运行到不了 SCENARIO_PASS。
+
+**实现覆盖**：`lab.cli stats` 只做配对 log-ratio bootstrap 的严格筛选（点估计 ≥5%、区间支持改善、off/base 约 ±3%），不直接给正式 PASS。正式门里的 restricted time-to-success（成功记实际 wall、失败记预算 B）、失败分类和冻结流量权重还没有实现（v2 P00 的开发项）；需要时由执行 AI 先实现并补测试。
+
+## 退出码与判定
+
+- `stats`：写完 `summary.json` / `requests.csv` / `REPORT.md` 后，有缺项、重复、失败、未评分、计划 hash 无效，或参数错误（未知 arm、非法 metric、坏 JSON）时退出 **2**；合法报告退出 0。0 不是采用许可。
+- `tools/quality_gate.py`：通过退出 0（`NONINFERIORITY_ESTABLISHED`），未能证明非劣退出 1（`NONINFERIORITY_NOT_ESTABLISHED`），实验无效退出 2（`INVALID_EXPERIMENT`），OOM / crash 等硬拒绝退出 3（`HARD_REJECT`）。项目层可以把 1 映射为 INSUFFICIENT，但这不是 CLI 返回的字符串。
+
+## 质量非劣（任务级，`tools/quality_gate.py`）
+
+- 单位是预登记的独立任务对（同一任务 base / candidate 各一次；多 seed 先聚合）。四格中 b = base 成功、candidate 失败，c = base 失败、candidate 成功。
+- 保守界 `U_harm = CP_upper(b, n, 0.025) − CP_lower(c, n, 0.025) ≤ δ`，默认 δ = 0.02。基础设施失败使该对无效，不能用幸存样本挽救；预算耗尽算有效失败；OOM / crash 硬拒绝。
+- 样本量现实：n = 30 即使全部一致（b = c = 0）也证明不了 2pp 非劣（CP 上界约 0.116）；全一致时 n = 183 才达到门槛（示例用 184，见 `tools/examples/quality-zero-loss-184.json`）；有不一致对时还要更多。
+
+**本机实际取舍（2026-10-26）**：Pi 的 xhigh 回合每轮 1.5～3.5 min。约 180 个独立任务对、每对 base / candidate 各一次：单轮任务约 15 小时，8 轮编码链约 5 天；题目还必须足够难才不撞天花板。正式 2pp 非劣在单 4090 上不现实。对 PT=0 这类服务层候选，采用：
+
+1. 实验室配对筛查（已做：6 条 8 轮编码链全满分，有天花板效应，只能说“未测出差异”）；
+2. 用户真实 Pi 会话作留出：用户在实际使用中对比，发现质量退化即回滚（服务端开关，回滚只需改 env 并重启）；
+3. 如需更强证据，加一组更难的编码链（需求更多、存在相互冲突的修改）做筛查，按 `quality_gate` 报四格，不宣称 2pp 非劣。
+
+报告中必须写明走的是哪条路径，不能把筛查结果写成正式非劣。
+
 ## 输出
 
 `requests.jsonl`原始每请求记录；`requests.csv`表格；`summary.json`机器判定；`REPORT.md`人工阅读。`CANDIDATE_FOR_HOLDOUT_NOT_PRODUCTION`不等于自动部署。`NO_ESTABLISHED_NET_BENEFIT`也不表示PR普遍无效，只表示当前配置没有证实收益。

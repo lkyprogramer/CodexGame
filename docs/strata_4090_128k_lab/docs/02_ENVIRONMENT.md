@@ -1,6 +1,20 @@
 # 环境核实、资源预算与安全边界
 
-## 29 号机当前生产事实（2026-10-23 核对，取代 10-08 记录）
+## 29 号机当前状态（2026-10-26，覆盖下文 10-23 表中已变化的项）
+
+| 项 | 当前值 | 来源 |
+|---|---|---|
+| 生产版本 | **A0（v0.2.3，`5c8dd322`）+ EXACT6**，部署在 `/home/hhtele/strata-0.2.3`；`openclaw-qwen38-next.service` 指向它，unit 备份 `.bak-v0431-20261025`；端口 18343、NGINX 28343、模型名 `openclaw/Qwen3.8-next` 不变 | [部署报告](../reports/DEPLOY-A0-EXACT6-20261025.md) |
+| 生产状态 | **停机测试中**：2026-10-26 09:44 EDT 按用户同意停止（inactive，仍 enabled，开机会自动拉起，且会带 KVRES 配置）。此前 09:24 起带四个开关运行了 20 分钟，只有上线冒烟请求；21:38～21:41 加上 KVRES 启动做冒烟，验证后按用户要求再停。恢复需用户发话：`systemctl start openclaw-qwen38-next`（经 sudo 包装） | [部署报告](../reports/DEPLOY-PROD-20261026.md)、[DEPLOY-KVRES](../reports/DEPLOY-KVRES-20261026.md) |
+| 生产开关（10-26 上线） | 服务层：`run-iq3_xxs.sh` export `STRATA_REPLY_REUSE=1`（#1536）、`STRATA_PRESERVE_THINKING=0`（CFG-PT），代码为 `lab/prod-20261026` 补丁；引擎 env（`strata-iq3_xxs.json`）：`STRATA_PREFILL_CPU_SHARE_MAX=4096`、`STRATA_PREFILL_AUTO_MAX=16384`。备份 `/home/hhtele/strata-0.2.3/backup-20261026/`。21:38 引擎参数再加 `--kv-resident 20480`（K/V 1.55 GiB 在 pinned RAM，专家槽 9420 → 10290），备份 `backup-20261026-kvres/` | [部署报告](../reports/DEPLOY-PROD-20261026.md)、[DEPLOY-KVRES](../reports/DEPLOY-KVRES-20261026.md) |
+| 回滚 | `/home/hhtele/strata-0.1.43.1`（含 `data/`）原样保留，不写 | — |
+| host 调优 | `strata-host-tuning.service`：performance governor + C6 关闭（停止时恢复 schedutil / C6）；`kernel.perf_event_paranoid=1`；linux-perf 6.1.190 已装 | 部署报告 |
+| 共存 | OCR 容器 `onnxocr-ppocrv6-small-cpu-compat` 已停；`openclaw-qwen38-ninfer` disabled + stopped；GPU 测试期间独占 | 部署报告 |
+| Docker 镜像 | 有 `python:3.12-slim`（`sha256:ec7d6c95cd36…`，用于 `chain_bench` 隔离评分）；**仍无 JDK 镜像** | 2026-10-26 `docker images` |
+| 上游 | 最新 v0.2.6（`4b9e05a2`），对本机 Flash-Next 无相关改动，基线不换（`sources/LOCK.json` 的 `upstream_after_snapshot`） | 2026-10-26 diff |
+| 实验包 | 29 `/home/hhtele/strata-lab-4090`，端口 18089；构建需 venv cmake 4.4.3（`PATH=/home/hhtele/strata-0.1.43.1/.venv/bin:$PATH`），系统 cmake 3.25 报 CUDA20 dialect | P0 报告 |
+
+## 29 号机生产事实（2026-10-23 核对，取代 10-08 记录；部分已被上表覆盖）
 
 以下来自 29（192.168.10.29）上的生产配置文件、启动日志和 10-12～10-16 的真实 Pi 流量。数值仍以 `doctor` 和本轮启动日志复核；凡标“未验证”的项不得当作前提。
 
@@ -14,13 +28,13 @@
 | 模型 | Qwen3.8-Flash-Next **GSQ-RCO IQ3_XXS**（不是 IQ3_S）；`/data/strata-data/models/IQ3_XXS/…-00001-of-00002.gguf` + `--ple-gguf …-00002-of-00002.gguf` |
 | pack / tokenizer | `/data/strata-data/packs/iq3_xxs`，模板 `/data/strata-data/packs/iq3_xxs/tokenizer/chat_template.jinja` |
 | MTP | `--mtp /data/strata-data/mtp/rt`，`--spec 4 --spec-min-p 0.5`（10 月 A/B 后保留 0.5） |
-| KV | `--kv int8`，`--max-context 131072`；**KV 是否全驻显存未验证**（旧文档内部矛盾：README 写“全驻显存”，原记录写 `kv_resident=0`），以 doctor/启动日志为准 |
+| KV | `--kv int8`，`--max-context 131072`。实验 base（0.1.43.1 的归一化配置）不传 `--kv-resident`，即默认 0：**全部 K/V 驻显存**；生产 10-26 21:38 起传 `--kv-resident 20480`（见上表）（v0.2.3 `--help`：“0 (default): all of it in VRAM”，2026-10-26 核对）。GGUF 元数据：48 层，每 4 层一个全注意力（QSA）层共 12 层，KV head 2；专家 512 个，每 token 路由 top-10。int8 每层每 cell 1056 B，全上下文 K/V 约 12 × 131072 × 1056 B ≈ 1.55 GiB（按公式推算，启动日志不单独打印） |
 | 显存 | `--expert-cache auto` → 9434 slots / 15.29 GiB；`--vram-reserve-mib 974`；`--prefill auto` |
 | Expert Profile | 读 `data/expert-profile-iq3xxs.bin`，生产会写 `expert-profile-iq3xxs-learned.bin`（runner 已剥离 `--expert-profile-save`） |
 | 会话缓存 | `--conversation-cache-mib 6144 --conversation-cache-slots 4`（**不是 0**） |
 | 生产 env | `STRATA_DECODE_TIMING=1`、`STRATA_PREFILL_TIMING=1`、`STRATA_PREFILL_CPU_SHARE_MAX=3072`、`STRATA_ADAPT_OVERLAP=1` |
 | CPU / RAM | Xeon Silver 4216，32 线程，约 62 GiB RAM；pool workers 15；Strata 停止时 MemAvailable 约 57.6 GB |
-| GPU / 工具链 | RTX 4090 sm_89，驱动 610.57.04，CUDA 12.3（`/usr/local/cuda-12.3`），gcc 12.2，cmake 3.25.1 |
+| GPU / 工具链 | RTX 4090 sm_89，驱动 610.57.04，CUDA 12.3（`/usr/local/cuda-12.3`），gcc 12.2，cmake 3.25.1；GPU Target Temperature 84 °C。实验包温度保护 85 °C（`gpu_temp_abort_c`）：A0 默认配置下连续冷读最高 79 °C，`STRATA_PREFILL_AUTO_MAX=16384` 下连续约 6 分钟冷读到 84～85 °C（2026-10-26，[P2-PR3307](../reports/P2-PR3307-20261026.md)）。decode 时 SM 稳定在 2745 MHz（出厂最高 boost），显存 10251 MHz，GPU 利用率 99%，功耗 240～280 W，`clocks_event_reasons` 为 0（没有功耗 / 温度降频），所以频率侧没有软件可调的空间（2026-10-26 实测） |
 | 系统 / 启动 | Debian 12，内核 `6.1.0-17-amd64`（cmdline `quiet iommu=pt`），GRUB，initramfs-tools 0.142，dkms 3.4.1；Secure Boot disabled；显示为 ASPEED 板载显卡，4090 在 `0000:65:00.0`，功率上限 450 W；有 BMC（`/dev/ipmi0`）。访问方式只有 `jssh 29`（2026-10-25 核对） |
 | Python | 部署树 `.venv`，已有 jinja2、numpy；无 huggingface_hub |
 | 磁盘 | 约 327 GB 可用 |
@@ -30,7 +44,7 @@
 - 引擎时间里 decode 占 75～80%（10-12：prompt 474 s / decode 1800 s；10-14～16：150 s / 445 s）。decode 窗口约 17.2 ms，其中等待 GPU 可达约 9.65 ms。0.1.43.1+overlap 实测 129.0 tok/s，旧版 116.1 tok/s。
 - prefix reuse 89～94%；PCIe share 中位 **0.007**（不是 0.022）。
 - Pi 共享 system+tools root 约 **12.3K token**（新会话复用 12275 / 12470 / 12520），低于主线默认 `prompt_cache_every=16384`。
-- 续轮中约 90%（424/473）直接复用上一轮回复，约 10%（48/473）重读回复，合计约 120 s prompt 时间（约占 prompt 15%）。重读原因（BPE 不一致还是 Pi 剥离 thinking）**未确认**。
+- 续轮中约 90%（424/473）直接复用上一轮回复，约 10%（48/473）重读回复，合计约 120 s prompt 时间（约占 prompt 15%）。重读原因 2026-10-25 已确认是 BPE 非规范生成（不是 Pi 改写），见 [单会话](11_SINGLE_SESSION.md)。
 - 67 个请求中 6 个冷启动，约占 prompt 时间一半。
 - 会话缓存：10-12 parking 45 次、restore 7 次；10-15 起共 12 次 `skip parking (physical RAM admission ...)`：1 次 `evicted 3, 0 still parked`（驱逐全部 3 个会话后仍拒绝），11 次 `evicted 0, 0 still parked`（缓存已空，MemAvailable 约 1.5 GB 仍低于 2560 MiB 下限加快照大小）。进程 `[heap]` 约 6.9 GB。glibc 2.36。根因与 #2253 描述一致（16 MiB 分段释放后留在 glibc 空闲链表）——**推断**，未做 malloc 对照实验，见 `prs/11_PR2253.md`。
 
@@ -46,10 +60,10 @@
 
 ## 共存负载与当前占用
 
-- 29 同时运行其他实验：端口 **18343 当前被其他进程占用**（生产 Strata 已停止），18089 空闲。实验开始前重新确认。
-- Docker 常驻容器：onnxocr-ppocrv6-small-cpu-compat（约 8 GB RAM）、vault-transit-test、old-hand-verify、fervent_moore。它们吃掉 MemAvailable，直接影响本包 4096 MiB 门槛和 cache 实验；不得由实验 AI 停止，由用户在维护窗口决定。
+- （10-23 状态，已过时）29 同时运行其他实验：端口 18343 被其他进程占用，18089 空闲。2026-10-25 起 18343 属于 A0 生产（当前停止）。实验开始前重新确认。
+- Docker 常驻容器（10-23）：onnxocr-ppocrv6-small-cpu-compat（约 8 GB RAM，**2026-10-25 经用户同意已停**）、vault-transit-test、old-hand-verify、fervent_moore。它们吃掉 MemAvailable，直接影响本包 4096 MiB 门槛和 cache 实验；不得由实验 AI 自行停止。
 - `/home/hhtele/strata-cvec-ablation-20261020*` 属于其他实验，不读写。
-- 本机**没有 JDK Docker 镜像**。Java 组需要用户事先离线准备镜像并填 `java_image`，否则一律 NOT_RUN。
+- 本机**没有 JDK Docker 镜像**。Java 组需要用户事先离线准备镜像并填 `java_image`，否则一律 NOT_RUN。有 `python:3.12-slim`，`tools/session/chain_bench.py` 用它隔离执行模型生成的 Python。
 
 ## 历史证据（2026-10-08，已过时）
 

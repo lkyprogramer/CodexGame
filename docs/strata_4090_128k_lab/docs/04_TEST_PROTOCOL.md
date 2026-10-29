@@ -12,7 +12,7 @@
 - 长输入目标4096/32768/65536/98304/122880，用实际Strata tokenizer+ChatTemplate归一化计数。
 - 无特殊标记的输入也计算完整模板；含标签时使用与服务端相同的literal marking/plain spans路径。
 - 启动每个arm后发普通文本和特殊标签两次短探针，对比本地count与server `usage.prompt_tokens`，不一致则禁止长测。
-- 每次提交前 `prompt + max_tokens + 4096 <= 131072`；服务端关闭自动缩减max_tokens。返回usage再次审计；计数变化超过32或实际预算越界停止。
+- 每次提交前 `prompt + max_tokens + 4096 <= 131072`；服务端关闭自动缩减max_tokens。返回usage再次审计；计数变化超过32或实际预算越界停止。2026-10-26 起由 `lab.runner.audited_chat` 统一执行（campaign 与三个 scenario 都走它）；无法核查 usage 或漂移超限时记录错误并停止该场景，不继续发送。
 - PR1536可能保留合法的非规范BPE分段；小幅count变化需记录，不强行要求等于重新tokenize。安全余量不是允许未知渲染逻辑的借口。
 
 ## 分组与含义
@@ -31,6 +31,35 @@
 | java | 单次生成后隔离编译与断言 | 所有候选 |
 
 长性能题与检索题不是同一指标。检索通过不证明编码能力；输出全在thinking内的截断不算质量通过。performance允许length结尾，但只有确实生成固定token数才比较速度；不以模型少写了内容作为收益。
+
+## 流式首事件与超时（2026-10-26 起）
+
+- `ttft_s` 仍等于 `first_s`：首个非空 reasoning / visible / tool 事件。开启 thinking 时它就是 **thinking 首 token**，不是用户看到正文的时间。本包 10-25 的单会话报告中“追问 TTFT”都按这个口径。
+- 新增 `first_reasoning_s`、`first_visible_s`、`first_tool_s`（可能只有 id / name）、`first_tool_arguments_s`（首段非空参数，不代表参数已完整）。真实 Pi 工作流要在计划里预先写明比较哪一个；thinking 回合比较 prefill 改动时用 `first_s`，比较“用户等到正文”时用 `first_visible_s`。
+- `token_itl_ms` 固定 null：精确逐 token 间隔要引擎时钟，不拿 SSE 事件数补算；缺 usage 时 `generated_tokens` 也保持 null。
+- `request_timeout_s` 是绝对期限（示例 1800 s），`request_idle_timeout_s` 是无数据期限（示例 null = 同绝对期限）。长 prefill 需要的值在实验前冻结。
+
+## 计划、回执与 GPU 归属（2026-10-26 起）
+
+- `stats` 支持 schema2 campaign 计划：期望的 round / arm / case 与每条请求的 `request_sha256` 来自计划，不从实际观察反推；缺项、重复、失败、未评分、计划 hash 缺失或格式错误时仍写报告，但退出码 2。退出 0 只表示报告合法，不是采用许可。
+- 生命周期正常收尾、配置与资产复核无异常时写 `COMPLETION.json`；否则写 `FAILURE.json`，有它就不能因为请求已跑满而接受结果。
+- GPU 归属在启动和运行中持续检查（`gpu_monitor_interval_s`，默认 2 s）：唯一 native engine 必须属于本轮进程组、路径和 131072 上下文参数正确；出现外来计算进程本轮失败，工具只向自己的进程组发信号。
+- 最终配置里出现 `STRATA_STAGE_PIN` 或 `STRATA_ROUTE_RESIDENT` 直接拒绝启动（`lab/runner.py` 最终检查）。
+- `validate-plan` 只做 park / restore 计划的离线结构检查，不启动引擎。
+
+## 单会话组（2026-10-26 起，用户用法的主场景）
+
+用户是一个会话长期追问、无并发（[单会话](11_SINGLE_SESSION.md)）。以下三个工具是本用法下的主要证据来源，排在通用题集之前：
+
+| 工具 | 场景 | 主指标 | 次指标 |
+|---|---|---|---|
+| `tools/session/session_bench.py` | Pi 形态 Java 长会话，持续追问到上下文上限（不模拟 compaction） | 到上限前的轮数；追问 TTFT；重读轮数与重读 token | 每轮 prompt / reused / read、thinking 与正文 token |
+| `tools/session/chain_bench.py` | 8 轮递增需求的编码链，隐藏测试检查第 1..t 轮全部需求 | 每轮累计通过数（Docker 评分） | 第 8 轮 prompt、追问 TTFT |
+| `tools/session/reread_diag.py` | 解释某轮重读的原因（文本分叉 / BPE 不一致） | — | 需要 `STRATA_DEBUG=1` |
+
+- **采样负载不比较单轮墙钟**：Pi 用 temperature 1.0，每轮生成长度差别很大（1.0～2.8 万 token），单轮 wall 主要反映写了多少。decode 类改动比较引擎 ms/窗口、每窗口提交 token，以及“总生成 token / 总 decode 时间”；prefill 类改动比较追问 `first_s` 和每轮读入 token。
+- 成对设计：同种子、arm 交替、每会话新进程；会话之间不共享 conversation cache。
+- 这些脚本直接使用 `OwnedServer`，没有走 schema2 计划和收尾回执；结论按“配对筛查”报告，不能写成正式采用门的 PASS。
 
 ## P→A0 迁移评估（MIG，START_HERE P0-T2b）
 
@@ -62,22 +91,36 @@
 
 ## 配置与诊断对照（不属于任何 PR）
 
+**状态（2026-10-26）**：CFG-EXACT 以 EXACT6（去掉 `STRATA_CPU_IQ_ALL_EXACT1`，见 [P0-T6](../reports/P0-T6-CFG-20261025.md)）通过，已进公共基线与生产；CFG-IL0 不采用；CFG-MMAP 不推荐；DIAG 已完成。新增 CFG-PT（已测）、CFG-SPEC-S（已测，保持 `--spec 4`）、CFG-CPUSHARE-S（已测，4096 为采用候选）、CFG-PARKGAIN（待定）与 CFG-PCIEFRAC（已测，0.30 与 `STRATA_PCIE_BALANCE=1` 都 NO_BENEFIT，见 [P2-NPRES](../reports/P2-NPRES-PCIEFRAC-20261026.md)）、CFG-AUTOMAX（#3307 Gate A 派生，已上线，见 [P2-PR3307](../reports/P2-PR3307-20261026.md)），以及 2026-10-26 复查 v2 包后补的 CFG-ADAPT、CFG-KVRES、CFG-KVGROW、CFG-SPECCOST（都已测：只有 CFG-KVRES 采用，10-26 21:38 写入生产配置），见表尾。
+
 | 名称 | 内容 | 比较方式 | 采用规则 |
 |---|---|---|---|
 | CFG-EXACT | A0 + main `nv_defaults.cpp` 中 sm_86 的 exact 开关：`STRATA_CPU_IQ_ALL_EXACT1=1`、`STRATA_SIDE_MIXER=2`、`STRATA_ATTN_DAILY=1`、`STRATA_GR_UP75=1`、`STRATA_GU_SWIGLU=1`、`STRATA_QSA_ROWS=1`、`STRATA_B6_MMVQ_ROWS=1`。**不含** `STRATA_ADAPT_NOWAIT`/`STRATA_ADAPT_LAG`（与生产使用的 adaptive overlap 互斥） | 两份 local 配置（第二份用 `extra_frozen_env` 注入）各跑 `noise`，再跑 decode/quality/tool 组 | 先在 A0 上确认首 token logits 转储（`STRATA_DUMP_FIRST_LOGITS`）跨重启稳定；稳定则要求 CFG-EXACT 与 A0 一致，不稳定则以质量/工具组全部通过为门。decode 收益超过 A/A 噪声（约 5%）才采用，并成为后续所有 arm 的公共基线 |
 | CFG-IL0 | A0 + `STRATA_MMVQ_IL=0`（关掉 2～4 token dense 投影的交错 q8_1 路径，回到 `native_mmvq` 多列 kernel；输出逐位一致）。依据 Issue [#1842](https://github.com/Niko1221/Strata/issues/1842)：4090 + Qwen3.8-Flash-Next IQ3_S + `--spec 4`，0.1.41 的 128K decode 比 0.1.40.3 慢约 18%，IL=0 全部找回；8K 时 IL 开着反而更快；A30 上无差别。v0.2.3 的 `native_mmvq.cu` 仍写明 sm_89 没有实测表、套用 sm_86/sm_120 共享表 | 两份 local 配置各跑 `noise`，再跑 decode 组；上下文分 4K/32K/64K/120K 报告，短（≤32K）和长（≥64K）分开统计，不合并成一个均值；追加 Pi 采样参数抽查 | 长上下文收益超过 A/A 噪声且短上下文不退步超过噪声，才采用并成为公共基线；长快短慢的混合结果不采用，交给 #3453 用本机参数表解决。CFG-IL0 与 CFG-EXACT 都改动 verify 窗口的 MMVQ 路径（后者含 `STRATA_B6_MMVQ_ROWS`），两者都通过时要再测组合，组合不劣于单项才一起进入基线 |
-| CFG-MMAP | A0 + `MALLOC_MMAP_THRESHOLD_=8388608` | 见 `prs/11_PR2253.md`；只比较内存指标与 park 耗时 | 只作为 #2253 的对照和对生产的零代码候选，不进入 PR 基线 |
+| CFG-MMAP | A0 + `MALLOC_MMAP_THRESHOLD_=8388608` | 见 `prs/11_PR2253.md`；只比较内存指标与 park 耗时。`cfg --env` 只接受 `STRATA_*`，allocator 变量没有受控接口，只能经 `extra_frozen_env` 注入并在报告写明 | 只作为 #2253 的对照和对生产的零代码候选，不进入 PR 基线 |
 | DIAG | 冻结 main + #1864 + #3631（只记录） | 单独构建，见 START_HERE P0-T5 | 不进入统计，只给 #3453/B6 提供窗口构成证据 |
+| CFG-PT | `lab/cfg-pt` 树 + `STRATA_PRESERVE_THINKING=0`（历史 thinking 不进 prompt） | `session_bench` 轮数 / TTFT，`chain_bench` 质量链，PT=1 / PT=0 交替 | 已测：轮数约 2 倍、质量未测出差异；生产候选，待真实 Pi 复核 |
+| CFG-SPEC-S | A0 + EXACT6，`--spec 3/4/5`（现网 4） | Pi 采样 + thinking 的单会话负载；引擎 ms/窗口、每窗口提交 token、总 token / 总 decode 时间；greedy decode 组作对照 | 已测（[P2-CFG-SPEC-S](../reports/P2-CFG-SPEC-S-20261026.md)）：保持 4；spec3 拒绝，spec5 +1.0～1.7% 未达 3% 门。原规则：采样负载的总 token / decode 时间改善超过组级 A/A 噪声，且 greedy 不退步超过噪声 |
+| CFG-CPUSHARE-S | A0 + EXACT6，`STRATA_PREFILL_CPU_SHARE_MAX` 3072（现网）/ 8192 / 16384，补测 4096 | PT=0 会话的 7～13K 追问读入，加约 3.2K 的短读入和贪心 decode 对照；成对 `prompt_ms` / TTFT、引擎 prefill 计时 | 已测（[P2-CFG-CPUSHARE-S](../reports/P2-CFG-CPUSHARE-S-20261026.md)）：**4096 为采用候选**（3.2K 读入 −12.2%，7～13K 持平，decode 不变）；8192 / 16384 拒绝。原规则：追问 TTFT 改善超过噪声且 decode 不变 |
+| CFG-PARKGAIN | A0 + EXACT6 + PT=0，`--conversation-cache-park-gain` 0（现网）/ 16384 / 32768 | 新用户轮的会话重放（`session_bench`），中间插入一次别的会话再回来；每轮 park 耗时与 TTFT、回到主会话时的重读量 | 只在用户选定 PT=0 后测。PT=0 下每个用户轮省的 TTFT 超过噪声，且插入别的会话后的最坏重读不超过 N token |
+| CFG-PCIEFRAC | A0 + EXACT6，`--pcie-frac` 固定 0.20（= PcieAuto 在 29 上的收敛值，作对照）/ 0.25 / 0.30；可加 `STRATA_PCIE_BALANCE=1` 一臂 | Pi 采样 + thinking 的 decode 组（3K / 40K，思考段与回答段）；引擎 ms/窗口、每 token 时间、CPU 专家与 PCIe 份额、“CPU pool 调用”µs/miss | 依据见 [NP-3 trace](../reports/P2-NP3-TRACE-20261026.md) 第 5 节。主指标是引擎 decode 的总时间 / 总生成 token（窗口宽度随采样变，不比单窗口）；正式门同 decode 组。0.50 及以上不测（非 serve 单次已慢 12.5%）。**已测（2026-10-26）**：0.30 与 balance 两臂，NO_BENEFIT；PcieAuto 实际停在 0.20～0.30，所以未单独测 0.20 / 0.25 |
+| CFG-AUTOMAX | A0 + EXACT6，`STRATA_PREFILL_AUTO_MAX` 8192（默认）/ 16384；generate 模式另测 32768 | CPUSHARE 追问读入题集（成对 `prompt_ms` / TTFT，按步拆分）；full 题集的 long-retrieval（打分）与 cold-prefill 4K～123K | 已测（[P2-PR3307](../reports/P2-PR3307-20261026.md)）：超过 8192 的读入 TTFT 0.732，≤8192 与 decode 不变；32768 借走 85% 的 cache，拒绝。采用候选。长上下文 campaign 在第 1 轮 cfg 触发 85 °C 温度保护，部分完成（冷读 −30%，检索 10/10），见报告第 5 节 |
+| CFG-ADAPT（v2 O09） | A0 + EXACT6（base = `STRATA_ADAPT_OVERLAP=1`）对两臂：lag2nw = overlap 关 + `STRATA_ADAPT_LAG=2` + `STRATA_ADAPT_NOWAIT=1`（上游 sm_86 / sm_60 默认，sm_89 无默认）；async = overlap 关 + `--adapt-async 1` + LAG=2。三者在源码里互斥（`generate.cpp` 约 10100 行） | spec 题集（`spec-42114a627786`：思考段、回答段、短 greedy decode、4K～123K 长 decode），5 轮配对；引擎 ms/窗口、每窗口提交 token、overlap / adapt wait、命中率。async 臂先确认日志里没有 “--adapt-async 1 is off” | 已测（[P2-CFG-ADAPT](../reports/P2-CFG-ADAPT-20261026.md)）：两臂 NO_BENEFIT，保持 overlap。采用门：decode 组总 token / 总时间配对中位 ≥ +3% 且 CI 不跨 1，长 decode 组不退步 |
+| CFG-KVRES（v2 O44 / O49） | A0 + EXACT6，`--kv-resident 20480`（每个 QSA 层只留 20480 cell 在显存，整份 K/V 放 pinned RAM，腾出的显存给专家槽；20480 是源码下限）。生产默认 0 = 全驻显存 | 同上 spec 题集；另看启动日志的专家槽数、`MemAvailable`、长 decode（32K～123K，会流式读 KV）与短 decode（不流式）分开统计 | decode 已测过门（[P2-CFG-KVRES](../reports/P2-CFG-KVRES-20261026.md)）：四组 +2.8%～+4.4%；冷读慢 8～13%；追问读入（带生产 AUTOMAX / CPUSHARE 的 CPUSHARE 题集）7～12K 每次 +0.26～0.43 s、3.2K 不变；质量组（MIG quality / tool / protocol / long-retrieval）与 base 相同（检索 25/25 对 25/25）。**ADOPT，10-26 21:38 写入生产配置并冒烟通过，含停放后恢复（[DEPLOY-KVRES](../reports/DEPLOY-KVRES-20261026.md)）**。实验工具原把 `--kv-resident` 列为冻结参数，2026-10-26 改为只在 cfg 模式放行（PR 对照仍拒绝，`tests/test_mig.py` 覆盖）。采用门同上，且 32K 以上的长 decode 不退步 |
+| CFG-KVGROW（v2 O44） | A0 + EXACT6，`STRATA_KV_GROW=1`（K/V 只占已用到的 cell，专家缓存拿其余部分，上下文增长时交还；与 `--kv-resident` 互斥） | 同上 spec 题集；启动日志确认没有 “--kv-grow is off”；看各上下文档的专家槽与命中率 | 已测（[P2-CFG-KVGROW](../reports/P2-CFG-KVGROW-20261026.md)）：未过门。回答段 +3.2%，思考段 +1.3%（CI 跨 1），≥65K 无收益，冷读不变 |
+| CFG-SPECCOST（v2 O33） | A0 + EXACT6，`STRATA_SPEC_COST=1`（MTP 窗口长度按“预期 token / 实测每行成本”逐步决定，代替“草稿概率 ≥ `--spec-min-p`”；验证不变，输出分布不变） | 同上 spec 题集；每窗口提交 token、ms/窗口、总 token / 总 decode 时间 | 已测（[P2-CFG-SPECCOST](../reports/P2-CFG-SPECCOST-20261026.md)）：NO_BENEFIT，四组 0.973～1.003 |
 
 29 的真实请求是**采样**的（Pi 对 Qwen3.8-next 发 `temperature 1.0 / top_p 0.95 / top_k 20`，关闭 thinking 时为 `0.7 / 0.8 / 20`），本包题集为 temperature 0。MTP 接受率在两种模式下不同，凡以 decode tok/s 为主指标的项（#3453、CFG-EXACT、CFG-IL0、#3307/#3281 的 decode 回归）都要追加一组使用 Pi 采样参数的抽查，结果单列，不与 greedy 配对统计混合。
 
-## Java题与工具循环
+## Java题、编码链与工具循环
 
 8题：BigDecimal银行家舍入、半开区间合并、分页溢出、TTL减法溢出、Locale.ROOT稳定去重、Long转JSON字符串、lower_bound、并发幂等。
 
 `scenario java-agent`最多8轮，只允许write_solution/run_tests，最多3次隔离编译。真实运行固定assertion，错误反馈给模型，记录完整任务耗时、尝试次数、工具与编译结果。它仍是受控mini-agent，不能冒充真实Pi的大型仓库评测。
 
 Docker以无网络、只读root、只读输入、临时编译目录、非root用户、限制内存/CPU/PID、移除capability运行。失败/超时都是失败；没装Docker/JDK镜像标记NOT_RUN，不宿主执行生成代码。
+
+这条规则适用于**所有**模型生成的代码，不只 Java。`chain_bench.py` 的 Python 评分同样只在本地镜像里跑（`--pull=never --network none --read-only --cap-drop ALL --user 65534:65534`，512 MiB、2 CPU、64 PID、每题 60 s，结束后按容器名 `rm -f`）；不给 `--image` 记 NOT_RUN。29 现有 `python:3.12-slim`，没有 JDK 镜像。
 
 ## PR专项测试必须补齐
 

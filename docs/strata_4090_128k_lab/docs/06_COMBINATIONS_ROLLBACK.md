@@ -17,6 +17,8 @@
 | 2822 + 1536/3584 | 后置 | STOP/DONE、原token序列、暂停恢复共同影响正确性 |
 | 3322 + MTP | **互斥drafter** | 不能同时持有并使用两套draft状态冒充公平对照 |
 | 3322 + 3307/3281 | 不直接组合 | DFlash资源生命周期与MTP完全不同 |
+| CFG-CPUSHARE 4096 + CFG-AUTOMAX 16384 | 可同时上（组合未实测） | 作用区间不重叠：前者只改 [3072, 4096) 的 chunk 读法，后者只改超过 8192 的读入的 chunk 数；在 ≤16K 的读入里，AUTO_MAX 让读入不再拆出余数 chunk，4096 门槛只剩单 chunk 读入用得到。两个都是 env，删掉即回退 |
+| CFG-KVRES + CFG-AUTOMAX 16384 + CPUSHARE 4096 | 可同时上（已实测读入，已上生产） | KVRES 的追问读入补测就在 AUTOMAX 16384 + CPUSHARE 4096 上做（7～12K 每次 +0.26～0.43 s，3.2K 不变）；专家槽两种情况都是 10290；生产冒烟通过（[DEPLOY-KVRES](../reports/DEPLOY-KVRES-20261026.md)）。与 `--kv-grow` 互斥。回退是拷回 `backup-20261026-kvres/strata-iq3_xxs.json` 并重启 |
 
 ## 回退
 

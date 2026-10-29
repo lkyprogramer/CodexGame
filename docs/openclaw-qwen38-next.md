@@ -7,6 +7,18 @@ GPU：单卡 RTX 4090 24GB
 
 不要把 NGINX Bearer、SSH 密码、sudo 口令、Pi 的 `apiKey` 写进 git。
 
+> **当前状态（2026-10-26）：本文正文是 v0.1.41 时期（10-10）的记录，引擎版本、目录和参数已过时。**
+> - **现网版本：** `/home/hhtele/strata-0.2.3`，A0 = v0.2.3 `5c8dd322` + EXACT6 + host 调优，加 10-26 上线的四个开关：
+>   - `STRATA_REPLY_REUSE=1`
+>   - `STRATA_PRESERVE_THINKING=0`
+>   - `STRATA_PREFILL_CPU_SHARE_MAX=4096`
+>   - `STRATA_PREFILL_AUTO_MAX=16384`
+> - **服务：** `openclaw-qwen38-next.service`，active / enabled。端口 18343、NGINX 28343、模型名 `openclaw/Qwen3.8-next` 不变。
+> - **变更、验证与回滚：**
+>   - [strata_4090_128k_lab/reports/DEPLOY-A0-EXACT6-20261025.md](strata_4090_128k_lab/reports/DEPLOY-A0-EXACT6-20261025.md)
+>   - [strata_4090_128k_lab/reports/DEPLOY-PROD-20261026.md](strata_4090_128k_lab/reports/DEPLOY-PROD-20261026.md)
+> - **当前事实表：** [strata_4090_128k_lab/docs/02_ENVIRONMENT.md](strata_4090_128k_lab/docs/02_ENVIRONMENT.md)。
+
 2026-10-10 核对时，next 在跑，unit 仍是 **disabled**。开机拉起的还是 27B，重启机器会把 GPU 交回 `openclaw-qwen38-ninfer.service`。
 
 ---

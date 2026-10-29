@@ -1,6 +1,6 @@
 import copy,json,tempfile,unittest
 from pathlib import Path
-from lab.core import flag_value
+from lab.core import flag_value,hash_obj
 from lab.runner import make_run_config
 from lab.statistics import summarize
 ROOT=Path(__file__).resolve().parents[1]
@@ -24,7 +24,7 @@ class AdditionalTests(unittest.TestCase):
    p=Path(t); rows=[]
    for i in range(5):
     for arm in ['base','off','on']:
-     rows.append({'phase':'measured','round':i,'arm':arm,'case_id':'P','group':'decode','request_sha256':'same','fixed_output_comparable':arm!='on','metrics':{'wall_s':1,'prompt_tokens':10},'score':{'pass':True,'reason':'ok'}})
+     rows.append({'phase':'measured','round':i,'arm':arm,'case_id':'P','group':'decode','request_sha256':hash_obj({'request':'same'}),'fixed_output_comparable':arm!='on','metrics':{'wall_s':1,'prompt_tokens':10},'score':{'pass':True,'reason':'ok'}})
    (p/'requests.jsonl').write_text('\n'.join(json.dumps(x) for x in rows))
    r=summarize(p);self.assertNotEqual(r['decision'],'CANDIDATE_FOR_HOLDOUT_NOT_PRODUCTION');self.assertTrue(r['invalid_pairs'])
  def test_changed_requests_cannot_be_paired(self):
@@ -32,6 +32,6 @@ class AdditionalTests(unittest.TestCase):
    p=Path(t); rows=[]
    for i in range(5):
     for arm in ['base','off','on']:
-     rows.append({'phase':'measured','round':i,'arm':arm,'case_id':'P','group':'decode','request_sha256':arm,'metrics':{'wall_s':1,'prompt_tokens':10},'score':{'pass':True,'reason':'ok'}})
+     rows.append({'phase':'measured','round':i,'arm':arm,'case_id':'P','group':'decode','request_sha256':hash_obj({'request':arm}),'metrics':{'wall_s':1,'prompt_tokens':10},'score':{'pass':True,'reason':'ok'}})
    (p/'requests.jsonl').write_text('\n'.join(json.dumps(x) for x in rows))
    self.assertTrue(summarize(p)['invalid_pairs'])

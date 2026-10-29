@@ -4,6 +4,8 @@
 
 所有数字标明性质：**事实**＝日志或源码直接可见；**估算**＝由事实推算，未实测；**假设**＝待验证的解释。
 
+> **2026-10-26 状态**：第 1～7 节是 10-23 的调研原文（基于 0.1.43.1 日志），保留作依据。各项的实测结论、按单会话用法重排后的执行次序，以及与 v2 包 64 方向图谱的对应，见第 8 节和第 10 节；两者冲突时以第 8、10 节为准。
+
 ## 1. 基线画像
 
 **事实**（`strata-iq3_xxs.log`，0.1.43.1，2577 个窗口的一条 decode 计时）：
@@ -44,6 +46,7 @@
 - **事实**：29 的 CPU（Xeon Silver 4216，Cascade Lake）支持 `avx512f/bw/dq/vl/vnni`，引擎却打印 `this CPU has no AVX-512: the expert kernels run on AVX-2`。原因是 `include/strata/kernels/cpu/expert.hpp:101` 的 `usable()` 要求 `avx512_vbmi`，Cascade Lake 没有 VBMI。
 - **方向**：新增一条“VNNI、无 VBMI”路径：256 位 `vpdpbusd`（AVX512-VL）替代 AVX2 的 `maddubs + madd + add`；**不用 512 位寄存器**（Silver 只有一个 512 位单元，宽度不增吞吐，还会触发降频）；IQ3_XXS 网格查表用 `vpermi2d` 或 gather。
 - **假设**：16 线程合计约 20 GB/s、单线程约 1.4 GB/s，远低于内存带宽，瓶颈在计算或调度。先用 `src/kernels/cpu` 下现有的 parity/bench 工具拆开。
+- **2026-10-26 实测（[#3871 修正后的 bench](../reports/P2-PR3871-20261026.md)）**：单核确实计算受限（nt=1 每核 2.1～2.7 GB/s）。但 16 线程 nt=1 时，本机全部 10 种 GU/down 组合都已达到 36 GB/s 的 81～98%。decode 每个 miss 平均约 1.2 个 token，所以更快的内核基本没有空间，**维持暂缓**。引擎与吞吐下限之间的差距属于 NP-3。
 - **验收**：与 AVX2 路径逐位一致（同一累加顺序）；单专家微基准与每层 host 时间同时下降。开关 `STRATA_LAB_NP1=0/1`。
 - **停止条件**：NP-0 显示 CPU 不在关键路径上，或微基准显示瓶颈是同步而非计算。
 
@@ -64,6 +67,8 @@
 ### NP-3 · CPU pool 的任务切分（代码）
 
 每层只有约 1.16 个专家、3 行，却拆给 16 个线程，48 层各做一次分发与汇合。方向：按输出行切分、把 gate/up 与 down 合并成一个任务、去掉中间栅栏。以 NP-0 的 `perf` 同步占比决定是否投入。
+
+**2026-10-26**：NP-0 已证明 CPU 专家在关键路径上，NP-3 是第一个代码方向。详细执行计划收编自 v2 包 P01，见 [plans/NP3_CPU_POOL.md](../plans/NP3_CPU_POOL.md)（先做 #3871 微基准修正与 perf 分解，再做并行中间量化、成本加权分行）。
 
 ### CFG-PROFILE · 用学习后的 expert profile 启动（配置）
 
@@ -97,14 +102,22 @@
 ## 6. 每窗口 token 数（当前 2.33）
 
 - **事实**：Pi 请求是采样的（`temperature 1.0 / top_p 0.95 / top_k 20`），thinking 为 `xhigh`，接受率天然低于 greedy。
-- **CFG-LOOKUP**：suffix drafter（前缀查表）默认开启，`--lookup-chain K` 可选。Pi 的 codemode 与 edit 工具调用会大段照抄上下文，适合查表 draft。**未确认**：main 注释写的是 “Greedy verification keeps the output”，需先统计采样请求下 lookup 窗口是否真正发生，再测 `--lookup-chain`。
+- **CFG-LOOKUP**：suffix drafter（前缀查表）默认开启，`--lookup-chain K` 可选。Pi 的 codemode 与 edit 工具调用会大段照抄上下文，适合查表 draft。**2026-10-26 已确认**：采样请求下 lookup 窗口确实发生，但被接受的 lookup 草稿只占生成 token 的 3.6～5.6%（thinking 是新文本）；CFG-LOOKUP2 在 greedy 题集也无收益。#4040（lookup 长窗口）因此只在改文件类会话评估。
 - **NP-8 · 跨请求后缀树 draft（研究级）**：agent 循环反复出现的工具调用 JSON 框架和样板代码，不在当前上下文里也能预测（SuffixDecoding 类思路）。需要独立的接受率离线评估。
 
 ## 7. Prefill（占引擎时间约 20～25%）
 
 - **NP-9 · 直接在量化权重上做 MMQ**：dequant 单独一遍占 9.7%。先确认 main 的 fused prompt-expert 路径在 sm_89 上是否被选中（#3779、#3277 只覆盖 sm_80 / sm_75），再考虑 int8 tensor core / dp4a 版 IQ3_XXS MMQ。
 - **NP-10 · 分组搬到 GPU**：host grouping 占 6.6%，改为 GPU 侧排序与直方图。
-- **wait copy 24%**：PCIe 是平台上限，只能靠更大 chunk 摊薄，见 #3307 / #3281。
+- **wait copy 24%**：PCIe 是平台上限，只能靠更大 chunk 摊薄。**2026-10-26 已解决主要部分**：chunk 停在 8192 是 `--prefill auto` 的默认上限，`STRATA_PREFILL_AUTO_MAX=16384`（CFG-AUTOMAX）使 40K 冷读 −19%、超过 8192 的追问读入 −27%，wait copy 占比 31.8% → 17.9%；#3307 / #3281 不再需要（[报告](../reports/P2-PR3307-20261026.md)）。
+- **追问的短读入（2026-10-26 实测，[P2-CFG-CPUSHARE-S](../reports/P2-CFG-CPUSHARE-S-20261026.md)）**：
+  - 门槛以下的 chunk 只搬路由到的专家，CPU 分担一部分，耗时随 token 数增长。达到门槛的 chunk 流式搬全部非驻留专家，3K～7.3K 都是约 2.4～2.65 s。两者约在 4.4K 相交。
+  - `STRATA_PREFILL_CPU_SHARE_MAX=4096` 让 3.1～3.2K 读入快 12.2%，其余不变，是采用候选。8192 / 16384 让 7～8K 单 chunk 慢 15～20%，拒绝。
+  - 7～13K 读入：≤8192 的单 chunk 读入没有零代码空间；超过 8192 的由 CFG-AUTOMAX 变成单 chunk，TTFT 省 1.0～2.2 s。
+- **追问 TTFT 中 prefill 以外的 0.6～0.8 s（2026-10-26 trace 实测）**：
+  - park 上一个分支：0.15～0.5 s，PT=0 时每个用户轮都会发生 → CFG-PARKGAIN，只在选 PT=0 后测。
+  - 专家缓存槽同步回填：0.2～0.35 s，每次 >1K 的读入都会发生 → 可改为与首个 decode 窗口重叠（代码，排在 NP-3 之后）。
+  - checkpoint 保存：约 0.06 s。
 - **GDN 递推 4.9%**：chunked tensor-core scan（#3779 的 `STRATA_GDN_TC`）有舍入级数值差，必须过质量门。
 - **冷启动**：67 个请求中 6 个冷启动约占 prompt 时间一半，主要来自 park 被拒（#2253）和重启。**NP-11**：把 Pi 约 12.3K 的公共前缀持久化为会话文件，重启后免重读。
 
@@ -129,16 +142,53 @@
 - **回退**：用默认启动项（不带参数）完全断电重启；卸载包会同时移除模块和 initramfs 集成。不 force-unload 处于 DMA 保留状态的模块。
 - **交付**：`workspace/state/cfg-unlock/` 下的 `DECISION.md`、启动日志节选、寄存器读回、两组原始数据。是否常驻由用户决定；常驻还要做一次普通热重启验证，内核升级后需重建 initramfs 再验证。
 
-## 8. 执行顺序
+## 8. 执行顺序（2026-10-26 按单会话用法与实测重排）
 
-1. MIG 之后，NP-0 测量。
-2. 配置对照（只改启动参数或环境；在 MIG 之后于 A0 上测，不在 0.1.43.1 上重复）：CFG-PROFILE、CFG-MTPQ4 / CFG-DVOCAB、CFG-LOOKUP、CFG-THP 的验证步骤；CFG-CSTATE、CFG-UNLOCK 需用户单独批准（CFG-UNLOCK 排在 MIG、CFG-IL0、#2253 之后）。与 CFG-IL0、CFG-EXACT、CFG-MMAP 一样，在 PR A/B 之前定论，通过的才进入公共基线。
-3. 中等代码：NP-1、NP-2、NP-3。
-4. 较大代码：NP-4、NP-5、NP-9、NP-10。
-5. 远期：NP-8、persistent megakernel。
+已完成（报告在 `reports/`）：NP-0；CFG-IL0 / CFG-IL89 / CFG-EXACT（EXACT6 进公共基线）/ CFG-THP / POOL8 / CFG-PROFILE / CFG-LOOKUP2 / CFG-MTPQ4（边缘）/ NP-1a（证伪）；CFG-CSTATE（已上线）；CFG-MMAP（不推荐）；CFG-PT（新增开关，推荐 PT=0）。
+
+剩余次序（与 PR 交错，完整表见 README）：
+
+1. **CFG-SPEC-S**（零代码，decode；**已完成，保持 `--spec 4`**，见 [P2-CFG-SPEC-S](../reports/P2-CFG-SPEC-S-20261026.md)：每窗口耗时随提交 token 近似同比例增长，宽度只能在 ±1% 内调，NP-3 降低 CPU 专家单价后再测 spec 5/6）：`--spec 3 / 4 / 5` 在 Pi 采样 + thinking 下对照。依据：采样下每窗口只提交 2.05～2.44 token，greedy 为 2.78。主指标引擎 ms/窗口与“总生成 token / 总 decode 时间”。细则见 [plans/SPEC_LOOKUP.md](../plans/SPEC_LOOKUP.md)。
+2. **CFG-CPUSHARE-S**（零代码，追问 TTFT；**已完成，4096 为采用候选**，见 [P2-CFG-CPUSHARE-S](../reports/P2-CFG-CPUSHARE-S-20261026.md)：3.2K 读入 −12.2%，7～13K 持平；真实流量中约 4% 的追问落在受益区间）：`STRATA_PREFILL_CPU_SHARE_MAX` 3072 / 8192 / 16384，补测 4096。
+3. **NP-3**（代码，decode）：#3871 已完成（[报告](../reports/P2-PR3871-20261026.md)：引擎 74～82 µs/miss，吞吐下限约 57 µs，上限约为窗口时间的 6～11%）。**已完成，pool 代码方向 NO_BENEFIT**（[perf](../reports/P2-NP3-PERF-20261026.md)、[trace](../reports/P2-NP3-TRACE-20261026.md)）：每个 CPU miss 约 76 µs，同步约 2.5 µs、尾部约 5 µs，其余在任务内（gate/up 受计算限制，PCIe 读与 CPU 争用内存）；P01-04 / 05 / 06 / 07 都不实施，trace 工具保留。
+4. **NP-RES（v2 O07 / O08 / O09）**：**已完成，NO_BENEFIT**（[报告](../reports/P2-NPRES-PCIEFRAC-20261026.md)）：固定 `--pcie-frac 0.30` 对 PcieAuto +0.3～4.2%，`STRATA_PCIE_BALANCE=1` 0～+2.1%，都低于 3% 门；O07 / O08 按分析判断不立项，O09 未测。原计划：先做零代码的 **CFG-PCIEFRAC**：NP-3 trace 显示 CPU miss 单价随 PCIe 分担 0.10 / 0.20 / 0.34 / 0.50 为 69 / 71 / 80 / 85 µs，因为 PCIe 读与 CPU 共用 2 通道 DDR；serve 的 PcieAuto 按 `link / (link + 1.85 × pool 速度)` 调整（实测停在 0.20～0.30，不是此前写的固定 0.20，系数取自别的机器。再按“省下的关键路径时间 / 字节”选驻留专家、adaptive tier 成本治理。v2 包 `plans/P03_RESIDENCY_AND_SCHEDULING.md` 为设计参考。
+5. NP-1（VNNI 无 VBMI 内核）：**#3871 已完成，维持低优先级**。nt≈1.2 时 10 种格式组合按整 expert 已达带宽的 81～98%；但 NP-3 trace 显示引擎里 gate/up 阶段单独受计算限制（25～27.5 GB/s，down 为 33.5），更快的 i-quant gate/up 内核理论上可省 CPU 专家时间的 10～13%。工作量大，排在 NP-RES、#3307、#4040 之后。
+6. NP-4（跨层预取）、NP-5（kernel 融合）、NP-7（窗口成本含专家并集，与 O33 合并）：研究级，排在上面之后。
+7. 低优先级（本用法）：NP-11（公共前缀持久化，只影响重启后首请求）、NP-9 / NP-10（冷 prefill）、NP-2（THP 已覆盖 85%，关闭）。
+8. 需用户单独批准：CFG-UNLOCK（只影响冷长 prefill，本用法下更低）。
 
 **不在范围**：任何硬件更换或 BIOS 改动（CFG-UNLOCK 不换硬件、不刷 VBIOS，作为需单独批准的整机配置列入）；`STRATA_STAGE_PIN`、`STRATA_ROUTE_RESIDENT`；改变数值语义的近似计算（如 #2690、#3545 一类）。thinking 用 `xhigh` 是很大的 decode 杠杆，但影响回答质量，属于产品决策，不作为性能实验项。
 
 ## 9. 交付
 
 每个 NP 项在 `workspace/state/np-N/` 交付 `PORT_AUDIT.md`（或设计说明）、`IMPLEMENTATION_PLAN.md`、`REVIEW.md`、`DECISION.md`；每个 CFG 项交付两份配置的 sha256、原始日志与对照结论。生产配置的任何改动只以“候选”形式写进 `DECISION.md`，由用户审批。
+
+## 10. 与 v2 包方向图谱的对应（2026-10-26）
+
+v2 包（`../strata_flashnext_4090_extreme_lab_v2/`，GPT Pro，2026-10-25，未连目标机）把空间拆成 64 个方向 O01～O64 和 6 个前置 F01～F06。它不知道用户的单会话用法，也没有 #2253 / #1536 / PT 的实测。下表只列与本包相关的部分；分数是 v2 的工程分，**状态列以本包实测为准**。
+
+| v2 ID | 方向 | v2 分 | 本包对应 | 本包状态 / 去向 |
+|---|---|---:|---|---|
+| O39 | RAM 准入释放与无效逐出 | 86 | #2253 | 已测：不推荐（本用法） |
+| O40 / O13 / O41～O43 / O59 | slot 淘汰、拷贝配额、增量快照、SSD 快照、并发调度 | 58～71 | — | 多会话 / 并发才有收益，降为低优先级 |
+| O01 / O02 / O03 / O05 | CPU pool 切分、阶段流水、亲和性、多 token 解包 | 70～83 | NP-3 | 第一个代码方向，[plans/NP3_CPU_POOL.md](../plans/NP3_CPU_POOL.md) |
+| O04 / O06 | 4216 专用 VNNI 内核、预打包布局 | 60～68 | NP-1 | #3871 已测：nt≈1.2 时已近带宽上限，暂缓 |
+| O07 / O08 / O09 | 按收益选驻留专家、三路成本调度、overlap / async 治理 | 74～77 | NP-RES、CFG-ADAPT | O07 / O08 已完成：CFG-PCIEFRAC、`STRATA_PCIE_BALANCE`（上游逐层版 O08）都低于门；O07 每 MB 成本均匀，分析判断 <1%。**O09 2026-10-26 补测完成：NO_BENEFIT**。lag2nw（overlap 关 + LAG=2 + NOWAIT，上游 sm_86 / sm_60 默认）略慢；async（`--adapt-async 1` + LAG=2）持平。overlap 下自适应层在关键路径上只剩约 0.24 ms / 窗口，见 [P2-CFG-ADAPT](../reports/P2-CFG-ADAPT-20261026.md) |
+| O10 | PCIe 搬入专家直接晋升 | 50 | #2964 | 不适用（overlap 冲突） |
+| O11 / O12 | 预取改进、同窗 expert 去重 | 59～62 | NP-4 | 研究级 |
+| O15 / O16 / O17 / O18 | prefill scratch、chunk / CPU share 规划、事件稀疏化、跨 subchunk 复用 | 54～77 | #4039、CFG-CPUSHARE-S、#4005 | CFG-CPUSHARE-S 已完成（4096 采用候选）；#4039 低；#4005（HIP 平台数据）不收 |
+| O19 / O20 | GDN chunk、QSA prefill | 57～78 | NP-9 一带 | 冷 prefill，本用法低。2026-10-26 数据：37K 冷读的 GPU 时间线里 GDN 递推只占 4.5%（等专家拷贝占 27.3%），`STRATA_GDN_CHUNKED=1` 就算减半也只省约 2% prefill，不测 |
+| O21～O32 | GPU kernel、head / sampler、graph、int8 KV 向量化、split-KV、GDN decode 融合 | 43～69 | NP-5 / NP-6 | O22（MMVQ 表）已测无收益；其余等 NP-3 后重新 profile 再定 |
+| O33 / O34 / O35 | spec 成本策略、lookup 长窗、suffix 索引 | 65～75 | CFG-SPECCOST、#4040 | **O33 原先误对应到 CFG-SPEC-S**：O33 指的是上游现成的 `STRATA_SPEC_COST=1`（按实测每行成本选 MTP 窗口长度，代替“草稿概率 ≥ spec-min-p”），CFG-SPEC-S 只测了 `--spec` 宽度。2026-10-26 补测 CFG-SPECCOST：NO_BENEFIT（窗口变短，每窗口 token 同比下降）。#4040 Gate A NO_BENEFIT（可加速部分占 decode 0.8%） |
+| O23 / O36 / O38 | draft head 量化、新 draft、树验证 | 44～60 | CFG-MTPQ4、#3322 | MTPQ4 边缘；新 draft 需权重与批准 |
+| O37 / O51 | 完整 state checkpoint、多级循环状态检查点 | 63 | #3584 | 单会话主要重读已由 #1536 / PT 解决，低 |
+| O44 / O49 / O50 | 统一显存预算、host KV stage、分页 KV | 52～63 | CFG-KVRES、CFG-KVGROW；#3307 / #3281 | **原先只按 prefill 判断（#3307 NOT_APPLICABLE），漏了 decode 侧**：v2 P08-01 / 02 / 05 要求先验证现成的 `--kv-resident`（KV 流式，只留 N cell 在显存，其余放 pinned RAM，腾出的显存给专家缓存）和 `--kv-grow`（KV 按实际用到的 cell 占显存，其余给专家缓存，上下文增长时交还）。生产 KV 全驻显存约 1.55 GiB，约合 900 个专家槽（现 9420 个）。2026-10-26 补测：CFG-KVRES（20480）decode 四组 +2.8%～+4.4% 过门，7～12K 追问每次 +0.26～0.43 s，冷读慢 8～13%，质量（含 4K～123K 检索）与 base 相同，采用，10-26 21:38 写入生产配置并冒烟通过；CFG-KVGROW 未过门（≥65K 无收益） |
+| O46～O48 / O52～O57 | 低比特 KV、替代权重、专家裁剪 / 延后、激活稀疏、QSA 裁剪 | 42～72 | — | Q / N 轨道，改变数值或语义；不在默认路线（#2690、#4068、#4046 同理）。O54 里的 route tail skip 在 29 上**默认已开**（rank 7：窗口内每个 token 都排第 8～10 名的未命中专家不搬也不算）；`STRATA_ROUTE_TAIL_SKIP=6` 是直接减少 CPU 专家计算的零代码开关，但会改变输出，要用户先接受“质量换速度”并过质量门才测 |
+| O58 | Pi 上下文组织 / 压缩 | 64 | **CFG-PT** | 已测：推荐 PT=0（轮数约 2 倍），待真实 Pi 复核 |
+| O60 | API / tokenize / SSE 固定开销 | 66 | #1536 | 已测：重读根因在 tokenize；#1536 候选 |
+| O61 / O62 / O63 | allocator / NUMA / pin、LTO / PGO、功耗频率 | 51～65 | CFG-MMAP、CFG-CSTATE | MMAP 不推荐；CSTATE 已上线；LTO / PGO 先看 host 份额（per-layer host 里非 CPU 专家部分约 0.3 ms / 窗口，空间小）。O63：decode 时 SM 已在出厂最高 2745 MHz，无降频原因，无空间 |
+| O64 | Ada tensor 限速解锁 | 51 | CFG-UNLOCK | 需批准；本用法收益更低 |
+
+**2026-10-26 复查（用户要求再看一次 v2 包）：** 64 个方向按本机 decode 窗口的实测构成重新过了一遍（GPU 约 60%，分散在每窗口约 2,360 个 kernel 上，最大单项占 GPU 时间不到 9%；CPU 专家约 36%；见 [累计收益汇总](../reports/SUMMARY-GAINS-20261026.md)）。有两处原先对应错了，结论见上表 O33、O44 / O49 两行。按“零代码、不改数值、作用于 decode”筛出来、还没测过的只有 4 个，2026-10-26 停生产补测：CFG-ADAPT（O09 两臂）、CFG-KVRES、CFG-KVGROW、CFG-SPECCOST。其余方向维持原判：GPU kernel 方向（O20～O32）单项上限约 1～2%、工作量 XL；CPU ISA / 解包（O04～O06）在 nt≈1.2 时受带宽限制；多会话 / 并发方向在单会话用法下没有触发条件；Q 轨道（含 tail skip 加深）需要用户先决定是否接受质量换速度。
+
+v2 前置 F01～F06 里本包已具备的：生产 / 资产身份冻结（P0-T1/T2）、MIG、DIAG 窗口分解、perf 可用。仍缺的：正式任务适配器（restricted time-to-success）、park/restore live adapter、allocator env 受控接口、window trace 常驻插桩（见 [测试协议](04_TEST_PROTOCOL.md)）。v2 新增 PR 中不收进本包的：#4031（多会话 slot 自动收缩）、#4002（多卡 staged copy）、#4005（HIP Windows 数据）、#4010（多卡）、#4068（KV 格式，Q 轨道）、#2690（专家延后，Q 轨道）、#4046（格式与本机不符）。

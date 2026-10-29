@@ -141,7 +141,9 @@ def load_config(path):
     for key in ('workspace','deployed_repo','deployed_config','gguf','template','python'):
         if c.get(key):
             q=Path(c[key]).expanduser()
-            c[key]=str((p.parent/q).resolve() if not q.is_absolute() else q.resolve())
+            q=q if q.is_absolute() else p.parent/q
+            # A venv's bin/python is a symlink to the system interpreter: resolving it would drop the venv.
+            c[key]=str(q.absolute() if key=='python' else q.resolve())
     c['_config_path']=str(p)
     check_separate(c['workspace'],c['deployed_repo'])
     check_budget(0,1,int(c['max_context']),int(c['safety_tokens']))

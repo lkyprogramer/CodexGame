@@ -19,7 +19,7 @@ class WorkspaceTests(unittest.TestCase):
    entry={'head_sha':head,'fork':'unused/unused'}
    before=(git(prod,'rev-parse','HEAD'),git(prod,'status','--porcelain'),(prod/'.git/config').read_bytes())
    with patch.object(workspace,'lock',return_value=locks),patch.object(workspace,'experiment',return_value=entry):
-    result=workspace.prepare(cfg,3453)
+     result=workspace.prepare(cfg,2253)
    self.assertEqual(before,(git(prod,'rev-parse','HEAD'),git(prod,'status','--porcelain'),(prod/'.git/config').read_bytes()))
    self.assertTrue(Path(result['task']).exists());self.assertEqual(git(Path(result['candidate']),'rev-parse','HEAD'),base)
    self.assertEqual((prod/'a.txt').read_text(),'base\n')
