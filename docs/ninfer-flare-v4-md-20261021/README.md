@@ -1,5 +1,17 @@
 # V4：纯Chat推理性能实验计划
 
+## 当前准备：原P4→修复P4的HTTP对照已冻结，未运行GPU
+
+`P4_EXPORT_PUBLICATION_PIPELINE_HTTP_V1=CPU_ONLY_PREPARED_FROZEN_NOT_EXECUTED`。经jssh29复用现有controller/guardian/HTTP驱动，14项新工具CPU合同通过，真实旧日志离线核对保留原job7缺口，初审的四Chat发布终态覆盖缺口已修复，独立复审无阻塞。复用两份serve、原4个HTTP输入及P4 token/position预检，不重建、不重跑旧任务。
+
+冻结根 `/home/hhtele/ninfer-v4-export-pipeline-prep-20261025/prepared-window-r1`；freeze SHA `0dca60d4e89be0205011b30bb8824154eca74aed209620b36337419c7edbeb4a`。账本PRISTINE/全0，runtime不存在。严格原P4→修复P4，0native、8Chat＋2内置warmup、14wire、最多10模型提交；硬1200秒/1020秒清理。实机预计6–10分钟，证据核算另20–40分钟，当前不自动执行。
+
+最后Chat后不预等publication而发一次身份绑定SIGTERM，要求≤30秒自然exit0及四Chat声明job终态；信号发送区间区分LIVE_DRAIN、IDLE_CLOSE与不确定。缺失/重复/错配或发布失败明确不合格，缺真实source-release重叠仅记机制证据不足。可见job不必连续，不将host-only发布冒充全部可观测。
+
+本轮GPU/模型/推理HTTP均0，原服务STOPPED身份不变，默认分派、Target采样、Pi medium/32768及全部历史失败/18G1/C1/Baseline缺口保留。真实关闭排空和性能仍未测，优化/生产资格false。后续需新的明确实机授权，不能重启旧已消费窗口。
+
+[冻结回执、空账本、CPU/评审与实机预算](../ninfer-v4-export-pipeline-prep-20261025.md)。以下历次“当前/准备/结果”均为原样保留的历史，不覆盖本节或授予执行额度。
+
 ## 当前修复：导出与 CPU 发布解耦，CPU 与构建完成
 
 `P14_EXPORT_PUBLICATION_PIPELINE=CPU_VERIFIED_BUILDABLE_HARDWARE_NOT_RUN`。2026-10-25经jssh29在隔离分支 `codex/p14-export-publication-20261025` 修复已观察的跨job串行阻塞：独立导出线程、单槽交接、单FIFO发布线程。lane只在真实导出结束/排空后释放，CAS/发布顺序和关闭排空合同保留；不把复制完成当发布完成，也不把三份pipeline镜像当全局内存上界。

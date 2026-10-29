@@ -4,11 +4,11 @@
 
 | 文件 | bytes | SHA-256 |
 |---|---:|---|
-| `AI_EXECUTION_PROMPT.md` | 61855 | `32904d6246c6e331d6dab0f9f798e04d0d56801ad9c09663d9b66d2f5063b7d3` |
+| `AI_EXECUTION_PROMPT.md` | 63605 | `f3f1e212fc6ddf476c8a0dec54222909f3bda4b5fea0c2b6ad45c8743be40798` |
 | `CHANGELOG.md` | 35854 | `b098b2c84969235b94a37ba3d167b5273ba3ba7fd6a13d2a391feef5547e13df` |
 | `DELIVERY-VALIDATION.md` | 36232 | `5d1b3c3b9a8c8b5adde451ca643e3a274225dc53240525823d18f0ec324fc871` |
 | `INDEX.md` | 36432 | `5f941d15af83d7d51e42e3fa2c41533ac9820dcf248ea3c94710a5b1be4b36eb` |
-| `README.md` | 58789 | `9be66d1183d84be0ba0ca0b52d1e67abd7fe5c70ff8ada143cf91718f745438f` |
+| `README.md` | 60539 | `90866ac9592ae5aacd6c5dacdde56e47dd54973ec6e083d784d2d5732af3e91c` |
 | `baseline-v3/AI_EXECUTION_PROMPT.md` | 5638 | `4dc0abab0522551e957419774913ee3daaeebd803ec5d665973b4712001c7bf1` |
 | `baseline-v3/CHANGELOG.md` | 4937 | `a5a323d6f50157758c4bfafd79708f25ea1e816c482ae8c206ecaeacd5cc5328` |
 | `baseline-v3/DELIVERY-VALIDATION.md` | 3401 | `ec33d656eb624d7cc89e33b26f59a69179a4dee8d3a7fe7d66e1814682cfefa5` |
@@ -314,7 +314,7 @@
 | `inputs/flare-analysis.md` | 40539 | `277d693be26da2b91d57e3943c1a0f118f8871482e2e52e88b4be290761ac0cc` |
 | `plans/00-master-plan.md` | 51131 | `18aa03dad990ad3b69d5291796e611f6c8af6eadb9efc11577a9ae74aa1c66ca` |
 | `plans/01-v3-migration.md` | 849 | `186f624f9810da8ef7c8fee14fb6203ff785feac84920840fac1d3b6f6962d34` |
-| `plans/02-task-registry.md` | 261007 | `dd1d7369ecc6f67327a180a37d2603a158cc9dbf2deaf96a5ccd164cd289b2b2` |
+| `plans/02-task-registry.md` | 262760 | `0234288faf94370521a1db570b52bbc934d4252b87f653da0954842d9af80ef5` |
 | `plans/03-release-scopes.md` | 2064 | `6cdab1df2f3f9bdb0ad2600e688c788d4975d43b5bd45f8bd0fc0637f3d0a3f8` |
 | `plans/04-acceptance-matrix.md` | 10536 | `392a053b08e3f66dc90dc364e2ff1127d96fb0ad13f3d94754c3cc2f81ed8d62` |
 | `plans/05-v3-amendments.md` | 1214 | `d960f155dd2c74f812e0c4fd12756e660bb9c827a9cb65cbe3f0d69f37dc5866` |
