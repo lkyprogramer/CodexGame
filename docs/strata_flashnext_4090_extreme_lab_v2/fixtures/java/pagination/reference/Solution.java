@@ -1,0 +1,1 @@
+public class Solution {public static long offset(long p,long s){if(p<1||s<1||s>500)throw new IllegalArgumentException();try{return Math.multiplyExact(p-1,s);}catch(ArithmeticException e){throw new IllegalArgumentException(e);}}}

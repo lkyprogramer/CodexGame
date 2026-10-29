@@ -1,0 +1,218 @@
+[
+  {
+    "rank": 1,
+    "pr": 2253,
+    "title": "[Engine] serve: the RAM gate releases the heap and stops evicting when it cannot help (rebased #1394)",
+    "head_sha": "3ee9597a55815384e6732b78f5c788506b804227",
+    "fork": "alanthinker/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/2253",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P02_CACHE_ADMISSION.md",
+    "required_probes": [
+      "Reproduce real RAM-gate refusal and inspect heap retention; exclude pinned AND guarded donor from evictable bytes; post-capture floor remains enforced."
+    ]
+  },
+  {
+    "rank": 2,
+    "pr": 3871,
+    "title": "[Benchmark] kq_cpu_bench: i-quant pairs no longer crash (IQ3_S), Q2_0 timed on the CPU pool's path",
+    "head_sha": "b5dadce98478d2451f246afa240724b3011d54a2",
+    "fork": "Licenser/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/3871",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P00_BASELINE_AND_MEASUREMENT.md",
+    "required_probes": [
+      "Benchmark only: prove actual Q2_0 pool path and actual IQ pair quantizer; do not claim engine speedup."
+    ]
+  },
+  {
+    "rank": 3,
+    "pr": 4039,
+    "title": "[Engine] opt-in smaller prompt scratch (STRATA_PF_GROUP_SCRATCH, STRATA_PF_HC_REGION): bigger --prefill auto chunks, bitwise, 8 GB cards +18-24% prompt",
+    "head_sha": "c4dd0af3cb78cf8bc4c33df5ed279de5578168d6",
+    "fork": "merbanan/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4039",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P05_CUDA_PREFILL.md",
+    "required_probes": [
+      "Verify MMQ path and current native format; fused_l/direct/fallback eligibility; prove GU/Hq/Dm parity under skewed routing and stream-K scheduling."
+    ]
+  },
+  {
+    "rank": 4,
+    "pr": 4040,
+    "title": "[Engine] --lookup-max-t: prompt-lookup windows up to 16 tokens while the MTP keeps --spec, bitwise, edits +19% decode",
+    "head_sha": "4dd7b4812d7f15b6d6a49e6ba7961f154183ee94",
+    "fork": "merbanan/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4040",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P04_SPEC_AND_LOOKUP.md",
+    "required_probes": [
+      "Copy/edit corpus separately; lookup T<=16 only supported paths; MTP remains unchanged; account extra graph VRAM and expert evictions."
+    ]
+  },
+  {
+    "rank": 5,
+    "pr": 4031,
+    "title": "[Engine] Conversation cache: Stop evicting what this freed RAM can never re-use; Auto-shrinking RAM conversation cache slots under RAM pressure",
+    "head_sha": "d31e52352179c4b4ad620fc28cbb2a83ebad0c68",
+    "fork": "dsenchankau/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4031",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P02_CACHE_ADMISSION.md",
+    "required_probes": [
+      "Cache budget must be >0; separate smallest-slot victim and learned ceiling; off must really preserve baseline default; protect guarded donor."
+    ]
+  },
+  {
+    "rank": 6,
+    "pr": 4005,
+    "title": "[Engine] prefill: opt-in sparse copied events and deduplicated slot waits (Windows HIP prompt reads +36% at 4K, +15% at 32K)",
+    "head_sha": "887796debca1fa20ee0f3ab11d8571d8dcbb2f10",
+    "fork": "Vop3p/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4005",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P05_CUDA_PREFILL.md",
+    "required_probes": [
+      "CUDA/Linux path not donor benchmark platform; preserve copy/last-reader event dependency; measure event count and real wall."
+    ]
+  },
+  {
+    "rank": 7,
+    "pr": 4002,
+    "title": "[Engine] Parallelize staged conversation cache copies",
+    "head_sha": "a2cde216c537c82a6637b63f057c5b1f633e3d23",
+    "fork": "oscarlius/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4002",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": false,
+    "production_enabled": false,
+    "task_document": "plans/P11_COPY_AND_STATE.md",
+    "required_probes": [
+      "Single GPU: only shuttle/allocation reuse is plausible; no multi-GPU speed claim."
+    ]
+  },
+  {
+    "rank": 8,
+    "pr": 2964,
+    "title": "[Engine] decode: STRATA_ADAPT_FETCH=1|2 (opt-in) - the PCIe share's most-routed misses are admitted into the VRAM tier (-5.6% a round on the NVFP4 pack)",
+    "head_sha": "f8184f25c169f6459b2e2a1524731055f54c5d90",
+    "fork": "sergqwer/Strata-pr",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/2964",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": true,
+    "production_enabled": false,
+    "task_document": "plans/P03_RESIDENCY_AND_SCHEDULING.md",
+    "required_probes": [
+      "Historically NOT_APPLICABLE with ADAPT_OVERLAP and PCIe share about0.007; reopen only with a new mechanism and explicit conflict resolution."
+    ]
+  },
+  {
+    "rank": 9,
+    "pr": 4068,
+    "title": "[Engine] KV cache: the exact-cell window for q4lm8v (opt-in, hardened)",
+    "head_sha": "6c3bd96972c435476d0614035d060deb8c46768c",
+    "fork": "monscoro/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4068",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": true,
+    "production_enabled": false,
+    "task_document": "plans/P08_KV_AND_MEMORY.md",
+    "required_probes": [
+      "New KV/quality branch; CUDA was not validated in donor report; exact recent cells do not make whole model exact."
+    ]
+  },
+  {
+    "rank": 10,
+    "pr": 2690,
+    "title": "[Engine] verify: STRATA_VERIFY_DEFER_CPU=1, a layer's light CPU expert rows join at the next layer's FFN half (heavy rows on time, 0.1 by default; opt-in)",
+    "head_sha": "2e57231c067d50952a29e9b3dfc8ba221010608b",
+    "fork": "lask3802/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/2690",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": true,
+    "production_enabled": false,
+    "task_document": "plans/P10_RESEARCH_BRANCHES.md",
+    "required_probes": [
+      "Quality-changing expert deferral; separate Q track, no default adoption."
+    ]
+  },
+  {
+    "rank": 11,
+    "pr": 4046,
+    "title": "[Engine] add opt-in reference-order CPU mixed-IQ down dispatch",
+    "head_sha": "3cbfd2577f02ebeaceacfae530331b6ea819ee12",
+    "fork": "CrashxZ/MoEmentum",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4046",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": true,
+    "production_enabled": false,
+    "task_document": "plans/P06_CPU_ISA.md",
+    "required_probes": [
+      "Source pair2048/512 IQ2_S GU and IQ2_S/IQ3_S down differs from actual1280/2560 mixed pair; NOT_APPLICABLE unless inventory changes."
+    ]
+  },
+  {
+    "rank": 12,
+    "pr": 4010,
+    "title": "[Engine] Pipelined batch groups adapt the VRAM tier (opt-in STRATA_PIPE_ADAPT_EVERY): six-stream decode after a start 309 -> 410 tok/s",
+    "head_sha": "b0af5d618259967796ae83a95cb485a13fbd385c",
+    "fork": "SuperDistance/Strata",
+    "baseline_sha": "4b9e05a2a806a3fe24f7b2560d98626c37dade35",
+    "url": "https://github.com/Niko1221/Strata/pull/4010",
+    "state_at_snapshot": "open",
+    "merged_at_snapshot": false,
+    "execution": "AI_SEMANTIC_PORT_REQUIRED",
+    "execution_disabled": true,
+    "production_enabled": false,
+    "task_document": "plans/P09_SERVING.md",
+    "required_probes": [
+      "Multi-GPU layer-split batching does not apply to single4090."
+    ]
+  }
+]

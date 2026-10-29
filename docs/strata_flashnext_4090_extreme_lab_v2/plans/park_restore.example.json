@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "kind": "park_restore",
+  "engine_adapter": null,
+  "max_context": 131072,
+  "safety_tokens": 4096,
+  "min_available_mib": 4096,
+  "max_active_gpu_contexts": 1,
+  "sessions": [
+    "A",
+    "B"
+  ],
+  "required_receipts": [
+    "request_sha256",
+    "session_identity",
+    "usage_prompt_tokens",
+    "usage_completion_tokens",
+    "park_count",
+    "restore_count",
+    "evict_count",
+    "snapshot_bytes",
+    "heap_rss_mib",
+    "mem_available_mib",
+    "swap_mib",
+    "read_tokens",
+    "reused_tokens",
+    "ttft_s",
+    "park_ms",
+    "restore_ms",
+    "trim_ms",
+    "quality_assertion"
+  ],
+  "steps": [
+    {
+      "id": "0",
+      "session": "A",
+      "counted_prompt_tokens": 100,
+      "request": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Return only OK."
+          }
+        ],
+        "max_tokens": 16
+      },
+      "expected_events": []
+    },
+    {
+      "id": "1",
+      "session": "B",
+      "counted_prompt_tokens": 100,
+      "request": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Return only OK."
+          }
+        ],
+        "max_tokens": 16
+      },
+      "expected_events": [
+        "park"
+      ]
+    },
+    {
+      "id": "2",
+      "session": "A",
+      "counted_prompt_tokens": 100,
+      "request": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Return only OK."
+          }
+        ],
+        "max_tokens": 16
+      },
+      "expected_events": [
+        "restore"
+      ]
+    }
+  ],
+  "purpose": "SCHEMA_EXAMPLE_ONLY; declared counts are synthetic, not tokenizer measurements"
+}

@@ -1,0 +1,1 @@
+import java.math.*; public class Solution { public static long cents(String s){ try{if(s==null)throw new IllegalArgumentException();return new BigDecimal(s).setScale(2,RoundingMode.HALF_EVEN).movePointRight(2).longValueExact();}catch(RuntimeException e){throw new IllegalArgumentException(e);} } }
