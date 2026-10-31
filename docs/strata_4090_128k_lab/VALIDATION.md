@@ -1,3 +1,17 @@
+> 2026-10-31生产恢复：按用户明确要求启动既有服务，见[恢复回执](reports/PRODUCTION-RESTORE-20261031.md)。12:49 health HTTP200/loaded=true；12:50:44 active/running/enabled、NRestarts0，models HTTP200、NGINX未认证401，18089无监听。未追加推理或GPU实验；本次文档检查另记workspace/frontier/production-restore-20261031/PACKAGE_CHECKS.json。
+
+> 2026-10-31收口：见[Astra复核与收口](reports/FRONTIER-CLOSURE-ASTRA-20261031.md)。独立复核与root离线复算一致，当前NO_QUALIFIED_CANDIDATE，F02保持DEFERRED_NEW_EVIDENCE。文档检查回执在workspace/frontier/astra-reassessment-20261031/PACKAGE_CHECKS.json；本轮无新增native/CPU/GPU测试或推理。12:40:17停机回执保留原时间，生产随后按用户要求恢复。
+
+> F03：见[F03报告](reports/F03-SNAPSHOT-LIFECYCLE-AUDIT-20261031.md)。cache4834、基线/原型各2068 host checks PASS；固定CPU三对均慢6.08%–7.74%，NO_QUALIFIED_CANDIDATE关闭。42原件/18源身份核验PASS；GPU启动与请求均0，生产停机，预算/PT0保持。
+
+> P01B：见[P01B报告](reports/P01B-PI-WARM-DIAGNOSTIC-20261031.md)。实际1engine/3请求全部完成；939窗口/2291原始IDs，资格INSUFFICIENT。49项相关CPU测试PASS，门修订后17项复验PASS；29隔离构建与CPU probe PASS，独立原件核验PASS。生产停机，无新候选/部署。以下各历史批次状态不倒写。
+
+> P01：见 [P01报告](reports/P01-PI-WARM-DIAGNOSTIC-20261030.md)。实际1engine/1prime短输出停止；32本地CPU测试通过，后续代码修复未在该批次GPU复测。
+
+> frontier/P00 最新验证：见 [P00报告](reports/P00-EVIDENCE-20261030.md)，19项定向+9项离线测试通过；GPU未运行。
+
+> 2026-10-30 文档整合后的验证见 [DOC-MERGE](reports/DOC-MERGE-20261030.md)。以下为历史执行记录。
+
 # 交付验证记录
 
 验证日期：2026-10-23（初稿），2026-10-26 追加（见下节）。本记录区分**本包已经执行的验证**和**必须在用户4090执行的验收**。29 号机上的实测结果在 `reports/`，不在本文件重复。

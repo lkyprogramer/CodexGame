@@ -1,0 +1,1665 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-10-30",
+  "sources": [
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/glm_prefill.cu",
+      "symbols": [
+        "moe_window_rows",
+        "carve_moe",
+        "Glm5Model::prefill_half",
+        "Glm5Model::prefill_lend",
+        "Glm5Model::prefill_return"
+      ],
+      "inspected_line_ranges": [
+        [
+          266,
+          350
+        ],
+        [
+          1590,
+          1644
+        ],
+        [
+          1878,
+          1899
+        ],
+        [
+          2730,
+          2834
+        ],
+        [
+          2936,
+          3078
+        ],
+        [
+          3228,
+          3335
+        ],
+        [
+          4072,
+          4157
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/glm_prefill.cu",
+      "findings": "窗口化MoE workspace；稳定GPU分组后host count计划；按rows与剩余复制债务选CPU；loan生命周期。",
+      "id": "ME_M01",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/kernels/cuda/glm_batch.cu",
+      "symbols": [
+        "route_kernel",
+        "expert_count_kernel",
+        "expert_scatter_kernel",
+        "moe_combine_add_kernel",
+        "expert_count",
+        "expert_scatter"
+      ],
+      "inspected_line_ranges": [
+        [
+          2036,
+          2130
+        ],
+        [
+          2140,
+          2208
+        ],
+        [
+          2648,
+          2676
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/kernels/cuda/glm_batch.cu",
+      "findings": "GLM sigmoid+bias路由与k<=8缓冲；整数稳定rank/scatter可分离；window-add会改变浮点归约顺序。",
+      "id": "ME_M02",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "include/strata/kernels/glm_batch.hpp",
+      "symbols": [
+        "route",
+        "expert_count",
+        "expert_scatter",
+        "moe_combine_add"
+      ],
+      "inspected_line_ranges": [
+        [
+          129,
+          151
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/include/strata/kernels/glm_batch.hpp",
+      "findings": "公开API说明每expert稳定(t,j) rank和分组bounds。",
+      "id": "ME_M03",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/prefill/ggml_cuda_host.cu",
+      "symbols": [
+        "size_class",
+        "CachingPool::alloc",
+        "CachingPool::free",
+        "strata_mmq_pool_slab"
+      ],
+      "inspected_line_ranges": [
+        [
+          106,
+          229
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/prefill/ggml_cuda_host.cu",
+      "findings": "2次幂size class、borrowed slab、device fallback allocation；缓存只按slab base变化失效，移植须重审epoch。",
+      "id": "ME_M04",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "include/strata/prefill/moe_mmq.hpp",
+      "symbols": [
+        "pool_slab"
+      ],
+      "inspected_line_ranges": [
+        [
+          19,
+          30
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/include/strata/prefill/moe_mmq.hpp",
+      "findings": "MMQ借用scratch slab接口。",
+      "id": "ME_M05",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/glm_memory.hpp",
+      "symbols": [
+        "expert_pool_budget",
+        "complete_pool_slots",
+        "complete_pool",
+        "warm_pool_slots"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          141
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/glm_memory.hpp",
+      "findings": "完整pool需容纳所有专家+spares+tail；APU统一内存预算与离散GPU不同。",
+      "id": "ME_M06",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/glm_fast_path.cu",
+      "symbols": [
+        "numa_pinned",
+        "Glm5Model::fast_setup"
+      ],
+      "inspected_line_ranges": [
+        [
+          294,
+          335
+        ],
+        [
+          1192,
+          1234
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/glm_fast_path.cu",
+      "findings": "NUMA interleave只在多node生效；complete pool与prefill tail借还。",
+      "id": "ME_M07",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/glm_rows.cu",
+      "symbols": [
+        "Glm5Model::rows_moe_grouped"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          22
+        ],
+        [
+          658,
+          687
+        ],
+        [
+          689,
+          826
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/glm_rows.cu",
+      "findings": "多row路由后distinct expert复用；不是单卡单会话天然新收益。",
+      "id": "ME_M08",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/glm_layer_graphs.hpp",
+      "symbols": [
+        "LayerGraphs::Key",
+        "LayerGraphs::enqueue"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          76
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/glm_layer_graphs.hpp",
+      "findings": "graph key含cpu_plan/residual/other/all_resident；replay显式增加host请求计数。",
+      "id": "ME_M09",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/prefill/prefill.cpp",
+      "symbols": [
+        "Stager",
+        "Prefill::run",
+        "ring_slots"
+      ],
+      "inspected_line_ranges": [
+        [
+          70,
+          251
+        ],
+        [
+          1125,
+          1255
+        ],
+        [
+          1570,
+          1715
+        ],
+        [
+          1800,
+          1900
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/prefill/prefill.cpp",
+      "findings": "Qwen固定顺序ring、pinned stager/issuer、host分组；多个机制已在A0存在或更成熟。",
+      "id": "ME_M10",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/layer.cpp",
+      "symbols": [
+        "moe_route",
+        "qsa_state_init",
+        "qsa_kv_resolve"
+      ],
+      "inspected_line_ranges": [
+        [
+          353,
+          389
+        ],
+        [
+          488,
+          723
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/layer.cpp",
+      "findings": "mapped-pinned doorbell与QSA host-authoritative KV。",
+      "id": "ME_M11",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "include/strata/core/layer.hpp",
+      "symbols": [
+        "Doorbell",
+        "QsaState"
+      ],
+      "inspected_line_ranges": [
+        [
+          257,
+          273
+        ],
+        [
+          379,
+          398
+        ],
+        [
+          462,
+          468
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/include/strata/core/layer.hpp",
+      "findings": "pinned staging、doorbell可捕获序列和发布顺序合同。",
+      "id": "ME_M12",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/session.cpp",
+      "symbols": [
+        "session_capture",
+        "session_run_token"
+      ],
+      "inspected_line_ranges": [
+        [
+          156,
+          204
+        ],
+        [
+          868,
+          927
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/session.cpp",
+      "findings": "router前后graph切分、whole-token graph host服务；A0已有同类。",
+      "id": "ME_M13",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/core/pinned.cu",
+      "symbols": [
+        "PinnedArena::PinnedArena"
+      ],
+      "inspected_line_ranges": [
+        [
+          140,
+          211
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/core/pinned.cu",
+      "findings": "register-before-touch，部分pin与resident fallback，不是目标新增方向。",
+      "id": "ME_M14",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "src/prefill/kernels.cu",
+      "symbols": [
+        "route_kernel",
+        "moe_combine_kernel"
+      ],
+      "inspected_line_ranges": [
+        [
+          367,
+          409
+        ],
+        [
+          460,
+          471
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/src/prefill/kernels.cu",
+      "findings": "Qwen按K=10 route顺序fmaf后加shared gate，不能照抄GLM k8 window-add。",
+      "id": "ME_M15",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "documentation",
+      "repository": "mw00/project-maya",
+      "commit": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "path": "README.md",
+      "symbols": [],
+      "inspected_line_ranges": [
+        [
+          22,
+          32
+        ],
+        [
+          53,
+          66
+        ],
+        [
+          221,
+          223
+        ],
+        [
+          292,
+          309
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/mw00/project-maya/blob/376b4b87402bc992af7b4a8dec089ef7cba7801c/README.md",
+      "findings": "平台与模型范围；非速度证据。",
+      "id": "ME_M16",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "python/src/edge0/streaming/layer.py",
+      "symbols": [
+        "StreamingSwitchGLU::_stage_incr",
+        "StreamingSwitchGLU::_build_staged_bundles",
+        "StreamingSwitchGLU::__call__",
+        "warm_experts_willneed"
+      ],
+      "inspected_line_ranges": [
+        [
+          242,
+          307
+        ],
+        [
+          380,
+          414
+        ],
+        [
+          539,
+          707
+        ],
+        [
+          709,
+          850
+        ],
+        [
+          1267,
+          1428
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/python/src/edge0/streaming/layer.py",
+      "findings": "sticky slots/writeback/assembled args；staged miss映射zero overflow；exact path另行加载。",
+      "id": "ME_E01",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "python/src/edge0/streaming/options.py",
+      "symbols": [
+        "LayerOptions",
+        "staged_k4",
+        "prod_k8"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          202
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/python/src/edge0/streaming/options.py",
+      "findings": "staged配置/路由改变前提；文档内性能数字仅作者测量不可外推。",
+      "id": "ME_E02",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "python/src/edge0/prerouter/install.py",
+      "symbols": [
+        "install_prerouter",
+        "_patch_qwen_consume",
+        "prerouter_call"
+      ],
+      "inspected_line_ranges": [
+        [
+          55,
+          145
+        ],
+        [
+          148,
+          198
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/python/src/edge0/prerouter/install.py",
+      "findings": "单token decode消费上一token上一层head预测代替true gate，fallback只在无预测时。",
+      "id": "ME_E03",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "python/src/edge0/prerouter/stager.py",
+      "symbols": [
+        "PrerouterStager::_stacked_weights",
+        "PrerouterStager::_logits",
+        "PrerouterStager::stage_all",
+        "CrossTokenStager"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          318
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/python/src/edge0/prerouter/stager.py",
+      "findings": "head batched和step-boundary一次tolist；前提是训练prerouter成为真实路由。",
+      "id": "ME_E04",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "python/src/edge0/models/edge0_35b/__init__.py",
+      "symbols": [
+        "Qwen35Config::_defaults"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          95
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/python/src/edge0/models/edge0_35b/__init__.py",
+      "findings": "Qwen3.6 35B E256/K4, int4affine group64, trainedLoRA+prerouter，不是用户Flash-Next。",
+      "id": "ME_E05",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "python/src/edge0/moe/routing.py",
+      "symbols": [
+        "select_from_logits",
+        "group_select_from_logits"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          71
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/python/src/edge0/moe/routing.py",
+      "findings": "Qwen softmax-topk与Ling sigmoid/group-limited law分开。",
+      "id": "ME_E06",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "windows/serve/prefetch.cc",
+      "symbols": [
+        "e0_mmid_base_res",
+        "e0_pool_prefill",
+        "e0_issue",
+        "e0_full_step",
+        "edge0_pref_init"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          46
+        ],
+        [
+          290,
+          443
+        ],
+        [
+          462,
+          677
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/windows/serve/prefetch.cc",
+      "findings": "true-router advisory路径；ggml CPU resolver state3/预算/布局错误fallback原mmap；固定35B形状与Windows API。",
+      "id": "ME_E07",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "macos/crates/engine-native/src/expertio.cpp",
+      "symbols": [
+        "ExpertIo::get_bundles",
+        "ExpertIo::stage_incr_locked",
+        "ExpertIo::asm_for"
+      ],
+      "inspected_line_ranges": [
+        [
+          21,
+          75
+        ],
+        [
+          292,
+          358
+        ],
+        [
+          442,
+          627
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/macos/crates/engine-native/src/expertio.cpp",
+      "findings": "exact demand cascade及物化缓存；MLX平台不能直接复制到CUDA。",
+      "id": "ME_E08",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "macos/crates/engine-native/src/hotstack.cpp",
+      "symbols": [
+        "HotStack::load_entry",
+        "HotStack::acquire"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          132
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/macos/crates/engine-native/src/hotstack.cpp",
+      "findings": "引用lease避免in-use eviction；可超budget且并发重复load后丢弃，不是严格GPU budget controller。",
+      "id": "ME_E09",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "macos/crates/engine-native/src/stepprefetch.cpp",
+      "symbols": [
+        "StepPrefetch::submit",
+        "cancel_pending",
+        "worker_loop"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          85
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/macos/crates/engine-native/src/stepprefetch.cpp",
+      "findings": "FIFO jobs/ticket取消计数，不是按deadline优化的critical path scheduler。",
+      "id": "ME_E10",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "macos/crates/engine-native/src/prefixcache.hpp",
+      "symbols": [
+        "PrefixCache::get",
+        "PrefixCache::put"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          178
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/macos/crates/engine-native/src/prefixcache.hpp",
+      "findings": "token identity+hash+原token相等检查；backend无关snapshot，非Qwen KV实现。",
+      "id": "ME_E11",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "documentation",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "patches/llama.cpp/README.md",
+      "symbols": [],
+      "inspected_line_ranges": [
+        [
+          1,
+          93
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/patches/llama.cpp/README.md",
+      "findings": "Windows/Android hook边界和上游pin ledger。",
+      "id": "ME_E12",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "documentation",
+      "repository": "Edge0-AI/Edge0",
+      "commit": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "path": "README.md",
+      "symbols": [],
+      "inspected_line_ranges": [
+        [
+          34,
+          94
+        ],
+        [
+          312,
+          330
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Edge0-AI/Edge0/blob/d4a2fa02fcf06c08961248a2da1d8fc861d842ef/README.md",
+      "findings": "CUDA backend reserved slot、模型范围；不采纳其benchmark为4090证据。",
+      "id": "ME_E13",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "src/prefill/prefill.cpp",
+      "symbols": [
+        "moe_bufs",
+        "moe_set_bytes",
+        "Prefill::carve",
+        "Prefill::run_impl"
+      ],
+      "inspected_line_ranges": [
+        [
+          134,
+          237
+        ],
+        [
+          1114,
+          1139
+        ],
+        [
+          1272,
+          1306
+        ],
+        [
+          1573,
+          1652
+        ],
+        [
+          2919,
+          3105
+        ],
+        [
+          3585,
+          3905
+        ],
+        [
+          4400,
+          4505
+        ],
+        [
+          958,
+          967
+        ],
+        [
+          1490,
+          1513
+        ],
+        [
+          3937,
+          3963
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/src/prefill/prefill.cpp",
+      "findings": "A0已具stream_ahead/shared overlap/GPU fused分组、host MMQ分组、CPUrow排序+share、pinned ring；MMQ仍T*K scratch。；A0已默认尝试mapped pinned group tables及resident/group-sort，不能声称P6新增这些。",
+      "id": "ME_A01",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "src/core/verify.cpp",
+      "symbols": [
+        "Verifier::capture",
+        "Verifier::fetch_dma",
+        "Verifier::publish_plan"
+      ],
+      "inspected_line_ranges": [
+        [
+          1936,
+          2208
+        ],
+        [
+          3275,
+          3348
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/src/core/verify.cpp",
+      "findings": "现有distinct expert grouped/batched路径和DMA握手。",
+      "id": "ME_A02",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "src/prefill/ggml_cuda_host.cu",
+      "symbols": [
+        "CachingPool::alloc",
+        "CachingPool::free"
+      ],
+      "inspected_line_ranges": [
+        [
+          116,
+          148
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/src/prefill/ggml_cuda_host.cu",
+      "findings": "按请求size缓存独立cudaMalloc，无Maya size_class/slab接口。",
+      "id": "ME_A03",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "include/strata/core/expert_cache.hpp",
+      "symbols": [
+        "ExpertCache",
+        "replace",
+        "fill_slot_queued",
+        "verify_slot"
+      ],
+      "inspected_line_ranges": [
+        [
+          104,
+          160
+        ],
+        [
+          158,
+          214
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/include/strata/core/expert_cache.hpp",
+      "findings": "地址稳定、填充后发布、queuing与按byte校验；不得把这些当新优化。",
+      "id": "ME_A04",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "src/core/session.cpp",
+      "symbols": [
+        "session_capture",
+        "session_run_token"
+      ],
+      "inspected_line_ranges": [
+        [
+          650,
+          662
+        ],
+        [
+          867,
+          934
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/src/core/session.cpp",
+      "findings": "已有mapped-pinned staging/graph服务，供重复机制排除。",
+      "id": "ME_A05",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "include/strata/prefill/moe_mmq.hpp",
+      "symbols": [
+        "mmq::Context"
+      ],
+      "inspected_line_ranges": [
+        [
+          1,
+          171
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/include/strata/prefill/moe_mmq.hpp",
+      "findings": "核查接口中无pool_slab；源文件比对，非runtime证明。",
+      "id": "ME_A06",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+      "path": "src/prefill/prefill.cpp",
+      "symbols": [
+        "moe_bufs",
+        "moe_set_bytes",
+        "Prefill::carve",
+        "Prefill::run_impl"
+      ],
+      "inspected_line_ranges": [
+        [
+          1081,
+          1087
+        ],
+        [
+          1428,
+          1462
+        ],
+        [
+          1665,
+          1684
+        ],
+        [
+          1765,
+          1844
+        ],
+        [
+          4171,
+          4248
+        ],
+        [
+          4315,
+          4398
+        ],
+        [
+          4444,
+          4563
+        ],
+        [
+          4690,
+          4725
+        ],
+        [
+          5391,
+          5404
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "git_blob_sha": "16a609a5ded1174115c54bef2564112e82b1c899",
+      "url": "https://github.com/Niko1221/Strata/blob/5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d/src/prefill/prefill.cpp",
+      "findings": "moe_bufs+moe_set_bytes与A0文本相同；非fused仍host grouping，A0与P6均已有mapped pinned tables与resident/group sort。",
+      "id": "ME_P601",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+      "path": "src/prefill/ggml_cuda_host.cu",
+      "symbols": [
+        "CachingPool::alloc",
+        "CachingPool::free"
+      ],
+      "inspected_line_ranges": [
+        [
+          116,
+          148
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "git_blob_sha": "1245c2b0b223abfc29697efc5e2c42c5de18e0d6",
+      "url": "https://github.com/Niko1221/Strata/blob/5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d/src/prefill/ggml_cuda_host.cu",
+      "findings": "整文件与A0文本相同，无size_class或pool_slab。",
+      "id": "ME_P602",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+      "path": "include/strata/prefill/moe_mmq.hpp",
+      "symbols": [
+        "Context",
+        "swiglu_quant_ok",
+        "swiglu_quant"
+      ],
+      "inspected_line_ranges": [
+        [
+          86,
+          143
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "git_blob_sha": "6fba093e5f6a1692ed2d4c0a5ca7b64c08d4b17c",
+      "url": "https://github.com/Niko1221/Strata/blob/5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d/include/strata/prefill/moe_mmq.hpp",
+      "findings": "相对A0新增SM60 swiglu_quant接口；不是row-window allocator，也未增加pool_slab。",
+      "id": "ME_P603",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+      "path": "src/prefill/moe_mmq.cu",
+      "symbols": [
+        "swiglu_quant_kernel",
+        "swiglu_quant_ok",
+        "swiglu_quant"
+      ],
+      "inspected_line_ranges": [
+        [
+          151,
+          180
+        ],
+        [
+          722,
+          748
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "git_blob_sha": "8a53f1229bb507b3d55de1d8d01bae68e6c922b1",
+      "url": "https://github.com/Niko1221/Strata/blob/5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d/src/prefill/moe_mmq.cu",
+      "findings": "swiglu_quant仅!HIP且STRATA_EXPERIMENTAL_SM60编译，正常非SM60分支ok=false；不得给SM89强开门控。",
+      "id": "ME_P604",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "code",
+      "repository": "Niko1221/Strata",
+      "commit": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+      "path": "src/core/verify.cpp",
+      "symbols": [
+        "Verifier::capture",
+        "prof_on_",
+        "sh_fork",
+        "hits_in_combine"
+      ],
+      "inspected_line_ranges": [
+        [
+          1039,
+          1058
+        ],
+        [
+          1288,
+          1296
+        ],
+        [
+          1588,
+          1596
+        ],
+        [
+          2061,
+          2071
+        ],
+        [
+          2268,
+          2333
+        ]
+      ],
+      "inspection": "targeted source excerpts; not an exhaustive whole-file audit",
+      "git_blob_sha": "c8eef3f30e955ed28e31eb9bfd6d15d7ff15d628",
+      "url": "https://github.com/Niko1221/Strata/blob/5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d/src/core/verify.cpp",
+      "findings": "VERIFY_PROFILE按环境键存在启用，设0仍开；会关闭分支/融合，P01必须删除键而不是置0。",
+      "id": "ME_P605",
+      "retrieved": "2026-10-30",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+      "path": "src/kernels/cuda/kv_stream.cu",
+      "symbols": [
+        "resolve_kernel",
+        "copy_kernel",
+        "kv_stream_resolve"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/5c8dd322528cc84f68f461ad54a506b9da8fa8d4/src/kernels/cuda/kv_stream.cu",
+      "claim": "A0 already deduplicates selected pages, pins current epoch, CLOCK evicts, and vector copies missing pages; Git blob 209984b4ff1b54a824f26861a487ce4e943902f0.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S01",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+      "path": "src/kernels/cuda/kv_stream.cu",
+      "symbols": [
+        "resolve_kernel",
+        "copy_kernel",
+        "kv_stream_resolve"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d/src/kernels/cuda/kv_stream.cu",
+      "claim": "Experimental baseline file has identical blob to A0; neither novel in latest source nor missing from baseline.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S02",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "include/strata/kernels/kv_stream.hpp",
+      "symbols": [
+        "KvStreamMap",
+        "KvHostPools",
+        "kv_stream_resolve"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/include/strata/kernels/kv_stream.hpp",
+      "claim": "Authoritative host copy, page cache and update/invalidation contract.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S03",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "b35b2ce9df8927c672f888651946849219a0effa",
+      "path": "docs/BENCHMARKS.md",
+      "symbols": [
+        "Flash-Next comparison"
+      ],
+      "url": "https://github.com/turbo-tan/tqllm/blob/b35b2ce9df8927c672f888651946849219a0effa/docs/BENCHMARKS.md",
+      "claim": "Author 77.1 vs47.2 tok/s at128K is unchanged since c2163c2; comparison is RTX3090 against Strata0.2.2, not user hardware and EXACT6.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S04",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "b35b2ce9df8927c672f888651946849219a0effa",
+      "path": "src/models/qwen/qwen4exp/qwen4exp_qsa.cu",
+      "symbols": [
+        "gather_mark_k",
+        "gather_rows_k",
+        "gather_fill_k",
+        "gather_remap_k",
+        "QsaGather::run"
+      ],
+      "url": "https://github.com/turbo-tan/tqllm/blob/b35b2ce9df8927c672f888651946849219a0effa/src/models/qwen/qwen4exp/qwen4exp_qsa.cu",
+      "claim": "New compaction/cache is exact byte motion within donor KV format; CUB exclusive scan, directmapped16K row cache, canonical position remap.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S05",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "b35b2ce9df8927c672f888651946849219a0effa",
+      "path": "src/models/qwen/qwen4exp/fn_layers.hpp",
+      "symbols": [
+        "QsaGather caller",
+        "qsa_layer forward"
+      ],
+      "url": "https://github.com/turbo-tan/tqllm/blob/b35b2ce9df8927c672f888651946849219a0effa/src/models/qwen/qwen4exp/fn_layers.hpp",
+      "claim": "Host-backed VMM and nb<32 guard; cache16384; preallocate8*selection width; epoch invalidation; positional remap.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S06",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "b35b2ce9df8927c672f888651946849219a0effa",
+      "path": "CHANGELOG.md",
+      "symbols": [
+        "Flash-Next host-KV changes"
+      ],
+      "url": "https://github.com/turbo-tan/tqllm/blob/b35b2ce9df8927c672f888651946849219a0effa/CHANGELOG.md",
+      "claim": "109GB RAM author experiments, 5090 host-KV regression fixes, graph policy and repeat128K results; not transplant performance evidence.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S07",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "b35b2ce9df8927c672f888651946849219a0effa",
+      "path": "src/models/qwen/qwen4exp/fn_cpu_experts.hpp",
+      "symbols": [
+        "CpuMissPool",
+        "CPU numerics"
+      ],
+      "url": "https://github.com/turbo-tan/tqllm/blob/b35b2ce9df8927c672f888651946849219a0effa/src/models/qwen/qwen4exp/fn_cpu_experts.hpp",
+      "claim": "Donor CPU target numerics are not guaranteed identical to GPU or Strata; teacher-forced comparisons required.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S08",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cuda/iq_kernels.cu",
+      "symbols": [
+        "native_expert_grouped",
+        "native_gu_swiglu_kernel",
+        "native_gu_multi_kernel",
+        "expdec_gu_kernel",
+        "row_dot_80_sub16"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cuda/iq_kernels.cu",
+      "claim": "Grouped weight decode and GU/SwiGLU/q8_1 fusion already implemented; EXPDEC suppresses GU_SWIGLU; exact load-layout work must preserve arithmetic.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S09",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "docs/EXPERTDEC.md",
+      "symbols": [
+        "What it changes",
+        "Bit for bit",
+        "In the engine"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/docs/EXPERTDEC.md",
+      "claim": "Existing activation staging design; Q2_0 down microbench win became engine loss;2080Ti+3060 author results not4090.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S10",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "include/strata/core/expert_nibble.hpp",
+      "symbols": [
+        "nibble::encode_item",
+        "nibble::slot_bytes_for",
+        "STRATA_EXPERT_NIBBLE_BUILT"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/include/strata/core/expert_nibble.hpp",
+      "claim": "SM60-only lossless expanded IQ codes; same scales/d; GGUF byte roundtrip; gate/up grows1.25–1.68x.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S11",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cuda/nib_gu_proto.cuh",
+      "symbols": [
+        "nibble prototype"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cuda/nib_gu_proto.cuh",
+      "claim": "GP100-specific prototype measurement and activation staging; not a4090 ready optimization.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S12",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cpu/native_expert.cpp",
+      "symbols": [
+        "native_gu_rows_impl",
+        "native_down_rows_impl",
+        "NativeArithmetic::WindowInvariant"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cpu/native_expert.cpp",
+      "claim": "Actual CPU branch and arithmetic depend on nt, CPU ISA and window-invariant mode.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S13",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "3c809f44383bcebc318b8cddd8c6d11aaa861e9b",
+      "path": "ggml/src/ggml-cpu/repack.cpp",
+      "symbols": [
+        "repack_iq4_nl_to_iq4_nl_8_bl"
+      ],
+      "url": "https://github.com/ggml-org/llama.cpp/blob/3c809f44383bcebc318b8cddd8c6d11aaa861e9b/ggml/src/ggml-cpu/repack.cpp",
+      "claim": "Concrete format-preserving8-row interleave donor for IQ4_NL; not a ready IQ3_S singleton replacement.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S14",
+      "repository": "ggml-org/llama.cpp",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "3c809f44383bcebc318b8cddd8c6d11aaa861e9b",
+      "path": "ggml/src/ggml-cpu/tiled/tiled.cpp",
+      "symbols": [
+        "ggml_tiled_min_batch",
+        "GGML_TYPE_IQ3_S"
+      ],
+      "url": "https://github.com/ggml-org/llama.cpp/blob/3c809f44383bcebc318b8cddd8c6d11aaa861e9b/ggml/src/ggml-cpu/tiled/tiled.cpp",
+      "claim": "Tiled IQ3_S path exists but requires at least8 rows/token columns per expert; user's nt1-heavy workload is mismatched.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S15",
+      "repository": "ggml-org/llama.cpp",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "include/strata/kernels/qsa.hpp",
+      "symbols": [
+        "qsa_shapes",
+        "qsa_selection_width"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/include/strata/kernels/qsa.hpp",
+      "claim": "idx_top_k2048, idx_block4 => selected attention width at most2051;128K does not imply dense128K attention.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S16",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cuda/qsa_decode_attn.cu",
+      "symbols": [
+        "qsa_decode_attn_batch",
+        "qsa_decode_attn_step",
+        "CHUNK"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cuda/qsa_decode_attn.cu",
+      "claim": "Existing CHUNK64 split and merge plus GQA12-head reuse; direct paged GPU pools.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S17",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cuda/qsa_prompt_attn.cu",
+      "symbols": [
+        "qsa_decode_attn_split"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cuda/qsa_prompt_attn.cu",
+      "claim": "Tensor-core split decode keeps selected rows but changes accumulation, FP16hi+lo and exponentiation; not bit exact.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S18",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cuda/qsa_select.cu",
+      "symbols": [
+        "qsa_block_topk_long",
+        "qsa_block_scores_long",
+        "block_scores_dx_kernel",
+        "topk_split_device"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cuda/qsa_select.cu",
+      "claim": "SELECT_LONG/DX implementation gated STRATA_EXPERIMENTAL_SM60; cluster requiresSM90; Turing split path not an automatic Ada gain.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S19",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "src/kernels/cuda/kv_stream.cu",
+      "symbols": [
+        "kv_block_bytes"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/src/kernels/cuda/kv_stream.cu",
+      "claim": "Exact byte formulas for BF16/int8/q4/hybrid cache capacity arithmetic.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S20",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "path": "include/strata/kernels/kv_q4.hpp",
+      "symbols": [
+        "kv_q4_bytes_per_head"
+      ],
+      "url": "https://github.com/Niko1221/Strata/blob/870aedd9e1ebe1c91f94da93b59af17729f6c5c0/include/strata/kernels/kv_q4.hpp",
+      "claim": "Packed q4 layout and per-group metadata; changing int8 values to q4 is approximate.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S21",
+      "repository": "Niko1221/Strata",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "ce9615c4f2309be727407918a6c979bd67968069",
+      "path": "drafter/README.md",
+      "symbols": [
+        "MTP",
+        "DFlash",
+        "reduced vocabulary"
+      ],
+      "url": "https://github.com/syv-ai/HyperQwen/blob/ce9615c4f2309be727407918a6c979bd67968069/drafter/README.md",
+      "claim": "Draft-only vocabulary/quantization techniques; own long-context cost/acceptance caveats; dense27B target.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S22",
+      "repository": "syv-ai/HyperQwen",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "ce9615c4f2309be727407918a6c979bd67968069",
+      "path": "docs/long-context.md",
+      "symbols": [
+        "long-context benchmark"
+      ],
+      "url": "https://github.com/syv-ai/HyperQwen/blob/ce9615c4f2309be727407918a6c979bd67968069/docs/long-context.md",
+      "claim": "Geometry and long-context route-specific measured reports; not FlashNext4090 guarantee.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S23",
+      "repository": "syv-ai/HyperQwen",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "13e8b593ea4c65f605b5fe7ac7d5ebb7a24f3c19",
+      "path": "README.md",
+      "symbols": [
+        "DFlash2",
+        "int8 QK",
+        "requirements"
+      ],
+      "url": "https://github.com/gildrb/elpis/blob/13e8b593ea4c65f605b5fe7ac7d5ebb7a24f3c19/README.md",
+      "claim": "Dense27B, low-bit KV, greedy-only constraints; modified target numerics are separate from lossless draft verification.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S24",
+      "repository": "gildrb/elpis",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "13e8b593ea4c65f605b5fe7ac7d5ebb7a24f3c19",
+      "path": "bench/RESULTS.md",
+      "symbols": [
+        "quality",
+        "accuracy"
+      ],
+      "url": "https://github.com/gildrb/elpis/blob/13e8b593ea4c65f605b5fe7ac7d5ebb7a24f3c19/bench/RESULTS.md",
+      "claim": "Author distinguishes numerical error/quality tradeoff; no evidence user's six128K retrieval failures solved.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S25",
+      "repository": "gildrb/elpis",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "5d0910c5e5beef5b1b204853ad65f3e1fe994777",
+      "path": "docs/test.md",
+      "symbols": [
+        "teacher forcing",
+        "KL",
+        "A/A"
+      ],
+      "url": "https://github.com/pegainfer-project/kern/blob/5d0910c5e5beef5b1b204853ad65f3e1fe994777/docs/test.md",
+      "claim": "Teacher-forced same-prefix comparison and A/A floor useful validation donor; not end-to-end quality proof.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S26",
+      "repository": "pegainfer-project/kern",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "5d0910c5e5beef5b1b204853ad65f3e1fe994777",
+      "path": "README.md",
+      "symbols": [
+        "kernel manifests",
+        "supported models"
+      ],
+      "url": "https://github.com/pegainfer-project/kern/blob/5d0910c5e5beef5b1b204853ad65f3e1fe994777/README.md",
+      "claim": "Current execution backend/architecture scope; no demonstrated same FlashNextsm89 mixedCPU performance.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S27",
+      "repository": "pegainfer-project/kern",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_code_or_author_document",
+      "commit": "a161b17f3ef3ac5c0cd3e219719f7d1d36a01175",
+      "path": "README.md",
+      "symbols": [
+        "supported architectures"
+      ],
+      "url": "https://github.com/NVIDIA/spark-local-inference/blob/a161b17f3ef3ac5c0cd3e219719f7d1d36a01175/README.md",
+      "claim": "flare repository redirects; kernels targetSM120/121, notSM89.",
+      "retrieved": "2026-10-30",
+      "verification": "read through GitHub connector; no executable run",
+      "id": "KF_S28",
+      "repository": "NVIDIA/spark-local-inference",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "official_hardware_document",
+      "url": "https://docs.nvidia.com/cuda/ada-tuning-guide/index.html",
+      "claim": "SM89 occupancy/register/shared-memory constraints;48resident warps,24blocks,64K32bit registers,100KiBshared/SM,99KiB/block; >48KiB needs opt-in.",
+      "verification": "web open",
+      "retrieved": "2026-10-30",
+      "id": "KF_S29",
+      "repository": null,
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "official_hardware_document",
+      "url": "https://docs.nvidia.com/cuda/archive/12.3.2/cuda-c-programming-guide/index.html",
+      "claim": "CUDA12.3 programming model; thread-block clusters requireSM90; do not assume Hopper/Blackwell features onAda.",
+      "verification": "web search primary source",
+      "retrieved": "2026-10-30",
+      "id": "KF_S30",
+      "repository": null,
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "official_hardware_document",
+      "url": "https://docs.nvidia.com/cuda/archive/12.3.1/hopper-tuning-guide/index.html",
+      "claim": "TMA and distributed shared-memory cluster mechanisms belong toHopper hardware; no directSM89 transplant.",
+      "verification": "web search primary source",
+      "retrieved": "2026-10-30",
+      "id": "KF_S31",
+      "repository": null,
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "official_hardware_document",
+      "url": "https://developer.nvidia.com/cuda/gpus",
+      "claim": "RTX4090 compute capability8.9.",
+      "verification": "web search primary source",
+      "retrieved": "2026-10-30",
+      "id": "KF_S32",
+      "repository": null,
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_commit",
+      "commit": "54f71b6cdc1351bfd7e13cb4d2345cd4ad5c5973",
+      "url": "https://github.com/turbo-tan/tqllm/commit/54f71b6cdc1351bfd7e13cb4d2345cd4ad5c5973",
+      "claim": "First material post-old-donor FlashNext host-KV fixset; compact selectedKV andcache changes.",
+      "verification": "GitHub compare read",
+      "retrieved": "2026-10-30",
+      "id": "KF_S33",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    },
+    {
+      "kind": "primary_commit",
+      "commit": "b35b2ce9df8927c672f888651946849219a0effa",
+      "url": "https://github.com/turbo-tan/tqllm/commit/b35b2ce9df8927c672f888651946849219a0effa",
+      "claim": "Latest host-KV defaults andgraph scratch preset; new author256K report.",
+      "verification": "GitHub compare read",
+      "retrieved": "2026-10-30",
+      "id": "KF_S34",
+      "repository": "turbo-tan/tqllm",
+      "inspection_limit": "Targeted source/document inspection; no target build, inference or exhaustive audit"
+    }
+  ],
+  "source_records": 74,
+  "unique_public_urls": 74,
+  "gpu_runs": 0,
+  "deployment_approved": false
+}

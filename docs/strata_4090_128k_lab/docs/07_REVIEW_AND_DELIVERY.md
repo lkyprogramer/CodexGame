@@ -1,3 +1,5 @@
+> 历史实验规范与记录。后续探索的当前阶段见 [NEXT_ACTIONS](../plans/NEXT_ACTIONS.md)；本文原口径用于解释原报告，不覆盖 frontier 新阶段合同。
+
 # 每项 Review 与交付模板
 
 ## 源码Review

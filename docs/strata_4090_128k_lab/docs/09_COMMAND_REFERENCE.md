@@ -1,3 +1,5 @@
+> 历史实验规范与记录。后续探索的当前阶段见 [NEXT_ACTIONS](../plans/NEXT_ACTIONS.md)；本文原口径用于解释原报告，不覆盖 frontier 新阶段合同。
+
 # 命令与实际能力
 
 入口 `./run.sh` 使用 `LAB_PYTHON`，否则使用 `python3`。建议 Python 3.10+，生产 Python 环境已有 Strata 的 `regex`、`jinja2` 等依赖。不要全局升级依赖或驱动。`--config PATH` 是全局选项，必须放在子命令之前。

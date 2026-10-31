@@ -1,6 +1,6 @@
 # Strata 4090 / 128K 实验执行入口
 
-先读 `START_HERE_AI.md`，再读 `README.md`、`sources/LOCK.json` 和当前PR专项文档。
+先读 `START_HERE_AI.md` 和 `plans/NEXT_ACTIONS.md`。后续探索合同在 `frontier/`；旧 PR 专项、旧续测和根 sources/LOCK.json 仅在追溯原实验时读取。工具、历史报告、workspace 原位保留。frontier/P00 等编号属于新命名空间。阶段范围以当前用户指令和P00/P01回执为准；P00准备不授予P01 GPU实验或部署权限。
 
 生产目录、配置、模型与Pi设置只读；GPU上下文总和不得超过131072；不自动停止生产服务。各PR独立worktree，关闭路径与原版先通过，再测试开启路径。不要把本包CPU测试结果当作4090验证，不要把未开发的PR写成已完成。
 

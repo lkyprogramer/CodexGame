@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "qualified_candidates": 0,
+  "candidates": [
+    {
+      "id": "F01",
+      "title": "现有selected-KV路径：只查尚未解释的读取/失效",
+      "status": "COVERED_DIAGNOSTIC_ONLY",
+      "numerical_class": "E0",
+      "doc": "candidates/F01_KV_SELECTED_REUSE.md",
+      "old_directions": "O27/O29/O49/O50、CFG-KVRES/KVGROW",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F02",
+      "title": "保留既有融合与算术的载入布局改造",
+      "status": "DEFERRED_NEW_EVIDENCE",
+      "numerical_class": "E0",
+      "doc": "candidates/F02_EXACT_LOAD_LAYOUT.md",
+      "old_directions": "O06/O21；P5/P12/DEQUANT_SIDE均不得重命名续跑",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F03",
+      "title": "活跃内存压力与不必要驻留的生命周期诊断",
+      "status": "DIAGNOSTIC_ONLY",
+      "numerical_class": "E0",
+      "doc": "candidates/F03_LIVE_MEMORY_LIFETIME.md",
+      "old_directions": "O13/O39/O44/O61；不重复trim/MMAP/HC",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F04",
+      "title": "QSA长索引与精确选择的条件分支",
+      "status": "DEFERRED_NEW_EVIDENCE",
+      "numerical_class": "E0",
+      "doc": "candidates/F04_EXACT_QSA_SELECTION.md",
+      "old_directions": "O20/O24/O27/O29；SELECT_LONG尚未取得资格",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F05",
+      "title": "保留全Dm的MoE中间行窗复用",
+      "status": "HYPOTHESIS_UNQUALIFIED",
+      "numerical_class": "E0",
+      "doc": "candidates/F05_MOE_GROUP_SCRATCH.md",
+      "old_directions": "O15/GROUP_SCRATCH；HC失败不覆盖它，也不为它提供资格",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F06",
+      "title": "非fused路径的稳定整数count/rank/scatter",
+      "status": "HYPOTHESIS_UNQUALIFIED",
+      "numerical_class": "E0",
+      "doc": "candidates/F06_STABLE_INTEGER_GROUPING.md",
+      "old_directions": "O12/O17/O25；不把已有fused::group算新功能",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F07",
+      "title": "MMQ尺寸分级与有代际的scratch借还",
+      "status": "HYPOTHESIS_UNQUALIFIED",
+      "numerical_class": "E0",
+      "doc": "candidates/F07_MMQ_POOL_EPOCH.md",
+      "old_directions": "O15/O44/O61；不同于HC专家保留",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F08",
+      "title": "按row成本和未完成复制债务决定CPU/GPU归属",
+      "status": "DEFERRED_QUALITY",
+      "numerical_class": "E1",
+      "doc": "candidates/F08_DEADLINE_PLACEMENT.md",
+      "old_directions": "O07/O08；不同于已拒绝固定share，但不得复活NP3分行",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F09",
+      "title": "SM89 tensor/attention/GDN数值路径重写",
+      "status": "DEFERRED_QUALITY",
+      "numerical_class": "E1",
+      "doc": "candidates/F09_NUMERICAL_GPU_KERNELS.md",
+      "old_directions": "O19/O20/O21/O28/O29/O32；原EXACT6不得重复算",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F10",
+      "title": "改变草稿成本结构，保持完整target验证",
+      "status": "DEFERRED_SOURCE_AND_QUALITY",
+      "numerical_class": "E1",
+      "doc": "candidates/F10_TARGET_FIXED_DRAFT.md",
+      "old_directions": "O23/O33/O34/O35/O36/O38；MTPQ4/SPECCOST/spec扫描已关闭",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F11",
+      "title": "改变目标计算的质量—速度前沿",
+      "status": "OUT_OF_MAINLINE",
+      "numerical_class": "Q",
+      "doc": "candidates/F11_QUALITY_SPEED_FRONTIER.md",
+      "old_directions": "O46/O47/O48/O52–O57/O58",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    },
+    {
+      "id": "F12",
+      "title": "已具graph/doorbell/overlap的供给缺口诊断",
+      "status": "COVERED_DIAGNOSTIC_ONLY",
+      "numerical_class": "E0",
+      "doc": "candidates/F12_ORCHESTRATION_GAPS.md",
+      "old_directions": "O01/O02/O03/O09/O17/O25/O26/O31/O62；NP3已覆盖重要子项",
+      "hardware_qualified": false,
+      "measured_gain": null,
+      "automatic_implementation": false
+    }
+  ]
+}

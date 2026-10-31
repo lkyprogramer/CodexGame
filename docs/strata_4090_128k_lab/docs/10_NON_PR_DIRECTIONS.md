@@ -1,3 +1,5 @@
+> 历史实验规范与记录。后续探索的当前阶段见 [NEXT_ACTIONS](../plans/NEXT_ACTIONS.md)；本文原口径用于解释原报告，不覆盖 frontier 新阶段合同。
+
 # 非 PR 方向：29 号机的性能空间
 
 本文件记录不依赖任何上游 PR 的优化方向，来源是 2026-10-23 对 29 生产日志、`/proc`、sysfs 和上游源码（冻结 main `5c8dd322` 与部署树 0.1.43.1）的只读调研。它和 PR 实验项并列，但**不进入 `config/experiments.json`**：配置类方向按 `CFG-*` 对照执行（规则同 [测试协议](04_TEST_PROTOCOL.md)“配置与诊断对照”），代码类方向按 `NP-*` 独立立项，流程沿用 PR 项的 Phase A～E 与 Gate。

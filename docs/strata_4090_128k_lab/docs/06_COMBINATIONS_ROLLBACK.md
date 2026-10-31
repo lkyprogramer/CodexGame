@@ -1,3 +1,5 @@
+> 历史实验规范与记录。后续探索的当前阶段见 [NEXT_ACTIONS](../plans/NEXT_ACTIONS.md)；本文原口径用于解释原报告，不覆盖 frontier 新阶段合同。
+
 # 组合、冲突与回退
 
 所有实验项先独立从A0开发，不能以前一项候选为下一项baseline。单项通过后另建组合worktree。

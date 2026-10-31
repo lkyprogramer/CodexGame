@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "package_version": "3.0.0",
+  "snapshot_date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "delivery_kind": "RESEARCH_AND_EXECUTION_PLAN",
+  "gpu_experiments_performed_by_package_author": false,
+  "deployment_approved": false,
+  "initial_state": "PLAN_ONLY",
+  "limits": {
+    "context_ceiling_tokens": 131072,
+    "context_safety_tokens": 4096,
+    "min_mem_available_mib": 4096,
+    "gpu_temp_abort_c": 85,
+    "experiment_port": 18089,
+    "max_concurrent_gpu_jobs": 1,
+    "max_initial_diagnostic_engine_starts": 1,
+    "max_initial_diagnostic_work_requests": 3,
+    "max_initial_diagnostic_wall_seconds": 3600,
+    "max_active_candidates": 1,
+    "diagnostic_cleanup_reserve_seconds": 120,
+    "diagnostic_request_deadline_seconds": 600,
+    "diagnostic_output_tokens": 2048
+  },
+  "numerical_classes": [
+    "E0",
+    "E1",
+    "Q"
+  ],
+  "forbidden_env": [
+    "STRATA_STAGE_PIN",
+    "STRATA_ROUTE_RESIDENT"
+  ],
+  "historical_quality_failures": {
+    "count": 6,
+    "status": "UNRESOLVED",
+    "may_delete_or_rescore": false
+  },
+  "qualification": {
+    "hard_reject_optimistic_gain_lt": 0.04,
+    "preferred_exposed_fraction_floor": 0.08,
+    "required_realistic_gain_floor": 0.04,
+    "requires_source_delta": true,
+    "requires_dependency_evidence": true,
+    "unknown_critical_path": "INSUFFICIENT",
+    "profiler_results_are_performance": false
+  },
+  "formal_performance": {
+    "ratio": "candidate_time/baseline_time",
+    "unit": "independent_fresh_engine_pair",
+    "initial_pairs": 6,
+    "order": [
+      "AC",
+      "CA",
+      "CA",
+      "AC",
+      "AC",
+      "CA"
+    ],
+    "resampling": "exact_paired_log_ratio_bootstrap",
+    "confidence": 0.95,
+    "minimum_time_improvement": 0.04,
+    "noise_multiplier": 2.0,
+    "primary_gate": "ratio_ci_upper <= 1 - max(0.04, 2 * preregistered_aa_noise)",
+    "non_target_ratio_ci_upper_max": 1.02,
+    "allow_optional_stopping": false,
+    "allow_replacement_of_failed_samples": false,
+    "allows_deployment": false,
+    "primary_metric": "decode_ms",
+    "calibration_max_pairs": 3
+  },
+  "quality": {
+    "relative_ni_margin": 0.02,
+    "existing_gate_path": "tools/quality_gate.py in original lab",
+    "absolute_quality_separate": true,
+    "e0_parity_waives_task_quality": false,
+    "e1_q_initial_status": "DEFERRED_QUALITY",
+    "sampling_distribution_proof_required_for_speculation": true
+  },
+  "terminal_states": [
+    "NO_QUALIFIED_CANDIDATE",
+    "NOT_APPLICABLE",
+    "NO_GAIN",
+    "REJECTED_NUMERICS",
+    "REJECTED_PERFORMANCE",
+    "INSUFFICIENT",
+    "BLOCKED_RESOURCE",
+    "BLOCKED_EVIDENCE",
+    "BLOCKED_QUALITY",
+    "RESEARCH_RESULT_ONLY",
+    "READY_FOR_HUMAN_REVIEW"
+  ],
+  "live_adapter_included": false,
+  "diagnostic": {
+    "sequence": [
+      "prime",
+      "append_1",
+      "append_2"
+    ],
+    "prime_context_target_tokens": 102400,
+    "append_new_read_target_tokens": null,
+    "new_read_includes_pt0_history_reread": true,
+    "short_output_status": "INSUFFICIENT",
+    "collection": "existing_low_overhead_logs_single_arm",
+    "allow_extra_control_or_profiler": false,
+    "preserve_actual_history": true,
+    "causal_speedup_claim_allowed": false,
+    "append_new_read_policy": "observe_actual_pi_followup"
+  }
+}

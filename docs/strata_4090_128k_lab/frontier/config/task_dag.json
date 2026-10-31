@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "execution": "serial_phases_parallel_independent_tasks",
+  "gpu_parallelism": 1,
+  "success_path_only": true,
+  "terminal_cleanup_phase": "P07",
+  "phases": [
+    {
+      "id": "P00",
+      "title": "证据、基线与最小适配准备",
+      "depends_on": [],
+      "tasks": [
+        {
+          "id": "P00-T1",
+          "depends_on": [],
+          "doc": "plans/P00_EVIDENCE.md"
+        },
+        {
+          "id": "P00-T2",
+          "depends_on": [],
+          "doc": "plans/P00_EVIDENCE.md"
+        },
+        {
+          "id": "P00-T3",
+          "depends_on": [
+            "P00-T1"
+          ],
+          "doc": "plans/P00_EVIDENCE.md"
+        },
+        {
+          "id": "P00-T4",
+          "depends_on": [
+            "P00-T1",
+            "P00-T2",
+            "P00-T3"
+          ],
+          "doc": "plans/P00_EVIDENCE.md"
+        }
+      ]
+    },
+    {
+      "id": "P01",
+      "title": "一次限额暖态长会话诊断",
+      "depends_on": [
+        "P00"
+      ],
+      "tasks": [
+        {
+          "id": "P01-T1",
+          "depends_on": [],
+          "doc": "plans/P01_DIAGNOSTIC.md"
+        },
+        {
+          "id": "P01-T2",
+          "depends_on": [],
+          "doc": "plans/P01_DIAGNOSTIC.md"
+        },
+        {
+          "id": "P01-T3",
+          "depends_on": [
+            "P01-T1",
+            "P01-T2"
+          ],
+          "doc": "plans/P01_DIAGNOSTIC.md"
+        },
+        {
+          "id": "P01-T4",
+          "depends_on": [
+            "P01-T3"
+          ],
+          "doc": "plans/P01_DIAGNOSTIC.md"
+        }
+      ]
+    },
+    {
+      "id": "P02",
+      "title": "唯一候选的资格决策",
+      "depends_on": [
+        "P01"
+      ],
+      "tasks": [
+        {
+          "id": "P02-T1",
+          "depends_on": [],
+          "doc": "plans/P02_SELECT.md"
+        },
+        {
+          "id": "P02-T2",
+          "depends_on": [],
+          "doc": "plans/P02_SELECT.md"
+        },
+        {
+          "id": "P02-T3",
+          "depends_on": [
+            "P02-T1",
+            "P02-T2"
+          ],
+          "doc": "plans/P02_SELECT.md"
+        },
+        {
+          "id": "P02-T4",
+          "depends_on": [
+            "P02-T3"
+          ],
+          "doc": "plans/P02_SELECT.md"
+        }
+      ]
+    },
+    {
+      "id": "P03",
+      "title": "最小native实现与关闭路径",
+      "depends_on": [
+        "P02"
+      ],
+      "tasks": [
+        {
+          "id": "P03-T1",
+          "depends_on": [],
+          "doc": "plans/P03_IMPLEMENT.md"
+        },
+        {
+          "id": "P03-T2",
+          "depends_on": [
+            "P03-T1"
+          ],
+          "doc": "plans/P03_IMPLEMENT.md"
+        },
+        {
+          "id": "P03-T3",
+          "depends_on": [
+            "P03-T2"
+          ],
+          "doc": "plans/P03_IMPLEMENT.md"
+        },
+        {
+          "id": "P03-T4",
+          "depends_on": [
+            "P03-T3"
+          ],
+          "doc": "plans/P03_IMPLEMENT.md"
+        }
+      ]
+    },
+    {
+      "id": "P04",
+      "title": "匹配数值、生命周期与成本",
+      "depends_on": [
+        "P03"
+      ],
+      "tasks": [
+        {
+          "id": "P04-T1",
+          "depends_on": [],
+          "doc": "plans/P04_NUMERICS.md"
+        },
+        {
+          "id": "P04-T2",
+          "depends_on": [
+            "P04-T1"
+          ],
+          "doc": "plans/P04_NUMERICS.md"
+        },
+        {
+          "id": "P04-T3",
+          "depends_on": [
+            "P04-T1",
+            "P04-T2"
+          ],
+          "doc": "plans/P04_NUMERICS.md"
+        },
+        {
+          "id": "P04-T4",
+          "depends_on": [
+            "P04-T3"
+          ],
+          "doc": "plans/P04_NUMERICS.md"
+        }
+      ]
+    },
+    {
+      "id": "P05",
+      "title": "正式无插桩完整请求配对",
+      "depends_on": [
+        "P04"
+      ],
+      "tasks": [
+        {
+          "id": "P05-T1",
+          "depends_on": [],
+          "doc": "plans/P05_PERFORMANCE.md"
+        },
+        {
+          "id": "P05-T2",
+          "depends_on": [
+            "P05-T1"
+          ],
+          "doc": "plans/P05_PERFORMANCE.md"
+        },
+        {
+          "id": "P05-T3",
+          "depends_on": [
+            "P05-T2"
+          ],
+          "doc": "plans/P05_PERFORMANCE.md"
+        },
+        {
+          "id": "P05-T4",
+          "depends_on": [
+            "P05-T3"
+          ],
+          "doc": "plans/P05_PERFORMANCE.md"
+        }
+      ]
+    },
+    {
+      "id": "P06",
+      "title": "绝对质量、非劣与运行边界",
+      "depends_on": [
+        "P05"
+      ],
+      "tasks": [
+        {
+          "id": "P06-T1",
+          "depends_on": [],
+          "doc": "plans/P06_QUALITY.md"
+        },
+        {
+          "id": "P06-T2",
+          "depends_on": [
+            "P06-T1"
+          ],
+          "doc": "plans/P06_QUALITY.md"
+        },
+        {
+          "id": "P06-T3",
+          "depends_on": [
+            "P06-T1"
+          ],
+          "doc": "plans/P06_QUALITY.md"
+        },
+        {
+          "id": "P06-T4",
+          "depends_on": [
+            "P06-T1",
+            "P06-T2",
+            "P06-T3"
+          ],
+          "doc": "plans/P06_QUALITY.md"
+        }
+      ]
+    },
+    {
+      "id": "P07",
+      "title": "报告、回滚与资源归还",
+      "depends_on": [
+        "P06"
+      ],
+      "tasks": [
+        {
+          "id": "P07-T1",
+          "depends_on": [],
+          "doc": "plans/P07_HANDOFF.md"
+        },
+        {
+          "id": "P07-T2",
+          "depends_on": [],
+          "doc": "plans/P07_HANDOFF.md"
+        },
+        {
+          "id": "P07-T3",
+          "depends_on": [],
+          "doc": "plans/P07_HANDOFF.md"
+        },
+        {
+          "id": "P07-T4",
+          "depends_on": [
+            "P07-T1",
+            "P07-T2",
+            "P07-T3"
+          ],
+          "doc": "plans/P07_HANDOFF.md"
+        }
+      ]
+    }
+  ]
+}

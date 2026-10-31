@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "user_repository": {
+    "repository": "lkyprogramer/CodexGame",
+    "branch": "4090-report",
+    "sha": "3cd82436ed7fe71daf79cfbe03f7fc05d5601fb0"
+  },
+  "production_record": {
+    "repository": "Niko1221/Strata",
+    "tag": "v0.2.3",
+    "sha": "5c8dd322528cc84f68f461ad54a506b9da8fa8d4",
+    "local_patches": "EXACT6 + reply reuse/PT + host tuning + CPUSHARE4096/AUTOMAX16384/KVRES20480",
+    "state": "USER_AND_REPOSITORY_REPORTED_INACTIVE_NOT_LIVE_CHECKED"
+  },
+  "research_baseline": {
+    "repository": "Niko1221/Strata",
+    "tag": "v0.2.7",
+    "sha": "5e8a4cca7d690ac60ca37eb09e7d0e010099ad6d",
+    "engine_version": "0.1.52",
+    "binary_sha256_reported": "58ffaf7f67535049baf996dd8793202b2ba4d2d7090569cfcc13019a28269f22",
+    "native_source": "tag original; no HC patch",
+    "python_patch": "six-file reply reuse/PT port; exact hashes must be restored from P6 archive",
+    "ggml": "llama.cpp-3cf0325 local frozen dependency; resolve full identity before build",
+    "automatic_upgrade": false,
+    "mandatory_env": {
+      "STRATA_DEFAULTS": "026",
+      "STRATA_MMVQ_IL_89": "0",
+      "STRATA_PROMPT_ATTN_IMMA": "0",
+      "STRATA_KVA": "0",
+      "STRATA_ROUTE_PRIOR": "0",
+      "STRATA_DEQUANT_SIDE": "0",
+      "STRATA_PLE_AUTO_RAM": "0",
+      "STRATA_ADAPT_OVERLAP": "1",
+      "STRATA_PREFILL_CPU_SHARE_MAX": "4096",
+      "STRATA_PREFILL_AUTO_MAX": "16384",
+      "STRATA_REPLY_REUSE": "1",
+      "STRATA_PRESERVE_THINKING": "0",
+      "STRATA_SIDE_MIXER": "2",
+      "STRATA_ATTN_DAILY": "1",
+      "STRATA_GR_UP75": "1",
+      "STRATA_GU_SWIGLU": "1",
+      "STRATA_QSA_ROWS": "1",
+      "STRATA_B6_MMVQ_ROWS": "1"
+    },
+    "mandatory_build": {
+      "STRATA_MMQ_KQUANTS": "OFF",
+      "STRATA_Q6K_EXPERTS": "OFF",
+      "CUDA_ARCHITECTURES": "89",
+      "CMAKE_BUILD_TYPE": "Release"
+    },
+    "required_absent_env": [
+      "STRATA_VERIFY_PROFILE"
+    ],
+    "exact6_receipt_required": true,
+    "reported_expert_slots": 10272
+  },
+  "donors": [
+    {
+      "repository": "Niko1221/Strata",
+      "sha": "870aedd9e1ebe1c91f94da93b59af17729f6c5c0",
+      "role": "source donor only; not experiment baseline"
+    },
+    {
+      "repository": "mw00/project-maya",
+      "sha": "376b4b87402bc992af7b4a8dec089ef7cba7801c",
+      "role": "separate Qwen and GLM mechanisms"
+    },
+    {
+      "repository": "Edge0-AI/Edge0",
+      "sha": "d4a2fa02fcf06c08961248a2da1d8fc861d842ef",
+      "role": "platform-specific routing and residency contracts"
+    },
+    {
+      "repository": "turbo-tan/tqllm",
+      "sha": "b35b2ce9df8927c672f888651946849219a0effa",
+      "previous_sha": "c2163c2da408603331a5814f62fd1f287f54370b",
+      "role": "selected-KV gather and new source delta"
+    },
+    {
+      "repository": "syv-ai/HyperQwen",
+      "sha": "ce9615c4f2309be727407918a6c979bd67968069",
+      "role": "already covered dense-model donor"
+    },
+    {
+      "repository": "pegainfer-project/kern",
+      "sha": "5d0910c5e5beef5b1b204853ad65f3e1fe994777",
+      "role": "ABI/layout contracts; architecture checks required"
+    },
+    {
+      "repository": "gildrb/elpis",
+      "sha": "13e8b593ea4c65f605b5fe7ac7d5ebb7a24f3c19",
+      "role": "source architecture reference; no same-machine speed proof"
+    },
+    {
+      "repository": "NVIDIA/spark-local-inference",
+      "sha": "a161b17f3ef3ac5c0cd3e219719f7d1d36a01175",
+      "previous_repository_name": "NVIDIA/flare-local-inference",
+      "role": "graph/state contracts; GPU support not assumed"
+    }
+  ],
+  "machine_reported": {
+    "gpu": "RTX 4090",
+    "compute_capability": "8.9",
+    "vram_gib": 24,
+    "cpu": "Xeon Silver 4216",
+    "physical_cores": 16,
+    "logical_threads": 32,
+    "ram_gib_approx": 62,
+    "memory_dimms_reported": "2 x 32 GB DDR4",
+    "pool_workers": 15,
+    "cuda": "12.3",
+    "gcc": "12.2",
+    "cmake_verified": "4.4.3",
+    "driver_reported": "610.57.04",
+    "os": "Debian 12"
+  },
+  "model_reported": {
+    "name": "Qwen3.8-Flash-Next GSQ-RCO",
+    "package_label": "IQ3_XXS",
+    "mixed_expert_types": true,
+    "layers": 48,
+    "gdn_layers": 36,
+    "qsa_layers": 12,
+    "experts_per_layer": 512,
+    "top_k": 10,
+    "hash_status": "REQUIRES_ORIGINAL_MANIFEST_AND_LOCAL_VERIFICATION",
+    "kv": "int8",
+    "kv_resident": 20480,
+    "spec": 4,
+    "spec_min_p": 0.5,
+    "conversation_cache_mib": 6144,
+    "conversation_cache_slots": 4
+  },
+  "limitations": [
+    "No target machine or GPU accessed in this authoring task",
+    "Remote report links do not imply raw workspace artifacts were available",
+    "No model weights, engine binaries, credentials or production configuration bundled",
+    "Public source availability does not prove CUDA 12.3/sm89 build or runtime performance",
+    "User-supplied Astra xhigh diagnostic recommendation is not a repository benchmark"
+  ]
+}
