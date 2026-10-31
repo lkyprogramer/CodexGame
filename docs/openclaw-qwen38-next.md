@@ -266,7 +266,7 @@ curl -sS http://127.0.0.1:18343/v1/models
 
 ### 5.3 笔记本 Pi
 
-文件：`~/.pi/agent/models.json`、`~/.pi/agent/settings.json`。默认模型仍是 `openclaw/Qwen3.8-27B-WORK`。next 是旁边的一条，不会因为引擎切了就自动选中。
+文件：`~/.pi/agent/models.json`、`~/.pi/agent/settings.json`。2026-10-31按用户要求将默认provider保持为`openclaw`，默认模型改为`openclaw/Qwen3.8-next`。只修改默认模型字段，原配置备份为`settings.json.bak-20261031-next-default`；models.json、采样和其他设置保持。新启动Pi使用新默认值，已有会话如有自己的模型选择需在会话内切换。生产next服务同日已恢复，详见[恢复回执](strata_4090_128k_lab/reports/PRODUCTION-RESTORE-20261031.md)。
 
 | 字段 | next |
 |---|---|
