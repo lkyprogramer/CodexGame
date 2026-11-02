@@ -2,6 +2,10 @@
 
 **状态：DEFERRED_SOURCE_AND_QUALITY；当前硬件资格：无；数值意图：E1。**
 
+2026-10-31补充（历史阶段）：已核官方Flash-Next DFlash2固定资产与A0/P6单卡CLI源码，本机有效性能A/B尚未找到。父目录plans/DF01_DFLASH2_TEST_PLAN.md另立新编号，允许先规划CLI资格筛查，不能因旧MTP/微内核负结果全局否定；服务、兼容资产和采样/质量前提仍未通过。DF01当时仅PLAN_ONLY，不代表本卡获得服务开发资格，也不授权下载或GPU。DSpark继续观察。
+
+2026-11-02当前结论：DF01经D1S在n2300 token硬门失败，D1T唯一CPU终审及Astra xhigh未定位最终根因；按用户要求停止当前DFlash2候选的排查和后续测试，D1未通过，D2未开始。完整回执与单文件离线handoff在父目录reports/及handoffs/，当前入口为父目录plans/NEXT_ACTIONS.md。原FAIL/参考/硬门保持，未取得本机性能、质量或服务适配资格；本次资料收口不重开F10或其他已关闭方向。
+
 作用域：新的draft机制，尚无适配资格。旧项映射：O23/O33/O34/O35/O36/O38；MTPQ4/SPECCOST/spec扫描已关闭。本卡不授权自动重开旧实验。
 
 ## 1. 真差量与现有覆盖
