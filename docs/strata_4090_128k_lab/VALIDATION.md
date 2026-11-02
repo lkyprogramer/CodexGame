@@ -1,4 +1,38 @@
-> 2026-10-31生产恢复：按用户明确要求启动既有服务，见[恢复回执](reports/PRODUCTION-RESTORE-20261031.md)。12:49 health HTTP200/loaded=true；12:50:44 active/running/enabled、NRestarts0，models HTTP200、NGINX未认证401，18089无监听。未追加推理或GPU实验；本次文档检查另记workspace/frontier/production-restore-20261031/PACKAGE_CHECKS.json。
+> 2026-11-02交接文档验证：[唯一离线Handoff](handoffs/DFLASH2_DRAFTER_TOKEN_CPU_GPU_MISMATCH_HANDOFF_20261102.md)。只复制该MD至独立新目录，提取151文件、150条manifest核对通过；网络/进程启动被阻断的标准库证据核对通过；25个Python源文件AST通过，2个CPU helper用现有CLT编译及依赖检查通过。默认Xcode许可阻塞原记录保留，未修改许可/全局配置。可选Torch尾部、合成输入重建、完整CPU前向及公开pack恢复未做数值执行。GPU/模型新前向0，当前候选仍STOPPED。详细检查见workspace/dflash2/df01-handoff-20261102/DOCUMENT_QA.json和FINAL_DOCUMENT_CHECK.json。
+
+> 2026-11-02最新DF01/D1T：[停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)与[Astra终审](reports/DF01-D1T-ASTRA-REVIEW-20261102.md)。D1T完成最后一轮纯CPU审计及唯一一次Astra xhigh终审。冻结CPU尾部逐bit复现；同GPU行CPU尾部7/7匹配，最大概率差6.71e-7，确认前向行差经相同尾部导致候选排序翻转。首个错误算子和最终根因仍未定位，无可证实单点修复；按用户要求STOP_CANDIDATE，停止当前DFlash2候选排查与后续测试。原FAIL/参考/硬门保持，D1未通过，GPU/完整backbone/生成0，D2未开始，生产继续停机。 数值尾部1程序/2输入/14行，另有一次import前启动失败保留；没有数值重跑或计算顺序扫描。1143历史/源文件及13保护SHA一致，21:27:06生产inactive/dead，无GPU计算进程及18343/18089监听。独立GPU selector、target采样/状态/EOS及六生成仍NOT_RUN，CPU观察不替代资格。包检查见workspace/dflash2/df01-d1t-cpu-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1S：[v2执行回执](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)。D1S绑定冻结v2后执行1个GPU程序、4组夹具、0生成。n32/n2048/n2064通过v2 drafter硬门；n2300为6/7 token一致，第4项实际209087、参考212522，selector token 3触发exit1后停止。置信度差只作诊断，原token门及其余硬门不改。后12组和六次生成未运行，无重跑/替补，GPU窗口2.119秒。原FAIL/原四组参考保持，D1未通过，D2未开始，生产继续停机。 CPU绑定2正例/5负例、GPU前后1122身份校验通过。23原件bytes/SHA一致，1104历史/源文件及13保护SHA保持。20:04:38生产inactive/dead，无GPU计算进程及18343/18089监听。独立selector、target采样/提交状态/EOS及真实生成仍未验证；不据本轮判断性能、质量或采用。包检查见workspace/dflash2/df01-d1s-v2-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1Q：[适配回执](reports/DF01-D1Q-V2-ADAPTER-20261102.md)。D1Q完成v2最小分类适配及CPU检查。仅完整drafter置信度绝对差为诊断；原行/token、概率有限值/范围、独立selector、target采样、提交状态和EOS硬门保留。原四组参考及旧FAIL不改，独立GPU程序只编译/链接，GPU/完整模型前向/生成0。最终身份为FINAL_FREEZE.json，D1命令为COMMANDS_V2.json，全部execute=false；D1未放行、D2未开始，生产继续停机。 CPU分类29项、提取原target/selector表达式9项、原状态10项和host采样201项通过；EOS三正例exit0、两负例exit1符合预期；n32保存原件legacy PASS、n2048 legacy FAIL，v2 drafter硬门均PASS。新程序编译/链接exit0，不执行CUDA；不把CPU记录作为D1通过。最终回执和包检查见workspace/dflash2/df01-d1q-v2-adapter-20261102/。
+
+> 2026-11-02较早DF01/D1P：[合同复核报告](reports/DF01-D1P-EXACT-MATCH-CONTRACT-20261102.md)。三份CLI关键控制流与verifier/sampler源码核对，base/计量版/状态程序源码SHA均匹配旧证明或构建回执；104976组有限模型比较与三项错误控制检出通过。仅支持后续[默认exact-match v2合同](plans/DF01_D1_EXACT_MATCH_V2.md)的置信度诊断分类，不证明GPU采样/状态/EOS。原FAIL保持，旧程序未修改，v2适配未实现，D1未放行；GPU/模型前向/生成0。12原件bytes/SHA一致，13保护SHA及1037历史/源文件一致，17:23:28生产inactive/dead。包检查见workspace/dflash2/df01-d1p-contract-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1O：[CPU审计报告](reports/DF01-D1O-N2048-CPU-AUDIT-20261102.md)。Astra xhigh一个尾部CPU程序/两输入：冻结参考逐bit重放，同GPU行7token一致、概率最大差4.77e-7。root四次完整CPU候选保留：最终n2048原C++门及三负例通过，但n32回归原C++门exit1（概率差0.0853075）；统一新参考不采用。15项RMS/6段RoPE条件、5层attention条件、6项闭式语义控制完成；不宣称n2048首个算子定位。69导出原件bytes/SHA一致，968历史/源文件及13保护SHA一致，16:58:27生产inactive/dead。GPU/生成0，D1仍阻断，D2未开始。包检查见workspace/dflash2/df01-d1o-cpu-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1N：[补验收口报告](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)。四组完整CPU参考各一次、原输入前缀bytes/SHA保持，n32与D1M逐byte一致；CPU原门正例及三负例通过。CPU准备892.259秒，965项身份冻结后进入GPU。实际1程序/2组夹具/0生成，n32 PASS，n2048 selector probability 1差0.079903543超0.05而FAIL；后14组/六生成NOT_RUN，无重跑或补样本。元数据helper中断exit143保留，流式封存续办没有重复前向/编译/比较器。D1未完成，D2未开始，生产保持停机。包检查见workspace/dflash2/df01-d1n-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1M：[CPU收口报告](reports/DF01-D1M-CPU-REFERENCE-CLOSURE-20261102.md)。GPU/生成0；两个完整CPU参考组合均保留，卷积组合2/7及最大概率差0.348147失败，整数GEMM组合7/7及最大概率差0.0451068满足原门。原C++比较器正例及三负例实际通过；Astra xhigh独立复核行指标与输入独立性。attention局部负结果保留、未接入完整前向。277导出原件本地bytes/SHA校验一致，633历史/源文件及13保护SHA未变。15:46:03生产inactive/dead，保持停机；旧FAIL/gold保持，完整D1未完成，D2未开始。包检查见workspace/dflash2/df01-d1m-cpu-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1L：[逐层定位报告](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)。实际1 GPU程序/原首组1夹具/0生成、无重跑，原FAIL复现；323项记录的最终输出与D1R逐bit一致。101项同输入GEMM逐bit一致；Astra xhigh独立定位CPU planar反除首因，最小真除修复5项CPU检查通过，五段FC Q/D与GPU逐bit一致。修后token5/7、最大概率差0.0718193，整组仍失败，D1不放行。297原件校验一致，334历史/源文件及13保护SHA匹配，生产保持停机。包检查见workspace/dflash2/df01-d1l-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1R：[单夹具诊断报告](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)。实际1 GPU程序/原首组1夹具/0生成、无GPU重跑。原门失败：实际概率0.787050843，参考0.734110057。实际行/尾部完成采集；GPU输入下CPU重算7项token全匹配、概率最大差6.56e-7，112个top16候选和值完全匹配。差异定位到drafter前向，首个偏离算子未确认。CPU算术/适配修复三项测试通过，修正仍未消除完整差异，D1资格不变。44原件校验一致，13保护SHA及289历史/源文件未变。14:33生产inactive/dead，保持停机；不进入D2。包检查见workspace/dflash2/df01-d1r-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1C：[CPU审计与修复报告](reports/DF01-D1C-CPU-ORACLE-AUDIT-20261102.md)。概率定义及原D1 binary PTX核对一致，四组28项概率CPU重放差0。旧同值反例exit1保留；修正后六项selector、324组原门差分、五类错误诊断、观察文件往返/不覆盖及新header七项控制通过。新资格程序编译/链接通过，未运行GPU。原GPU唯一根因未确认，D1资格不变，不进入D2。61原件校验一致，226历史/源文件SHA未变。11:30生产停止，11:46复核inactive/dead；等待用户要求恢复。包检查见workspace/dflash2/df01-d1c-cpu-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D1：[实际回执](reports/DF01-D1-QUALIFICATION-20261102.md)。31文件冻结身份与四项监督器CPU控制检查通过。首项GPU程序首组在`selector probability 0`失败，资格BLOCKED_NUMERICAL_ORACLE；实际1程序/1组失败/0生成，后15组及六生成NOT_RUN，无重试或替补，不进入D2。23原件逐文件校验通过。11:16原v0.2.3恢复，11:17独立复核健康、13保护SHA与原argv/环境一致。性能/质量仍未验证。首次CPU预检哈希字段映射错误及修正原件保留，没有修改冻结输入或门槛。包检查见workspace/dflash2/df01-d1-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02最新DF01/D0B：[实际回执](reports/DF01-D0B-CPU-READY-20261102.md)。七项性能输入与18项质量输入CPU渲染通过，Q8权重/激活参考四组完成，比较器与host采样检查通过，两项原生资格程序编译/链接成功。CPU_preparation_ready=true，GPU验证NOT_RUN。10:47:39生产health loaded=true、13保护SHA一致。本轮CPU参考前向8次，目标引擎请求/GPU实验/停启服务均0。原D0失败与缺失记录保留。包检查见workspace/dflash2/df01-d0b-20261102/PACKAGE_CHECKS.json。
+
+> 2026-11-02较早DF01/D0：[实际回执](reports/DF01-D0-PREPARATION-20261102.md)。固定资产/Q8 pack校验PASS，单TU计量编译和链接PASS，draft_cap及默认exact-match CPU检查PASS；短代码/独立长代码留出和原生正确性夹具不足，资格BLOCKED_PREPARATION。78原件逐文件验真，09:46:40生产health loaded=true、13保护SHA一致。GPU/推理/停启服务均0；完整采样数值、性能、任务质量和服务验收NOT_RUN。包检查见workspace/dflash2/df01-d0-20261102/PACKAGE_CHECKS.json。
+
+> 2026-10-31 DF01仅方案：[测试合同](plans/DF01_DFLASH2_TEST_PLAN.md)、[来源核查](reports/DFLASH2-SOURCE-REVIEW-20261031.md)。第一方固定源码/模型卡已核，主代理只读jssh确认A0/P6七个DFlash2组件同SHA及四份5120维GGUF与2560维DF2P格式不符；当时未下载权重、停启服务、编译或GPU测试。文档/预算算术/清单检查见workspace/dflash2-plan-20261031/PACKAGE_CHECKS.json，不改变历史硬件结果。
+
+> 2026-10-31最新U01R1：[实际报告](reports/U01R1-VERSION-COMPARISON-20261031.md)。新回归3项+原helper5项PASS，两版独立CPU预检及实际6个编码请求计数均4408。3组/6引擎/12请求COMPLETE，编码两版3/3、工具A3/3/B2/3，无重试/替补。178原件校验PASS，945护栏样本无abort；17:39生产恢复、13保护SHA匹配。包检查见workspace/combination/version-compare-20261031-r1/PACKAGE_CHECKS.json。当前不建议升级；原六FAIL及各关闭结论保持。
+
+> 2026-10-31上一轮U01：[实际报告](reports/U01-VERSION-COMPARISON-20261031.md)。原baseline helper五项测试PASS，执行器语法检查PASS；实际1引擎/2请求后USAGE_DRIFT，剩余10 NOT_RUN，比较INSUFFICIENT。CPU重渲染确认worker遗漏PT0，修正当时未GPU复测。38原件完整性PASS，16:29生产恢复、13保护SHA匹配；包检查见workspace/combination/version-compare-20261031/PACKAGE_CHECKS.json。原六FAIL及各关闭结论保持。
+
+> 2026-10-31较早生产恢复：按用户明确要求启动既有服务，见[恢复回执](reports/PRODUCTION-RESTORE-20261031.md)。12:49 health HTTP200/loaded=true；12:50:44 active/running/enabled、NRestarts0，models HTTP200、NGINX未认证401，18089无监听。未追加推理或GPU实验；本次文档检查另记workspace/frontier/production-restore-20261031/PACKAGE_CHECKS.json。
 
 > 2026-10-31收口：见[Astra复核与收口](reports/FRONTIER-CLOSURE-ASTRA-20261031.md)。独立复核与root离线复算一致，当前NO_QUALIFIED_CANDIDATE，F02保持DEFERRED_NEW_EVIDENCE。文档检查回执在workspace/frontier/astra-reassessment-20261031/PACKAGE_CHECKS.json；本轮无新增native/CPU/GPU测试或推理。12:40:17停机回执保留原时间，生产随后按用户要求恢复。
 
