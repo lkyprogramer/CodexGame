@@ -1,8 +1,14 @@
-# 当前结束点 · D1T最终根因未定位，停止当前DFlash2候选；生产保持停机
+# 当前结束点 · 保留 Qwen Next
 
-> 文档交接入口：[单文件离线Handoff](../handoffs/DFLASH2_DRAFTER_TOKEN_CPU_GPU_MISMATCH_HANDOFF_20261102.md)。本次仅整理和验证交接文档，不恢复数值排查或GPU，不创建下一轮实验。候选停止状态以本页D1T结论为准。
+[v0.2.10 PT0 与三组版本配对](../reports/V0210-PT0-VERSION-COMPARISON-20261104.md)已收口。保留 v0.2.3 并已恢复服务。PT0 只保留隔离适配，暂不移植 #1536。当前没有待执行的版本切换或 GPU 批次。下列计划和服务状态为历史记录。
 
-## 2026-11-02最新 · D1T唯一CPU终审后停止候选
+## 原 D1U 停止点 · context Q/D
+
+D1U 完成 n2300 的一次原路径逐层捕获。中立性三次前向逐 bit 匹配 D1S。只替换 context `hidden_norm` 的 Q/D，CPU 第 4 项由 `212522` 变为 GPU 的 `209087`，七个 token 均匹配。已定位因果边界，未证实可单点修复的缺陷。按补丁门停止候选，第二个 GPU 程序未运行。原 FAIL 和参考保留，D1 未通过，D2 未开始，生产保持停机。 [D1U 执行回执](../reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)。
+
+D1U 原件见 `workspace/dflash2/df01-d1u-20261103/`。保留 [D1T 单文件离线交接](../handoffs/DFLASH2_DRAFTER_TOKEN_CPU_GPU_MISMATCH_HANDOFF_20261102.md) 作为历史证据。
+
+## 2026-11-02较早 · D1T唯一CPU终审后停止候选
 
 [D1T停止回执](../reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)与[Astra唯一终审](../reports/DF01-D1T-ASTRA-REVIEW-20261102.md)：本轮30分钟截止内，仅做一个CPU尾部程序/两个保存行输入。冻结CPU参考token和概率逐bit复现；同GPU行尾部7/7匹配、最大概率差6.71e-7。两候选在两侧top16中且前驱相同，输入行差异使分数排序翻转；未找到首个错误算子或最终原因，没有可证实单点修复。
 
@@ -142,7 +148,7 @@ D0B收口时CPU_preparation_ready=true。当时下一项仅为另行授权的D1�
 
 [Astra复核与收口报告](../reports/FRONTIER-CLOSURE-ASTRA-20261031.md)：2026-10-31独立复核已完成，root采纳结论，停止当前冻结合同下的性能探索。当前NO_QUALIFIED_CANDIDATE；撤回“优先推进F02”的建议，取消原拟追加的四小时离线审计。
 
-**2026-10-31该批次生产恢复运行。** 当前生产状态以D1T保持停机回执为准。用户在当时文档收口后明确要求恢复既有服务；[恢复回执](../reports/PRODUCTION-RESTORE-20261031.md)记录12:49健康接口loaded=true、12:50:44 active/running/enabled、NRestarts0。该次GPU占用为历史状态，不能替代本页最新停机检查。
+**2026-10-31该批次生产恢复运行。** D1U 停机回执属于后续历史批次。用户在当时文档收口后明确要求恢复既有服务；[恢复回执](../reports/PRODUCTION-RESTORE-20261031.md)记录12:49健康接口loaded=true、12:50:44 active/running/enabled、NRestarts0。该次GPU占用为历史状态，不能替代本页顶部的最新回执。
 
 F02保持DEFERRED_NEW_EVIDENCE。旧P11 trace按实际PID与首末输出区间重算，GU-SwiGLU全家族并集占6.8911%/6.5884%，但合同限定一个格式、一个内核；最大TG21仅2.2188%/2.1287%，且尚无已证load/layout新机制。这是旧profile条件成本，不是当前真实暖态暴露成本或严格上界，不能外推全局NO_GAIN。
 

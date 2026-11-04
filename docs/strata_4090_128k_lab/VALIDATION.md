@@ -1,3 +1,9 @@
+> 2026-11-04 [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md)。CPU 渲染矩阵和两条 Pi 投影逐 token 一致。实测 6 次引擎启动、12 次请求。冷读首字延迟中位改善 2.7%，两版两轮任务均为 0/3。复用量未下降，暂不移植 #1536。v0.2.3 已恢复，健康和生产 NGINX 冒烟通过。下列服务状态为各批次历史记录。
+
+> 2026-11-03 [v0.2.10 DFlash2 发布版评估](reports/DFLASH2-V0210-READINESS-20261103.md)。核对发布说明、分派代码、签名 feed 和旧 Q/D 边界。29 的 `strata launch --plan` 退出 0。发布版 Qwen 下载、GPU 和生成均未执行。原 D1 FAIL 保留。
+
+> 2026-11-03 DF01/D1U 执行回执。1 个 GPU 程序、3 次 drafter 前向、1 次捕获、0 次生成，GPU 窗口 2.126 秒。原参考 CPU 捕获逐 bit 复现，5 项正例及 8 项负例通过。中立性通过，10568 项 GPU 记录封存。55 项同输入 GEMM 的 24668160 个输出逐 bit 一致。context Q/D 局部替换复现七个 GPU token。未确认可单点修复的缺陷，条件复核未运行。原 FAIL 保留，生产继续停机。[D1U 执行回执](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)。
+
 > 2026-11-02交接文档验证：[唯一离线Handoff](handoffs/DFLASH2_DRAFTER_TOKEN_CPU_GPU_MISMATCH_HANDOFF_20261102.md)。只复制该MD至独立新目录，提取151文件、150条manifest核对通过；网络/进程启动被阻断的标准库证据核对通过；25个Python源文件AST通过，2个CPU helper用现有CLT编译及依赖检查通过。默认Xcode许可阻塞原记录保留，未修改许可/全局配置。可选Torch尾部、合成输入重建、完整CPU前向及公开pack恢复未做数值执行。GPU/模型新前向0，当前候选仍STOPPED。详细检查见workspace/dflash2/df01-handoff-20261102/DOCUMENT_QA.json和FINAL_DOCUMENT_CHECK.json。
 
 > 2026-11-02最新DF01/D1T：[停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)与[Astra终审](reports/DF01-D1T-ASTRA-REVIEW-20261102.md)。D1T完成最后一轮纯CPU审计及唯一一次Astra xhigh终审。冻结CPU尾部逐bit复现；同GPU行CPU尾部7/7匹配，最大概率差6.71e-7，确认前向行差经相同尾部导致候选排序翻转。首个错误算子和最终根因仍未定位，无可证实单点修复；按用户要求STOP_CANDIDATE，停止当前DFlash2候选排查与后续测试。原FAIL/参考/硬门保持，D1未通过，GPU/完整backbone/生成0，D2未开始，生产继续停机。 数值尾部1程序/2输入/14行，另有一次import前启动失败保留；没有数值重跑或计算顺序扫描。1143历史/源文件及13保护SHA一致，21:27:06生产inactive/dead，无GPU计算进程及18343/18089监听。独立GPU selector、target采样/状态/EOS及六生成仍NOT_RUN，CPU观察不替代资格。包检查见workspace/dflash2/df01-d1t-cpu-20261102/PACKAGE_CHECKS.json。

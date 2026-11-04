@@ -4,6 +4,14 @@
 
 ## 当前结论
 
+- [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md)完成。保留 Qwen Next v0.2.3，暂不移植 #1536。冷读首字延迟中位改善 2.7%，同输入暖态生成速度下降 14.5%。两版两轮任务均为 0/3。生产已恢复，NGINX 冒烟通过。
+
+## 历史结论
+
+- [v0.2.10 DFlash2 发布版评估](reports/DFLASH2-V0210-READINESS-20261103.md)记录当时的源码核查与只读计划。原 D1 FAIL 保留。
+
+- D1U 完成 n2300 的一次原路径逐层捕获。中立性三次前向逐 bit 匹配 D1S。只替换 context `hidden_norm` 的 Q/D，CPU 第 4 项由 `212522` 变为 GPU 的 `209087`，七个 token 均匹配。已定位因果边界，未证实可单点修复的缺陷。按补丁门停止候选，第二个 GPU 程序未运行。原 FAIL 和参考保留，D1 未通过，D2 未开始，生产保持停机。 [D1U 执行回执](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)。
+
 - [DF01/D1T停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)及[Astra唯一终审](reports/DF01-D1T-ASTRA-REVIEW-20261102.md)：D1T完成最后一轮纯CPU审计及唯一一次Astra xhigh终审。冻结CPU尾部逐bit复现；同GPU行CPU尾部7/7匹配，最大概率差6.71e-7，确认前向行差经相同尾部导致候选排序翻转。首个错误算子和最终根因仍未定位，无可证实单点修复；按用户要求STOP_CANDIDATE，停止当前DFlash2候选排查与后续测试。原FAIL/参考/硬门保持，D1未通过，GPU/完整backbone/生成0，D2未开始，生产继续停机。
 
 - [DF01/D1S v2执行回执](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)：D1S绑定冻结v2后执行1个GPU程序、4组夹具、0生成。n32/n2048/n2064通过v2 drafter硬门；n2300为6/7 token一致，第4项实际209087、参考212522，selector token 3触发exit1后停止。置信度差只作诊断，原token门及其余硬门不改。后12组和六次生成未运行，无重跑/替补，GPU窗口2.119秒。原FAIL/原四组参考保持，D1未通过，D2未开始，生产继续停机。
@@ -29,7 +37,7 @@
 - [DF01/D0B](reports/DF01-D0B-CPU-READY-20261102.md)于2026-11-02补齐CPU准备缺口：七项性能输入、18项质量输入、Q8权重/激活参考及两项原生程序准备完成。该批次未执行GPU；后续D1结果见上一条。原[D0阻断回执](reports/DF01-D0-PREPARATION-20261102.md)原样保留。
 - [U01R1版本对比](reports/U01R1-VERSION-COMPARISON-20261031.md)完成新一轮3组/12请求，计数修复在两版实际请求中验证。编码两版3/3，工具v0.2.3为3/3、v0.2.7为2/3，未见稳定升级优势，不建议继续完整升级验收或切生产。17:39原生产恢复、13保护SHA匹配，17:40复核active/running/enabled、loaded=true；本轮收口。
 - [U01版本比较](reports/U01-VERSION-COMPARISON-20261031.md)已按停止条件收口：实际第一组v0.2.3两题评分均PASS，但计数进程PT0遗漏导致USAGE_DRIFT；剩余10请求NOT_RUN，v0.2.7未运行，比较INSUFFICIENT。16:29原生产恢复、13保护SHA匹配，16:30复核active/running/enabled、loaded=true；不据本轮升级或补样本。
-- 生产版本和配置仍是 A0/v0.2.3 + EXACT6 + 已部署的 reply/PT、主机及 prefill/KVRES 配置；当前服务按D1C授权保持停机。10-31按用户明确要求[恢复既有服务](reports/PRODUCTION-RESTORE-20261031.md)：12:49健康接口loaded=true；12:50:44为active/running/enabled、NRestarts0，GPU由生产引擎占用，实验18089无监听。当前停机状态及13项保护SHA以[D1T回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)为准。
+- A0/v0.2.3 生产配置来自 [部署报告](reports/DEPLOY-PROD-20261026.md) 和 [KVRES 上线回执](reports/DEPLOY-KVRES-20261026.md)。[10 月 31 日恢复回执](reports/PRODUCTION-RESTORE-20261031.md)和 [D1U 停机回执](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)保留各自时间点的状态。
 - 后续研究基线为 P6 原生 v0.2.7 + 六文件 reply/PT port。原 P6 二进制仍存在且 SHA 匹配；完整port、3574依赖和16项资产已在P00逐一hash核齐。P24 HC 二进制和 donor main 均不能替代它。
 - P24 HC 已关闭：TTFT 改善 0.824%，CI 跨零；完整 decode 耗时增加 4.428%，未部署。原六项长检索 FAIL 保留，质量非劣未建立。
 - frontier/P00 身份、真实Pi请求、源码去重与离线接口已完成；见 [P00报告](reports/P00-EVIDENCE-20261030.md)。[P01](reports/P01-PI-WARM-DIAGNOSTIC-20261030.md)已执行1引擎/1请求，941自然EOS触发短输出停止，两个append NOT_RUN，阶段INSUFFICIENT；当前合格新候选为0。
@@ -39,17 +47,19 @@
 
 ## 只从这里进入
 
-- **无法访问29时的单文件交接**：[草稿token与CPU参考不一致 Handoff](handoffs/DFLASH2_DRAFTER_TOKEN_CPU_GPU_MISMATCH_HANDOFF_20261102.md)。单个约7.8MB Markdown内嵌151项源码/原件/四组head与selector权重切片、离线提取和核对工具；不需要原仓库或29即可核对。完整backbone权重未嵌入，恢复方法与SHA明确；n2300缺失GPU逐层真值仍是事实。该资料交接不重开已停止候选。
+- **无法访问29时的单文件交接**：[草稿token与CPU参考不一致 Handoff](handoffs/DFLASH2_DRAFTER_TOKEN_CPU_GPU_MISMATCH_HANDOFF_20261102.md)。单个约7.8MB Markdown内嵌151项源码/原件/四组head与selector权重切片、离线提取和核对工具；不需要原仓库或29即可核对。完整 backbone 权重的恢复方法与 SHA 见交接文件。该文件截止 D1T，D1U 新采集原件单独封存。
 
 | 目的 | 入口与权威范围 |
 |---|---|
 | 接续工作 | [AI 入口](START_HERE_AI.md)、[下一步行动计划](plans/NEXT_ACTIONS.md) |
+| 当前模型选型 | [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md) |
 | 当前收口与重开条件 | [Astra复核与收口报告](reports/FRONTIER-CLOSURE-ASTRA-20261031.md) |
-| 当前生产状态 | [D1T停机复核](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)；[D1S停机复核](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)；[D1Q停机复核](reports/DF01-D1Q-V2-ADAPTER-20261102.md)；[D1P停机复核](reports/DF01-D1P-EXACT-MATCH-CONTRACT-20261102.md)；[D1O停机复核](reports/DF01-D1O-N2048-CPU-AUDIT-20261102.md)；[D1N停机复核](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)；[D1M停机复核](reports/DF01-D1M-CPU-REFERENCE-CLOSURE-20261102.md)；[D1L停机复核](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)；[D1R停机复核](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)；[D1C停机回执](reports/DF01-D1C-CPU-ORACLE-AUDIT-20261102.md)；原[D1恢复](reports/DF01-D1-QUALIFICATION-20261102.md)及[较早恢复](reports/PRODUCTION-RESTORE-20261031.md)保留历史 |
+| 当前生产状态 | [v0.2.3 恢复回执](reports/V0210-PT0-VERSION-COMPARISON-20261104.md#生产恢复) |
 | DFlash2方案与资格结果 | [DF01完整方案](plans/DF01_DFLASH2_TEST_PLAN.md)、[D0B实际回执](reports/DF01-D0B-CPU-READY-20261102.md)、[原D0回执](reports/DF01-D0-PREPARATION-20261102.md)、[第一方来源核查](reports/DFLASH2-SOURCE-REVIEW-20261031.md)、[D1失败回执](reports/DF01-D1-QUALIFICATION-20261102.md)、[D1C CPU审计](reports/DF01-D1C-CPU-ORACLE-AUDIT-20261102.md)、[D1R实际诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)、[D1L首个算子修复](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)、[D1M CPU参考收口](reports/DF01-D1M-CPU-REFERENCE-CLOSURE-20261102.md)、[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)、[D1O CPU审计](reports/DF01-D1O-N2048-CPU-AUDIT-20261102.md)、[D1P合同复核](reports/DF01-D1P-EXACT-MATCH-CONTRACT-20261102.md)、[后续v2合同](plans/DF01_D1_EXACT_MATCH_V2.md)、[D1Q适配回执](reports/DF01-D1Q-V2-ADAPTER-20261102.md)、[D1S执行回执](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)、[D1T停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)；旧FAIL保持，完整D1未完成，不进入D2 |
 | 本次合并依据、现场证据、验证 | [合并记录](reports/DOC-MERGE-20261030.md) |
 | 后续研究及候选合同 | [frontier](frontier/README.md)、[研究报告](frontier/REPORT.md) |
-| 最新完成的 GPU 工作 | [D1S v2执行失败收口](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)；[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)；[D1L逐层诊断](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)；[D1R单组失败诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)；原[D1首门失败收口](reports/DF01-D1-QUALIFICATION-20261102.md)；原[P01B](reports/P01B-PI-WARM-DIAGNOSTIC-20261031.md)保留 |
+| 最新完成的 GPU 工作 | [v0.2.10 PT0 与 v0.2.3 三组 MTP 配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md) |
+| 历史 GPU 工作 | [D1U n2300 捕获](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)；[D1S v2执行失败收口](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)；[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)；[D1L逐层诊断](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)；[D1R单组失败诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)；原[D1首门失败收口](reports/DF01-D1-QUALIFICATION-20261102.md)；原[P01B](reports/P01B-PI-WARM-DIAGNOSTIC-20261031.md)保留 |
 | 历史采用与质量边界 | [关闭台账](frontier/docs/01_EVIDENCE_AND_CLOSURES.md)、[P3](reports/P3-COMBINATION-KVRES-20261027.md)、[P24](reports/P24-HC-PAIRED-PERFORMANCE-20261029.md) |
 | 历史部署 | [A0/EXACT6](reports/DEPLOY-A0-EXACT6-20261025.md)、[reply/PT/prefill](reports/DEPLOY-PROD-20261026.md)、[KVRES](reports/DEPLOY-KVRES-20261026.md) |
 | 原始实验与执行工具 | 原位 `reports/`、`workspace/`、`lab/`、`tools/`、`tests/`；frontier 不复制另一套 runner |
