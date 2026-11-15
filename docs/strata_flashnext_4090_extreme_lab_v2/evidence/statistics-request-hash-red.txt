@@ -1,0 +1,306 @@
+Date: 2026-10-25
+Stage: regression before implementation (expected failure)
+Command: env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tests python -B -m unittest -v test_planned_statistics.PlannedStatisticsTests.test_schema2_missing_plan_hash_rejects_otherwise_complete_candidate test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes test_planned_statistics.PlannedStatisticsTests.test_schema2_accepts_complete_hex_digest_in_either_case test_cli_upgrade.CliUpgradeTests.test_stats_cli_refuses_missing_plan_hash_after_writing_report
+Exit code: 1
+
+test_schema2_missing_plan_hash_rejects_otherwise_complete_candidate (test_planned_statistics.PlannedStatisticsTests.test_schema2_missing_plan_hash_rejects_otherwise_complete_candidate) ... FAIL
+test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) ... 
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='') ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='frozen-q') ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa') ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa') ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg') ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n') ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=None) ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=False) ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=123) ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=[]) ... FAIL
+  test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256={}) ... FAIL
+test_schema2_accepts_complete_hex_digest_in_either_case (test_planned_statistics.PlannedStatisticsTests.test_schema2_accepts_complete_hex_digest_in_either_case) ... ok
+test_stats_cli_refuses_missing_plan_hash_after_writing_report (test_cli_upgrade.CliUpgradeTests.test_stats_cli_refuses_missing_plan_hash_after_writing_report) ... FAIL
+
+======================================================================
+FAIL: test_schema2_missing_plan_hash_rejects_otherwise_complete_candidate (test_planned_statistics.PlannedStatisticsTests.test_schema2_missing_plan_hash_rejects_otherwise_complete_candidate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 117, in test_schema2_missing_plan_hash_rejects_otherwise_complete_candidate
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'CANDIDATE_FOR_HOLDOUT_NOT_PRODUCTION' != 'INCOMPLETE_OR_INVALID'
+- CANDIDATE_FOR_HOLDOUT_NOT_PRODUCTION
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 134, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertTrue(any('planned request_sha256' in x for x in report['invalid_pairs']))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='frozen-q')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 133, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'PAIRED_SCREEN_ONLY' != 'INCOMPLETE_OR_INVALID'
+- PAIRED_SCREEN_ONLY
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 133, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'PAIRED_SCREEN_ONLY' != 'INCOMPLETE_OR_INVALID'
+- PAIRED_SCREEN_ONLY
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 133, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'PAIRED_SCREEN_ONLY' != 'INCOMPLETE_OR_INVALID'
+- PAIRED_SCREEN_ONLY
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 133, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'PAIRED_SCREEN_ONLY' != 'INCOMPLETE_OR_INVALID'
+- PAIRED_SCREEN_ONLY
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 133, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'PAIRED_SCREEN_ONLY' != 'INCOMPLETE_OR_INVALID'
+- PAIRED_SCREEN_ONLY
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 134, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertTrue(any('planned request_sha256' in x for x in report['invalid_pairs']))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 134, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertTrue(any('planned request_sha256' in x for x in report['invalid_pairs']))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=123)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 133, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertEqual(report['decision'], 'INCOMPLETE_OR_INVALID')
+AssertionError: 'PAIRED_SCREEN_ONLY' != 'INCOMPLETE_OR_INVALID'
+- PAIRED_SCREEN_ONLY
++ INCOMPLETE_OR_INVALID
+
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256=[])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 134, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertTrue(any('planned request_sha256' in x for x in report['invalid_pairs']))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_schema2_invalid_plan_hash_rejects_matching_record_hashes (test_planned_statistics.PlannedStatisticsTests.test_schema2_invalid_plan_hash_rejects_matching_record_hashes) (request_sha256={})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_planned_statistics.py", line 134, in test_schema2_invalid_plan_hash_rejects_matching_record_hashes
+    self.assertTrue(any('planned request_sha256' in x for x in report['invalid_pairs']))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_stats_cli_refuses_missing_plan_hash_after_writing_report (test_cli_upgrade.CliUpgradeTests.test_stats_cli_refuses_missing_plan_hash_after_writing_report)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b924b0bce9e8/output/strata_flashnext_4090_extreme_lab_v2/tests/test_cli_upgrade.py", line 48, in test_stats_cli_refuses_missing_plan_hash_after_writing_report
+    self.assertEqual(result.returncode,2,result.stdout)
+AssertionError: 0 != 2 : {
+  "schema_version": 2,
+  "metric": "wall_s",
+  "decision": "PAIRED_SCREEN_ONLY",
+  "comparisons": {
+    "p_vs_base": {
+      "pairs": 5,
+      "improvement_pct": 19.999999999999996,
+      "ci95": [
+        19.999999999999996,
+        19.999999999999996
+      ],
+      "sufficient": true,
+      "a_median": 10,
+      "b_median": 8,
+      "method": "paired run-level log-ratio bootstrap; lower time is better; no token-level resampling"
+    }
+  },
+  "strata_comparisons": {
+    "{\"cache_state\": \"no_reuse\", \"context_bucket\": \"4k\", \"group\": \"decode\", \"scenario\": \"fixed_http\"}": {
+      "p_vs_base": {
+        "pairs": 5,
+        "improvement_pct": 19.999999999999996,
+        "ci95": [
+          19.999999999999996,
+          19.999999999999996
+        ],
+        "sufficient": true,
+        "a_median": 10,
+        "b_median": 8,
+        "method": "paired run-level log-ratio bootstrap; lower time is better; no token-level resampling"
+      }
+    }
+  },
+  "group_comparisons_off_on": {
+    "{\"cache_state\": \"no_reuse\", \"context_bucket\": \"4k\", \"group\": \"decode\", \"scenario\": \"fixed_http\"}": null
+  },
+  "invalid_pairs": [],
+  "failures": 0,
+  "unscored": 0,
+  "runs": [
+    {
+      "round": 0,
+      "arm": "p",
+      "requests": 1,
+      "wall_s": 10,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 0,
+      "arm": "base",
+      "requests": 1,
+      "wall_s": 8,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 1,
+      "arm": "p",
+      "requests": 1,
+      "wall_s": 10,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 1,
+      "arm": "base",
+      "requests": 1,
+      "wall_s": 8,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 2,
+      "arm": "p",
+      "requests": 1,
+      "wall_s": 10,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 2,
+      "arm": "base",
+      "requests": 1,
+      "wall_s": 8,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 3,
+      "arm": "p",
+      "requests": 1,
+      "wall_s": 10,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 3,
+      "arm": "base",
+      "requests": 1,
+      "wall_s": 8,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 4,
+      "arm": "p",
+      "requests": 1,
+      "wall_s": 10,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    },
+    {
+      "round": 4,
+      "arm": "base",
+      "requests": 1,
+      "wall_s": 8,
+      "failures": 0,
+      "unscored": 0,
+      "case_ids": [
+        "q"
+      ]
+    }
+  ],
+  "exploratory": false,
+  "warning": "No pooling across group/cache_state/scenario/context_bucket. SSE events are not tokens. Screening is not quality equivalence or deployment approval."
+}
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.512s
+
+FAILED (failures=13)
+

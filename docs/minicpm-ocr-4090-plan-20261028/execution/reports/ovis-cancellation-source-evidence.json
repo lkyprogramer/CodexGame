@@ -1,0 +1,46 @@
+{
+  "status": "SOURCE_CORROBORATED_EARLY_TERMINATION",
+  "candidate": "ovisocr3",
+  "scope": "F06 operational cancellation; not OCR quality or performance",
+  "original_probes_preserved": [
+    "ovis-runtime-probe-r1: UNAVAILABLE",
+    "ovis-cancel-r2: UNAVAILABLE by abort-counter-only predicate"
+  ],
+  "observations": {
+    "samples": 173,
+    "forced_min_tokens": 7186,
+    "generation_tokens_before": 7576,
+    "generation_tokens_after": 9572,
+    "generation_token_delta": 1996,
+    "peak_running": 1,
+    "waiting": 0,
+    "stop_before_after": [
+      6,
+      6
+    ],
+    "length_before_after": [
+      1,
+      1
+    ],
+    "abort_before_after": [
+      0,
+      0
+    ],
+    "error_before_after": [
+      0,
+      0
+    ],
+    "repetition_before_after": [
+      0,
+      0
+    ],
+    "last_five_samples_stable_idle": true
+  },
+  "source_revision": "0decac0d96c42b49572498019f0a0e3600f50398",
+  "source_finding": "Ordinary client cancellation removes request state before finished-request stats; abort counter does not advance for this path. Generation tokens are counted per output batch.",
+  "interpretation": "Active request stopped before the forced output minimum; no normal completion was recorded. With exclusive service and unchanged process, this supports early termination after disconnect.",
+  "direct_abort_event": "UNAVAILABLE",
+  "inference_not_direct_abort_log": true,
+  "evidence_remote": "/data/ocr/dual-ocr-20261028/results/ovis-cancel-r2",
+  "source_method_proof": "/private/tmp/ocr-vllm-0221-cancel-review/source-proof.json"
+}
