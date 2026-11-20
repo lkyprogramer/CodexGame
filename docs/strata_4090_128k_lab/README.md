@@ -6,6 +6,7 @@
 
 - 2026-11-20 [v0.2.16 基线调优](reports/V0216-BASELINE-TUNING-20261120.md)完成：PT0 与 #1536 已移植到 v0.2.16（[配置迁移表](reports/V0216-CONFIG-MIGRATION-20261120.md)、[补丁](patches/v0216-pt0-reply-reuse.patch)），4090 上 56 次全新启动。B1 = 迁移后的生产配置 + `--lookup-max-t 0 --conversation-spill-mib 0 --ple-io direct`，9 个单因素调优项无一过门。对 v0.2.3：prefill 快 16%～18%，≤42K decode 持平，**约 98K decode 慢约 5%（11/11 对）**。后续[100K decode 定位与质量筛查](reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)：差距不是 GPU 或单窗口退步，而是随请求序列变化的 tokens/window 差；全新服务单测 100K 时 B0 反而快约 8%。质量筛查（固定语料 4×23、ledger 链 4 条）两版结果相同，正式非劣门未评估。[顺序依赖与 PCE0 复测](reports/V0216-SEQDEP-PCE0-20261120.md)：顺序依赖来自 greedy 文本轨迹（全新服务只有开头约 1000～1200 字符可复现，见下条更正；经历前序请求后更早发散），不是 lookup 策略或 GPU；不采用 PCE0（序列下无收益，中途分叉多重读 60K～88K token）。生产未切换，保持停机。
 - 2026-11-20 [v0.2.17 迁移与尾部跳过对照](reports/V0217-MIGRATION-TAILSKIP-20261120.md)：B2 = v0.2.17 + PT0/#1536（[补丁](patches/v0217-pt0-reply-reuse.patch)）+ B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`，对 B1 速度、分叉复用、质量筛查均持平，CPU 专家每条目耗时低 2%～3%（弱证据）。v0.2.17 默认关闭尾部跳过，本机 decode 慢 12%～20%，所以必须显式设为 7。更正：全新服务的 greedy 文本只有开头约 1000～1200 字符可复现。
+- 2026-11-20 [生产切换到 v0.2.17（B2）](reports/V0217-PRODUCTION-SWITCH-20261120.md)：新生产树 `/home/hhtele/strata-0.2.17`。unit 不变（改它需要 root），`/home/hhtele/strata-0.2.3/run-iq3_xxs.sh` 改为转交新树，原文件已备份为 `.pre-0217-20261120`。按 systemd 方式在 18343 验证全部通过（工具调用、Anthropic、metrics、工具循环复用 407 token、c100k 128.7 tok/s），之后服务保持停止。
 - [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md)完成。保留 Qwen Next v0.2.3，暂不移植 #1536。冷读首字延迟中位改善 2.7%，同输入暖态生成速度下降 14.5%。两版两轮任务均为 0/3。生产已恢复，NGINX 冒烟通过。
 
 ## 历史结论
@@ -57,11 +58,11 @@
 | v0.2.16 迁移与基线 | [v0.2.16 基线调优](reports/V0216-BASELINE-TUNING-20261120.md)、[配置迁移表](reports/V0216-CONFIG-MIGRATION-20261120.md) |
 | 当前模型选型 | [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md) |
 | 当前收口与重开条件 | [Astra复核与收口报告](reports/FRONTIER-CLOSURE-ASTRA-20261031.md) |
-| 当前生产状态 | [v0.2.3 恢复回执](reports/V0210-PT0-VERSION-COMPARISON-20261104.md#生产恢复) |
+| 当前生产状态 | [v0.2.17 B2 切换回执](reports/V0217-PRODUCTION-SWITCH-20261120.md)（服务停止，待用户启动；0.2.3 回滚见同一报告） |
 | DFlash2方案与资格结果 | [DF01完整方案](plans/DF01_DFLASH2_TEST_PLAN.md)、[D0B实际回执](reports/DF01-D0B-CPU-READY-20261102.md)、[原D0回执](reports/DF01-D0-PREPARATION-20261102.md)、[第一方来源核查](reports/DFLASH2-SOURCE-REVIEW-20261031.md)、[D1失败回执](reports/DF01-D1-QUALIFICATION-20261102.md)、[D1C CPU审计](reports/DF01-D1C-CPU-ORACLE-AUDIT-20261102.md)、[D1R实际诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)、[D1L首个算子修复](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)、[D1M CPU参考收口](reports/DF01-D1M-CPU-REFERENCE-CLOSURE-20261102.md)、[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)、[D1O CPU审计](reports/DF01-D1O-N2048-CPU-AUDIT-20261102.md)、[D1P合同复核](reports/DF01-D1P-EXACT-MATCH-CONTRACT-20261102.md)、[后续v2合同](plans/DF01_D1_EXACT_MATCH_V2.md)、[D1Q适配回执](reports/DF01-D1Q-V2-ADAPTER-20261102.md)、[D1S执行回执](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)、[D1T停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)；旧FAIL保持，完整D1未完成，不进入D2 |
 | 本次合并依据、现场证据、验证 | [合并记录](reports/DOC-MERGE-20261030.md) |
 | 后续研究及候选合同 | [frontier](frontier/README.md)、[研究报告](frontier/REPORT.md) |
-| 最新完成的 GPU 工作 | [v0.2.17 迁移与尾部跳过对照](reports/V0217-MIGRATION-TAILSKIP-20261120.md) |
+| 最新完成的 GPU 工作 | [生产切换到 v0.2.17（B2）](reports/V0217-PRODUCTION-SWITCH-20261120.md) |
 | 历史 GPU 工作 | [D1U n2300 捕获](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)；[D1S v2执行失败收口](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)；[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)；[D1L逐层诊断](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)；[D1R单组失败诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)；原[D1首门失败收口](reports/DF01-D1-QUALIFICATION-20261102.md)；原[P01B](reports/P01B-PI-WARM-DIAGNOSTIC-20261031.md)保留 |
 | 历史采用与质量边界 | [关闭台账](frontier/docs/01_EVIDENCE_AND_CLOSURES.md)、[P3](reports/P3-COMBINATION-KVRES-20261027.md)、[P24](reports/P24-HC-PAIRED-PERFORMANCE-20261029.md) |
 | 历史部署 | [A0/EXACT6](reports/DEPLOY-A0-EXACT6-20261025.md)、[reply/PT/prefill](reports/DEPLOY-PROD-20261026.md)、[KVRES](reports/DEPLOY-KVRES-20261026.md) |

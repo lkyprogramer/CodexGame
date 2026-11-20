@@ -1,0 +1,7 @@
+#!/bin/sh
+cd "/home/hhtele/strata-0.2.3"
+# Serve-layer switches (2026-10-26): read by serve/server.py and serve/frontend.py themselves. The config's "env"
+# only reaches the engine process, so these two are exported here. Rollback: delete the two export lines.
+export STRATA_REPLY_REUSE=1        # #1536: the next turn reuses the reply's own token ids
+export STRATA_PRESERVE_THINKING=0  # CFG-PT: earlier turns' thinking is not rendered (a request's chat_template_kwargs wins)
+exec "/home/hhtele/strata-0.2.3/.venv/bin/python" "/home/hhtele/strata-0.2.3/serve/server.py" "--engine" "strata" "--config" "/home/hhtele/strata-0.2.3/strata-iq3_xxs.json" "--port" "18343"

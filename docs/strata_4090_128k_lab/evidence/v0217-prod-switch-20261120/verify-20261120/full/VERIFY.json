@@ -1,0 +1,131 @@
+{
+ "script": "/home/hhtele/strata-0.2.17/run-iq3_xxs.sh",
+ "mode": "full",
+ "checks": {
+  "health": {
+   "ok": true,
+   "model": "openclaw/Qwen3.8-next",
+   "max_context": 131072,
+   "ready_s": 40.0
+  },
+  "engine_args": {
+   "ok": true,
+   "exe": "/home/hhtele/strata-0.2.17/engine/strata",
+   "mismatch": []
+  },
+  "tail_skip_on": {
+   "ok": true
+  },
+  "serve_switches": {
+   "ok": true
+  },
+  "chat_nonstream": {
+   "ok": true,
+   "finish": "stop",
+   "content": "TCP 提供面向连接、可靠有序的数据传输，UDP 提供无连接、不可靠但更高效低延迟的传输。",
+   "wall_s": 1.5,
+   "usage": {
+    "prompt_tokens": 63,
+    "completion_tokens": 96,
+    "total_tokens": 159,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    }
+   }
+  },
+  "chat_stream": {
+   "ok": true,
+   "finish": "stop",
+   "chunks": 153,
+   "first_s": 0.06478701299056411
+  },
+  "tool_call": {
+   "ok": true,
+   "tool_calls": [
+    {
+     "id": "call_f77846b32d2e4d1693085e69",
+     "type": "function",
+     "function": {
+      "name": "get_weather",
+      "arguments": "{\"city\":\"\\u5317\\u4eac\"}"
+     }
+    }
+   ],
+   "finish": "tool_calls"
+  },
+  "reply_reuse_turn2": {
+   "ok": false,
+   "turn1": {
+    "prompt_n": 64,
+    "predicted_n": 113
+   },
+   "turn2": {
+    "cache_n": 59,
+    "prompt_n": 87
+   }
+  },
+  "anthropic_messages": {
+   "ok": true,
+   "stop_reason": "end_turn",
+   "content": "[{'type': 'thinking', 'thinking': 'We need to respond with single word: ready. Final ready.\\n', 'signature': ''}, {'type': 'text', 'text': 'ready'}]"
+  },
+  "metrics": {
+   "ok": true,
+   "bytes": 6625
+  },
+  "nginx_reachable_unauthenticated": {
+   "ok": true,
+   "http": 401
+  },
+  "perf_d3k": {
+   "ok": true,
+   "tps": 135.0,
+   "prompt_n": 2592,
+   "prompt_ms": 2403.9,
+   "predicted_n": 1536,
+   "finish": "length"
+  },
+  "perf_c100k": {
+   "ok": true,
+   "tps": 128.7,
+   "prompt_n": 97786,
+   "prompt_ms": 20891.9,
+   "predicted_n": 1024,
+   "finish": "length"
+  }
+ },
+ "started": 1795174953.5196557,
+ "ready_s": 40.042114801704884,
+ "health": {
+  "status": "ok",
+  "max_context": 131072,
+  "model": "openclaw/Qwen3.8-next",
+  "images": false,
+  "api_key": false,
+  "image_generation": false,
+  "loaded": true,
+  "service": "strata"
+ },
+ "error": null,
+ "guard": [],
+ "exit_code": 0,
+ "leftover": [],
+ "port": "",
+ "final": {
+  "epoch": 1795175051.7816072,
+  "units": {
+   "openclaw-qwen38-next.service": "inactive",
+   "openclaw-qwen38-ninfer.service": "inactive"
+  },
+  "temp": 51,
+  "gpu_used": 1,
+  "gpu_free": 24109,
+  "gpu_pids": [],
+  "avail_mib": 56601,
+  "swpin": 37366648,
+  "swpout": 94914303,
+  "load1": 6.83,
+  "disk_free_gib": 218.52952575683594
+ },
+ "all_ok": false
+}

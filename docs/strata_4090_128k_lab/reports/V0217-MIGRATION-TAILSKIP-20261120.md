@@ -107,7 +107,7 @@ quality: B2:7 TS0:7 TS0:11 B2:11
 - chain 是采样生成（temperature 1.0），耗时随生成长度变化，不作速度比较。
 - 正式非劣门 `NOT_EVALUATED`。
 
-## 4. 对生产切换的影响（未执行）
+## 4. 对生产切换的影响（本报告时未执行；后续已切换，见 [V0217-PRODUCTION-SWITCH](V0217-PRODUCTION-SWITCH-20261120.md)）
 
 - 若切换，目标应为 B2，而不是 v0.2.16。
 - 与当前生产相比，需要变更的是：新安装树（v0.2.17 + 补丁 + 自编 CUDA 12.3 引擎）、`--lookup-max-t 0 --conversation-spill-mib 0 --ple-io direct`、env 加 `STRATA_ROUTE_TAIL_SKIP=7`。服务层的两个 export 保持不变。

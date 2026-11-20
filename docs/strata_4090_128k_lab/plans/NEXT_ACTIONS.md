@@ -1,6 +1,6 @@
 # 当前 · v0.2.16 基线（2026-11-20）
 
-[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)已定 B1；nsys 定位、质量筛查、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)均已完成。[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)后，实验基线改为 **B2**（v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`）。剩余可选项：1）切换生产到 B2（需用户决定；需要修改受保护的 unit 或 `run-iq3_xxs.sh`，回滚为恢复原文件）；2）建立正式质量门的 gold 题集（约 184 个独立配对任务），目前缺失，正式非劣门为 BLOCKED；3）尾部跳过的细微质量影响需要 logit 级对照；4）固定文本（teacher forcing）的速度对照。数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
+生产已于 2026-11-20 切换到 **B2**（v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`），见[生产切换与验证](../reports/V0217-PRODUCTION-SWITCH-20261120.md)。验证通过后服务保持停止，由用户 `sudo systemctl start`。依据：[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)、[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)。剩余可选项：1）（root）用 drop-in 把 unit 的 Description、WorkingDirectory 和日志路径改到新树；2）建立正式质量门的 gold 题集（约 184 个独立配对任务），目前缺失，正式非劣门为 BLOCKED；3）尾部跳过的细微质量影响需要 logit 级对照；4）固定文本（teacher forcing）的速度对照。数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
 
 ## 原结束点 · 保留 Qwen Next
 
