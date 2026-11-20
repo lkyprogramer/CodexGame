@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:strata-evidence:workload-signature:1",
+  "title": "Proposed workload signature, not an assertion that a route ran",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "runtime_id",
+    "phase",
+    "architecture",
+    "quant",
+    "kv_codec",
+    "route_id",
+    "route_evidence_ref",
+    "logical_shape",
+    "physical_shape",
+    "coverage",
+    "missing_reasons"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "strata-workload-signature/1"
+    },
+    "evidence_class": {
+      "enum": [
+        "OBSERVED",
+        "SYNTHETIC",
+        "PROPOSED"
+      ]
+    },
+    "runtime_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "phase": {
+      "enum": [
+        "prefill",
+        "decode",
+        "verify",
+        "draft",
+        "restore",
+        "unknown"
+      ]
+    },
+    "architecture": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "quant": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kv_codec": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "route_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "route_evidence_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "logical_shape": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      }
+    },
+    "physical_shape": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      }
+    },
+    "coverage": {
+      "enum": [
+        "exact_shape",
+        "bucket_in_range",
+        "out_of_range",
+        "unknown"
+      ]
+    },
+    "fallback_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "missing_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  }
+}
+

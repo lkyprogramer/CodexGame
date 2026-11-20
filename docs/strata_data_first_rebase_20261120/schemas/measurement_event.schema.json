@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:strata-evidence:event:1",
+  "title": "Proposed evidence envelope; payload semantics and privacy require the P1 registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "record_kind",
+    "run_id",
+    "producer_id",
+    "producer_seq",
+    "source_kind",
+    "observer_level",
+    "runtime_id",
+    "request_id",
+    "engine_leg_id",
+    "mono_ns",
+    "clock_domain",
+    "timestamp_semantics",
+    "name",
+    "availability",
+    "sample_policy_id",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "strata-evidence-event/1"
+    },
+    "evidence_class": {
+      "enum": [
+        "OBSERVED",
+        "SYNTHETIC",
+        "PROPOSED"
+      ]
+    },
+    "record_kind": {
+      "enum": [
+        "event",
+        "summary",
+        "loss"
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "producer_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "producer_seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_kind": {
+      "enum": [
+        "harness",
+        "server",
+        "native",
+        "gpu",
+        "system",
+        "fixture"
+      ]
+    },
+    "observer_level": {
+      "enum": [
+        "L0",
+        "L1",
+        "L2"
+      ]
+    },
+    "runtime_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "request_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "engine_leg_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "mono_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "clock_domain": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "timestamp_semantics": {
+      "enum": [
+        "occurred",
+        "received",
+        "derived",
+        "unknown"
+      ]
+    },
+    "wall_time": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9_.]*$"
+    },
+    "availability": {
+      "$ref": "#/$defs/availability"
+    },
+    "sample_policy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "payload": {
+      "type": "object",
+      "maxProperties": 64,
+      "description": "Envelope-only validation. Before collection P1 must enforce per-event field allowlists, units, scope, required fields and privacy. Structural validation alone is not evidence qualification."
+    }
+  },
+  "$defs": {
+    "availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "missing_reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "OBSERVED",
+            "DERIVED",
+            "ESTIMATED",
+            "UNAVAILABLE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "missing_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 240
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "UNAVAILABLE",
+                  "NOT_APPLICABLE"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "missing_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mono_ns": {
+            "type": "integer"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "clock_domain": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "timestamp_semantics": {
+            "const": "occurred"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "mono_ns": {
+            "type": "integer"
+          },
+          "clock_domain": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}
+
