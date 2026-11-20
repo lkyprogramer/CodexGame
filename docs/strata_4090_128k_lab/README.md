@@ -8,6 +8,7 @@
 - 2026-11-20 [v0.2.17 迁移与尾部跳过对照](reports/V0217-MIGRATION-TAILSKIP-20261120.md)：B2 = v0.2.17 + PT0/#1536（[补丁](patches/v0217-pt0-reply-reuse.patch)）+ B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`，对 B1 速度、分叉复用、质量筛查均持平，CPU 专家每条目耗时低 2%～3%（弱证据）。v0.2.17 默认关闭尾部跳过，本机 decode 慢 12%～20%，所以必须显式设为 7。更正：全新服务的 greedy 文本只有开头约 1000～1200 字符可复现。
 - 2026-11-20 [生产切换到 v0.2.17（B2）](reports/V0217-PRODUCTION-SWITCH-20261120.md)：新生产树 `/home/hhtele/strata-0.2.17`。unit 不变（改它需要 root），`/home/hhtele/strata-0.2.3/run-iq3_xxs.sh` 改为转交新树，原文件已备份为 `.pre-0217-20261120`。按 systemd 方式在 18343 验证全部通过（工具调用、Anthropic、metrics、工具循环复用 407 token、c100k 128.7 tok/s），之后服务保持停止。
 - 2026-11-20 [尾部跳过 teacher-forced KL](reports/V0217-TAILSKIP-KL-20261120.md)：测量完全确定（重复运行 KL=0）。生产的 rank 7 KL 0.047、top-1 93.4%（agent 片段 0.136），约为上游标称的 4 倍；rank 9/8/7/5 的速度为 1.07/1.12/1.18/1.36×，没有拐点。生产先保持 7。新增离线日志汇总工具 `tools/prodlog.py`，供生产观察用。
+- 2026-11-20 [Pi 式 agent 负载模拟](reports/V0217-PISIM-20261120.md)：16 道公开 Exercism 题全部通过，共 120 个请求；decode 4K–64K 为 142–143 tok/s；swap 只影响重启后的前两个请求；复用率 95%，开销集中在每条新用户消息后对上一题的重读（PT0，读入约占 18%）；会话缓存填满后 MemAvailable 为 3.6 GiB。生产已启动并保持运行；启停已改为免密（仅限本 unit）。
 - [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md)完成。保留 Qwen Next v0.2.3，暂不移植 #1536。冷读首字延迟中位改善 2.7%，同输入暖态生成速度下降 14.5%。两版两轮任务均为 0/3。生产已恢复，NGINX 冒烟通过。
 
 ## 历史结论
@@ -63,7 +64,7 @@
 | DFlash2方案与资格结果 | [DF01完整方案](plans/DF01_DFLASH2_TEST_PLAN.md)、[D0B实际回执](reports/DF01-D0B-CPU-READY-20261102.md)、[原D0回执](reports/DF01-D0-PREPARATION-20261102.md)、[第一方来源核查](reports/DFLASH2-SOURCE-REVIEW-20261031.md)、[D1失败回执](reports/DF01-D1-QUALIFICATION-20261102.md)、[D1C CPU审计](reports/DF01-D1C-CPU-ORACLE-AUDIT-20261102.md)、[D1R实际诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)、[D1L首个算子修复](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)、[D1M CPU参考收口](reports/DF01-D1M-CPU-REFERENCE-CLOSURE-20261102.md)、[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)、[D1O CPU审计](reports/DF01-D1O-N2048-CPU-AUDIT-20261102.md)、[D1P合同复核](reports/DF01-D1P-EXACT-MATCH-CONTRACT-20261102.md)、[后续v2合同](plans/DF01_D1_EXACT_MATCH_V2.md)、[D1Q适配回执](reports/DF01-D1Q-V2-ADAPTER-20261102.md)、[D1S执行回执](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)、[D1T停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)；旧FAIL保持，完整D1未完成，不进入D2 |
 | 本次合并依据、现场证据、验证 | [合并记录](reports/DOC-MERGE-20261030.md) |
 | 后续研究及候选合同 | [frontier](frontier/README.md)、[研究报告](frontier/REPORT.md) |
-| 最新完成的 GPU 工作 | [尾部跳过 teacher-forced KL](reports/V0217-TAILSKIP-KL-20261120.md) |
+| 最新完成的 GPU 工作 | [Pi 式 agent 负载模拟](reports/V0217-PISIM-20261120.md) |
 | 历史 GPU 工作 | [D1U n2300 捕获](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)；[D1S v2执行失败收口](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)；[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)；[D1L逐层诊断](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)；[D1R单组失败诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)；原[D1首门失败收口](reports/DF01-D1-QUALIFICATION-20261102.md)；原[P01B](reports/P01B-PI-WARM-DIAGNOSTIC-20261031.md)保留 |
 | 历史采用与质量边界 | [关闭台账](frontier/docs/01_EVIDENCE_AND_CLOSURES.md)、[P3](reports/P3-COMBINATION-KVRES-20261027.md)、[P24](reports/P24-HC-PAIRED-PERFORMANCE-20261029.md) |
 | 历史部署 | [A0/EXACT6](reports/DEPLOY-A0-EXACT6-20261025.md)、[reply/PT/prefill](reports/DEPLOY-PROD-20261026.md)、[KVRES](reports/DEPLOY-KVRES-20261026.md) |

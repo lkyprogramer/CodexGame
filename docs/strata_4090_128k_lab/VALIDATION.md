@@ -1,3 +1,5 @@
+> 2026-11-20 [Pi 式 agent 负载模拟](reports/V0217-PISIM-20261120.md)。对生产发了 120 个请求，16/16 题通过隔离容器判分，无错误；`tests/test_prodlog.py` 增至 6 项，在 4090 生产树 Python 上通过（本机未运行）；sudoers 规则经 `visudo -c` 校验。
+
 > 2026-11-20 [尾部跳过 teacher-forced KL](reports/V0217-TAILSKIP-KL-20261120.md)。生产停机期间启动 9 次引擎（上游 `quant_quality.py`，代码未改），全部 rc=0、无守卫触发；同配置重复运行 KL=0，生产文件 hash 不变。`tests/test_prodlog.py` 5 项在 4090 生产树 Python 3.12.15 上通过（本机未运行）。
 
 > 2026-11-20 [生产切换到 v0.2.17（B2）](reports/V0217-PRODUCTION-SWITCH-20261120.md)。新生产树按 systemd 方式（干净环境，端口 18343）启动 3 次，其中第一次因驱动端口错误中断，记录保留。完整检查中，两轮对话那一项的检查标准写错（PT0 下属预期行为），改用工具循环复验，通过；经 unit 的 ExecStart 路径复验全部通过。未执行：systemd 实际启动（需要 root）、带凭证经 NGINX 的端到端请求。结束时服务 inactive、无残留、GPU 已释放。
