@@ -1,7 +1,8 @@
 # Strata 4090 数据优先重基线与后续探索包
 
 日期：2026-11-20（北京时间）  
-状态：**研究与实施规格已交付；采集器改造、Strata 构建、4090 测试及部署均未在本轮执行。**
+状态：**研究与实施规格已交付；采集器改造、Strata 构建、4090 测试及部署均未在本轮执行。**  
+补遗：上游发布 v0.2.17 后的新锁定点、4090 实测回填和评估方法修正见 [26 补遗](docs/26_V0217_REBASE_ADDENDUM.md)；正文保持 v0.2.16 快照原样。
 
 本包依据用户仓库 [4090-report / c5f05b46](https://github.com/lkyprogramer/CodexGame/tree/c5f05b46c5fc895f7d7a74979cf526f8c4f3dc8b) 的最新归档，研究 Strata **App/Terminal 0.2.16、Control/Engine 0.1.62**。它是可独立阅读、可交给 AI 执行的完整计划，整合而非覆盖两个旧包：
 
@@ -34,6 +35,7 @@
 | 交给执行 AI | [AGENTS](AGENTS.md) → [19 Phase/Task](docs/19_PHASE_TASK_PLAN.md) → [20 验收用例](docs/20_ACCEPTANCE_TEST_MATRIX.md) → [21 Runbook](docs/21_RUNBOOK_AND_HANDOFF.md) |
 | 落入现有监控与预算 | [22 面板](docs/22_MONITOR_DASHBOARD_SPEC.md) → [23 决策/预算](docs/23_DECISION_AND_BUDGET.md) |
 | 核来源与交付验收 | [24 来源目录](docs/24_SOURCE_CATALOG.md) → [25 静态验证](docs/25_PACKAGE_VERIFICATION.md) |
+| v0.2.17 之后从哪里接着做 | [26 补遗](docs/26_V0217_REBASE_ADDENDUM.md) |
 
 ## 包内交付物与边界
 
