@@ -25,10 +25,11 @@ TIMING = re.compile(r'decode timing: (\d+) windows, avg T ([\d.]+), ([\d.]+) tok
                     r'\+ per-layer host ([\d.]+) \[.*?CPU ([\d.]+)\].*?CPU experts ([\d.]+) \(([\d.]+) entries\)')
 HIT = re.compile(r'decode expert cache hit rate: ([\d.]+)%')
 RESTORED = re.compile(r'conversation cache: restored (\d+) tokens \((\w+)\) in ([\d.]+) ms')
+BORROWED = re.compile(r'conversation cache: borrowed (\d+) tokens from a parked conversation.*? in ([\d.]+) ms')
 PARKED = re.compile(r'conversation cache: (parked|skipped) (\d+) tokens.*? in ([\d.]+) ms; parked=(\d+) bytes=(\d+) evictions=(\d+)')
 EVICTED = re.compile(r'conversation cache: evicted (\d+) parked conversation')
 CONV = re.compile(r'strata serve: conversation cache: (.*)')
-BEFORE = ('decode timing', 'conversation cache: restored', 'conversation cache: read ', 'conversation cache: took ',
+BEFORE = ('decode timing', 'conversation cache: restored', 'conversation cache: borrowed', 'conversation cache: read ', 'conversation cache: took ',
           'conversation cache: the state at')
 BUCKETS = ((0, 4096, '<4K'), (4096, 32768, '4K-32K'), (32768, 65536, '32K-64K'), (65536, 1 << 30, '>=64K'))
 
@@ -83,6 +84,10 @@ def attach(r: dict, line: str) -> None:
     if m:
         r['restored'] = dict(tokens=int(m.group(1)), source=m.group(2), ms=float(m.group(3)))
         return
+    m = BORROWED.search(line)
+    if m:
+        r['restored'] = dict(tokens=int(m.group(1)), source='borrowed', ms=float(m.group(2)))
+        return
     m = PARKED.search(line)
     if m:
         r['park'] = dict(stored=m.group(1) == 'parked', tokens=int(m.group(2)), ms=float(m.group(3)), parked=int(m.group(4)),
@@ -119,10 +124,12 @@ def summarize(reqs: list[dict]) -> dict:
                                           seconds=round(sum(r['prompt_ms'] for r in big_read) / 1000, 1))
     s['restores'] = dict(count=sum(r['restored'] is not None for r in reqs),
                          live=sum(1 for r in reqs if r['restored'] and r['restored']['source'] == 'live'),
-                         checkpoint=sum(1 for r in reqs if r['restored'] and r['restored']['source'] == 'checkpoint'))
+                         checkpoint=sum(1 for r in reqs if r['restored'] and r['restored']['source'] == 'checkpoint'),
+                         borrowed=sum(1 for r in reqs if r['restored'] and r['restored']['source'] == 'borrowed'))
     s['parks'] = sum(1 for r in reqs if r['park'] and r['park']['stored'])
     s['park_skips'] = sum(1 for r in reqs if (r['park'] and not r['park']['stored']) or any(n.startswith('skip parking') for n in r['conv_notes']))
     s['evictions'] = sum(r['evicted'] for r in reqs)
+    s['park_evictions_counter_max'] = max((r['park']['evictions_total'] for r in reqs if r['park']), default=0)   # engine's running count
     s['by_prompt_bucket'] = {}
     for _, _, name in BUCKETS:
         rs = [r for r in reqs if bucket(r['prompt']) == name]

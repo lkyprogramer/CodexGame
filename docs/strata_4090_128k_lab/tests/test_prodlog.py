@@ -15,7 +15,7 @@ LOG = [
     'strata serve: checkpoint pool: this request took 1 checkpoint ready from the pool and allocated 0 fresh',
     'strata serve: decode expert cache hit rate: 80.9% (38225 hits / 47274 lookups); 115 more read by the GPU over PCIe',
     'strata serve: conversation cache: parked 143 tokens in 29.1 ms; parked=1 bytes=238330044 evictions=0 snapshot_bytes=238330044 reused_kv_bytes=0',
-    'strata serve: conversation cache: restored 143 tokens (live) in 3.2 ms; parked=0 bytes=0',
+    'strata serve: conversation cache: borrowed 803 tokens from a parked conversation, which stays parked, in 97.1 ms; parked=2 bytes=1 borrowed=1',
     'strata serve: prompt 20000 tokens = 143 reused + 12288 of 19857 read in 4000 ms (3072.0 tok/s), 0 generated in 0 ms (0.0 tok/s), drafts accepted 0 of 0, 2 checkpoints (cancelled)',
     'strata serve: conversation cache: evicted 2 parked conversations to admit this snapshot (900 MiB plus 4096 MiB floor)',
     'strata serve: conversation cache: skip parking (RAM floor after capture: 4096 MiB needed, 3000 MiB free)',
@@ -38,7 +38,7 @@ class ProdLog(unittest.TestCase):
         self.assertEqual(r[0]['hit_rate'], 80.9)                  # hit rate follows the summary
         self.assertTrue(r[0]['park']['stored'])                   # the park after request 1 is request 1's
         self.assertIsNone(r[0]['restored'])
-        self.assertEqual(r[1]['restored'], {'tokens': 143, 'source': 'live', 'ms': 3.2})   # the restore before request 2 is request 2's
+        self.assertEqual(r[1]['restored'], {'tokens': 803, 'source': 'borrowed', 'ms': 97.1})   # the restore before request 2 is request 2's
 
     def test_cancelled_read_counts_what_was_read(self):
         r = self.m.parse(LOG)[1]
@@ -61,11 +61,17 @@ class ProdLog(unittest.TestCase):
         self.assertAlmostEqual(s['reuse_ratio'], 143 / 90063, places=4)
         self.assertEqual(s['cold_reads_ge_8k'], {'count': 1, 'tokens': 70000, 'seconds': 15.0})
         self.assertEqual(s['partial_reuse_reads_ge_8k']['count'], 1)
-        self.assertEqual(s['restores'], {'count': 1, 'live': 1, 'checkpoint': 0})
+        self.assertEqual(s['restores'], {'count': 1, 'live': 0, 'checkpoint': 0, 'borrowed': 1})
+        self.assertEqual(s['park_evictions_counter_max'], 0)
         self.assertEqual((s['parks'], s['park_skips'], s['evictions']), (1, 1, 2))
         self.assertEqual(set(s['by_prompt_bucket']), {'<4K', '4K-32K', '>=64K'})
         self.assertEqual(s['by_prompt_bucket']['>=64K']['decode_tok_s'], 128.0)
         self.assertIsNone(s['by_prompt_bucket']['4K-32K']['decode_tok_s'])   # nothing generated: no rate, not zero
+
+    def test_restored_line(self):
+        r = self.m.parse(['strata serve: conversation cache: restored 143 tokens (live) in 3.2 ms; parked=0 bytes=0',
+                          'strata serve: prompt 200 tokens = 143 reused + 57 read in 20 ms (2850.0 tok/s), 1 generated in 10 ms (100.0 tok/s), drafts accepted 0 of 0, 1 checkpoints'])
+        self.assertEqual(r[0]['restored'], {'tokens': 143, 'source': 'live', 'ms': 3.2})
 
     def test_empty(self):
         s = self.m.summarize([])
