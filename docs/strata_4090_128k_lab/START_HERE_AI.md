@@ -1,6 +1,6 @@
 # Strata 当前执行入口
 
-2026-11-20：[v0.2.16 基线调优](reports/V0216-BASELINE-TUNING-20261120.md)。v0.2.16 + PT0/#1536 移植的 B1 基线已定，对 v0.2.3 prefill 快 16%～18%、约 98K decode 慢约 5%；[100K decode 定位与质量筛查](reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)已完成：慢的部分是随请求序列变化的每窗口接受 token 数，不是 GPU 退步；质量筛查两版相同。[顺序依赖与 PCE0 复测](reports/V0216-SEQDEP-PCE0-20261120.md)：顺序依赖来自文本轨迹；PCE0 不采用。是否切换生产由用户决定；正式质量门仍未评估。生产保持停机。
+2026-11-20：[v0.2.16 基线调优](reports/V0216-BASELINE-TUNING-20261120.md)。v0.2.16 + PT0/#1536 移植的 B1 基线已定，对 v0.2.3 prefill 快 16%～18%、约 98K decode 慢约 5%；[100K decode 定位与质量筛查](reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)已完成：慢的部分是随请求序列变化的每窗口接受 token 数，不是 GPU 退步；质量筛查两版相同。[顺序依赖与 PCE0 复测](reports/V0216-SEQDEP-PCE0-20261120.md)：顺序依赖来自文本轨迹；PCE0 不采用。[v0.2.17 迁移与尾部跳过对照](reports/V0217-MIGRATION-TAILSKIP-20261120.md)：实验基线改为 B2（v0.2.17 + 补丁 + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`），与 B1 持平；v0.2.17 默认关闭尾部跳过，本机 decode 慢 12%～20%。是否切换生产由用户决定；正式质量门仍未评估。生产保持停机。
 
 保留 Qwen Next v0.2.3，生产已恢复。[v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md)记录 CPU 适配、6 次引擎启动和 12 次请求。两条 Pi 会话未观察到复用损失，暂不移植 #1536。同输入暖态生成减速，两版两轮任务均为 0/3，不切换生产。
 

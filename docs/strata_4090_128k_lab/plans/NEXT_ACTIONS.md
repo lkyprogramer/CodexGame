@@ -1,6 +1,6 @@
 # 当前 · v0.2.16 基线（2026-11-20）
 
-[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)已定 B1。nsys 定位与质量筛查已完成，见[100K decode 定位与质量筛查](../reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)。[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)已完成前两项（顺序依赖来自文本轨迹，PCE0 不采用）。剩余可选项：1）固定文本（teacher forcing）或每臂 ≥20 条轨迹的 A0/B0 decode 对照；2）logit 级定位轨迹分叉的数值来源；3）若要切换生产，先跑正式质量门（约 184 个独立任务）。切换生产需用户决定。
+[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)已定 B1；nsys 定位、质量筛查、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)均已完成。[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)后，实验基线改为 **B2**（v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`）。剩余可选项：1）切换生产到 B2（需用户决定；需要修改受保护的 unit 或 `run-iq3_xxs.sh`，回滚为恢复原文件）；2）建立正式质量门的 gold 题集（约 184 个独立配对任务），目前缺失，正式非劣门为 BLOCKED；3）尾部跳过的细微质量影响需要 logit 级对照；4）固定文本（teacher forcing）的速度对照。数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
 
 ## 原结束点 · 保留 Qwen Next
 

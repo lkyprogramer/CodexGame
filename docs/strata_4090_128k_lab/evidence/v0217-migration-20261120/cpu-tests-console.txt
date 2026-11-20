@@ -1,0 +1,39 @@
+# CPU unit tests on 4090 (anaconda Python 3.11.7), 2026-11-20
+# command: python -m unittest serve.test_prompt_encoder serve.test_frontend serve.test_server  (cwd = <tree>/terminal)
+# patched tree: /data/strata-data/v0217-baseline-20261120/src (v0.2.17 tag commit 12d491da4 + v0217-pt0-reply-reuse.patch)
+# base tree:    /data/strata-data/v0217-baseline-20261120/cpu-base (v0.2.17, unpatched)
+# red tree:     /data/strata-data/v0217-baseline-20261120/cpu-red  (unpatched v0.2.17 + the three patched test files)
+Python 3.11.7
+== src
+----------------------------------------------------------------------
+Ran 492 tests in 143.875s
+
+OK
+== cpu-base
+----------------------------------------------------------------------
+Ran 478 tests in 141.331s
+
+OK
+
+== cpu-red (FAIL/ERROR by class)
+      3 ERROR serve.test_frontend.PreserveThinkingSwitch
+      4 ERROR serve.test_prompt_encoder.ReplyReuse
+      2 ERROR serve.test_server.ReplyReuseWiring
+      2 FAIL serve.test_frontend.PreserveThinkingSwitch
+Ran 492 tests in 142.091s
+FAILED (failures=2, errors=9)
+
+== cpu-red PreserveThinkingSwitch failures, then the class's full test list
+ERROR: test_a_non_boolean_request_value_falls_back_to_the_env (serve.test_frontend.PreserveThinkingSwitch.test_a_non_boolean_request_value_falls_back_to_the_env)
+ERROR: test_env_sets_the_default (serve.test_frontend.PreserveThinkingSwitch.test_env_sets_the_default)
+ERROR: test_the_request_wins (serve.test_frontend.PreserveThinkingSwitch.test_the_request_wins)
+FAIL: test_the_shipped_template_renders_fewer_tokens_with_pt0 (serve.test_frontend.PreserveThinkingSwitch.test_the_shipped_template_renders_fewer_tokens_with_pt0)
+FAIL: test_the_template_drops_earlier_thinking (serve.test_frontend.PreserveThinkingSwitch.test_the_template_drops_earlier_thinking)
+test_unset_leaves_the_template_default
+test_env_sets_the_default
+test_other_values_leave_the_template_default
+test_the_request_wins
+test_a_non_boolean_request_value_falls_back_to_the_env
+test_thinking_off_is_untouched
+test_the_template_drops_earlier_thinking
+test_the_shipped_template_renders_fewer_tokens_with_pt0
