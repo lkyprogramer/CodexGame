@@ -1,6 +1,6 @@
 # 当前 · v0.2.16 基线（2026-11-20）
 
-[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)已定 B1。nsys 定位与质量筛查已完成，见[100K decode 定位与质量筛查](../reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)。剩余可选项：1）在 d3k→c32k→f10k→c100k 序列下逐窗口对照接受数与专家缓存状态，定位序列依赖；2）PCE0 在混合序列中复测；3）若要切换生产，先跑正式质量门（约 184 个独立任务）。切换生产需用户决定。
+[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)已定 B1。nsys 定位与质量筛查已完成，见[100K decode 定位与质量筛查](../reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)。[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)已完成前两项（顺序依赖来自文本轨迹，PCE0 不采用）。剩余可选项：1）固定文本（teacher forcing）或每臂 ≥20 条轨迹的 A0/B0 decode 对照；2）logit 级定位轨迹分叉的数值来源；3）若要切换生产，先跑正式质量门（约 184 个独立任务）。切换生产需用户决定。
 
 ## 原结束点 · 保留 Qwen Next
 

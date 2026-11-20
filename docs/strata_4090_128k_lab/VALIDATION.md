@@ -1,3 +1,5 @@
+> 2026-11-20 [顺序依赖与 PCE0 复测](reports/V0216-SEQDEP-PCE0-20261120.md)。18 次启动全部完成、无守卫触发；保护 hash 不变、无残留进程、GPU 已释放。逐窗口追踪只覆盖 v0.2.16 系（0.2.3 serve 无此追踪）。
+
 > 2026-11-20 [100K decode 定位与质量筛查](reports/V0216-DECODE100K-NSYS-QUALITY-20261120.md)。nsys v1（launch/start）因 nsys 2023.3 守护进程 FATAL 失败并保留；v2 全程追踪 4 次、协议 A/B 9 次、质量 4 次启动全部完成，保护 hash 不变、无残留进程、GPU 已释放。质量：固定语料两版均 21/23，ledger 链 4/4 为 8/8；正式非劣 NOT_EVALUATED。
 
 > 2026-11-20 [v0.2.16 基线调优](reports/V0216-BASELINE-TUNING-20261120.md)。v0.2.16 构建与补丁 CPU 测试（468 项）通过；4090 上 56 次全新启动，55 次完成、1 次被旧 swap 守卫中止并保留；生产受保护文件 hash 不变，GPU 与 18089 已释放。质量门未运行。
