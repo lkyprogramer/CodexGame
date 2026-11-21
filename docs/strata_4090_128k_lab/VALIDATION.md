@@ -1,3 +1,5 @@
+> 2026-11-20 [任务级配对质量门](reports/V0217-AGENT-GATE-20261120.md)：305 道题的参考解在隔离容器中全部通过（REFCHECK）；两臂各 305 题，无错误、无守卫触发；`quality_gate.py` 退出码 0（NONINFERIORITY_ESTABLISHED）；生产由 EXIT trap 自动重启（rc=0），之后 health ok。[C01](reports/V0217-C01-OFFLINE-20261120.md) 合成反例自检通过（自检发现 8-gram 单路的 bug，已修正）。[PT0/PT1](reports/V0217-PT-THINKING-20261120.md) 两次运行 rc=0。均未在本机运行。
+
 > 2026-11-20 [Pi 式 agent 负载模拟](reports/V0217-PISIM-20261120.md)。对生产发了 120 个请求，16/16 题通过隔离容器判分，无错误；`tests/test_prodlog.py` 增至 6 项，在 4090 生产树 Python 上通过（本机未运行）；sudoers 规则经 `visudo -c` 校验。
 
 > 2026-11-20 [尾部跳过 teacher-forced KL](reports/V0217-TAILSKIP-KL-20261120.md)。生产停机期间启动 9 次引擎（上游 `quant_quality.py`，代码未改），全部 rc=0、无守卫触发；同配置重复运行 KL=0，生产文件 hash 不变。`tests/test_prodlog.py` 5 项在 4090 生产树 Python 3.12.15 上通过（本机未运行）。

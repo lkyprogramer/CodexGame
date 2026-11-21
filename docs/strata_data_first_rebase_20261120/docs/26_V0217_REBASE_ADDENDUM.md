@@ -34,10 +34,10 @@
 | 本包条目 | 原状态 | 回填 | 新状态 |
 |---|---|---|---|
 | O02 解码依赖链（ready-hit、CPU/DMA） | DATA_REQUIREMENT | 100K decode 每窗口 ≈ GPU-reach 约 9 ms（各版本一致，nsys 证实 GPU 每 token 工作量相同）+ 主机 CPU 专家时间（随 CPU 条目数线性变化）+ 草稿约 1.4 ms。可变成本几乎全部在 CPU 专家路径，受约 36 GB/s 内存带宽限制。来源：V0216-DECODE100K-NSYS-QUALITY、V0216-SEQDEP-PCE0、V0217-MIGRATION-TAILSKIP | **L0 已回答主问题**；P2.3 的 round/shape 新 hook 不需要（NOT_NEEDED），除非出现新问题 |
-| C01 suffix 二级索引 | CONDITIONAL_OFFLINE_ONLY | 文档类长上下文负载中 lookup 窗口只占 3.9%～7.4%；关闭 suffix 草稿（SD0）后速度不变。符合停止条件"大部分提议被现有策略拒绝或不值得" | 文档类负载 **NO_HEADROOM**；agent 复制/编辑（W09）未测，保留 CONDITIONAL_OFFLINE_ONLY，需要单独的内容采集授权 |
+| C01 suffix 二级索引 | CONDITIONAL_OFFLINE_ONLY | 文档类长上下文负载中 lookup 窗口只占 3.9%～7.4%，关闭 suffix 草稿（SD0）后速度不变。agent 复制/编辑负载（W09）改用公开 Exercism 题的 Pi 式会话做离线反事实（不涉及用户内容）：加 8-gram 索引按 oracle 上界只省 0.19% 的窗口（write/edit 请求 0.28%），原因是被挤出的旧源一个 token 后就会被 trigram 重新命中。来源：V0217-C01-OFFLINE | **NO_HEADROOM**，关闭 |
 | C02 MoE padding census | OBSERVATION_ONLY | 未做；prefill 在 v0.2.17 上与 v0.2.16 持平 | 不变，优先级低 |
-| 新基线 | 未建立 | B2 = v0.2.17 + PT0/#1536（[补丁](../../strata_4090_128k_lab/patches/v0217-pt0-reply-reuse.patch)）+ `--lookup-max-t 0 --conversation-spill-mib 0 --ple-io direct` + `STRATA_ROUTE_TAIL_SKIP=7`；与 B1 相比速度、分叉复用和质量筛查都持平 | DATA_VALID（筛查级），非正式质量门 |
-| 尾部跳过 | 未列入 | 上游已有的配置项，不是新算法；按 [23](23_DECISION_AND_BUDGET.md) 属于"上游已含机制、现场未开启"的配置生效诊断 | ALREADY_PRESENT；作为基线配置固定为 7 |
+| 新基线 | 未建立 | B2 = v0.2.17 + PT0/#1536（[补丁](../../strata_4090_128k_lab/patches/v0217-pt0-reply-reuse.patch)）+ `--lookup-max-t 0 --conversation-spill-mib 0 --ple-io direct` + `STRATA_ROUTE_TAIL_SKIP=7`；与 B1 相比速度、分叉复用和质量筛查都持平 | DATA_VALID；任务级配对门对精确路由非劣（V0217-AGENT-GATE） |
+| 尾部跳过 | 未列入 | 上游已有的配置项，不是新算法；按 [23](23_DECISION_AND_BUDGET.md) 属于"上游已含机制、现场未开启"的配置生效诊断。teacher-forced KL：rank 7 为 0.047（重复运行 KL=0），见 V0217-TAILSKIP-KL。任务级配对门（305 道公开题，预登记 margin 5%）：对精确路由非劣性成立，损害上界 1.62%，同一负载下快 1.16 倍，见 V0217-AGENT-GATE | ALREADY_PRESENT；作为基线配置固定为 7，任务级非劣已证实 |
 
 ## 4. 尾部跳过开或关（v0.2.17，同一构建，各 n=4 序列段）
 
@@ -60,5 +60,7 @@
 
 - 用 B2 作为后续所有对照的基线；正文中"v0.2.16 / 64524fb9"的锁定点，改为以本文件 §1 为准。
 - P0–P1 的文档和适配工作照常，但 P2.0 的 L0 已回答 O02 主问题，P2.3 不再预设。
-- 生产已于 2026-11-20 按用户授权切换到 B2（[切换回执](../../strata_4090_128k_lab/reports/V0217-PRODUCTION-SWITCH-20261120.md)），验证后服务停止，待用户启动。正式质量门仍缺 gold 题集，状态为 BLOCKED；本次切换依据的是筛查级证据。
-- C01 只在用户授权采集 agent 会话内容（W09）后才继续；C02 维持观测级。
+- 生产已于 2026-11-20 按用户授权切换到 B2（[切换回执](../../strata_4090_128k_lab/reports/V0217-PRODUCTION-SWITCH-20261120.md)），目前保持运行。正式质量门原先缺 gold 题集、状态为 BLOCKED，现由[任务级配对质量门](../../strata_4090_128k_lab/reports/V0217-AGENT-GATE-20261120.md)补上：exercism/python 和 HumanEval 共 305 道公开题，按 [10](10_EVALUATION_AND_STATS.md) 的配对二项口径用 `quality_gate.py` 判定。margin 定为 5% 并写明理由：2% 需要至少 183 题且零不一致，采样解码下做不到；实测损害上界为 1.62%。
+- C01 已按 oracle 上界关闭（NO_HEADROOM，见 [C01 离线反事实](../../strata_4090_128k_lab/reports/V0217-C01-OFFLINE-20261120.md)），不再需要 W09 内容采集；C02 维持观测级。
+- 配置取舍（[结论](../../strata_4090_128k_lab/reports/V0217-PT-THINKING-20261120.md)）：尾部跳过保持 rank 7；thinking 保持 PT0，因为 PT1 虽能免去每条新用户消息后的重读（Pi 式负载中约占 11% 时间），但在真实 Pi 历史上会让 prompt 变大 10 倍。
+- 后续任何版本或开关变更按两层门判定：先过 teacher-forced KL（数值级），再过任务级配对门（每臂约 2 小时）。tok/s 只作辅助，与 §5 一致。

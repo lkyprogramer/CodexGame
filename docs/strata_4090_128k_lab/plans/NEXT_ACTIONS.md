@@ -1,6 +1,22 @@
-# 当前 · v0.2.16 基线（2026-11-20）
+# 当前 · v0.2.17 B2 生产（2026-11-20）
 
-生产已于 2026-11-20 切换到 **B2**（v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7`），见[生产切换与验证](../reports/V0217-PRODUCTION-SWITCH-20261120.md)。验证通过后服务保持停止，由用户 `sudo systemctl start`。依据：[v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)、[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)。[尾部跳过 KL](../reports/V0217-TAILSKIP-KL-20261120.md) 已完成：rank 7 保持，若 agent 任务质量有疑问，先试 rank 9 或关闭。[Pi 式负载模拟](../reports/V0217-PISIM-20261120.md) 已完成：swap 不是问题；若机器上还要跑其他重任务，可考虑把会话缓存降到 4096 MiB。真实 Pi 使用一段时间后，运行 4090 上的 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐和按长度分桶的 decode，并复查引擎的 swap（重启后 455 MiB，整机 swap 只剩 120 MiB）。剩余可选项：1）（root）用 drop-in 把 unit 的 Description、WorkingDirectory 和日志路径改到新树；2）建立正式质量门的 gold 题集（约 184 个独立配对任务），目前缺失，正式非劣门为 BLOCKED；3）尾部跳过的细微质量影响需要 logit 级对照；4）固定文本（teacher forcing）的速度对照。数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
+生产运行 **B2**（v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7` + PT0），2026-11-20 起保持运行。依据见 [生产切换与验证](../reports/V0217-PRODUCTION-SWITCH-20261120.md)，以及 [v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)、[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)。hhtele 可以免密执行 `sudo systemctl start|stop|restart openclaw-qwen38-next.service`；lab 的 GPU 实验先停生产，结束后再启动（脚本里用 EXIT trap 兜底）。
+
+已收口：
+
+- [尾部跳过 KL](../reports/V0217-TAILSKIP-KL-20261120.md)：rank 7 的 KL 为 0.047，测量完全确定，作为数值级门。
+- [Pi 式负载模拟](../reports/V0217-PISIM-20261120.md)：swap 不影响热路径。会话缓存填满后 MemAvailable 为 3.6 GiB；若机器上还要跑其他重任务，可把缓存降到 4096 MiB。
+- [C01 离线反事实](../reports/V0217-C01-OFFLINE-20261120.md)：8-gram 二级索引按 oracle 上界只省 0.19% 的窗口，判 NO_HEADROOM，关闭。
+- [任务级配对质量门](../reports/V0217-AGENT-GATE-20261120.md)：305 道公开题，rank 7 对精确路由非劣性成立（损害上界 1.62%，margin 5%），同一负载下快 1.16 倍。原"缺 gold 题集、正式非劣门 BLOCKED"的状态由此解除，预登记和驱动可复用。
+- [两个配置取舍](../reports/V0217-PT-THINKING-20261120.md)：保持 rank 7（rank 9 不必测）；保持 PT0（PT1 虽免去重读，但在真实 Pi 历史上会让 prompt 变大 10 倍）。
+
+待办：
+
+1. 真实 Pi 使用一段时间后，在 4090 上运行 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐、按长度分桶的 decode 和引擎 swap。
+2. 以后有版本升级或开关变更：先过 KL 门（`quant_quality.py`，同配置重复运行 KL=0），再过任务级门（`gate17.py`，305 题，每臂约 2 小时）。
+3. 可选（需要 root 写权限）：用 drop-in 把 unit 的 Description、WorkingDirectory 和日志路径改到新树。
+
+数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
 
 ## 原结束点 · 保留 Qwen Next
 
