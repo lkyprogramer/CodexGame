@@ -7,7 +7,7 @@ python -B tools/quality_gate.py --input tools/examples/quality-smoke-30.json \
   --output /tmp/quality-report.json
 ```
 
-示例是合成的格式/数值回归夹具，**不是模型实测结果**。30对全部成功的示例会退出1，因为不能建立默认2%非劣性。`quality-zero-loss-184.json`只演示该公式在更大独立样本量下的结果。
+示例是合成的格式/数值回归夹具，**不是模型实测结果**。第一份实测输入见 [任务级配对质量门](../reports/V0217-AGENT-GATE-20261120.md)（305 道公开题，`PAIRS-b2-vs-ts0.json`，margin 0.05 在运行前写入预登记），驱动是证据目录中的 `gate17.py`。30对全部成功的示例会退出1，因为不能建立默认2%非劣性。`quality-zero-loss-184.json`只演示该公式在更大独立样本量下的结果。
 
 ## 输入
 
