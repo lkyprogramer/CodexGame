@@ -1,3 +1,5 @@
+> 2026-11-21 [新版本一键过门](tools/upgrade_gate/README.md) 用 v0.2.17 自身自检：prepare READY（tag 与 API 一致，补丁后运行文件 sha 与生产树一致，编译 361 s）；kl PROCEED（对 v0.2.17 rank 7 存档 KL=0、top-1 100%，对精确路由 0.0474）；gate `--limit 3` 流程验证，3 题无错误。两次停生产均自动恢复，结束后 health ok。编译不可逐位复现（同源两次 sha 不同），数值以 KL 为准。均在 4090 上运行，本机只做了语法检查。
+
 > 2026-11-20 [任务级配对质量门](reports/V0217-AGENT-GATE-20261120.md)：305 道题的参考解在隔离容器中全部通过（REFCHECK）；两臂各 305 题，无错误、无守卫触发；`quality_gate.py` 退出码 0（NONINFERIORITY_ESTABLISHED）；生产由 EXIT trap 自动重启（rc=0），之后 health ok。[C01](reports/V0217-C01-OFFLINE-20261120.md) 合成反例自检通过（自检发现 8-gram 单路的 bug，已修正）。[PT0/PT1](reports/V0217-PT-THINKING-20261120.md) 两次运行 rc=0。均未在本机运行。
 
 > 2026-11-20 [Pi 式 agent 负载模拟](reports/V0217-PISIM-20261120.md)。对生产发了 120 个请求，16/16 题通过隔离容器判分，无错误；`tests/test_prodlog.py` 增至 6 项，在 4090 生产树 Python 上通过（本机未运行）；sudoers 规则经 `visudo -c` 校验。

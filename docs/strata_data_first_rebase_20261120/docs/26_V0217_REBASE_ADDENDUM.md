@@ -63,4 +63,4 @@
 - 生产已于 2026-11-20 按用户授权切换到 B2（[切换回执](../../strata_4090_128k_lab/reports/V0217-PRODUCTION-SWITCH-20261120.md)），目前保持运行。正式质量门原先缺 gold 题集、状态为 BLOCKED，现由[任务级配对质量门](../../strata_4090_128k_lab/reports/V0217-AGENT-GATE-20261120.md)补上：exercism/python 和 HumanEval 共 305 道公开题，按 [10](10_EVALUATION_AND_STATS.md) 的配对二项口径用 `quality_gate.py` 判定。margin 定为 5% 并写明理由：2% 需要至少 183 题且零不一致，采样解码下做不到；实测损害上界为 1.62%。
 - C01 已按 oracle 上界关闭（NO_HEADROOM，见 [C01 离线反事实](../../strata_4090_128k_lab/reports/V0217-C01-OFFLINE-20261120.md)），不再需要 W09 内容采集；C02 维持观测级。
 - 配置取舍（[结论](../../strata_4090_128k_lab/reports/V0217-PT-THINKING-20261120.md)）：尾部跳过保持 rank 7；thinking 保持 PT0，因为 PT1 虽能免去每条新用户消息后的重读（Pi 式负载中约占 11% 时间），但在真实 Pi 历史上会让 prompt 变大 10 倍。
-- 后续任何版本或开关变更按两层门判定：先过 teacher-forced KL（数值级），再过任务级配对门（每臂约 2 小时）。tok/s 只作辅助，与 §5 一致。
+- 后续任何版本或开关变更按两层门判定：先过 teacher-forced KL（数值级），再过任务级配对门（每臂约 2 小时）。tok/s 只作辅助，与 §5 一致。版本升级的流程已脚本化为 [upgrade_gate.py](../../strata_4090_128k_lab/tools/upgrade_gate/README.md)，并已用 v0.2.17 自身自检。
