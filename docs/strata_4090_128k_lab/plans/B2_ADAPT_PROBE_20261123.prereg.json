@@ -1,0 +1,139 @@
+{
+ "id": "B2-ADAPT-20261123",
+ "label": "b2-adapt-20261123",
+ "created": "2026-11-23",
+ "status": "PREREGISTERED_NOT_RUN",
+ "question": "On the B2 production tree, without a new release or hardware: do other adaptive expert-tier settings, or a better start profile, make decode windows cheaper by enough to matter?",
+ "identity": {
+  "tree": "/home/hhtele/strata-0.2.17",
+  "engine_sha256": "df2d006b2adc7ad12f169d6839587ff7efc134f5873ba52c238fe207201b32a5",
+  "config_sha256": "d7ee52b0b8c0df7b9596c52359d5e624876ffdf839675f33d52de28404549174",
+  "config_same_as_stored_b2_arm": true,
+  "upgrade_gate_sha256": "3a2c503762ff54ada0f55b393ca5cc1724b638eca9f48347b6fa2f04117473dd",
+  "gate17_sha256": "517d1689881ce6930b5a15527c5939971a3c56ae8882fa063c7af7b4bbcc6a87",
+  "base_prereg_sha256": "8159d090b4b0161a26fff91cbe02d7b22f8336fcd2e914a337934f6be0cca809",
+  "b2_rows_sha256": "d2c4a7f5751441af9b94cdc1f54f165150e259a08298830b3fe4e0454fc356b8"
+ },
+ "b2_defaults_v0217": {
+  "adapt_every": 4,
+  "adapt_swaps": 96,
+  "adapt_decay": 0.7,
+  "adapt_min_gain": 1.5,
+  "source": "engine/src/program/generate.cpp:1037-1073 at v0.2.17; STRATA_SPEC_ADAPT_EVERY warm-up is opt-in on sm_86 only (nv_defaults.cpp:242), so not active here"
+ },
+ "stored_b2_first40": {
+  "source": "upgrade_gate.same_task_figures over arms/b2, first 40 prereg tasks, 121 engine requests, 0 unaligned attempts",
+  "e2e_tok_s": 130.6,
+  "ms_win": 14.55,
+  "reach_ms": 8.15,
+  "cpu_entries": 1.26,
+  "swaps_per_window": 12.96,
+  "tok_win": 1.97,
+  "accept": 0.678,
+  "ms_win_lt4k": 13.907,
+  "ms_win_4k_32k": 24.613
+ },
+ "profile_snapshot": {
+  "path": "/data/strata-data/upgrade-gate/b2-adapt-20261123/profile-b2arm-learned.bin",
+  "sha256": "891d7c75eb3d461353eacba9a5eee16f25e1946f2aa3da2cebd82d82e440e95b",
+  "source": "arms/b2/expert-profile-learned.bin, written at the exit of the stored b2 arm (all 305 tasks, 2026-11-20)",
+  "why_not_production": "production data/expert-profile-iq3xxs-learned.bin is byte-identical to the static profile (sha 8f59b4aa...): its only save came before the first Pi request, and systemd stop (KillMode=control-group) ends the engine before its exit save",
+  "bias": "in-sample: the 40 smoke tasks are among the 305 it learned from, so this arm is an optimistic upper bound; it can close the direction, never adopt a profile"
+ },
+ "arms": [
+  {
+   "id": "C0",
+   "arm": "b2-control",
+   "args": [],
+   "why": "same-session control; its distance from the stored b2 arm is the A-A noise"
+  },
+  {
+   "id": "A1",
+   "arm": "b2-adaptevery2",
+   "args": [
+    "adapt-every=2"
+   ],
+   "why": "swap rounds twice as often (swaps cap and decay unchanged): more copies"
+  },
+  {
+   "id": "A2",
+   "arm": "b2-adaptdecay092",
+   "args": [
+    "adapt-decay=0.92"
+   ],
+   "why": "longer routing memory at the same copy rate: better choices, not more copies"
+  },
+  {
+   "id": "P1",
+   "arm": "b2-expertprofileprofileb2armlearned",
+   "args": [
+    "expert-profile=/data/strata-data/upgrade-gate/b2-adapt-20261123/profile-b2arm-learned.bin"
+   ],
+   "why": "start placement learned on this workload (upper bound)"
+  }
+ ],
+ "conditional_arm": {
+  "id": "A12",
+  "arm": "b2-adaptevery2-adaptdecay092",
+  "args": [
+   "adapt-every=2",
+   "adapt-decay=0.92"
+  ],
+  "run_only_if": "A1 and A2 are both valid, neither passes, and each improves primary by >= 2% over C0"
+ },
+ "order": [
+  "C0",
+  "A1",
+  "A2",
+  "P1",
+  "A12 (if its condition holds)"
+ ],
+ "commands": {
+  "C0": "cd /data/strata-data/upgrade-gate && /home/hhtele/anaconda3/bin/python -B upgrade_gate.py probe b2-adapt-20261123 --limit 40",
+  "A1": "cd /data/strata-data/upgrade-gate && /home/hhtele/anaconda3/bin/python -B upgrade_gate.py probe b2-adapt-20261123 --limit 40 --arg adapt-every=2",
+  "A2": "cd /data/strata-data/upgrade-gate && /home/hhtele/anaconda3/bin/python -B upgrade_gate.py probe b2-adapt-20261123 --limit 40 --arg adapt-decay=0.92",
+  "P1": "cd /data/strata-data/upgrade-gate && /home/hhtele/anaconda3/bin/python -B upgrade_gate.py probe b2-adapt-20261123 --limit 40 --arg expert-profile=/data/strata-data/upgrade-gate/b2-adapt-20261123/profile-b2arm-learned.bin",
+  "A12": "cd /data/strata-data/upgrade-gate && /home/hhtele/anaconda3/bin/python -B upgrade_gate.py probe b2-adapt-20261123 --limit 40 --arg adapt-every=2 --arg adapt-decay=0.92"
+ },
+ "metrics": {
+  "primary": "per_window_same_tasks['smoke:<arm>']['all']['ms_win'] in SMOKE-<arm>.json: decode ms per verify window, weighted by windows, over all requests of the 40 tasks (not prodlog's per-request median)",
+  "secondary": [
+   "speed_same_tasks smoke e2e tok/s",
+   "ms_win by prompt bucket <4K and 4K-32K",
+   "reach_ms, cpu_ms, cpu_entries, swaps, adapt_join, overlap_wait_ms_per_window (mechanism)"
+  ],
+  "text_check": "tok_win and accept (depend on the text, not on placement)"
+ },
+ "rules": {
+  "aa": "AA = |ms_win(C0) - 14.55| / 14.55",
+  "stop_env": "C0 primary or e2e more than 5% from the stored b2 first-40 figures: STOP_ENV, run no other arm, find the cause",
+  "pass": "arm primary <= C0 primary x (1 - max(4%, 2 x AA)) AND arm e2e tok/s > C0 e2e tok/s AND |tok_win(arm) / tok_win(C0) - 1| <= 5%",
+  "inconclusive": "tok_win check fails: INCONCLUSIVE (text confound), not a pass",
+  "validity": {
+   "A1": "swaps per window >= 1.5 x C0, else the flag did not act: INVALID",
+   "A2": "the engine starts and no adapt-decay warning in engine.log (generate.cpp:3980 parses it; it is not in --help)",
+   "P1": "engine.log names the snapshot path in its profile line",
+   "all": "no errors in rows, no guard; one rerun at most for an infrastructure failure"
+  },
+  "quality": "smoke pass counts are recorded, not judged (40 tasks cannot test non-inferiority)",
+  "outcome_adaptive": "the best passing adaptive arm (A1, A2 or A12) goes to stage 2; none passing: adaptive-tier settings on B2 are NO_GAIN, no further values are swept",
+  "outcome_profile": "P1 not passing: start-profile tuning is NO_HEADROOM for this workload (upper bound); P1 passing: not adoptable, the next step is an out-of-sample profile from real traffic, which needs a production config change"
+ },
+ "stage2": {
+  "what": "the chosen arm as a full arm: the same probe command without --limit (305 tasks, about 2 h of production stop)",
+  "decide": "quality_gate NONINFERIORITY_ESTABLISHED (margin 5%, paired with stored b2) and full-arm decode tok/s (prodlog) >= +4% over b2",
+  "then": "a production config change, only with the user's confirmation, backup and rollback"
+ },
+ "kl": "not run: quant_quality pins --expert-cache 1 and --adapt-every 100000 (FIXED in terminal/tools/quant_quality.py), so it cannot see placement or adaptive-tier changes; these change which expert rows run on GPU or CPU, which production already varies run to run",
+ "budget": {
+  "per_arm_min": "35-40 (v0.2.20 smoke: 39 min of production stop)",
+  "total": "about 2.5 h for C0-P1, plus 40 min for A12",
+  "window": "Pi idle; production comes back between arms"
+ },
+ "standing_rules": [
+  "STRATA_STAGE_PIN and STRATA_ROUTE_RESIDENT never enabled (the tool refuses them)",
+  "no writes to the production tree or /home/hhtele/strata-0.1.43.1",
+  "production stop/start only through the NOPASSWD unit rule",
+  "failed runs are kept"
+ ]
+}
