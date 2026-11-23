@@ -65,3 +65,4 @@
 - 配置取舍（[结论](../../strata_4090_128k_lab/reports/V0217-PT-THINKING-20261120.md)）：尾部跳过保持 rank 7；thinking 保持 PT0，因为 PT1 虽能免去每条新用户消息后的重读（Pi 式负载中约占 11% 时间），但在真实 Pi 历史上会让 prompt 变大 10 倍。
 - 后续任何版本或开关变更按两层门判定：先过 teacher-forced KL（数值级），再过任务级配对门（每臂约 2 小时）。tok/s 只作辅助，与 §5 一致。版本升级的流程已脚本化为 [upgrade_gate.py](../../strata_4090_128k_lab/tools/upgrade_gate/README.md)，并已用 v0.2.17 自身自检。
 - v0.2.19（engine 0.1.65）已按此流程评估：任务质量非劣，但它新增的 sm_89 默认开关会让 decode 慢 13%；关掉 `VERIFY_DEVICE_HITS` 后也只是持平。因此不升级，基线仍为 B2，见 [V0219-UPGRADE-GATE](../../strata_4090_128k_lab/reports/V0219-UPGRADE-GATE-20261122.md)。
+- v0.2.20（engine 0.1.66）只做了 40 题测速：采样对齐后慢 9.9%，不进完整门，见 [V0220-UPGRADE-GATE](../../strata_4090_128k_lab/reports/V0220-UPGRADE-GATE-20261123.md)。这一轮补充一条评估方法：tok/s 除了受文本轨迹影响（§5），还会受服务端采样默认值影响。上游 #6536 把不带采样参数的 MTP 请求改成 greedy，草稿接受率随之上升，单看 tok/s 会误判为加速。版本对照必须核对接受率和 `/props` 中的默认采样参数。

@@ -12,6 +12,7 @@
 - 2026-11-20 [C01 离线反事实](reports/V0217-C01-OFFLINE-20261120.md)：在 Pi 式会话上，8-gram 二级索引按 oracle 上界只省 0.19% 的窗口，判 NO_HEADROOM，C01 关闭。
 - 2026-11-20 [任务级配对质量门](reports/V0217-AGENT-GATE-20261120.md)：exercism/python 141 题加 HumanEval 164 题，预登记 margin 5%。尾部跳过 rank 7 对精确路由非劣性成立：最终通过 296 对 292，损害上界 1.62%；同一负载下 decode 快 1.16 倍。这是第一套可用的正式任务级门。
 - 2026-11-20 [两个配置取舍](reports/V0217-PT-THINKING-20261120.md)：保持 rank 7；保持 PT0（PT1 虽免去重读，但在真实 Pi 历史上会让 prompt 变大 10 倍）。
+- 2026-11-23 [v0.2.20 升级评估](reports/V0220-UPGRADE-GATE-20261123.md)：做了 prepare 加 40 题测速。初测快 4.4%，是上游 #6536 把请求改成 greedy、草稿接受率变高造成的；采样对齐后慢 9.9%，主要是 GPU-reach 上升 7%–17%，所以不进完整门、不升级。
 - 2026-11-22 [v0.2.19 升级评估与真实 Pi 流量](reports/V0219-UPGRADE-GATE-20261122.md)：v0.2.19 任务质量非劣，但新的 sm_89 默认开关 `VERIFY_DEVICE_HITS` 关掉了 PCIe 分担和自适应 overlap，decode 慢 13%；关掉它后只是与 B2 持平，所以不升级。真实 Pi 63 个请求：复用率 97%，读入占 20%，没有出现 PT0 重读。
 - 2026-11-21 [新版本一键过门](tools/upgrade_gate/README.md)：上游新版本发布后一条命令完成取源码、打补丁、编译、KL 门和任务级门（只跑新版本一臂，约 2 小时），不自动切换生产。已用 v0.2.17 自检：重新编译的引擎与生产在数值上完全相同（KL=0）。
 - [v0.2.10 PT0 与三组版本配对](reports/V0210-PT0-VERSION-COMPARISON-20261104.md)完成。保留 Qwen Next v0.2.3，暂不移植 #1536。冷读首字延迟中位改善 2.7%，同输入暖态生成速度下降 14.5%。两版两轮任务均为 0/3。生产已恢复，NGINX 冒烟通过。
@@ -69,7 +70,7 @@
 | DFlash2方案与资格结果 | [DF01完整方案](plans/DF01_DFLASH2_TEST_PLAN.md)、[D0B实际回执](reports/DF01-D0B-CPU-READY-20261102.md)、[原D0回执](reports/DF01-D0-PREPARATION-20261102.md)、[第一方来源核查](reports/DFLASH2-SOURCE-REVIEW-20261031.md)、[D1失败回执](reports/DF01-D1-QUALIFICATION-20261102.md)、[D1C CPU审计](reports/DF01-D1C-CPU-ORACLE-AUDIT-20261102.md)、[D1R实际诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)、[D1L首个算子修复](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)、[D1M CPU参考收口](reports/DF01-D1M-CPU-REFERENCE-CLOSURE-20261102.md)、[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)、[D1O CPU审计](reports/DF01-D1O-N2048-CPU-AUDIT-20261102.md)、[D1P合同复核](reports/DF01-D1P-EXACT-MATCH-CONTRACT-20261102.md)、[后续v2合同](plans/DF01_D1_EXACT_MATCH_V2.md)、[D1Q适配回执](reports/DF01-D1Q-V2-ADAPTER-20261102.md)、[D1S执行回执](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)、[D1T停止回执](reports/DF01-D1T-FINAL-CPU-STOP-20261102.md)；旧FAIL保持，完整D1未完成，不进入D2 |
 | 本次合并依据、现场证据、验证 | [合并记录](reports/DOC-MERGE-20261030.md) |
 | 后续研究及候选合同 | [frontier](frontier/README.md)、[研究报告](frontier/REPORT.md) |
-| 最新完成的 GPU 工作 | [v0.2.19 升级评估](reports/V0219-UPGRADE-GATE-20261122.md)（不升级） |
+| 最新完成的 GPU 工作 | [v0.2.20 升级评估](reports/V0220-UPGRADE-GATE-20261123.md)（40 题测速，不升级） |
 | 历史 GPU 工作 | [D1U n2300 捕获](reports/DF01-D1U-N2300-CAUSAL-STOP-20261103.md)；[D1S v2执行失败收口](reports/DF01-D1S-V2-QUALIFICATION-20261102.md)；[D1N补验失败收口](reports/DF01-D1N-REMAINING-QUALIFICATION-20261102.md)；[D1L逐层诊断](reports/DF01-D1L-LAYER-ROOT-CAUSE-20261102.md)；[D1R单组失败诊断](reports/DF01-D1R-SINGLE-FIXTURE-20261102.md)；原[D1首门失败收口](reports/DF01-D1-QUALIFICATION-20261102.md)；原[P01B](reports/P01B-PI-WARM-DIAGNOSTIC-20261031.md)保留 |
 | 历史采用与质量边界 | [关闭台账](frontier/docs/01_EVIDENCE_AND_CLOSURES.md)、[P3](reports/P3-COMBINATION-KVRES-20261027.md)、[P24](reports/P24-HC-PAIRED-PERFORMANCE-20261029.md) |
 | 历史部署 | [A0/EXACT6](reports/DEPLOY-A0-EXACT6-20261025.md)、[reply/PT/prefill](reports/DEPLOY-PROD-20261026.md)、[KVRES](reports/DEPLOY-KVRES-20261026.md) |
