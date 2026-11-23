@@ -15,7 +15,7 @@
 1. 真实 Pi 使用一段时间后，在 4090 上运行 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐、按长度分桶的 decode 和引擎 swap。第一批（11-20 至 11-21，63 个请求）见 [v0.2.19 报告](../reports/V0219-UPGRADE-GATE-20261122.md)：读入占 20%，没有出现 PT0 重读，内存稳定。
 2. 上游发布新版本后，在 4090 上运行 [新版本一键过门](../tools/upgrade_gate/README.md) 的 `upgrade_gate.py all <tag>`：依次取源码、打补丁、编译、组装新树，过 KL 门（停机约 2 分钟），再过任务级门（只跑新版本一臂，以存档的 b2 臂为基线，停机约 2 小时）。全部通过后才用 `switch <tag> --yes` 切换，切换失败会自动回滚。2026-11-21 已用 v0.2.17 自身完成自检。2026-11-22 [评估 v0.2.19](../reports/V0219-UPGRADE-GATE-20261122.md)：质量非劣，但默认配置 decode 慢 13%，关掉 `VERIFY_DEVICE_HITS` 后也只是持平，所以不升级；`/home/hhtele/strata-0.2.19` 保留备用。2026-11-23 [评估 v0.2.20](../reports/V0220-UPGRADE-GATE-20261123.md)，只做 prepare 加 40 题测速：采样对齐后慢 9.9%，不进完整门，不升级。上游 #6536 会把不带采样参数的请求改成 greedy；以后升级时，配置 `env` 里要设 `STRATA_MTP_GREEDY_DEFAULT=0`（v0220 补丁提供），或者单独评估 greedy 的影响。开关变更仍按同样两层门手工执行。
 3. 可选（需要 root 写权限）：用 drop-in 把 unit 的 Description、WorkingDirectory 和日志路径改到新树。
-4. 不换版本、不加内存的方向：已[预登记 B2 自适应专家层与起点 profile 探针](B2_ADAPT_PROBE_20261123.md)（2026-11-23，未运行）。在 Pi 空闲时用 `upgrade_gate.py probe` 跑 4 个 40 题臂，停生产约 2.5 小时；判定规则已冻结。预登记时发现生产从未保存过真实流量学到的 profile（与静态 profile 逐字节相同），所以 profile 臂只能做样本内上界。
+4. 不换版本、不加内存的方向：[B2 自适应专家层与起点 profile 探针](B2_ADAPT_PROBE_20261123.md)已在 2026-11-23 跑完（4 个 40 题臂，停生产 2 小时 27 分）。`--adapt-every 2`、`--adapt-decay 0.92` 和 b2 臂学到的 profile 每窗口最多只快 0.2%，过门线是 4%：自适应参数判 NO_GAIN，起点 profile 判 NO_HEADROOM，生产配置不变。这只对门题集（prompt 全部 <32K）成立。真实 Pi 请求大多 ≥32K；`--adapt-every 2` 在 4K–32K 段快了约 10%，但样本小、是事后分段。要重开需要长上下文工作负载和新预登记。
 
 数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
 
