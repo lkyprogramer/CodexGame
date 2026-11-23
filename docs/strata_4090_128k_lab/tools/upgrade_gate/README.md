@@ -67,10 +67,16 @@ setsid nohup /home/hhtele/anaconda3/bin/python -B upgrade_gate.py all v0.2.18 > 
   - 补丁手工移植，并加了 CUDA 12.3 编译修复。
   - 生产在线时 `-j 8` 会触发内存守卫，要用 `-j 4`。
   - 判定：KL 为 PROCEED，任务门非劣，但 decode 慢 13%，结论是不升级。
+- **2026-11-23 v0.2.20**（[报告](../../reports/V0220-UPGRADE-GATE-20261123.md)）：
+  - 只做了 prepare 和 40 题测速（`gate v0.2.20 --limit 40 --env STRATA_VERIFY_DEVICE_HITS=0 --env STRATA_ADAPT_LAG=1 --env STRATA_MTP_GREEDY_DEFAULT=0`）。
+  - 采样对齐后慢 9.9%，未达 +4% 的门槛，不进入 KL 门和任务门。
+  - [v0220 补丁](../../patches/v0220-pt0-reply-reuse.patch) 把 CUDA 12.3 的占位修复扩到 9 种格式，并新增开关 `STRATA_MTP_GREEDY_DEFAULT=0`。
 
 ## 已知局限
 
 - **补丁冲突需要人工**：上游改了 `frontend.py` / `server.py` / `strata_tokenizer.py` 的上下文时，dry-run 会失败，需要手工移植补丁，再更新 `pt0-reply-reuse.patch`。
 - **flag 检查只给警告**：引擎 `--help` 本来就不列 `--vram-reserve-mib` 和 `--conversation-spill-mib`。新版本如果删掉了某个 flag，要到 `kl` 阶段引擎启动失败时才会暴露。
 - **KL 门只覆盖一种配置**：生产配置下的 rank 7 加 auto 放置。新版本的变化如果只出现在长上下文、prefill 或会话缓存路径上，KL 门看不到；任务门也只覆盖 32K 以内的单题会话。必要时补一次 [Pi 式负载模拟](../../reports/V0217-PISIM-20261120.md)。
+- **测速对比默认双方采样一致**：`--limit` 的同题速度对比，前提是两臂收到的采样参数相同。v0.2.20 的 #6536 让 MTP 模型在请求不带采样参数时改走 greedy，草稿接受率随之上升，40 题测得的 +4.4% 其实是采样变化造成的。看新版本的测速时，要用 prodlog 核对各段接受率是否与 b2 相近，并在测速服务起来后读 `/props`（端口 18089）里的默认采样参数。
+- **`--env` 只到达引擎**：冻结的 gate 驱动把 `--env` 写进配置的 `env` 块，只传给引擎进程，Python 服务进程看不到。服务端开关要从引擎的启动环境读，v0220 补丁中的 `mtp_greedy_default()` 就是这么做的。
 - **python 不随版本更新**：新树的 python 是从当前生产树复制的。新版本如果新增 Python 依赖，prepare 的 serve `--help` 检查会把它拦下。

@@ -1,0 +1,6 @@
+2026-11-22 22:25 EST, gate arm v0220-adapt_lag1-mtp_greedy_default0-verify_device_hits0 up on 127.0.0.1:18089
+GET /props -> default_generation_settings.params:
+{'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'n_predict': -1}
+(the model card's thinking sampling, as v0.2.17 applies it; attempt 2 put the switch only in the server process's own
+environment, which the frozen gate driver does not pass - /proc/<server pid>/environ had no STRATA_MTP_GREEDY_DEFAULT -
+so it was stopped after 1 task and the switch now also reads the engine's start environment, the config "env" block)
