@@ -8,6 +8,9 @@
     upgrade_gate.py probe LABEL [--limit N]          an arm of the production tree itself with other --env/--arg, against the
                                                      stored b2 arm (no new release, no KL phase); results in LABEL/
       gate and probe take --env K=V and --arg FLAG[=VALUE] (repeatable): extra engine env, extra or replaced engine CLI args
+    upgrade_gate.py replay LABEL --build | --freeze | --run NAME [--rerun] | --eval
+                                                     fixed-history replay of a long Pi-shaped session on the production tree,
+                                                     runs and rules from LABEL/PREREG.json (stops production per run)
     upgrade_gate.py report TAG
     upgrade_gate.py all TAG [-j N]                   prepare -> kl -> gate (only when kl says PROCEED) -> report
     upgrade_gate.py switch TAG --yes [--force]       hand production over to the new tree; rolls back by itself if health fails
@@ -460,6 +463,14 @@ def probe(label, force=False, limit=None, extra_env=None, arg_specs=None):
     arm: a smoke with --limit, else a full task-gate arm.  No KL phase: quant_quality's yardstick pins the expert placement
     (--expert-cache 1, --adapt-every 100000), so it cannot see placement or adaptive-tier changes; other changes need their
     own numerical check first."""
+    tree, cur = b2_production_tree(force)
+    if not limit and not extra_env and not arg_specs: raise Stop('a full arm without changes would be b2 again')
+    ident = dict(engine_sha256=sha(cur['exe']), patched_files=None, config_sha256=sha(tree / 'strata-iq3_xxs.json'), kl_verdict='NOT_RUN (probe)')
+    return run_arm(label, tree, BASE_ARM, ident, True, limit, extra_env, arg_specs)
+
+
+def b2_production_tree(force=False):
+    """The production tree and its config, refusing unless both are what the stored b2 arm ran (--force overrides)."""
     tree = cur_tree(); b2c = json.loads((GD / 'arms' / BASE_ARM / 'config.json').read_text())
     if Path(b2c['cwd']) != tree: raise Stop('production runs %s, not the tree of the stored b2 arm (%s)' % (tree, b2c['cwd']))
     cur = json.loads((tree / 'strata-iq3_xxs.json').read_text())
@@ -468,20 +479,13 @@ def probe(label, force=False, limit=None, extra_env=None, arg_specs=None):
         for k in ('port', 'log', 'slot_save_path'): c.pop(k, None)
         return c
     if norm(cur) != norm(b2c) and not force: raise Stop('the production config is not the one the stored b2 arm ran, so its arms would not pair with b2 (--force overrides)')
-    if not limit and not extra_env and not arg_specs: raise Stop('a full arm without changes would be b2 again')
-    ident = dict(engine_sha256=sha(cur['exe']), patched_files=None, config_sha256=sha(tree / 'strata-iq3_xxs.json'), kl_verdict='NOT_RUN (probe)')
-    return run_arm(label, tree, BASE_ARM, ident, True, limit, extra_env, arg_specs)
+    return tree, cur
 
 
-def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None):
-    """One task-gate arm of tree (a smoke with --limit) with extra engine env and CLI args; results under UG/wtag."""
-    extra_env = dict(extra_env or {}); bad = FORBIDDEN_ENV & set(extra_env)
-    if bad: raise Stop('%s are never enabled in this lab' % sorted(bad))
-    specs = parse_arg_specs(arg_specs); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
-    pre = json.loads((GD / 'PREREG.json').read_text())
-    suffix = arm_suffix(extra_env, specs); arm = base + suffix if suffix or base != BASE_ARM else BASE_ARM + '-control'
-    sys.path.insert(0, str(GD)); import gate17
-    run_cfg = tree / 'strata-iq3_xxs.json'; not_in_help = []; args_doc = [[f, v] for f, v in specs]
+def arm_config(wtag, tree, arm, specs, gate17):
+    """Point gate17 at tree; with CLI arg specs, at a copy of its config with the args applied (UG/wtag/configs/).
+    Returns (the config the arm runs, flags the engine --help does not list)."""
+    run_cfg = tree / 'strata-iq3_xxs.json'; not_in_help = []
     if specs:
         cfg = json.loads(run_cfg.read_text()); cfg['args'] = apply_arg_specs(cfg['args'], specs)
         run_cfg = wdir(wtag) / 'configs' / (arm + '.strata-iq3_xxs.json'); run_cfg.parent.mkdir(parents=True, exist_ok=True)
@@ -492,6 +496,19 @@ def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, ar
         nt = _ArmTree(tree); nt.config = run_cfg; gate17.N = nt
     else:
         gate17.N = tree
+    return run_cfg, not_in_help
+
+
+def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None):
+    """One task-gate arm of tree (a smoke with --limit) with extra engine env and CLI args; results under UG/wtag."""
+    extra_env = dict(extra_env or {}); bad = FORBIDDEN_ENV & set(extra_env)
+    if bad: raise Stop('%s are never enabled in this lab' % sorted(bad))
+    specs = parse_arg_specs(arg_specs); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
+    pre = json.loads((GD / 'PREREG.json').read_text())
+    suffix = arm_suffix(extra_env, specs); arm = base + suffix if suffix or base != BASE_ARM else BASE_ARM + '-control'
+    sys.path.insert(0, str(GD)); import gate17
+    args_doc = [[f, v] for f, v in specs]
+    run_cfg, not_in_help = arm_config(wtag, tree, arm, specs, gate17)
     if limit:                       # smoke: a private copy of the prereg, its own arm dir, no pairs/decision
         S = wdir(wtag) / 'smoke'; shutil.rmtree(S / 'arms' / arm, ignore_errors=True); S.mkdir(parents=True, exist_ok=True); shutil.copy2(GD / 'PREREG.json', S / 'PREREG.json'); gate17.GD = S
         orig = gate17.run_task; n = [0]
@@ -586,16 +603,206 @@ def switch(tag, yes=False, force=False):
     raise Stop('new tree did not become healthy; production rolled back to %s' % cur)
 
 
+# ---------------------------------------------------------------- long-context replay
+# A fixed-history replay of a Pi-shaped tool-loop session (plans/B2_ADAPT_LONG_20261123.md): the two pisim sessions of
+# 2026-11-20 stitched into one, one request before each assistant message carrying the recorded history (never the arm's
+# own replies), so every run sends byte-identical prompts.  Runs and verdict rules come from LABEL/PREREG.json.
+REPLAY_GE = 32768                   # primary: requests with prompt >= 32K
+
+
+def pisim_tools(text):
+    """TOOLS as pisim.py defines it, read without running the script."""
+    import ast
+    for n in ast.parse(text).body:
+        if isinstance(n, ast.Assign) and any(getattr(t, 'id', None) == 'TOOLS' for t in n.targets):
+            return ast.literal_eval(n.value)
+    raise Stop('pisim.py defines no TOOLS')
+
+
+def build_replay(a_msgs, b_msgs, tools, model, max_tokens, seed0):
+    """Session A, then session B without its system message; a cut before every assistant message."""
+    if not (a_msgs and b_msgs and a_msgs[0]['role'] == 'system' and b_msgs[0]['role'] == 'system'):
+        raise Stop('both sessions must start with their system message')
+    msgs = list(a_msgs) + list(b_msgs[1:])
+    cuts = [k for k, m in enumerate(msgs) if m['role'] == 'assistant']
+    return dict(model=model, tools=tools, max_tokens=max_tokens, seed0=seed0, messages=msgs, cuts=cuts)
+
+
+def replay_bodies(doc):
+    for i, k in enumerate(doc['cuts']):
+        yield dict(model=doc['model'], messages=doc['messages'][:k], tools=doc['tools'], max_tokens=doc['max_tokens'],
+                   stream=False, seed=doc['seed0'] + i)
+
+
+def started_args(log_path):
+    """The engine argv (without the binary) of the last 'engine started:' line of an engine log."""
+    line = None
+    with open(log_path, errors='replace') as f:
+        for l in f:
+            if 'engine started:' in l: line = l
+    return shlex.split(line.split('engine started:', 1)[1])[1:] if line else None
+
+
+def flags_ok(argv, specs, all_flags):
+    """Every flag of this run's specs is on the engine command line with its value; the other compared flags are not."""
+    if argv is None: return False
+    for flag, val in specs:
+        if flag not in argv or (val is not None and (argv.index(flag) + 1 >= len(argv) or argv[argv.index(flag) + 1] != val)): return False
+    return all(f not in argv for f in set(all_flags) - {f for f, _ in specs})
+
+
+def replay_verdict(runs, floor=0.04, noisy=0.05, text_tol=0.05):
+    """The preregistered ABBA verdict.  runs: C0a, L1a, L1b, C0b -> dict(ms_win, tok_win, decode_tok_s, valid) over the
+    requests with prompt >= 32K."""
+    names = ('C0a', 'L1a', 'L1b', 'C0b')
+    missing = [n for n in names if n not in runs]
+    if missing: return dict(verdict='INCOMPLETE', missing=missing)
+    bad = [n for n in names if not runs[n].get('valid')]
+    if bad: return dict(verdict='INVALID', invalid=bad)
+    mean = lambda k, *ns: sum(runs[n][k] for n in ns) / len(ns)
+    c, l = mean('ms_win', 'C0a', 'C0b'), mean('ms_win', 'L1a', 'L1b')
+    aa = abs(runs['C0a']['ms_win'] - runs['C0b']['ms_win']) / c
+    bar = max(floor, 2 * aa)
+    text = mean('tok_win', 'L1a', 'L1b') / mean('tok_win', 'C0a', 'C0b') - 1
+    checks = dict(faster_by_bar=l <= c * (1 - bar),
+                  both_l_below_both_c=max(runs['L1a']['ms_win'], runs['L1b']['ms_win']) < min(runs['C0a']['ms_win'], runs['C0b']['ms_win']),
+                  decode_tok_s_higher=mean('decode_tok_s', 'L1a', 'L1b') > mean('decode_tok_s', 'C0a', 'C0b'),
+                  tok_win_within=abs(text) <= text_tol)
+    out = dict(c0_ms_win=round(c, 3), l1_ms_win=round(l, 3), change=round(l / c - 1, 4), aa=round(aa, 4), bar=round(bar, 4),
+               tok_win_change=round(text, 4), checks=checks)
+    if aa > noisy: out['verdict'] = 'NOISY'
+    elif not checks['tok_win_within']: out['verdict'] = 'INCONCLUSIVE'
+    else: out['verdict'] = 'PASS' if all(checks.values()) else 'NO_PASS'
+    return out
+
+
+def replay_prereg(label):
+    pre = load(label, 'PREREG.json')
+    if not pre or 'workload' not in pre or 'runs' not in pre: raise Stop('%s has no replay preregistration' % wdir(label))
+    return pre
+
+
+def replay_build(label):
+    """Build LABEL/REPLAY.json from the preregistered pisim sessions (their sha256 must match); never changes it once built."""
+    pre = replay_prereg(label); src = pre['workload']['sources']
+    for p, h in src.items():
+        if sha(p) != h: raise Stop('%s changed since the preregistration' % p)
+    pick = lambda end: next(Path(p) for p in src if p.endswith(end))
+    doc = build_replay(json.loads(pick('session-A.json').read_text()), json.loads(pick('session-B.json').read_text()),
+                       pisim_tools(pick('pisim.py').read_text()), 'openclaw/Qwen3.8-next', 16384, 20261123)
+    text = json.dumps(doc, sort_keys=True) + '\n'
+    out = wdir(label) / 'REPLAY.json'
+    if out.exists() and out.read_text() != text: raise Stop('REPLAY.json exists and differs from a fresh build')
+    if not out.exists(): out.write_text(text)
+    info = dict(requests=len(doc['cuts']), messages=len(doc['messages']), sha256=sha(out),
+                session_a_requests=sum(m['role'] == 'assistant' for m in json.loads(pick('session-A.json').read_text())))
+    log('replay built', json.dumps(info)); return info
+
+
+def replay_freeze(label):
+    """ADDENDUM.json (read-only): the sha256 of this script and of REPLAY.json, fixed before the first run."""
+    W = wdir(label); add = W / 'ADDENDUM.json'
+    if add.exists(): raise Stop('ADDENDUM.json exists already')
+    if not (W / 'REPLAY.json').exists(): raise Stop('build REPLAY.json first')
+    doc = dict(label=label, frozen_at=time.strftime('%Y-%m-%d %H:%M:%S'), upgrade_gate_sha256=sha(Path(__file__).resolve()),
+               replay_sha256=sha(W / 'REPLAY.json'), prereg_sha256=sha(W / 'PREREG.json'),
+               requests=len(json.loads((W / 'REPLAY.json').read_text())['cuts']))
+    add.write_text(json.dumps(doc, indent=1) + '\n'); os.chmod(add, 0o444); log('frozen', json.dumps(doc)); return doc
+
+
+def replay_check_frozen(label):
+    W = wdir(label); add = load(label, 'ADDENDUM.json')
+    if not add: raise Stop('freeze the replay first (ADDENDUM.json)')
+    if sha(Path(__file__).resolve()) != add['upgrade_gate_sha256']: raise Stop('upgrade_gate.py changed after the freeze')
+    if sha(W / 'REPLAY.json') != add['replay_sha256'] or sha(W / 'PREREG.json') != add['prereg_sha256']: raise Stop('REPLAY.json or PREREG.json changed after the freeze')
+    return add
+
+
+def replay_run(label, name, force=False, rerun=False):
+    """One preregistered run: a fresh engine of the production tree (production stopped) with that run's CLI args, the
+    whole replay in order, then the engine's own figures over the requests with prompt >= 32K."""
+    pre = replay_prereg(label); replay_check_frozen(label)
+    spec = next((r for r in pre['runs'] if r['run'] == name), None)
+    if not spec: raise Stop('run %r is not preregistered (%s)' % (name, [r['run'] for r in pre['runs']]))
+    all_flags = {f for r in pre['runs'] for f, _ in parse_arg_specs(r['args'])}
+    specs = parse_arg_specs(spec['args']); arm = spec['arm']
+    tree, cur = b2_production_tree(force)
+    sys.path.insert(0, str(GD)); import gate17
+    run_cfg, not_in_help = arm_config(label, tree, arm, specs, gate17)
+    W = wdir(label); ad = W / 'runs' / name
+    if ad.exists():
+        if not rerun: raise Stop('%s exists (a rerun keeps it as %s.failed1)' % (ad, name))
+        kept = ad.with_name(name + '.failed1')
+        if kept.exists(): raise Stop('one rerun at most: %s exists' % kept)
+        ad.rename(kept); log('kept the failed run as', kept)
+    ad.mkdir(parents=True)
+    doc = json.loads((W / 'REPLAY.json').read_text()); bodies = list(replay_bodies(doc))
+    env = dict(STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP); rows = []; guard = []; err = None
+    with production_stopped():
+        p = gate17.start_server(ad, env); stop = threading.Event()
+        def mon():
+            while not stop.wait(5):
+                s = snapshot()
+                if s['avail_mib'] < GUARD_AVAIL_MIB or s['temp'] >= GUARD_TEMP:
+                    guard.append(s); log('GUARD', s); stop.set(); os.killpg(p.pid, signal.SIGTERM)
+        th = threading.Thread(target=mon, daemon=True); th.start()
+        try:
+            for i, body in enumerate(bodies):
+                if stop.is_set(): err = 'guard'; break
+                t0 = time.monotonic()
+                try:
+                    with urlopen(Request(gate17.URL + '/v1/chat/completions', json.dumps(body).encode(), {'Content-Type': 'application/json'}), timeout=1800) as f:
+                        r = json.loads(f.read())
+                    u = r.get('usage') or {}; ch = (r.get('choices') or [{}])[0]
+                    row = dict(i=i, prompt_tokens=u.get('prompt_tokens'), completion_tokens=u.get('completion_tokens'),
+                               finish=ch.get('finish_reason'), wall_s=round(time.monotonic() - t0, 2))
+                except Exception as e:
+                    row = dict(i=i, error='%s: %s' % (type(e).__name__, e), wall_s=round(time.monotonic() - t0, 2))
+                rows.append(row)
+                with open(ad / 'rows.jsonl', 'a') as f: f.write(json.dumps(row) + '\n')
+                log(name, i, row.get('prompt_tokens'), row.get('completion_tokens'), row.get('finish'), row['wall_s'], row.get('error') or '')
+                if 'error' in row: err = row['error']; break
+        finally:
+            stop.set(); gate17.stop_server(p); log('RUN_END', name, 'guard' if guard else err or '')
+    reqs, waited = engine_requests(ad / 'engine.log')
+    argv = started_args(ad / 'engine.log')
+    aligned = len(reqs) == len(rows) == len(bodies) and all(r.get('prompt_tokens') is not None and abs(q['prompt'] - r['prompt_tokens']) <= 64 for q, r in zip(reqs, rows))
+    checks = dict(all_requests_ok=not err and len(rows) == len(bodies), engine_requests=len(reqs), aligned=aligned,
+                  flags_ok=flags_ok(argv, specs, all_flags), no_guard=not guard)
+    st = window_stats(reqs); ge = window_stats([q for q in reqs if q['prompt'] >= REPLAY_GE])['all']
+    if st['all']['windows']: st['all']['overlap_wait_ms_per_window'] = round(waited / st['all']['windows'], 3)
+    out = dict(label=label, run=name, arm=arm, args=[[f, v] for f, v in specs], flags_not_in_help=not_in_help, config=str(run_cfg),
+               config_sha256=sha(run_cfg), engine_sha256=sha(cur['exe']), started_args=argv, error=err, guard=guard,
+               checks=checks, valid=all(v for k, v in checks.items() if k != 'engine_requests'), ge32k=ge, buckets=st,
+               generated=sum(r.get('completion_tokens') or 0 for r in rows), wall_s=round(sum(r['wall_s'] for r in rows), 1))
+    log('run', name, 'valid' if out['valid'] else 'INVALID', json.dumps(dict(checks=checks, ge32k=ge)))
+    return save(label, 'RUN-%s.json' % name, out)
+
+
+def replay_eval(label):
+    pre = replay_prereg(label); runs = {}
+    for r in pre['runs']:
+        d = load(label, 'RUN-%s.json' % r['run'])
+        if d: runs[r['run']] = dict(valid=d['valid'], **{k: d['ge32k'][k] for k in ('ms_win', 'tok_win', 'decode_tok_s')})
+    v = replay_verdict(runs); v['runs'] = runs; log('verdict', json.dumps(v)); return save(label, 'VERDICT.json', v)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'probe', 'report', 'all', 'switch']); ap.add_argument('tag', help='release tag, or a run label for probe')
+    ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'probe', 'replay', 'report', 'all', 'switch']); ap.add_argument('tag', help='release tag, or a run label for probe')
     ap.add_argument('--tree'); ap.add_argument('-j', type=int, default=8); ap.add_argument('--repeat', action='store_true')
     ap.add_argument('--force', action='store_true'); ap.add_argument('--limit', type=int); ap.add_argument('--yes', action='store_true')
     ap.add_argument('--env', action='append', default=[], help='extra engine env for the gate arm, K=V (repeatable; names the arm)')
     ap.add_argument('--arg', action='append', default=[], metavar='FLAG[=VALUE]',
                     help='engine CLI arg for the gate/probe arm, e.g. adapt-every=2: replaces the value of a flag the config has, else is appended (repeatable; names the arm)')
+    ap.add_argument('--build', action='store_true', help='replay: build LABEL/REPLAY.json from the preregistered sessions')
+    ap.add_argument('--freeze', action='store_true', help='replay: write the read-only ADDENDUM.json (sha256 of this script and REPLAY.json)')
+    ap.add_argument('--run', metavar='NAME', help='replay: one preregistered run (its args come from LABEL/PREREG.json)')
+    ap.add_argument('--rerun', action='store_true', help='replay --run: once, after an infrastructure failure; the failed run is kept')
+    ap.add_argument('--eval', action='store_true', help='replay: the preregistered verdict over the runs so far (VERDICT.json)')
     a = ap.parse_args()
-    if a.cmd == 'probe':
+    if a.cmd == 'replay' and (a.env or a.arg or a.limit): raise SystemExit('replay takes its args from the preregistration, not --env/--arg/--limit')
+    if a.cmd in ('probe', 'replay'):
         if not re.fullmatch(r'[a-z][-.\w]*', a.tag) or re.match(r'v\d', a.tag): raise SystemExit('probe label looks wrong (lower-case, not a tag): %r' % a.tag)
     elif not re.fullmatch(r'v\d+\.\d+\.\d+[-.\w]*', a.tag): raise SystemExit('tag looks wrong: %r' % a.tag)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))     # turn SIGTERM into SystemExit so finally blocks restore production
@@ -610,6 +817,12 @@ def main():
         elif a.cmd == 'kl': kl(a.tag, a.repeat)
         elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg)
         elif a.cmd == 'probe': probe(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg)
+        elif a.cmd == 'replay':
+            if a.build: replay_build(a.tag)
+            if a.freeze: replay_freeze(a.tag)
+            if a.run: replay_run(a.tag, a.run, a.force, a.rerun)
+            if a.eval: replay_eval(a.tag)
+            if not (a.build or a.freeze or a.run or a.eval): raise SystemExit('replay needs --build, --freeze, --run NAME or --eval')
         elif a.cmd == 'report': report(a.tag)
         elif a.cmd == 'switch': switch(a.tag, a.yes, a.force)
         elif a.cmd == 'all':

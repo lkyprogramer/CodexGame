@@ -1,4 +1,5 @@
-"""CPU-only checks of upgrade_gate.py's arm helpers (--arg, the config stand-in, per-window figures); no GPU, no 4090 paths.
+"""CPU-only checks of upgrade_gate.py's arm helpers (--arg, the config stand-in, per-window figures, the long-context
+replay and its verdict); no GPU, no 4090 paths.
 
     python3 -B -m unittest test_upgrade_gate      (from this directory)
 """
@@ -86,6 +87,58 @@ class PerWindow(unittest.TestCase):
         self.assertEqual(st['4K-32K']['reach'], 8.26)
         self.assertEqual(st['all']['accept'], round((2048 + 239 + 1000) / (3048 + 281 + 1500), 3))
         self.assertEqual(st['>=64K'], dict(requests=0, windows=0, **{k: None for k in ug.DT_FIELDS}, generated=0, decode_tok_s=None, accept=None))
+
+
+class Replay(unittest.TestCase):
+    def test_pisim_tools(self):
+        src = "import os\nTOOLS = [\n {'type': 'function', 'function': {'name': 'read'}},\n]\ndef f(): pass\n"
+        self.assertEqual(ug.pisim_tools(src), [{'type': 'function', 'function': {'name': 'read'}}])
+        with self.assertRaises(ug.Stop): ug.pisim_tools('X = 1\n')
+
+    def test_build_and_bodies(self):
+        A = [dict(role='system', content='sa'), dict(role='user', content='u1'), dict(role='assistant', content='a1', tool_calls=[1]),
+             dict(role='tool', content='t1'), dict(role='assistant', content='a2')]
+        B = [dict(role='system', content='sb'), dict(role='user', content='u2'), dict(role='assistant', content='b1')]
+        doc = ug.build_replay(A, B, ['T'], 'm', 16384, 100)
+        self.assertEqual([m['content'] for m in doc['messages']], ['sa', 'u1', 'a1', 't1', 'a2', 'u2', 'b1'])   # B's system dropped
+        self.assertEqual(doc['cuts'], [2, 4, 6])
+        bodies = list(ug.replay_bodies(doc))
+        self.assertEqual([len(b['messages']) for b in bodies], [2, 4, 6])
+        self.assertEqual([b['seed'] for b in bodies], [100, 101, 102])
+        self.assertEqual(bodies[2]['messages'][-1], dict(role='user', content='u2'))   # recorded history, ends before b1
+        self.assertTrue(all(b['tools'] == ['T'] and b['max_tokens'] == 16384 and b['stream'] is False for b in bodies))
+        with self.assertRaises(ug.Stop): ug.build_replay(A[1:], B, [], 'm', 1, 0)
+
+    def test_started_args_and_flags(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'engine.log'
+            p.write_text('[strata] 2026-11-23 engine started: /x/strata --serve --spec 4 --adapt-every 2\nother\n')
+            argv = ug.started_args(p)
+        self.assertEqual(argv, ['--serve', '--spec', '4', '--adapt-every', '2'])
+        flags = {'--adapt-every'}
+        self.assertTrue(ug.flags_ok(argv, [('--adapt-every', '2')], flags))
+        self.assertFalse(ug.flags_ok(argv, [('--adapt-every', '4')], flags))
+        self.assertFalse(ug.flags_ok(argv, [], flags))                       # a control run must not carry it
+        self.assertTrue(ug.flags_ok(['--serve', '--spec', '4'], [], flags))
+        self.assertFalse(ug.flags_ok(None, [], flags))
+
+    def test_verdict(self):
+        def runs(c0a, l1a, l1b, c0b, tw=(2.0, 2.0, 2.0, 2.0), tps=(130, 140, 140, 130), valid=True):
+            return {n: dict(ms_win=m, tok_win=t, decode_tok_s=s, valid=valid) for n, m, t, s in zip(('C0a', 'L1a', 'L1b', 'C0b'), (c0a, l1a, l1b, c0b), tw, tps)}
+        v = ug.replay_verdict(runs(18.0, 16.8, 16.9, 18.1))
+        self.assertEqual(v['verdict'], 'PASS'); self.assertAlmostEqual(v['aa'], round(0.1 / 18.05, 4)); self.assertEqual(v['bar'], 0.04)
+        self.assertEqual(ug.replay_verdict(runs(18.0, 17.6, 17.5, 18.0))['verdict'], 'NO_PASS')            # only 2.5% faster
+        v = ug.replay_verdict(runs(18.0, 16.0, 17.95, 17.0))                                               # AA 5.7%
+        self.assertEqual(v['verdict'], 'NOISY')
+        v = ug.replay_verdict(runs(18.0, 16.0, 17.2, 17.4))      # AA 3.4% -> bar 6.8%; mean 16.6 vs 17.7 is -6.2%
+        self.assertEqual(v['verdict'], 'NO_PASS'); self.assertFalse(v['checks']['faster_by_bar'])
+        v = ug.replay_verdict(runs(18.0, 16.5, 18.05, 18.1))     # one L run not below both C runs
+        self.assertFalse(v['checks']['both_l_below_both_c']); self.assertEqual(v['verdict'], 'NO_PASS')
+        v = ug.replay_verdict(runs(18.0, 16.8, 16.9, 18.1, tw=(2.0, 2.2, 2.2, 2.0)))
+        self.assertEqual(v['verdict'], 'INCONCLUSIVE')
+        self.assertEqual(ug.replay_verdict(runs(18.0, 16.8, 16.9, 18.1, tps=(130, 120, 120, 130)))['verdict'], 'NO_PASS')
+        self.assertEqual(ug.replay_verdict(runs(18.0, 16.8, 16.9, 18.1, valid=False))['verdict'], 'INVALID')
+        self.assertEqual(ug.replay_verdict({k: v for k, v in runs(1, 1, 1, 1).items() if k != 'C0b'})['verdict'], 'INCOMPLETE')
 
 
 if __name__ == '__main__':
