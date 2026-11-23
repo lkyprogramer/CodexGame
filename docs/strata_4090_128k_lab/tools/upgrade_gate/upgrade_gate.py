@@ -5,6 +5,9 @@
     upgrade_gate.py kl TAG [--repeat]                teacher-forced KL against the stored v0.2.17 runs (stops production ~10 min)
     upgrade_gate.py gate TAG [--force] [--limit N]   one task-gate arm against the stored b2 arm (stops production ~2 h);
                                                      --limit N is a wiring smoke test in TAG/smoke, no decision
+    upgrade_gate.py probe LABEL [--limit N]          an arm of the production tree itself with other --env/--arg, against the
+                                                     stored b2 arm (no new release, no KL phase); results in LABEL/
+      gate and probe take --env K=V and --arg FLAG[=VALUE] (repeatable): extra engine env, extra or replaced engine CLI args
     upgrade_gate.py report TAG
     upgrade_gate.py all TAG [-j N]                   prepare -> kl -> gate (only when kl says PROCEED) -> report
     upgrade_gate.py switch TAG --yes [--force]       hand production over to the new tree; rolls back by itself if health fails
@@ -311,18 +314,186 @@ def kl(tag, repeat=False):
     return save(tag, 'KL.json', doc)
 
 
-# ---------------------------------------------------------------- gate
-def gate(tag, force=False, limit=None, extra_env=None):
+# ---------------------------------------------------------------- arms: extra engine args, per-window figures
+LOCKED_ARGS = {'--expert-profile-save', '--port', '--serve'}     # the gate driver sets these, or they break the arm's isolation
+FORBIDDEN_ENV = {'STRATA_STAGE_PIN', 'STRATA_ROUTE_RESIDENT'}    # lab rule: never enabled
+BASE_ARM = 'b2'                                                 # the stored production arm; probe arms are named after it
+BUCKETS = (('<4K', 0, 4096), ('4K-32K', 4096, 32768), ('32K-64K', 32768, 65536), ('>=64K', 65536, 1 << 30))   # as prodlog.py
+DT_FIELDS = dict(T=r'avg T ([\d.]+)', tok_win=r'([\d.]+) tokens/window', ms_win=r'([\d.]+) ms/window', adapt_wait=r'adapt wait ([\d.]+)',
+                 reach=r'GPU-reach wait ([\d.]+)', cpu_ms=r' CPU ([\d.]+)\]', draft=r'draft ([\d.]+)', adapt_join=r'adapt join ([\d.]+)',
+                 cpu_entries=r'CPU experts [\d.]+ \(([\d.]+) entries\)', swaps=r'([\d.]+) swaps/window')
+
+
+def parse_arg_specs(specs):
+    """--arg NAME[=VALUE], NAME with or without its leading dashes -> [(flag, value or None)]."""
+    out = []
+    for s in specs or []:
+        name, eq, val = s.partition('=')
+        flag = '--' + name.lstrip('-')
+        if not re.fullmatch(r'--[a-z0-9][-a-z0-9]*', flag) or (eq and not val): raise Stop('bad --arg %r' % s)
+        if flag in LOCKED_ARGS: raise Stop('--arg %s is not allowed: the gate driver sets it' % flag)
+        if eq and val.startswith('/') and not Path(val).exists(): raise Stop('--arg %s names a missing file: %s' % (flag, val))
+        out.append((flag, val if eq else None))
+    return out
+
+
+def apply_arg_specs(args, specs):
+    """A copy of the engine args with each spec set: a value flag already there gets the new value, a new flag is appended."""
+    a = list(args)
+    for flag, val in specs:
+        if flag not in a:
+            a += [flag] + ([] if val is None else [val]); continue
+        i = a.index(flag)
+        if val is None: raise Stop('%s is already in the config' % flag)
+        if i + 1 >= len(a) or a[i + 1].startswith('--'): raise Stop('%s is a bare flag in the config; it takes no value' % flag)
+        a[i + 1] = val
+    return a
+
+
+def arm_suffix(extra_env, specs):
+    s = ''.join('-%s%s' % (k.replace('STRATA_', '').lower(), v) for k, v in sorted(extra_env.items()))   # unchanged naming for --env
+    for flag, val in specs:
+        v = '' if val is None else Path(val).stem if '/' in val else val
+        s += '-' + re.sub(r'[^0-9A-Za-z_]', '', flag.replace('-', '') + v)
+    return s
+
+
+class _ArmTree(type(Path())):
+    """gate17.N for an arm with --arg: every path is the tree's own except the run config, which is the arm's rewritten
+    copy.  gate17.py is frozen (its sha is in the prereg), so its start_server cannot take the arguments itself."""
+    config = None
+    def __truediv__(self, key):
+        if key == 'strata-iq3_xxs.json' and self.config is not None: return self.config
+        return Path(str(self)) / key
+
+
+def engine_requests(log_path):
+    """The requests of a serve engine log in order (prompt and generated tokens, decode ms, drafts) with the decode-timing
+    lines printed before each one's summary (same request, see prodlog.py); and the adaptive-overlap wait in all, in ms."""
+    reqs, pend, waited, ep = [], [], 0.0, 0.0
+    with open(log_path, errors='replace') as f:
+        lines = f.readlines()
+    for l in lines:
+        if 'engine started:' in l: waited += ep; ep = 0.0
+        m = re.search(r'a layer waited ([\d.]+) ms in all so far', l)
+        if m: ep = float(m.group(1))             # cumulative within one engine run
+        if 'strata decode timing:' in l:
+            w = re.search(r'(\d+) windows', l)
+            if w:
+                t = dict(windows=int(w.group(1)))
+                for k, rx in DT_FIELDS.items():
+                    m = re.search(rx, l); t[k] = float(m.group(1)) if m else None
+                pend.append(t)
+            continue
+        m = re.search(r'strata serve: prompt (\d+) tokens = .*?, (\d+) generated in (\d+) ms', l)
+        if m:
+            d = re.search(r'drafts accepted (\d+) of (\d+)', l)
+            reqs.append(dict(prompt=int(m.group(1)), generated=int(m.group(2)), gen_ms=int(m.group(3)),
+                             acc=int(d.group(1)) if d else 0, prop=int(d.group(2)) if d else 0, timing=pend)); pend = []
+    return reqs, waited + ep
+
+
+def task_requests(reqs, rows, budget):
+    """The engine requests the given task rows made, from the start of the log: one per attempt, plus the continuation the
+    server sends when a request stops at exactly the thinking budget.  Returns (requests, attempts whose tokens do not add up)."""
+    i = bad = 0
+    for r in rows:
+        for at in r.get('attempts', []):
+            s = 0
+            while i < len(reqs):
+                s += reqs[i]['generated']; i += 1
+                if reqs[i - 1]['generated'] != budget: break
+            c = at.get('completion_tokens')
+            if c is None or not 0 <= c - s <= 64: bad += 1      # the server adds a few tokens closing the thinking (18 seen)
+    return reqs[:i], bad
+
+
+def window_stats(reqs):
+    """Decode figures weighted by windows, in all and by prompt size."""
+    def agg(rs):
+        ts = [t for r in rs for t in r['timing']]
+        out = dict(requests=len(rs), windows=sum(t['windows'] for t in ts))
+        for k in DT_FIELDS:
+            xs = [(t['windows'], t[k]) for t in ts if t[k] is not None]; n = sum(x[0] for x in xs)
+            out[k] = round(sum(a * b for a, b in xs) / n, 3) if n else None
+        g, ms, p = sum(r['generated'] for r in rs), sum(r['gen_ms'] for r in rs), sum(r['prop'] for r in rs)
+        out.update(generated=g, decode_tok_s=round(1000 * g / ms, 1) if ms else None, accept=round(sum(r['acc'] for r in rs) / p, 3) if p else None)
+        return out
+    return dict(all=agg(reqs), **{b: agg([r for r in reqs if lo <= r['prompt'] < hi]) for b, lo, hi in BUCKETS})
+
+
+def e2e(rs):    # end-to-end completion tok/s over the same first tasks (tracks the full-arm decode ratio within ~1.5%)
+    t = sum(a['completion_tokens'] or 0 for r in rs for a in r.get('attempts', [])); w = sum(a['wall_s'] for r in rs for a in r.get('attempts', []))
+    return dict(tok_s=round(t / w, 1) if w else None, tokens=t, wall_s=round(w, 1))
+
+
+def same_task_figures(S, ids, budget):
+    """Same-task end-to-end speed and per-window decode figures of every arm that ran these tasks: the smoke arms in S
+    (this one and those beside it) and the stored gate arms, whose logs are cut to the requests of these tasks."""
+    speed, win = {}, {}
+    for pre, base in (('smoke:', S / 'arms'), ('', GD / 'arms')):
+        for d in sorted(p for p in base.iterdir() if (p / 'rows.jsonl').exists()):
+            rows = [json.loads(l) for l in open(d / 'rows.jsonl')]; by = {r['task_id']: r for r in rows}
+            if not all(t in by for t in ids): continue
+            speed[pre + d.name] = e2e([by[t] for t in ids])
+            if [r['task_id'] for r in rows[:len(ids)]] != ids or not (d / 'engine.log').exists(): continue
+            reqs, waited = engine_requests(d / 'engine.log')
+            mine, bad = task_requests(reqs, rows[:len(ids)], budget)
+            st = window_stats(mine); st['all'].update(unaligned_attempts=bad, whole_log=len(mine) == len(reqs))
+            if len(mine) == len(reqs) and st['all']['windows']: st['all']['overlap_wait_ms_per_window'] = round(waited / st['all']['windows'], 3)
+            win[pre + d.name] = st
+    return speed, win
+
+
+# ---------------------------------------------------------------- gate / probe
+def gate(tag, force=False, limit=None, extra_env=None, arg_specs=None):
     prep = load(tag, 'PREPARE.json'); klr = load(tag, 'KL.json')
     if not prep or prep.get('status') != 'READY': raise Stop('run prepare first')
     if not limit and not force and (not klr or klr.get('verdict') != 'PROCEED'): raise Stop('KL verdict is not PROCEED (use --force to override)')
-    extra_env = dict(extra_env or {}); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
-    tree = Path(prep['tree']); pre = json.loads((GD / 'PREREG.json').read_text())
-    arm = arm_name(tag) + ''.join('-%s%s' % (k.replace('STRATA_', '').lower(), v) for k, v in sorted(extra_env.items()))
+    ident = dict(engine_sha256=prep['engine_sha256'], patched_files=prep['patched_files'], config_sha256=prep['config_sha256'],
+                 kl_verdict=(klr or {}).get('verdict'))
+    return run_arm(tag, Path(prep['tree']), arm_name(tag), ident, force, limit, extra_env, arg_specs)
+
+
+def probe(label, force=False, limit=None, extra_env=None, arg_specs=None):
+    """An arm of the production tree itself with other engine env or CLI args (no new release), paired with the stored b2
+    arm: a smoke with --limit, else a full task-gate arm.  No KL phase: quant_quality's yardstick pins the expert placement
+    (--expert-cache 1, --adapt-every 100000), so it cannot see placement or adaptive-tier changes; other changes need their
+    own numerical check first."""
+    tree = cur_tree(); b2c = json.loads((GD / 'arms' / BASE_ARM / 'config.json').read_text())
+    if Path(b2c['cwd']) != tree: raise Stop('production runs %s, not the tree of the stored b2 arm (%s)' % (tree, b2c['cwd']))
+    cur = json.loads((tree / 'strata-iq3_xxs.json').read_text())
+    def norm(c):                    # what gate17 rewrites per arm does not count
+        c = json.loads(json.dumps(c)); a = c['args']; a[a.index('--expert-profile-save') + 1] = None
+        for k in ('port', 'log', 'slot_save_path'): c.pop(k, None)
+        return c
+    if norm(cur) != norm(b2c) and not force: raise Stop('the production config is not the one the stored b2 arm ran, so its arms would not pair with b2 (--force overrides)')
+    if not limit and not extra_env and not arg_specs: raise Stop('a full arm without changes would be b2 again')
+    ident = dict(engine_sha256=sha(cur['exe']), patched_files=None, config_sha256=sha(tree / 'strata-iq3_xxs.json'), kl_verdict='NOT_RUN (probe)')
+    return run_arm(label, tree, BASE_ARM, ident, True, limit, extra_env, arg_specs)
+
+
+def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None):
+    """One task-gate arm of tree (a smoke with --limit) with extra engine env and CLI args; results under UG/wtag."""
+    extra_env = dict(extra_env or {}); bad = FORBIDDEN_ENV & set(extra_env)
+    if bad: raise Stop('%s are never enabled in this lab' % sorted(bad))
+    specs = parse_arg_specs(arg_specs); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
+    pre = json.loads((GD / 'PREREG.json').read_text())
+    suffix = arm_suffix(extra_env, specs); arm = base + suffix if suffix or base != BASE_ARM else BASE_ARM + '-control'
     sys.path.insert(0, str(GD)); import gate17
-    gate17.N = tree
-    if limit:                       # wiring smoke: a private copy of the prereg, its own arm dir, no pairs/decision
-        S = wdir(tag) / 'smoke'; shutil.rmtree(S / 'arms' / arm, ignore_errors=True); S.mkdir(parents=True, exist_ok=True); shutil.copy2(GD / 'PREREG.json', S / 'PREREG.json'); gate17.GD = S
+    run_cfg = tree / 'strata-iq3_xxs.json'; not_in_help = []; args_doc = [[f, v] for f, v in specs]
+    if specs:
+        cfg = json.loads(run_cfg.read_text()); cfg['args'] = apply_arg_specs(cfg['args'], specs)
+        run_cfg = wdir(wtag) / 'configs' / (arm + '.strata-iq3_xxs.json'); run_cfg.parent.mkdir(parents=True, exist_ok=True)
+        run_cfg.write_text(json.dumps(cfg, indent=2) + '\n')
+        h = run([cfg['exe'], '--help']); text = h.stdout + h.stderr          # the engine prints its usage on stderr
+        not_in_help = [f for f, _ in specs if not re.search(re.escape(f) + r'(?![\w-])', text)]
+        if not_in_help: log('WARN --arg flags not in the engine --help (it may still parse them; check the arm log):', not_in_help)
+        nt = _ArmTree(tree); nt.config = run_cfg; gate17.N = nt
+    else:
+        gate17.N = tree
+    if limit:                       # smoke: a private copy of the prereg, its own arm dir, no pairs/decision
+        S = wdir(wtag) / 'smoke'; shutil.rmtree(S / 'arms' / arm, ignore_errors=True); S.mkdir(parents=True, exist_ok=True); shutil.copy2(GD / 'PREREG.json', S / 'PREREG.json'); gate17.GD = S
         orig = gate17.run_task; n = [0]
         class Enough(Exception): pass
         def limited(*a, **k):
@@ -333,28 +504,25 @@ def gate(tag, force=False, limit=None, extra_env=None):
             try: gate17.arm(arm, env)
             except Enough: pass
         rows = [json.loads(l) for l in open(S / 'arms' / arm / 'rows.jsonl')]
-        b2 = {json.loads(l)['task_id']: json.loads(l) for l in open(GD / 'arms/b2/rows.jsonl')}
-        def e2e(rs):    # end-to-end completion tok/s over the same first tasks (tracks the full-arm decode ratio within ~1.5%)
-            t = sum(a['completion_tokens'] or 0 for r in rs for a in r.get('attempts', [])); w = sum(a['wall_s'] for r in rs for a in r.get('attempts', []))
-            return dict(tok_s=round(t / w, 1) if w else None, tokens=t, wall_s=round(w, 1))
+        b2 = {json.loads(l)['task_id']: json.loads(l) for l in open(GD / 'arms' / BASE_ARM / 'rows.jsonl')}
         ids = [r['task_id'] for r in rows]
-        speed = {'smoke:' + arm: e2e(rows)}
-        for n in sorted(p.name for p in (GD / 'arms').iterdir() if (p / 'rows.jsonl').exists()):
-            other = {json.loads(l)['task_id']: json.loads(l) for l in open(GD / 'arms' / n / 'rows.jsonl')}
-            if all(t in other for t in ids): speed[n] = e2e([other[t] for t in ids])
-        doc = dict(tag=tag, limit=limit, env=env, arm=arm, speed_same_tasks=speed, passes=dict(pass1=sum(bool(r.get('pass1')) for r in rows),
-                   pass2=sum(bool(r.get('pass2')) for r in rows), errors=sum('error' in r for r in rows)),
+        speed, win = same_task_figures(S, ids, gate17.THINK_BUDGET)
+        doc = dict(tag=wtag, limit=limit, env=env, args=args_doc, flags_not_in_help=not_in_help, config=str(run_cfg), config_sha256=sha(run_cfg),
+                   engine_sha256=ident['engine_sha256'], arm=arm, speed_same_tasks=speed, per_window_same_tasks=win,
+                   passes=dict(pass1=sum(bool(r.get('pass1')) for r in rows), pass2=sum(bool(r.get('pass2')) for r in rows), errors=sum('error' in r for r in rows)),
                    rows=[dict(task_id=r['task_id'], error=r.get('error'), pass1=r.get('pass1'), pass2=r.get('pass2'),
                    b2_pass1=b2[r['task_id']].get('pass1'), b2_pass2=b2[r['task_id']].get('pass2')) for r in rows])
-        log('smoke', arm, json.dumps(speed)); return save(tag, 'SMOKE-%s.json' % arm, doc)
+        log('smoke', arm, json.dumps(speed)); return save(wtag, 'SMOKE-%s.json' % arm, doc)
     # addendum preregistration: written before the arm runs, refuses to change afterwards
     pa = GD / ('PREREG-%s.json' % arm)
-    add = dict(tag=tag, tree=str(tree), engine_sha256=prep['engine_sha256'], patched_files=prep['patched_files'], config_sha256=prep['config_sha256'],
+    add = dict(tag=wtag, tree=str(tree), engine_sha256=ident['engine_sha256'], patched_files=ident['patched_files'],
+               config_sha256=sha(run_cfg) if specs else ident['config_sha256'],
                base_prereg_sha256=sha(GD / 'PREREG.json'), driver_sha256=sha(GD / 'gate17.py'), baseline='b2 (stored v0.2.17 arm, not re-run)',
                baseline_rows_sha256=sha(GD / 'arms/b2/rows.jsonl'), candidate=arm, env=env, margin=pre['margin'],
-               kl_verdict=(klr or {}).get('verdict'), forced=bool(force),
+               kl_verdict=ident['kl_verdict'], forced=bool(force),
                note='same task ids, seeds (1000+index), prompts, grader image and driver as PREREG.json; the two original arms also ran one '
                     'after the other, so reusing the stored b2 arm keeps the pairing by task and seed')
+    if specs: add['args'] = args_doc               # only then: older addenda have no such key
     if pa.exists():
         old = json.loads(pa.read_text()); diff = [k for k in add if k not in ('forced', 'kl_verdict') and old.get(k) != add[k]]
         if diff: raise Stop('addendum prereg exists with different %s; refusing' % diff)
@@ -369,7 +537,7 @@ def gate(tag, force=False, limit=None, extra_env=None):
             gate17.arm(arm, env)
     rows = [json.loads(l) for l in open(ad / 'rows.jsonl')] if (ad / 'rows.jsonl').exists() else []
     if len(rows) != pre['n'] or any('error' in r for r in rows):
-        save(tag, 'GATE.json', dict(tag=tag, arm=arm, status='ARM_INCOMPLETE', rows=len(rows))); raise Stop('arm incomplete: %d of %d rows' % (len(rows), pre['n']))
+        save(wtag, 'GATE.json' if arm == base else 'GATE-%s.json' % arm, dict(tag=wtag, arm=arm, status='ARM_INCOMPLETE', rows=len(rows))); raise Stop('arm incomplete: %d of %d rows' % (len(rows), pre['n']))
     gate17.pairs('b2', arm)
     pin = GD / ('PAIRS-%s-vs-b2.json' % arm); pout = GD / ('GATE-%s-vs-b2.json' % arm)
     r = run([sys.executable, '-B', GD / 'quality_gate.py', '--input', pin, '--output', pout])
@@ -382,9 +550,9 @@ def gate(tag, force=False, limit=None, extra_env=None):
             speed[n] = dict(decode_tok_s=round(s['generated_tokens'] / s['decode_seconds'], 1), generated_tokens=s['generated_tokens'], requests=s['requests'])
     p = {n: dict(pass1=sum(x.get('pass1', False) for x in rs), pass2=sum(x.get('pass2', False) for x in rs))
          for n, rs in (('b2', [json.loads(l) for l in open(GD / 'arms/b2/rows.jsonl')]), (arm, rows))}
-    doc = dict(tag=tag, arm=arm, quality_gate_rc=r.returncode, status=res.get('status'), inference=res.get('inference'), passes=p, speed=speed,
+    doc = dict(tag=wtag, arm=arm, quality_gate_rc=r.returncode, status=res.get('status'), inference=res.get('inference'), passes=p, speed=speed,
                files=[str(pa), str(pin), str(pout)])
-    log('gate', doc['status'], json.dumps(p), json.dumps(speed)); return save(tag, 'GATE.json' if not extra_env else 'GATE-%s.json' % arm, doc)
+    log('gate', doc['status'], json.dumps(p), json.dumps(speed)); return save(wtag, 'GATE.json' if arm == base else 'GATE-%s.json' % arm, doc)
 
 
 # ---------------------------------------------------------------- report / switch
@@ -420,12 +588,16 @@ def switch(tag, yes=False, force=False):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'report', 'all', 'switch']); ap.add_argument('tag')
+    ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'probe', 'report', 'all', 'switch']); ap.add_argument('tag', help='release tag, or a run label for probe')
     ap.add_argument('--tree'); ap.add_argument('-j', type=int, default=8); ap.add_argument('--repeat', action='store_true')
     ap.add_argument('--force', action='store_true'); ap.add_argument('--limit', type=int); ap.add_argument('--yes', action='store_true')
     ap.add_argument('--env', action='append', default=[], help='extra engine env for the gate arm, K=V (repeatable; names the arm)')
+    ap.add_argument('--arg', action='append', default=[], metavar='FLAG[=VALUE]',
+                    help='engine CLI arg for the gate/probe arm, e.g. adapt-every=2: replaces the value of a flag the config has, else is appended (repeatable; names the arm)')
     a = ap.parse_args()
-    if not re.fullmatch(r'v\d+\.\d+\.\d+[-.\w]*', a.tag): raise SystemExit('tag looks wrong: %r' % a.tag)
+    if a.cmd == 'probe':
+        if not re.fullmatch(r'[a-z][-.\w]*', a.tag) or re.match(r'v\d', a.tag): raise SystemExit('probe label looks wrong (lower-case, not a tag): %r' % a.tag)
+    elif not re.fullmatch(r'v\d+\.\d+\.\d+[-.\w]*', a.tag): raise SystemExit('tag looks wrong: %r' % a.tag)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))     # turn SIGTERM into SystemExit so finally blocks restore production
     os.umask(0o022); UG.mkdir(parents=True, exist_ok=True)
     lock = open(UG / '.lock', 'w')
@@ -436,7 +608,8 @@ def main():
     try:
         if a.cmd == 'prepare': prepare(a.tag, a.tree, a.j)
         elif a.cmd == 'kl': kl(a.tag, a.repeat)
-        elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env))
+        elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg)
+        elif a.cmd == 'probe': probe(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg)
         elif a.cmd == 'report': report(a.tag)
         elif a.cmd == 'switch': switch(a.tag, a.yes, a.force)
         elif a.cmd == 'all':

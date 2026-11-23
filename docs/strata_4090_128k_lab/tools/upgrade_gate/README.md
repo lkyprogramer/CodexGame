@@ -22,7 +22,18 @@ setsid nohup /home/hhtele/anaconda3/bin/python -B upgrade_gate.py all v0.2.18 > 
 各阶段也可以单独运行：`prepare`、`kl`、`gate`、`report`、`switch`。
 
 - **`gate --env K=V`**（可重复）：给这一臂加额外的引擎 env，臂名会带上开关名。
-- **`gate --limit N --env …`**：只跑前 N 题，给出同一批题上的端到端速度对比，不作质量判定。前 40 题的比值与整臂 305 题相差约 1.5%。
+- **`gate --arg FLAG[=VALUE]`**（可重复，2026-11-23 起）：给这一臂改引擎 CLI 参数。配置里已有的参数替换取值，没有的追加；参数名可以不带前导 `--`，例如 `--arg adapt-every=2`。臂名会带上参数名和取值（路径取文件名）。驱动会设置的 `--expert-profile-save`、`--port`、`--serve` 不允许改；值是绝对路径时必须存在；引擎 `--help` 里没有的参数只给警告，因为有些参数引擎能解析但不列出，比如 v0.2.17 的 `--adapt-decay`。
+  - 冻结的 `gate17.py` 只读树里的 `strata-iq3_xxs.json`。带 `--arg` 时，工具把改好的配置写到 `<tag>/configs/<arm>.strata-iq3_xxs.json`，再把 `gate17.N` 换成一个只把这个文件名指向新配置的路径对象（`_ArmTree`），其余路径不变，驱动本身不改。
+- **`gate --limit N --env … --arg …`**：只跑前 N 题，不作质量判定。给出两组同题对比：
+  - `speed_same_tasks`：端到端速度。前 40 题的比值与整臂 305 题相差约 1.5%。
+  - `per_window_same_tasks`：从引擎日志算出的 decode 每窗口指标，包括 ms/window、GPU-reach、CPU ms、CPU 条目、每窗口 swap、adapt join、接受率，按窗口数加权，分全部和按 prompt 长度分段。存档臂的日志按题对齐截取前 N 题的请求；对齐方式是每次尝试一个请求，停在思考预算 4096 时再算上服务端的续写请求，对不上的尝试数记在 `unaligned_attempts`。存档 b2 整臂 485 个请求全部对齐。注意这是按窗口加权的均值，和 prodlog 的按请求取中位数不是一个口径。
+- **`probe LABEL [--limit N] --env … --arg …`**（2026-11-23 起）：不换版本，直接用当前生产树跑一臂，结果写在 `/data/strata-data/upgrade-gate/<LABEL>/`。
+  - 先核对生产树和配置与存档 b2 臂一致（只忽略驱动每臂会改写的端口、日志、slot 路径和 profile 保存路径），不一致时拒绝，可用 `--force` 越过。
+  - 臂名为 `b2` 加参数后缀；不带参数的 `--limit` 臂叫 `b2-control`，作同会话对照。
+  - 去掉 `--limit` 就是完整任务门臂，写附加预登记并与存档 b2 配对判定。
+  - 不跑 KL：`quant_quality.py` 固定了 `--expert-cache 1 --adapt-every 100000`，看不到放置和自适应层的变化。其他会改变数值的参数要先单独做数值检查。
+  - 第一次使用见 [B2 自适应层探针预登记](../../plans/B2_ADAPT_PROBE_20261123.md)。
+- **CPU 单测**：`python3 -B -m unittest test_upgrade_gate`（在本目录下运行），覆盖参数解析和替换、臂名、配置替身、日志解析和按题对齐；不需要 GPU，也不需要 4090 上的路径。
 - **已完整跑完的臂**：再次执行 `gate` 时只做判定，不再停生产。阶段结果写在 `/data/strata-data/upgrade-gate/<tag>/` 下的 `PREPARE.json`、`KL.json`、`GATE.json`、`REPORT.json` 和 `SWITCH.json`。退出码 0 表示阶段完成，2 表示按规则停止，原因写在对应 JSON 的 `stop` 字段。
 
 ## 阶段
@@ -78,5 +89,6 @@ setsid nohup /home/hhtele/anaconda3/bin/python -B upgrade_gate.py all v0.2.18 > 
 - **flag 检查只给警告**：引擎 `--help` 本来就不列 `--vram-reserve-mib` 和 `--conversation-spill-mib`。新版本如果删掉了某个 flag，要到 `kl` 阶段引擎启动失败时才会暴露。
 - **KL 门只覆盖一种配置**：生产配置下的 rank 7 加 auto 放置。新版本的变化如果只出现在长上下文、prefill 或会话缓存路径上，KL 门看不到；任务门也只覆盖 32K 以内的单题会话。必要时补一次 [Pi 式负载模拟](../../reports/V0217-PISIM-20261120.md)。
 - **测速对比默认双方采样一致**：`--limit` 的同题速度对比，前提是两臂收到的采样参数相同。v0.2.20 的 #6536 让 MTP 模型在请求不带采样参数时改走 greedy，草稿接受率随之上升，40 题测得的 +4.4% 其实是采样变化造成的。看新版本的测速时，要用 prodlog 核对各段接受率是否与 b2 相近，并在测速服务起来后读 `/props`（端口 18089）里的默认采样参数。
-- **`--env` 只到达引擎**：冻结的 gate 驱动把 `--env` 写进配置的 `env` 块，只传给引擎进程，Python 服务进程看不到。服务端开关要从引擎的启动环境读，v0220 补丁中的 `mtp_greedy_default()` 就是这么做的。
+- **`--env` 只到达引擎**：冻结的 gate 驱动把 `--env` 写进配置的 `env` 块，只传给引擎进程，Python 服务进程看不到。服务端开关要从引擎的启动环境读，v0220 补丁中的 `mtp_greedy_default()` 就是这么做的。`--arg` 也只改引擎命令行。
+- **生产不保存学到的 profile**：`systemctl stop` 用 `KillMode=control-group`，引擎来不及做退出保存；周期保存又只发生在"满 10 分钟后的下一个请求之前"。所以生产的 `expert-profile-iq3xxs-learned.bin` 至今与静态 profile 逐字节相同。gate 各臂只给服务进程组发 SIGTERM，有退出保存。
 - **python 不随版本更新**：新树的 python 是从当前生产树复制的。新版本如果新增 Python 依赖，prepare 的 serve `--help` 检查会把它拦下。
