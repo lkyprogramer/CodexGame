@@ -1,0 +1,127 @@
+{
+ "id": "B2-ADAPT-LONG-20261123",
+ "label": "b2-adapt-long-20261123",
+ "created": "2026-11-23",
+ "status": "PREREGISTERED_NOT_RUN",
+ "question": "On the B2 production tree, in a Pi-shaped tool-loop session at 32K-100K context, does --adapt-every 2 make decode windows at least 4% cheaper?",
+ "follows": "plans/B2_ADAPT_PROBE_20261123.md (gate task set, prompts all below 32K: NO_GAIN); its 4K-32K bucket gave a post-hoc signal (22.40 -> 20.16 ms per window, CPU entries 3.57 -> 2.44)",
+ "identity": {
+  "tree": "/home/hhtele/strata-0.2.17",
+  "engine_sha256": "df2d006b2adc7ad12f169d6839587ff7efc134f5873ba52c238fe207201b32a5",
+  "config_sha256": "d7ee52b0b8c0df7b9596c52359d5e624876ffdf839675f33d52de28404549174",
+  "gate17_sha256": "517d1689881ce6930b5a15527c5939971a3c56ae8882fa063c7af7b4bbcc6a87",
+  "upgrade_gate_sha256_before_replay": "3a2c503762ff54ada0f55b393ca5cc1724b638eca9f48347b6fa2f04117473dd"
+ },
+ "workload": {
+  "sources": {
+   "/data/strata-data/pisim-20261120/run/session-A.json": "51fb4bc21eafe636f2b903c38f511c4a1ccf0229ea1b1d18f09b893df116de49",
+   "/data/strata-data/pisim-20261120/run/session-B.json": "9ba0101fa84c9cf998ce8da2f0549e7b7d897d2c302151377489267b30e9f1d8",
+   "/data/strata-data/pisim-20261120/pisim.py": "1453184671dfbdab0e46140f3bd40cc90508af9158dd6f59c0cca6c7dba34769",
+   "/data/strata-data/pisim-20261120/run/RESULT.json": "33ada24daa1880bc2f07b5722af8e7d54bc06d94d1c3801306a823e1aee6fc88"
+  },
+  "stitch": "messages = A.messages + B.messages[1:] (B system dropped)",
+  "requests": "one per assistant message k: messages[:k]; 120 in all (A 71, B 49)",
+  "body": "model, messages, tools = pisim TOOLS, max_tokens 16384, stream false, seed 20261123 + request index (0-based)",
+  "history": "fixed: recorded messages, never the arm's own replies; replies are measured and discarded",
+  "estimated_buckets": {
+   "<4K": {
+    "requests": 3,
+    "recorded_completion_tokens": 2008
+   },
+   "4K-32K": {
+    "requests": 47,
+    "recorded_completion_tokens": 24347
+   },
+   "32K-64K": {
+    "requests": 22,
+    "recorded_completion_tokens": 23531
+   },
+   ">=64K": {
+    "requests": 48,
+    "recorded_completion_tokens": 25187
+   },
+   "max_prompt_est": 102276
+  },
+  "estimate_method": "A prompts as recorded; B prompts = A last prompt + A last completion (61806) + B prompt - 506",
+  "limits": [
+   "fixed history makes the engine re-read the recorded reply each step (hundreds to a few thousand tokens), Pi reuses its own",
+   "pisim system prompt about 800 tokens and 4 tools; no streaming, no NGINX; one session, no switching",
+   "public benchmark text"
+  ]
+ },
+ "runs": [
+  {
+   "order": 1,
+   "run": "C0a",
+   "arm": "b2-control",
+   "args": []
+  },
+  {
+   "order": 2,
+   "run": "L1a",
+   "arm": "b2-adaptevery2",
+   "args": [
+    "adapt-every=2"
+   ]
+  },
+  {
+   "order": 3,
+   "run": "L1b",
+   "arm": "b2-adaptevery2",
+   "args": [
+    "adapt-every=2"
+   ]
+  },
+  {
+   "order": 4,
+   "run": "C0b",
+   "arm": "b2-control",
+   "args": []
+  }
+ ],
+ "design": "ABBA, each run a fresh engine on the production tree and config with production stopped, production restored between runs, Pi idle; no other values swept",
+ "metrics": {
+  "primary": "per run: decode ms per verify window, weighted by windows, over all requests with prompt >= 32768 (window_stats over those requests); per arm: mean of its two runs",
+  "secondary": [
+   ">=32K decode tok/s (engine generated / gen_ms)",
+   "ms_win in 32K-64K, >=64K and the <32K warm-up part",
+   "reach_ms, cpu_ms, cpu_entries, swaps, adapt_join, overlap wait (mechanism)"
+  ],
+  "text_check": ">=32K tok_win and accept"
+ },
+ "rules": {
+  "aa": "AA = |C0a - C0b| / mean(C0a, C0b) on the primary",
+  "noisy": "AA > 5%: NOISY -> INCONCLUSIVE, no adoption, no extra runs under this preregistration",
+  "pass": "mean(L1) <= mean(C0) x (1 - max(4%, 2 x AA)) AND max(L1a, L1b) < min(C0a, C0b) AND >=32K decode tok/s mean(L1) > mean(C0) AND |tok_win mean(L1)/mean(C0) - 1| <= 5%",
+  "inconclusive": "tok_win check fails: INCONCLUSIVE (text confound), not a pass",
+  "validity": [
+   "engine started line has --adapt-every 2 in L runs and not in C runs",
+   "all 120 requests return without error and the engine log holds 120 requests, aligned in order",
+   "no resource guard",
+   "one rerun at most for an infrastructure failure; failed runs are kept",
+   "swap counts are reported, not used for validity (the previous probe showed min-gain caps them)"
+  ],
+  "quality": "not judged in this stage (no grading, text not comparable)"
+ },
+ "outcomes": {
+  "pass": "stage 2: upgrade_gate.py probe b2-adapt-long-20261123 --arg adapt-every=2 without --limit (305 tasks, about 2 h): quality_gate NONINFERIORITY_ESTABLISHED (margin 5%, paired with stored b2) and full-arm decode tok/s not more than 2% below b2; then a production config change (add --adapt-every 2 to args) only with the user's confirmation, backup and rollback; afterwards real Pi >=32K ms per window from prodlog, observed, not judged",
+  "no_pass": "--adapt-every on long context is NO_GAIN too; closed in the no-repeat ledger",
+  "noisy_or_inconclusive": "recorded, not adopted; a retest needs a new preregistration and the noise source first"
+ },
+ "prerequisites": [
+  "upgrade_gate.py replay LABEL --run NAME [--arg ...] reusing production_stopped, apply_arg_specs/_ArmTree, gate17.start_server/stop_server (port 18089), the gate17 resource guard, engine_requests and window_stats; CPU unit tests and a dry build of REPLAY.json (120 requests, buckets as estimated)",
+  "before the first run: read-only ADDENDUM.json with the sha256 of the replay implementation and of REPLAY.json; neither changes afterwards",
+  "verdicts computed mechanically by a frozen evaluation script with these rules",
+  "user go-ahead for the production stop; run while Pi is idle"
+ ],
+ "budget": {
+  "per_run_min": "15-20 of replay plus about 35 s engine start (75K recorded completion tokens at about 130 tok/s plus reads)",
+  "total": "about 70-80 min of production stop over 4 runs"
+ },
+ "standing_rules": [
+  "STRATA_STAGE_PIN and STRATA_ROUTE_RESIDENT never enabled",
+  "no writes to the production tree or /home/hhtele/strata-0.1.43.1",
+  "production stop/start only through the NOPASSWD unit rule",
+  "failed runs are kept"
+ ]
+}
