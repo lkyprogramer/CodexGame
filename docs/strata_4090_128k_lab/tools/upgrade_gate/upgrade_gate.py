@@ -25,6 +25,10 @@ PROD_PORT = 18343
 CMAKE = '/home/hhtele/strata-0.1.43.1/.venv/lib/python3.11/site-packages/cmake/data/bin/cmake'   # executed, never written
 NVCC = '/usr/local/cuda-12.3/bin/nvcc'
 PATCH = UG / 'pt0-reply-reuse.patch'                          # = CodexGame patches/v0217-pt0-reply-reuse.patch
+def patch_for(tag):
+    """A hand port for one release (pt0-reply-reuse.<tag>.patch, = CodexGame patches/<tag>-pt0-reply-reuse.patch) wins."""
+    p = UG / ('pt0-reply-reuse.%s.patch' % tag)
+    return p if p.exists() else PATCH
 KD = Path('/data/strata-data/v0217-kl-20261120')              # ids.json, runs/auto-ts7.tsv (B2), runs/auto-ts0-a.tsv (exact)
 GD = Path('/data/strata-data/v0217-gate-20261120')            # PREREG.json, gate17.py, quality_gate.py, arms/b2
 PRODLOG = Path('/data/strata-data/prod-observe/prodlog.py')
@@ -154,8 +158,9 @@ def prepare(tag, tree=None, jobs=8):
 
 
 def _prepare(tag, tree, jobs, W, cur, doc):
+    PATCH = patch_for(tag)
     if not PATCH.exists(): raise Stop('missing %s' % PATCH)
-    doc['patch_sha256'] = sha(PATCH)
+    doc.update(patch=str(PATCH), patch_sha256=sha(PATCH))
     # fetch: a private shallow bare mirror; the tag object and commit are checked against the GitHub API
     G = UG / 'strata.git'
     if not G.exists():
@@ -197,6 +202,14 @@ def _prepare(tag, tree, jobs, W, cur, doc):
     regen = ''.join(run(['diff', '-uNp', '--label', 'a/' + f, '--label', 'b/' + f, orig / f, src / f]).stdout for f in files)
     (W / ('pt0-reply-reuse.%s.patch' % tag)).write_text(regen)
     doc['patched_files'] = {f: sha(src / f) for f in files}
+    # the patch's own tests plus the serve suites it touches (CPU only, ~2.5 min; the v0.2.17 port ran 492 OK)
+    log('unit tests: serve.test_prompt_encoder serve.test_frontend serve.test_server')
+    rc, g = run_guarded(['nice', '-n', '10', cur / 'python/bin/python3', '-B', '-m', 'unittest', 'serve.test_prompt_encoder', 'serve.test_frontend',
+                         'serve.test_server'], W / 'unittest.log', 1800, cwd=src / 'terminal', env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+    tail = (W / 'unittest.log').read_text(errors='replace')[-600:]
+    m = re.search(r'Ran (\d+) tests', tail)
+    doc['unittest'] = dict(rc=rc, guard=g, ran=int(m.group(1)) if m else None, tail=tail.strip().splitlines()[-3:])
+    if rc or g: raise Stop('unit tests failed rc=%s %s (see unittest.log)' % (rc, g))
     # build: same options as v0.2.16/v0.2.17 (B1/B2); nice, guarded, production keeps running
     B = W / 'build'
     if B.exists(): shutil.rmtree(B)
@@ -299,11 +312,13 @@ def kl(tag, repeat=False):
 
 
 # ---------------------------------------------------------------- gate
-def gate(tag, force=False, limit=None):
+def gate(tag, force=False, limit=None, extra_env=None):
     prep = load(tag, 'PREPARE.json'); klr = load(tag, 'KL.json')
     if not prep or prep.get('status') != 'READY': raise Stop('run prepare first')
     if not limit and not force and (not klr or klr.get('verdict') != 'PROCEED'): raise Stop('KL verdict is not PROCEED (use --force to override)')
-    tree = Path(prep['tree']); arm = arm_name(tag); pre = json.loads((GD / 'PREREG.json').read_text())
+    extra_env = dict(extra_env or {}); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
+    tree = Path(prep['tree']); pre = json.loads((GD / 'PREREG.json').read_text())
+    arm = arm_name(tag) + ''.join('-%s%s' % (k.replace('STRATA_', '').lower(), v) for k, v in sorted(extra_env.items()))
     sys.path.insert(0, str(GD)); import gate17
     gate17.N = tree
     if limit:                       # wiring smoke: a private copy of the prereg, its own arm dir, no pairs/decision
@@ -315,18 +330,28 @@ def gate(tag, force=False, limit=None):
             n[0] += 1; return orig(*a, **k)
         gate17.run_task = limited
         with production_stopped():
-            try: gate17.arm(arm, {'STRATA_ROUTE_TAIL_SKIP': TAIL_SKIP})
+            try: gate17.arm(arm, env)
             except Enough: pass
         rows = [json.loads(l) for l in open(S / 'arms' / arm / 'rows.jsonl')]
         b2 = {json.loads(l)['task_id']: json.loads(l) for l in open(GD / 'arms/b2/rows.jsonl')}
-        doc = dict(tag=tag, limit=limit, rows=[dict(task_id=r['task_id'], error=r.get('error'), pass1=r.get('pass1'), pass2=r.get('pass2'),
+        def e2e(rs):    # end-to-end completion tok/s over the same first tasks (tracks the full-arm decode ratio within ~1.5%)
+            t = sum(a['completion_tokens'] or 0 for r in rs for a in r.get('attempts', [])); w = sum(a['wall_s'] for r in rs for a in r.get('attempts', []))
+            return dict(tok_s=round(t / w, 1) if w else None, tokens=t, wall_s=round(w, 1))
+        ids = [r['task_id'] for r in rows]
+        speed = {'smoke:' + arm: e2e(rows)}
+        for n in sorted(p.name for p in (GD / 'arms').iterdir() if (p / 'rows.jsonl').exists()):
+            other = {json.loads(l)['task_id']: json.loads(l) for l in open(GD / 'arms' / n / 'rows.jsonl')}
+            if all(t in other for t in ids): speed[n] = e2e([other[t] for t in ids])
+        doc = dict(tag=tag, limit=limit, env=env, arm=arm, speed_same_tasks=speed, passes=dict(pass1=sum(bool(r.get('pass1')) for r in rows),
+                   pass2=sum(bool(r.get('pass2')) for r in rows), errors=sum('error' in r for r in rows)),
+                   rows=[dict(task_id=r['task_id'], error=r.get('error'), pass1=r.get('pass1'), pass2=r.get('pass2'),
                    b2_pass1=b2[r['task_id']].get('pass1'), b2_pass2=b2[r['task_id']].get('pass2')) for r in rows])
-        log('smoke', json.dumps(doc['rows'])); return save(tag, 'SMOKE.json', doc)
+        log('smoke', arm, json.dumps(speed)); return save(tag, 'SMOKE-%s.json' % arm, doc)
     # addendum preregistration: written before the arm runs, refuses to change afterwards
     pa = GD / ('PREREG-%s.json' % arm)
     add = dict(tag=tag, tree=str(tree), engine_sha256=prep['engine_sha256'], patched_files=prep['patched_files'], config_sha256=prep['config_sha256'],
                base_prereg_sha256=sha(GD / 'PREREG.json'), driver_sha256=sha(GD / 'gate17.py'), baseline='b2 (stored v0.2.17 arm, not re-run)',
-               baseline_rows_sha256=sha(GD / 'arms/b2/rows.jsonl'), candidate=arm, env=dict(STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP), margin=pre['margin'],
+               baseline_rows_sha256=sha(GD / 'arms/b2/rows.jsonl'), candidate=arm, env=env, margin=pre['margin'],
                kl_verdict=(klr or {}).get('verdict'), forced=bool(force),
                note='same task ids, seeds (1000+index), prompts, grader image and driver as PREREG.json; the two original arms also ran one '
                     'after the other, so reusing the stored b2 arm keeps the pairing by task and seed')
@@ -336,8 +361,12 @@ def gate(tag, force=False, limit=None):
     else:
         pa.write_text(json.dumps(dict(add, created=time.strftime('%Y-%m-%d %H:%M:%S')), indent=1) + '\n')
     ad = GD / 'arms' / arm
-    with production_stopped():
-        gate17.arm(arm, {'STRATA_ROUTE_TAIL_SKIP': TAIL_SKIP})
+    have = [json.loads(l) for l in open(ad / 'rows.jsonl')] if (ad / 'rows.jsonl').exists() else []
+    if len(have) == pre['n'] and not any('error' in r for r in have):
+        log('arm %s already complete (%d rows): deciding only, production untouched' % (arm, len(have)))
+    else:
+        with production_stopped():
+            gate17.arm(arm, env)
     rows = [json.loads(l) for l in open(ad / 'rows.jsonl')] if (ad / 'rows.jsonl').exists() else []
     if len(rows) != pre['n'] or any('error' in r for r in rows):
         save(tag, 'GATE.json', dict(tag=tag, arm=arm, status='ARM_INCOMPLETE', rows=len(rows))); raise Stop('arm incomplete: %d of %d rows' % (len(rows), pre['n']))
@@ -349,13 +378,13 @@ def gate(tag, force=False, limit=None):
     if (ad / 'engine.log').exists():
         run([sys.executable, '-B', PRODLOG, ad / 'engine.log', '--json', ad / 'prodlog-summary.json'])
         for n in ('b2', arm):
-            s = json.loads((GD / 'arms' / n / 'prodlog-summary.json').read_text())
+            s = json.loads((GD / 'arms' / n / 'prodlog-summary.json').read_text()); s = s.get('summary', s)   # prodlog --json nests it
             speed[n] = dict(decode_tok_s=round(s['generated_tokens'] / s['decode_seconds'], 1), generated_tokens=s['generated_tokens'], requests=s['requests'])
     p = {n: dict(pass1=sum(x.get('pass1', False) for x in rs), pass2=sum(x.get('pass2', False) for x in rs))
          for n, rs in (('b2', [json.loads(l) for l in open(GD / 'arms/b2/rows.jsonl')]), (arm, rows))}
     doc = dict(tag=tag, arm=arm, quality_gate_rc=r.returncode, status=res.get('status'), inference=res.get('inference'), passes=p, speed=speed,
                files=[str(pa), str(pin), str(pout)])
-    log('gate', doc['status'], json.dumps(p), json.dumps(speed)); return save(tag, 'GATE.json', doc)
+    log('gate', doc['status'], json.dumps(p), json.dumps(speed)); return save(tag, 'GATE.json' if not extra_env else 'GATE-%s.json' % arm, doc)
 
 
 # ---------------------------------------------------------------- report / switch
@@ -394,6 +423,7 @@ def main():
     ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'report', 'all', 'switch']); ap.add_argument('tag')
     ap.add_argument('--tree'); ap.add_argument('-j', type=int, default=8); ap.add_argument('--repeat', action='store_true')
     ap.add_argument('--force', action='store_true'); ap.add_argument('--limit', type=int); ap.add_argument('--yes', action='store_true')
+    ap.add_argument('--env', action='append', default=[], help='extra engine env for the gate arm, K=V (repeatable; names the arm)')
     a = ap.parse_args()
     if not re.fullmatch(r'v\d+\.\d+\.\d+[-.\w]*', a.tag): raise SystemExit('tag looks wrong: %r' % a.tag)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))     # turn SIGTERM into SystemExit so finally blocks restore production
@@ -406,7 +436,7 @@ def main():
     try:
         if a.cmd == 'prepare': prepare(a.tag, a.tree, a.j)
         elif a.cmd == 'kl': kl(a.tag, a.repeat)
-        elif a.cmd == 'gate': gate(a.tag, a.force, a.limit)
+        elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env))
         elif a.cmd == 'report': report(a.tag)
         elif a.cmd == 'switch': switch(a.tag, a.yes, a.force)
         elif a.cmd == 'all':
