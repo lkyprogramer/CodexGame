@@ -12,8 +12,8 @@
 
 待办：
 
-1. 真实 Pi 使用一段时间后，在 4090 上运行 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐、按长度分桶的 decode 和引擎 swap。
-2. 上游发布新版本后，在 4090 上运行 [新版本一键过门](../tools/upgrade_gate/README.md) 的 `upgrade_gate.py all <tag>`：依次取源码、打补丁、编译、组装新树，过 KL 门（停机约 2 分钟），再过任务级门（只跑新版本一臂，以存档的 b2 臂为基线，停机约 2 小时）。全部通过后才用 `switch <tag> --yes` 切换，切换失败会自动回滚。2026-11-21 已用 v0.2.17 自身完成自检。开关变更仍按同样两层门手工执行。
+1. 真实 Pi 使用一段时间后，在 4090 上运行 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐、按长度分桶的 decode 和引擎 swap。第一批（11-20 至 11-21，63 个请求）见 [v0.2.19 报告](../reports/V0219-UPGRADE-GATE-20261122.md)：读入占 20%，没有出现 PT0 重读，内存稳定。
+2. 上游发布新版本后，在 4090 上运行 [新版本一键过门](../tools/upgrade_gate/README.md) 的 `upgrade_gate.py all <tag>`：依次取源码、打补丁、编译、组装新树，过 KL 门（停机约 2 分钟），再过任务级门（只跑新版本一臂，以存档的 b2 臂为基线，停机约 2 小时）。全部通过后才用 `switch <tag> --yes` 切换，切换失败会自动回滚。2026-11-21 已用 v0.2.17 自身完成自检。2026-11-22 [评估 v0.2.19](../reports/V0219-UPGRADE-GATE-20261122.md)：质量非劣，但默认配置 decode 慢 13%，关掉 `VERIFY_DEVICE_HITS` 后也只是持平，所以不升级；`/home/hhtele/strata-0.2.19` 保留备用。开关变更仍按同样两层门手工执行。
 3. 可选（需要 root 写权限）：用 drop-in 把 unit 的 Description、WorkingDirectory 和日志路径改到新树。
 
 数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。

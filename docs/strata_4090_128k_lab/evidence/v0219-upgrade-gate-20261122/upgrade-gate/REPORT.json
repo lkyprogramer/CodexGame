@@ -1,0 +1,86 @@
+{
+ "tag": "v0.2.19",
+ "prepare": {
+  "status": "READY",
+  "tree": "/home/hhtele/strata-0.2.19",
+  "tag_commit": "c6f6427d9de9016fd92d13e29740f65625261df7",
+  "engine_version": "strata 0.1.65",
+  "engine_sha256": "4abc6c192cbdbd5bf7a1e333926d9923a24e90546a68ddb8a8db048afba400bc",
+  "build_s": 368,
+  "flags_not_in_help": [
+   "--vram-reserve-mib",
+   "--conversation-spill-mib"
+  ],
+  "stop": null
+ },
+ "kl": {
+  "verdict": "PROCEED",
+  "numerics_identical_to_v0217": false,
+  "compare": {
+   "vs_v0217_ts7": {
+    "positions": 4995,
+    "top1": 0.9473473473473474,
+    "kl": 0.022996755087796247,
+    "kl_p99": 0.29834714668839285,
+    "ppl_ref": 4.1321531860048095,
+    "ppl": 4.107583881178242
+   },
+   "vs_v0217_exact": {
+    "positions": 4995,
+    "top1": 0.9327327327327327,
+    "kl": 0.04618821384341587,
+    "kl_p99": 0.7152042278363808,
+    "ppl_ref": 4.124939277471254,
+    "ppl": 4.107583881178242
+   }
+  },
+  "agent_vs_exact": {
+   "positions": 999,
+   "top1": 0.9099099099099099,
+   "kl": 0.12413933632066852,
+   "ppl_ref": 4.864695793078052,
+   "ppl": 4.7256803619811025
+  },
+  "stop": null
+ },
+ "gate": {
+  "status": "NONINFERIORITY_ESTABLISHED",
+  "passes": {
+   "b2": {
+    "pass1": 257,
+    "pass2": 296
+   },
+   "v0219": {
+    "pass1": 267,
+    "pass2": 296
+   }
+  },
+  "speed": {
+   "b2": {
+    "decode_tok_s": 134.7,
+    "generated_tokens": 810281,
+    "requests": 485
+   },
+   "v0219": {
+    "decode_tok_s": 116.9,
+    "generated_tokens": 804358,
+    "requests": 476
+   }
+  },
+  "inference": {
+   "n": 305,
+   "b_baseline_only_success": 4,
+   "c_candidate_only_success": 4,
+   "estimated_harm": 0.0,
+   "upper_loss_probability": 0.033236727233997995,
+   "lower_gain_probability": 0.003584579376981761,
+   "upper_harm": 0.029652147857016233,
+   "margin": 0.05,
+   "one_sided_alpha_each": 0.025,
+   "joint_confidence_at_least": 0.95,
+   "method": "upperCP(b,n,alpha=.025) - lowerCP(c,n,alpha=.025); Bonferroni marginal bounds"
+  },
+  "stop": null
+ },
+ "recommendation": "SWITCH_CANDIDATE (decide with the speed numbers and release notes; then: upgrade_gate.py switch v0.2.19 --yes)"
+}

@@ -64,3 +64,4 @@
 - C01 已按 oracle 上界关闭（NO_HEADROOM，见 [C01 离线反事实](../../strata_4090_128k_lab/reports/V0217-C01-OFFLINE-20261120.md)），不再需要 W09 内容采集；C02 维持观测级。
 - 配置取舍（[结论](../../strata_4090_128k_lab/reports/V0217-PT-THINKING-20261120.md)）：尾部跳过保持 rank 7；thinking 保持 PT0，因为 PT1 虽能免去每条新用户消息后的重读（Pi 式负载中约占 11% 时间），但在真实 Pi 历史上会让 prompt 变大 10 倍。
 - 后续任何版本或开关变更按两层门判定：先过 teacher-forced KL（数值级），再过任务级配对门（每臂约 2 小时）。tok/s 只作辅助，与 §5 一致。版本升级的流程已脚本化为 [upgrade_gate.py](../../strata_4090_128k_lab/tools/upgrade_gate/README.md)，并已用 v0.2.17 自身自检。
+- v0.2.19（engine 0.1.65）已按此流程评估：任务质量非劣，但它新增的 sm_89 默认开关会让 decode 慢 13%；关掉 `VERIFY_DEVICE_HITS` 后也只是持平。因此不升级，基线仍为 B2，见 [V0219-UPGRADE-GATE](../../strata_4090_128k_lab/reports/V0219-UPGRADE-GATE-20261122.md)。
