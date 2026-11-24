@@ -1,0 +1,154 @@
+{
+ "id": "B2-SAMPLING-20261123",
+ "label": "b2-sampling-20261123",
+ "created": "2026-11-23",
+ "status": "PREREGISTERED_NOT_RUN",
+ "question": "On the B2 production tree, does a thinking temperature of 0.8 or 0.6 (top_p 0.95, top_k 20 kept) make decode at least 5% faster without a quality loss or more truncation/repetition?",
+ "facts": {
+  "pi_models_json": "openclaw/Qwen3.8-next thinking levels send temperature 1.0, top_p 0.95, top_k 20 (off: 0.7/0.8/20)",
+  "server_card": "MODEL_CARD_SAMPLING[\"qwen4exp\"][\"thinking\"] = temperature 1.0, top_p 0.95, top_k 20, no penalty (terminal/serve/server_parts/http_api.py)",
+  "precedence": "request fields > config sampling block > card; gate17 and the replay send no sampling, so the config block sets theirs",
+  "adoption_point": "Pi models.json samplingParams.temperature (the server and production config stay as they are)"
+ },
+ "identity": {
+  "engine_sha256": "df2d006b2adc7ad12f169d6839587ff7efc134f5873ba52c238fe207201b32a5",
+  "config_sha256": "d7ee52b0b8c0df7b9596c52359d5e624876ffdf839675f33d52de28404549174",
+  "gate17_sha256": "517d1689881ce6930b5a15527c5939971a3c56ae8882fa063c7af7b4bbcc6a87",
+  "replay_sha256_expected": "f9d36636f01c0d9404521817660edf06f75c84a6c379f282a4ab808ce0affeb1"
+ },
+ "workload": {
+  "sources": {
+   "/data/strata-data/pisim-20261120/run/session-A.json": "51fb4bc21eafe636f2b903c38f511c4a1ccf0229ea1b1d18f09b893df116de49",
+   "/data/strata-data/pisim-20261120/run/session-B.json": "9ba0101fa84c9cf998ce8da2f0549e7b7d897d2c302151377489267b30e9f1d8",
+   "/data/strata-data/pisim-20261120/pisim.py": "1453184671dfbdab0e46140f3bd40cc90508af9158dd6f59c0cca6c7dba34769",
+   "/data/strata-data/pisim-20261120/run/RESULT.json": "33ada24daa1880bc2f07b5722af8e7d54bc06d94d1c3801306a823e1aee6fc88"
+  },
+  "stitch": "messages = A.messages + B.messages[1:] (B system dropped)",
+  "requests": "one per assistant message k: messages[:k]; 120 in all (A 71, B 49)",
+  "body": "model, messages, tools = pisim TOOLS, max_tokens 16384, stream false, seed 20261123 + request index (0-based)",
+  "history": "fixed: recorded messages, never the arm's own replies; replies are measured and discarded",
+  "estimated_buckets": {
+   "<4K": {
+    "requests": 3,
+    "recorded_completion_tokens": 2008
+   },
+   "4K-32K": {
+    "requests": 47,
+    "recorded_completion_tokens": 24347
+   },
+   "32K-64K": {
+    "requests": 22,
+    "recorded_completion_tokens": 23531
+   },
+   ">=64K": {
+    "requests": 48,
+    "recorded_completion_tokens": 25187
+   },
+   "max_prompt_est": 102276
+  },
+  "estimate_method": "A prompts as recorded; B prompts = A last prompt + A last completion (61806) + B prompt - 506",
+  "limits": [
+   "fixed history makes the engine re-read the recorded reply each step (hundreds to a few thousand tokens), Pi reuses its own",
+   "pisim system prompt about 800 tokens and 4 tools; no streaming, no NGINX; one session, no switching",
+   "public benchmark text"
+  ]
+ },
+ "verdict_kind": "sampling",
+ "reuse_controls": {
+  "label": "b2-adapt-long-20261123",
+  "runs": [
+   "C0a",
+   "C0b"
+  ]
+ },
+ "fresh_control": "C0c",
+ "candidates": [
+  {
+   "run": "T06",
+   "arm": "b2-temperature06",
+   "sampling": {
+    "temperature": 0.6
+   }
+  },
+  {
+   "run": "T08",
+   "arm": "b2-temperature08",
+   "sampling": {
+    "temperature": 0.8
+   }
+  }
+ ],
+ "runs": [
+  {
+   "order": 1,
+   "run": "C0c",
+   "arm": "b2-control",
+   "args": []
+  },
+  {
+   "order": 2,
+   "run": "T06",
+   "arm": "b2-temperature06",
+   "args": [],
+   "sampling": {
+    "temperature": 0.6
+   }
+  },
+  {
+   "order": 3,
+   "run": "T08",
+   "arm": "b2-temperature08",
+   "args": [],
+   "sampling": {
+    "temperature": 0.8
+   }
+  }
+ ],
+ "smokes": {
+  "order": [
+   4,
+   5
+  ],
+  "commands": [
+   "upgrade_gate.py probe b2-sampling-20261123 --limit 40 --sampling temperature=0.6",
+   "upgrade_gate.py probe b2-sampling-20261123 --limit 40 --sampling temperature=0.8"
+  ],
+  "reference": "stored b2 arm, first 40 tasks: decode 135.3 tok/s, e2e 130.6 (same-day control smoke 1.5% off)"
+ },
+ "metrics": {
+  "primary": "replay requests with prompt >= 32K: engine decode tok/s (generated / gen_ms)",
+  "secondary": [
+   "40-task smoke decode tok/s and e2e tok/s",
+   "tok_win, accept, generated tokens, replay wall"
+  ],
+  "loop_signs": "finish=length replies; server notices of a repeated token / repeated thinking in server-stdout.txt"
+ },
+ "rules": {
+  "env": "C0c >=32K ms_win and decode tok/s within 3% of mean(C0a, C0b), else STOP_ENV",
+  "aa": "AA = (max - min) / mean of the three control decode tok/s; bar = max(5%, 2 x AA)",
+  "pass": "replay decode gain >= bar AND smoke decode tok/s > stored b2 AND smoke e2e > stored b2 AND replay loop signs (each) <= max over controls + 1 AND smoke finish=length <= 1, repeat notices <= 1, no errors",
+  "validity": "replay: the long-context checks plus the run config.json sampling block equal to the preregistered one (none for the control); smoke: the arm config.json sampling block equal",
+  "choose": "both pass: T08 unless T06 gains >= 3 points more on the replay; none: NO_GAIN",
+  "implementation": "upgrade_gate.sampling_verdict / sampling_eval, frozen in ADDENDUM.json"
+ },
+ "stage2": {
+  "what": "upgrade_gate.py probe b2-sampling-20261123 --sampling temperature=<chosen> without --limit (305 tasks, about 2 h)",
+  "pass": "quality_gate NONINFERIORITY_ESTABLISHED (margin 5%, paired with stored b2 by task and seed) AND full-arm finish=length <= 3 AND repeat notices <= 3 (b2: 353 attempts all stop, 0 notices) AND full-arm decode tok/s (prodlog) >= b2 + 3%",
+  "then": "recommend setting the thinking-level temperature in Pi models.json to the chosen value (off level unchanged), done by the user; observe real-traffic accept and tok_win with prodlog; revert to 1.0 on truncation or repetition",
+  "fail": "NO_GAIN or QUALITY_RISK, recorded in the no-repeat ledger"
+ },
+ "limits": [
+  "the task gate scores single tasks and cannot see repetition in long sessions; the replay only counts loop signs, it does not score quality",
+  "a lower temperature changes output length and style; replay wall and generated tokens are recorded, not judged",
+  "public benchmark text"
+ ],
+ "budget": {
+  "stage1": "about 2 h of production stop (3 replays x 13 min, 2 smokes x 37 min)",
+  "stage2": "about 2 h"
+ },
+ "standing_rules": [
+  "production config unchanged; no writes to the production tree or /home/hhtele/strata-0.1.43.1",
+  "STRATA_STAGE_PIN and STRATA_ROUTE_RESIDENT never enabled",
+  "failed runs are kept"
+ ]
+}
