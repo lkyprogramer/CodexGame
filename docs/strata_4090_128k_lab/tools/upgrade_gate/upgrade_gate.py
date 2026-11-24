@@ -7,7 +7,8 @@
                                                      --limit N is a wiring smoke test in TAG/smoke, no decision
     upgrade_gate.py probe LABEL [--limit N]          an arm of the production tree itself with other --env/--arg, against the
                                                      stored b2 arm (no new release, no KL phase); results in LABEL/
-      gate and probe take --env K=V and --arg FLAG[=VALUE] (repeatable): extra engine env, extra or replaced engine CLI args
+      gate and probe take --env K=V and --arg FLAG[=VALUE] (repeatable): extra engine env, extra or replaced engine CLI args,
+      and --sampling KEY=VALUE: the run config's sampling block (the server's defaults for fields a request leaves out)
     upgrade_gate.py replay LABEL --build | --freeze | --run NAME [--rerun] | --eval
                                                      fixed-history replay of a long Pi-shaped session on the production tree,
                                                      runs and rules from LABEL/PREREG.json (stops production per run)
@@ -353,6 +354,27 @@ def apply_arg_specs(args, specs):
     return a
 
 
+SAMPLING_KEYS = {'temperature': float, 'top_p': float, 'top_k': int, 'min_p': float, 'presence_penalty': float,
+                 'repetition_penalty': float, 'frequency_penalty': float, 'penalty_last_n': int}
+
+
+def parse_sampling(specs):
+    """--sampling KEY=VALUE -> {key: number}: the run config's `sampling` block, the server's defaults for the fields a
+    request leaves out (gate17 and the replay send none, as Pi's model card values equal the server's card)."""
+    out = {}
+    for s in specs or []:
+        k, eq, v = s.partition('=')
+        if k not in SAMPLING_KEYS or not eq: raise Stop('bad --sampling %r (keys: %s)' % (s, sorted(SAMPLING_KEYS)))
+        try: out[k] = SAMPLING_KEYS[k](v)
+        except ValueError: raise Stop('bad --sampling value %r' % s)
+        if out[k] < 0 or (k in ('top_p', 'min_p') and out[k] > 1): raise Stop('--sampling %s out of range' % s)
+    return out
+
+
+def sampling_suffix(sampling):
+    return ''.join('-' + re.sub(r'[^0-9A-Za-z_]', '', k.replace('_', '') + str(v)) for k, v in sorted((sampling or {}).items()))
+
+
 def arm_suffix(extra_env, specs):
     s = ''.join('-%s%s' % (k.replace('STRATA_', '').lower(), v) for k, v in sorted(extra_env.items()))   # unchanged naming for --env
     for flag, val in specs:
@@ -449,24 +471,24 @@ def same_task_figures(S, ids, budget):
 
 
 # ---------------------------------------------------------------- gate / probe
-def gate(tag, force=False, limit=None, extra_env=None, arg_specs=None):
+def gate(tag, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None):
     prep = load(tag, 'PREPARE.json'); klr = load(tag, 'KL.json')
     if not prep or prep.get('status') != 'READY': raise Stop('run prepare first')
     if not limit and not force and (not klr or klr.get('verdict') != 'PROCEED'): raise Stop('KL verdict is not PROCEED (use --force to override)')
     ident = dict(engine_sha256=prep['engine_sha256'], patched_files=prep['patched_files'], config_sha256=prep['config_sha256'],
                  kl_verdict=(klr or {}).get('verdict'))
-    return run_arm(tag, Path(prep['tree']), arm_name(tag), ident, force, limit, extra_env, arg_specs)
+    return run_arm(tag, Path(prep['tree']), arm_name(tag), ident, force, limit, extra_env, arg_specs, sampling)
 
 
-def probe(label, force=False, limit=None, extra_env=None, arg_specs=None):
+def probe(label, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None):
     """An arm of the production tree itself with other engine env or CLI args (no new release), paired with the stored b2
     arm: a smoke with --limit, else a full task-gate arm.  No KL phase: quant_quality's yardstick pins the expert placement
     (--expert-cache 1, --adapt-every 100000), so it cannot see placement or adaptive-tier changes; other changes need their
     own numerical check first."""
     tree, cur = b2_production_tree(force)
-    if not limit and not extra_env and not arg_specs: raise Stop('a full arm without changes would be b2 again')
+    if not limit and not extra_env and not arg_specs and not sampling: raise Stop('a full arm without changes would be b2 again')
     ident = dict(engine_sha256=sha(cur['exe']), patched_files=None, config_sha256=sha(tree / 'strata-iq3_xxs.json'), kl_verdict='NOT_RUN (probe)')
-    return run_arm(label, tree, BASE_ARM, ident, True, limit, extra_env, arg_specs)
+    return run_arm(label, tree, BASE_ARM, ident, True, limit, extra_env, arg_specs, sampling)
 
 
 def b2_production_tree(force=False):
@@ -482,33 +504,45 @@ def b2_production_tree(force=False):
     return tree, cur
 
 
-def arm_config(wtag, tree, arm, specs, gate17):
-    """Point gate17 at tree; with CLI arg specs, at a copy of its config with the args applied (UG/wtag/configs/).
-    Returns (the config the arm runs, flags the engine --help does not list)."""
+def arm_config(wtag, tree, arm, specs, gate17, sampling=None):
+    """Point gate17 at tree; with CLI arg specs or sampling defaults, at a copy of its config with the args applied and
+    the `sampling` block set (UG/wtag/configs/).  Returns (the config the arm runs, flags the engine --help does not list)."""
     run_cfg = tree / 'strata-iq3_xxs.json'; not_in_help = []
-    if specs:
+    if specs or sampling:
         cfg = json.loads(run_cfg.read_text()); cfg['args'] = apply_arg_specs(cfg['args'], specs)
+        if sampling: cfg['sampling'] = dict(cfg.get('sampling') or {}, **sampling)
         run_cfg = wdir(wtag) / 'configs' / (arm + '.strata-iq3_xxs.json'); run_cfg.parent.mkdir(parents=True, exist_ok=True)
         run_cfg.write_text(json.dumps(cfg, indent=2) + '\n')
-        h = run([cfg['exe'], '--help']); text = h.stdout + h.stderr          # the engine prints its usage on stderr
-        not_in_help = [f for f, _ in specs if not re.search(re.escape(f) + r'(?![\w-])', text)]
-        if not_in_help: log('WARN --arg flags not in the engine --help (it may still parse them; check the arm log):', not_in_help)
+        if specs:
+            h = run([cfg['exe'], '--help']); text = h.stdout + h.stderr          # the engine prints its usage on stderr
+            not_in_help = [f for f, _ in specs if not re.search(re.escape(f) + r'(?![\w-])', text)]
+            if not_in_help: log('WARN --arg flags not in the engine --help (it may still parse them; check the arm log):', not_in_help)
         nt = _ArmTree(tree); nt.config = run_cfg; gate17.N = nt
     else:
         gate17.N = tree
     return run_cfg, not_in_help
 
 
-def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None):
-    """One task-gate arm of tree (a smoke with --limit) with extra engine env and CLI args; results under UG/wtag."""
+def loop_signs(server_stdout, finishes):
+    """Degenerate-output signs of a run: replies ended by length, and the server's repeated-token / repeated-thinking notices."""
+    rep = 0
+    if Path(server_stdout).exists():
+        with open(server_stdout, errors='replace') as f:
+            rep = sum(1 for l in f if re.search(r'repeated one token|repeated reasoning|thinking repeated', l))
+    return dict(finish_length=sum(1 for x in finishes if x == 'length'), repeat_notices=rep)
+
+
+def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None):
+    """One task-gate arm of tree (a smoke with --limit) with extra engine env, CLI args and sampling defaults; results under UG/wtag."""
     extra_env = dict(extra_env or {}); bad = FORBIDDEN_ENV & set(extra_env)
     if bad: raise Stop('%s are never enabled in this lab' % sorted(bad))
     specs = parse_arg_specs(arg_specs); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
     pre = json.loads((GD / 'PREREG.json').read_text())
-    suffix = arm_suffix(extra_env, specs); arm = base + suffix if suffix or base != BASE_ARM else BASE_ARM + '-control'
+    sampling = dict(sampling or {})
+    suffix = arm_suffix(extra_env, specs) + sampling_suffix(sampling); arm = base + suffix if suffix or base != BASE_ARM else BASE_ARM + '-control'
     sys.path.insert(0, str(GD)); import gate17
     args_doc = [[f, v] for f, v in specs]
-    run_cfg, not_in_help = arm_config(wtag, tree, arm, specs, gate17)
+    run_cfg, not_in_help = arm_config(wtag, tree, arm, specs, gate17, sampling)
     if limit:                       # smoke: a private copy of the prereg, its own arm dir, no pairs/decision
         S = wdir(wtag) / 'smoke'; shutil.rmtree(S / 'arms' / arm, ignore_errors=True); S.mkdir(parents=True, exist_ok=True); shutil.copy2(GD / 'PREREG.json', S / 'PREREG.json'); gate17.GD = S
         orig = gate17.run_task; n = [0]
@@ -524,7 +558,9 @@ def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, ar
         b2 = {json.loads(l)['task_id']: json.loads(l) for l in open(GD / 'arms' / BASE_ARM / 'rows.jsonl')}
         ids = [r['task_id'] for r in rows]
         speed, win = same_task_figures(S, ids, gate17.THINK_BUDGET)
-        doc = dict(tag=wtag, limit=limit, env=env, args=args_doc, flags_not_in_help=not_in_help, config=str(run_cfg), config_sha256=sha(run_cfg),
+        doc = dict(tag=wtag, limit=limit, env=env, args=args_doc, sampling=sampling, flags_not_in_help=not_in_help, config=str(run_cfg), config_sha256=sha(run_cfg),
+                   loop_signs=loop_signs(S / 'arms' / arm / 'server-stdout.txt', [a.get('finish') for r in rows for a in r.get('attempts', [])]),
+                   arm_config_sampling=json.loads((S / 'arms' / arm / 'config.json').read_text()).get('sampling'),
                    engine_sha256=ident['engine_sha256'], arm=arm, speed_same_tasks=speed, per_window_same_tasks=win,
                    passes=dict(pass1=sum(bool(r.get('pass1')) for r in rows), pass2=sum(bool(r.get('pass2')) for r in rows), errors=sum('error' in r for r in rows)),
                    rows=[dict(task_id=r['task_id'], error=r.get('error'), pass1=r.get('pass1'), pass2=r.get('pass2'),
@@ -533,13 +569,14 @@ def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, ar
     # addendum preregistration: written before the arm runs, refuses to change afterwards
     pa = GD / ('PREREG-%s.json' % arm)
     add = dict(tag=wtag, tree=str(tree), engine_sha256=ident['engine_sha256'], patched_files=ident['patched_files'],
-               config_sha256=sha(run_cfg) if specs else ident['config_sha256'],
+               config_sha256=sha(run_cfg) if specs or sampling else ident['config_sha256'],
                base_prereg_sha256=sha(GD / 'PREREG.json'), driver_sha256=sha(GD / 'gate17.py'), baseline='b2 (stored v0.2.17 arm, not re-run)',
                baseline_rows_sha256=sha(GD / 'arms/b2/rows.jsonl'), candidate=arm, env=env, margin=pre['margin'],
                kl_verdict=ident['kl_verdict'], forced=bool(force),
                note='same task ids, seeds (1000+index), prompts, grader image and driver as PREREG.json; the two original arms also ran one '
                     'after the other, so reusing the stored b2 arm keeps the pairing by task and seed')
     if specs: add['args'] = args_doc               # only then: older addenda have no such key
+    if sampling: add['sampling'] = sampling
     if pa.exists():
         old = json.loads(pa.read_text()); diff = [k for k in add if k not in ('forced', 'kl_verdict') and old.get(k) != add[k]]
         if diff: raise Stop('addendum prereg exists with different %s; refusing' % diff)
@@ -676,6 +713,37 @@ def replay_verdict(runs, floor=0.04, noisy=0.05, text_tol=0.05):
     return out
 
 
+def sampling_verdict(controls, env_ref, cands, smoke_ref, smokes, floor=0.05, env_tol=0.03):
+    """The preregistered sampling verdict (plans/B2_SAMPLING_20261123.md).  controls: replay control runs, each
+    dict(ms_win, decode_tok_s, finish_length, repeat_notices, valid), the last one fresh; env_ref: dict(ms_win,
+    decode_tok_s) of the earlier controls; cands: name -> replay run dict like a control; smoke_ref: dict(decode_tok_s,
+    e2e) of the stored b2 arm; smokes: name -> dict(decode_tok_s, e2e, finish_length, repeat_notices, errors, valid)."""
+    fresh = controls[-1]
+    drift = {k: round(fresh[k] / env_ref[k] - 1, 4) for k in ('ms_win', 'decode_tok_s')}
+    if not fresh.get('valid'): return dict(verdict='INVALID', invalid=['control'])
+    if any(abs(v) > env_tol for v in drift.values()): return dict(verdict='STOP_ENV', drift=drift)
+    d = [c['decode_tok_s'] for c in controls]; cm = sum(d) / len(d)
+    aa = (max(d) - min(d)) / cm; bar = max(floor, 2 * aa)
+    lim = {k: max(c[k] for c in controls) + 1 for k in ('finish_length', 'repeat_notices')}
+    out = dict(drift=drift, control_decode_tok_s=round(cm, 1), aa=round(aa, 4), bar=round(bar, 4), arms={})
+    for n, c in cands.items():
+        s = smokes.get(n)
+        if not c.get('valid') or not s or not s.get('valid'): out['arms'][n] = dict(verdict='INVALID'); continue
+        g, sg, se = c['decode_tok_s'] / cm - 1, s['decode_tok_s'] / smoke_ref['decode_tok_s'] - 1, s['e2e'] / smoke_ref['e2e'] - 1
+        checks = dict(replay_gain_ge_bar=g >= bar, smoke_decode_not_slower=sg > 0, smoke_e2e_higher=se > 0,
+                      replay_loops_ok=all(c[k] <= lim[k] for k in lim), smoke_loops_ok=s['finish_length'] <= 1 and s['repeat_notices'] <= 1 and not s['errors'])
+        out['arms'][n] = dict(replay_gain=round(g, 4), smoke_decode_gain=round(sg, 4), smoke_e2e_gain=round(se, 4), checks=checks,
+                              verdict='PASS' if all(checks.values()) else 'NO_PASS')
+    passing = {n: a['replay_gain'] for n, a in out['arms'].items() if a['verdict'] == 'PASS'}
+    if not passing: out['verdict'], out['stage2'] = 'NO_GAIN', None
+    else:
+        best = max(passing, key=passing.get)
+        # the candidate closest to the card (the highest temperature) unless another one is faster by >= 3 points
+        cons = max(passing, key=lambda n: cands[n]['temperature'])
+        out['stage2'] = best if passing[best] - passing[cons] >= 0.03 else cons; out['verdict'] = 'STAGE2'
+    return out
+
+
 def replay_prereg(label):
     pre = load(label, 'PREREG.json')
     if not pre or 'workload' not in pre or 'runs' not in pre: raise Stop('%s has no replay preregistration' % wdir(label))
@@ -725,10 +793,10 @@ def replay_run(label, name, force=False, rerun=False):
     spec = next((r for r in pre['runs'] if r['run'] == name), None)
     if not spec: raise Stop('run %r is not preregistered (%s)' % (name, [r['run'] for r in pre['runs']]))
     all_flags = {f for r in pre['runs'] for f, _ in parse_arg_specs(r['args'])}
-    specs = parse_arg_specs(spec['args']); arm = spec['arm']
+    specs = parse_arg_specs(spec['args']); arm = spec['arm']; sampling = parse_sampling(['%s=%s' % kv for kv in (spec.get('sampling') or {}).items()])
     tree, cur = b2_production_tree(force)
     sys.path.insert(0, str(GD)); import gate17
-    run_cfg, not_in_help = arm_config(label, tree, arm, specs, gate17)
+    run_cfg, not_in_help = arm_config(label, tree, arm, specs, gate17, sampling)
     W = wdir(label); ad = W / 'runs' / name
     if ad.exists():
         if not rerun: raise Stop('%s exists (a rerun keeps it as %s.failed1)' % (ad, name))
@@ -767,11 +835,13 @@ def replay_run(label, name, force=False, rerun=False):
     reqs, waited = engine_requests(ad / 'engine.log')
     argv = started_args(ad / 'engine.log')
     aligned = len(reqs) == len(rows) == len(bodies) and all(r.get('prompt_tokens') is not None and abs(q['prompt'] - r['prompt_tokens']) <= 64 for q, r in zip(reqs, rows))
+    ran = json.loads((ad / 'config.json').read_text()) if (ad / 'config.json').exists() else {}
     checks = dict(all_requests_ok=not err and len(rows) == len(bodies), engine_requests=len(reqs), aligned=aligned,
-                  flags_ok=flags_ok(argv, specs, all_flags), no_guard=not guard)
+                  flags_ok=flags_ok(argv, specs, all_flags), sampling_ok=(ran.get('sampling') or {}) == sampling, no_guard=not guard)
     st = window_stats(reqs); ge = window_stats([q for q in reqs if q['prompt'] >= REPLAY_GE])['all']
     if st['all']['windows']: st['all']['overlap_wait_ms_per_window'] = round(waited / st['all']['windows'], 3)
-    out = dict(label=label, run=name, arm=arm, args=[[f, v] for f, v in specs], flags_not_in_help=not_in_help, config=str(run_cfg),
+    out = dict(label=label, run=name, arm=arm, args=[[f, v] for f, v in specs], sampling=sampling, flags_not_in_help=not_in_help, config=str(run_cfg),
+               loop_signs=loop_signs(ad / 'server-stdout.txt', [r.get('finish') for r in rows]),
                config_sha256=sha(run_cfg), engine_sha256=sha(cur['exe']), started_args=argv, error=err, guard=guard,
                checks=checks, valid=all(v for k, v in checks.items() if k != 'engine_requests'), ge32k=ge, buckets=st,
                generated=sum(r.get('completion_tokens') or 0 for r in rows), wall_s=round(sum(r['wall_s'] for r in rows), 1))
@@ -780,11 +850,40 @@ def replay_run(label, name, force=False, rerun=False):
 
 
 def replay_eval(label):
-    pre = replay_prereg(label); runs = {}
+    pre = replay_prereg(label)
+    if pre.get('verdict_kind') == 'sampling': return sampling_eval(label, pre)
+    runs = {}
     for r in pre['runs']:
         d = load(label, 'RUN-%s.json' % r['run'])
         if d: runs[r['run']] = dict(valid=d['valid'], **{k: d['ge32k'][k] for k in ('ms_win', 'tok_win', 'decode_tok_s')})
     v = replay_verdict(runs); v['runs'] = runs; log('verdict', json.dumps(v)); return save(label, 'VERDICT.json', v)
+
+
+def sampling_eval(label, pre):
+    def rr(lb, n):
+        d = load(lb, 'RUN-%s.json' % n)
+        if not d: raise Stop('missing %s/RUN-%s.json' % (lb, n))
+        ls = d.get('loop_signs')
+        if ls is None:              # runs made before loop_signs existed: from their rows and server output
+            ad = wdir(lb) / 'runs' / n
+            ls = loop_signs(ad / 'server-stdout.txt', [json.loads(l).get('finish') for l in open(ad / 'rows.jsonl')])
+        return dict(valid=d['valid'], ms_win=d['ge32k']['ms_win'], decode_tok_s=d['ge32k']['decode_tok_s'], **ls)
+    ref = pre['reuse_controls']; old = [rr(ref['label'], n) for n in ref['runs']]
+    controls = old + [rr(label, pre['fresh_control'])]
+    env_ref = {k: sum(c[k] for c in old) / len(old) for k in ('ms_win', 'decode_tok_s')}
+    cands, smokes, smoke_ref = {}, {}, None
+    for c in pre['candidates']:
+        cands[c['run']] = dict(rr(label, c['run']), temperature=c['sampling']['temperature'])
+        sd = load(label, 'SMOKE-%s.json' % c['arm'])
+        if not sd: continue
+        w = sd['per_window_same_tasks']; sp = sd['speed_same_tasks']
+        smoke_ref = dict(decode_tok_s=w['b2']['all']['decode_tok_s'], e2e=sp['b2']['tok_s'])
+        smokes[c['run']] = dict(decode_tok_s=w['smoke:' + c['arm']]['all']['decode_tok_s'], e2e=sp['smoke:' + c['arm']]['tok_s'],
+                                errors=sd['passes']['errors'], valid=sd.get('arm_config_sampling') == c['sampling'], **sd['loop_signs'])
+    if smoke_ref is None: raise Stop('no smoke results yet')
+    v = sampling_verdict(controls, env_ref, cands, smoke_ref, smokes)
+    v.update(inputs=dict(controls=controls, env_ref=env_ref, cands=cands, smoke_ref=smoke_ref, smokes=smokes))
+    log('verdict', json.dumps(v)); return save(label, 'VERDICT.json', v)
 
 
 def main():
@@ -795,13 +894,15 @@ def main():
     ap.add_argument('--env', action='append', default=[], help='extra engine env for the gate arm, K=V (repeatable; names the arm)')
     ap.add_argument('--arg', action='append', default=[], metavar='FLAG[=VALUE]',
                     help='engine CLI arg for the gate/probe arm, e.g. adapt-every=2: replaces the value of a flag the config has, else is appended (repeatable; names the arm)')
+    ap.add_argument('--sampling', action='append', default=[], metavar='KEY=VALUE',
+                    help='gate/probe: the run config\'s sampling block (server defaults for fields a request leaves out), e.g. temperature=0.6 (repeatable; names the arm)')
     ap.add_argument('--build', action='store_true', help='replay: build LABEL/REPLAY.json from the preregistered sessions')
     ap.add_argument('--freeze', action='store_true', help='replay: write the read-only ADDENDUM.json (sha256 of this script and REPLAY.json)')
     ap.add_argument('--run', metavar='NAME', help='replay: one preregistered run (its args come from LABEL/PREREG.json)')
     ap.add_argument('--rerun', action='store_true', help='replay --run: once, after an infrastructure failure; the failed run is kept')
     ap.add_argument('--eval', action='store_true', help='replay: the preregistered verdict over the runs so far (VERDICT.json)')
     a = ap.parse_args()
-    if a.cmd == 'replay' and (a.env or a.arg or a.limit): raise SystemExit('replay takes its args from the preregistration, not --env/--arg/--limit')
+    if a.cmd == 'replay' and (a.env or a.arg or a.limit or a.sampling): raise SystemExit('replay takes its args from the preregistration, not --env/--arg/--sampling/--limit')
     if a.cmd in ('probe', 'replay'):
         if not re.fullmatch(r'[a-z][-.\w]*', a.tag) or re.match(r'v\d', a.tag): raise SystemExit('probe label looks wrong (lower-case, not a tag): %r' % a.tag)
     elif not re.fullmatch(r'v\d+\.\d+\.\d+[-.\w]*', a.tag): raise SystemExit('tag looks wrong: %r' % a.tag)
@@ -815,8 +916,8 @@ def main():
     try:
         if a.cmd == 'prepare': prepare(a.tag, a.tree, a.j)
         elif a.cmd == 'kl': kl(a.tag, a.repeat)
-        elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg)
-        elif a.cmd == 'probe': probe(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg)
+        elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg, parse_sampling(a.sampling))
+        elif a.cmd == 'probe': probe(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg, parse_sampling(a.sampling))
         elif a.cmd == 'replay':
             if a.build: replay_build(a.tag)
             if a.freeze: replay_freeze(a.tag)

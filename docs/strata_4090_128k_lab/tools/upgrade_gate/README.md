@@ -33,6 +33,7 @@ setsid nohup /home/hhtele/anaconda3/bin/python -B upgrade_gate.py all v0.2.18 > 
   - 去掉 `--limit` 就是完整任务门臂，写附加预登记并与存档 b2 配对判定。
   - 不跑 KL：`quant_quality.py` 固定了 `--expert-cache 1 --adapt-every 100000`，看不到放置和自适应层的变化。其他会改变数值的参数要先单独做数值检查。
   - 第一次使用见 [B2 自适应层探针预登记](../../plans/B2_ADAPT_PROBE_20261123.md)。
+- **`gate/probe --sampling KEY=VALUE`**（可重复，2026-11-23 起）：在这一臂的运行配置里写 `sampling` 块，也就是服务端对请求里没给的采样字段使用的默认值。臂名会带上键和值，例如 `--sampling temperature=0.6` 对应 `b2-temperature06`。gate 驱动和回放都不发采样参数，所以它们用的就是这个块；Pi 自己会发 temperature，真正采用时要改 Pi 的 `models.json`。测速结果里另外记录 `loop_signs`（`finish=length` 的回复数，以及服务端重复 token / 重复思考的提示数）。回放运行也可以在预登记的 `runs` 里写 `sampling`；预登记写了 `"verdict_kind": "sampling"` 时，`--eval` 改用采样判定规则。
 - **`replay LABEL --build | --freeze | --run NAME [--rerun] | --eval`**（2026-11-23 起）：在生产树上回放一段固定历史的 Pi 式长会话，参数和判定规则全部来自 `LABEL/PREREG.json`，不接受 `--env`、`--arg`、`--limit`。第一次用在[长上下文 `--adapt-every` 探针](../../plans/B2_ADAPT_LONG_20261123.md)。
   - `--build`：用预登记里的 pisim 会话（sha256 必须一致）生成 `REPLAY.json`。已经存在时，内容必须和重新生成的完全相同。
   - `--freeze`：写只读的 `ADDENDUM.json`，记录本脚本、`REPLAY.json` 和预登记的 sha256。之后 `--run` 会核对，三者任何一个变了都会拒绝。
@@ -41,7 +42,7 @@ setsid nohup /home/hhtele/anaconda3/bin/python -B upgrade_gate.py all v0.2.18 > 
     - 结果写在 `RUN-NAME.json`，主指标是 prompt ≥32K 的请求合起来的每窗口 decode 毫秒数。
     - 目录已存在时拒绝运行；`--rerun` 只能用一次，失败的那次会保留为 `NAME.failed1`。
   - `--eval`：按预登记的 ABBA 规则判定，写 `VERDICT.json`。
-- **CPU 单测**：`python3 -B -m unittest test_upgrade_gate`（在本目录下运行），覆盖参数解析和替换、臂名、配置替身、日志解析和按题对齐，以及回放的构建、启动参数检查和 ABBA 判定；不需要 GPU，也不需要 4090 上的路径。
+- **CPU 单测**：`python3 -B -m unittest test_upgrade_gate`（在本目录下运行），覆盖参数解析和替换、臂名、配置替身、日志解析和按题对齐，以及回放的构建、启动参数检查、ABBA 判定、采样参数和采样判定；不需要 GPU，也不需要 4090 上的路径。
 - **已完整跑完的臂**：再次执行 `gate` 时只做判定，不再停生产。阶段结果写在 `/data/strata-data/upgrade-gate/<tag>/` 下的 `PREPARE.json`、`KL.json`、`GATE.json`、`REPORT.json` 和 `SWITCH.json`。退出码 0 表示阶段完成，2 表示按规则停止，原因写在对应 JSON 的 `stop` 字段。
 
 ## 阶段

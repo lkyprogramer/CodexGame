@@ -1,5 +1,5 @@
 """CPU-only checks of upgrade_gate.py's arm helpers (--arg, the config stand-in, per-window figures, the long-context
-replay and its verdict); no GPU, no 4090 paths.
+replay and its verdicts, sampling defaults); no GPU, no 4090 paths.
 
     python3 -B -m unittest test_upgrade_gate      (from this directory)
 """
@@ -139,6 +139,44 @@ class Replay(unittest.TestCase):
         self.assertEqual(ug.replay_verdict(runs(18.0, 16.8, 16.9, 18.1, tps=(130, 120, 120, 130)))['verdict'], 'NO_PASS')
         self.assertEqual(ug.replay_verdict(runs(18.0, 16.8, 16.9, 18.1, valid=False))['verdict'], 'INVALID')
         self.assertEqual(ug.replay_verdict({k: v for k, v in runs(1, 1, 1, 1).items() if k != 'C0b'})['verdict'], 'INCOMPLETE')
+
+
+class Sampling(unittest.TestCase):
+    def test_parse_and_suffix(self):
+        self.assertEqual(ug.parse_sampling(['temperature=0.6', 'top_k=20']), dict(temperature=0.6, top_k=20))
+        self.assertEqual(ug.sampling_suffix(dict(temperature=0.6)), '-temperature06')
+        self.assertEqual(ug.sampling_suffix(dict(top_p=0.9, temperature=0.8)), '-temperature08-topp09')
+        self.assertEqual(ug.sampling_suffix({}), '')
+        for bad in (['temp=0.6'], ['temperature'], ['temperature=x'], ['top_p=1.5'], ['temperature=-1']):
+            with self.assertRaises(ug.Stop): ug.parse_sampling(bad)
+
+    def test_loop_signs(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'server-stdout.txt'
+            p.write_text('[strata] the reply repeated one token (\'a\') 256 times\nok\n[strata] the thinking repeated the same passages (coverage=0.9)\n')
+            self.assertEqual(ug.loop_signs(p, ['stop', 'length', 'tool_calls', 'length']), dict(finish_length=2, repeat_notices=2))
+        self.assertEqual(ug.loop_signs(Path('/nonexistent/x'), []), dict(finish_length=0, repeat_notices=0))
+
+    def test_verdict(self):
+        ctl = lambda t, ms=17.5: dict(ms_win=ms, decode_tok_s=t, finish_length=0, repeat_notices=0, valid=True)
+        controls = [ctl(144.6), ctl(145.7), ctl(145.0)]; ref = dict(ms_win=17.565, decode_tok_s=145.15)
+        cand = lambda t, temp, fl=0: dict(ms_win=17.5, decode_tok_s=t, finish_length=fl, repeat_notices=0, valid=True, temperature=temp)
+        smk = lambda t, e: dict(decode_tok_s=t, e2e=e, finish_length=0, repeat_notices=0, errors=0, valid=True)
+        sref = dict(decode_tok_s=135.3, e2e=130.6)
+        v = ug.sampling_verdict(controls, ref, {'T06': cand(165.0, 0.6), 'T08': cand(156.0, 0.8)}, sref, {'T06': smk(150, 140), 'T08': smk(145, 136)})
+        self.assertEqual(v['arms']['T06']['verdict'], 'PASS'); self.assertEqual(v['arms']['T08']['verdict'], 'PASS')
+        self.assertEqual(v['stage2'], 'T06')                       # 13.8% vs 7.5%: faster by >= 3 points
+        v = ug.sampling_verdict(controls, ref, {'T06': cand(158.0, 0.6), 'T08': cand(156.0, 0.8)}, sref, {'T06': smk(150, 140), 'T08': smk(145, 136)})
+        self.assertEqual(v['stage2'], 'T08')                       # within 3 points: the one closest to the card
+        v = ug.sampling_verdict(controls, ref, {'T06': cand(165.0, 0.6, fl=3), 'T08': cand(150.0, 0.8)}, sref, {'T06': smk(150, 140), 'T08': smk(145, 136)})
+        self.assertFalse(v['arms']['T06']['checks']['replay_loops_ok']); self.assertEqual(v['arms']['T08']['verdict'], 'NO_PASS')
+        self.assertEqual(v['verdict'], 'NO_GAIN'); self.assertIsNone(v['stage2'])
+        v = ug.sampling_verdict(controls, ref, {'T06': cand(165.0, 0.6)}, sref, {'T06': smk(130, 140)})
+        self.assertFalse(v['arms']['T06']['checks']['smoke_decode_not_slower'])
+        self.assertEqual(ug.sampling_verdict(controls[:2] + [ctl(140.0)], ref, {}, sref, {})['verdict'], 'STOP_ENV')
+        self.assertEqual(ug.sampling_verdict(controls, ref, {'T06': cand(165.0, 0.6)}, sref, {})['arms']['T06']['verdict'], 'INVALID')
+        wide = [ctl(140.0), ctl(150.0), ctl(145.0)]                # AA 6.9% -> bar 13.8%
+        self.assertEqual(ug.sampling_verdict(wide, ref, {'T06': cand(160.0, 0.6)}, sref, {'T06': smk(150, 140)})['arms']['T06']['verdict'], 'NO_PASS')
 
 
 if __name__ == '__main__':
