@@ -9,17 +9,17 @@
 | 注意力 | 20 个 SWA 物理层（窗口 1024）+ 4 个全局物理层（5/11/17/23）→ 40 个 SWA slot + 8 个全局 slot。**无 RoPE**：位置信息来自学习的相对位置 bias（`d_rel` 16，extent 1024；全局层带对数缩放 τ）、注意力 sink 和 sigmoid 输出门 |
 | 短卷积 | kernel 4，作用于 K、V、注意力输出、FFN 输出；每个 slot 有独立的递推状态 |
 | 残差 | 块级注意力残差 mix（每块 6 层），各 slot 输入是若干历史块的 softmax 加权 |
-| 循环控制 | 核心层的 Q/K/V/FFN 各有一个 controller，rank 64：`x' = x − forget·x + gain·m`，m 是从上一遍构造的消息 |
+| 循环控制 | 核心层的 Q/K/V/FFN 各有一个 controller，rank 64：`x' = x − forget·x + gain·m`，m 是从上一遍构造的消息。forget 与 gain 都经 **tanh**（HF 实现核实），可以为负、keep 可以 > 1，不是概率 |
 | MoE | 128 专家，top-8，intermediate 1152；sigmoid 路由，bias 只参与选择；SiTU 激活；route_scale 8；softcap gate 4 / up 25 |
 | 输出 | 词表 201024（有效 200058），final logit softcap 30 |
 | 草稿 | 原生 MTP/DSpark：3 层，block 8，target layers [5,23,41,48] |
-| 原生精度 | 专家 NVFP4，部分层 MXFP8，其余 BF16；约 20.2 GB |
+| 原生精度 | 专家 NVFP4，部分层 MXFP8，其余 BF16；约 20.2 GB。A1（GGUF）是 NVFP4 ×40 + Q8_0 ×154 + BF16 + F32 的混合，不是单一 4 位；原生 MXFP8 在 GGUF 里变成 Q8_0，把 NVFP4 解码成 BF16 也恢复不了原文件没有存的信息 |
 
 逐算子语义以 llama.cpp `inkling2_loop` 图为准，HF transformers `modeling_inkling2_loop.py` 为第二参考。Astral 的 spec 06（S10）已把语义逐条写清，本包不重复，研究时直接读它。
 
 ## 2. varloop 研究版（S02）
 
-`thinkingmachines/TML-d24-varloop-research` @91a57fe 与正式版结构相同（文件大小逐个相同），差别是 `loop_config.is_varloop: true`，即训练时遍数可变。它是 [06](06_loop_research.md) 中“改遍数”实验的主体。正式版只作为对照：没有为改遍数训练过，预期会退化。
+`thinkingmachines/TML-d24-varloop-research` @91a57fe 与正式版结构相同（文件大小逐个相同），差别是 `loop_config.is_varloop: true`。模型卡原文（v3.0.7 核实）：第一阶段中训练与 Mini 共用；中训练的其余部分按 **1:2:6:2:1** 抽样 **1–5 遍**训练，之后以 **3 遍**做 post-training。所以 1–5 遍是它的训练分布内，6 遍以上是外推；它与固定 Mini 的后期训练不同，是另一个模型身份。它是 [06](06_loop_research.md) 中“改遍数”实验的主体；正式版只作截断敏感性对照。A4 是原生格式，A1 是 GGUF，跨两者比较前先统一或写明加载与计算精度，避免把格式差异归因到循环。
 
 ## 3. 4090 显存预算（推断，P1/P4 实测校准）
 
@@ -33,7 +33,22 @@
 | conv 状态 | 48 slot × 6656 通道 × 3 × 4 B ≈ 3.7 MiB |
 | 草稿器 KV / 回滚快照、工作区、CUDA graph | 未知，P1 用 `nvidia-smi` 与 `astral hw` 实测 |
 
-结论：P4 完成后，128K（f16 全局 KV）在 4090 上可行，余量约 1.5–2 GiB；全局 KV 改成 q8 后可以更长。
+以上都是按已知形状算出的理想稳态容量，不是分配器实测；verify 窗口的暂存、回滚余量、对齐、coda lens 副本、graph、工作区、草稿器和 CUDA context 另计。SWA 环形缓冲还要处理同批写入覆盖（[04](04_astral_fork.md) §3.2：W = 1024、C = 512 时多约 79.8 MiB）。
+
+**遍数 R 改变时状态也跟着变**（保持同样的层结构）：visit = 12 + 12R，全局 visit = 2 + 2R，SWA visit = 10 + 10R；每个 visit 每 token 的 f16 KV 为 2 × 8 头 × 128 × 2 B = 4096 B。
+
+| R | visit | 全局 | SWA | 128K 理想 f16 KV（SWA 环形 1024） |
+|---:|---:|---:|---:|---:|
+| 1 | 24 | 4 | 20 | 2.078 GiB |
+| 2 | 36 | 6 | 30 | 3.117 GiB |
+| 3 | 48 | 8 | 40 | 4.156 GiB |
+| 4 | 60 | 10 | 50 | 5.195 GiB |
+| 5 | 72 | 12 | 60 | 6.234 GiB |
+| 6 | 84 | 14 | 70 | 7.273 GiB |
+
+所以 R1 的深度研究和 128K 研究要分开做：三遍 128K 放得下，不代表五遍、六遍加多套读出缓存也放得下。
+
+结论：P4 完成后，128K（f16 全局 KV、三遍）在 4090 上按预算可行，余量约 1.5–2 GiB（推断，T17 实测）；全局 KV 改成 q8 后可以更长。
 
 ## 4. 资产（下载走 ModelScope；以 HF 的 LFS SHA256 校验）
 

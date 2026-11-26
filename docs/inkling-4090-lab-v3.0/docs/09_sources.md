@@ -19,9 +19,16 @@
 | S16 | GitHub `Eriskii/erisinky` | `3890bd523577af0b7d438edddf62ea27b64028ec` | Rust 写法参考 |
 | S17 | Strata v0.2.22 与 HF `strata-engine/Inkling-2-Mini-Strata` | `04996a1…`（v2.1 记录） | 可选业务对照（O2） |
 | S20 | GitHub `ggml-org/llama.cpp` b12751 | `532d67426bb874f06a8acc6959af81b34206f7f9` | 数值参考 |
-| S21 | HF transformers `models/inkling2_loop/modeling_inkling2_loop.py` | main，读取时 85,906 B | 语义第二参考 |
-| S22 | llama.cpp PR：已合并 #32217、#32694、#32704、#32799、#32855、#32218、#33053；未合并 #33063、#33060、#33049、#33073 | 状态以 v2.1 `43` 文档记录为准 | 长上下文 bias 语义与 4090 融合参考 |
+| S21 | HF transformers `models/inkling2_loop/modeling_inkling2_loop.py` | `3d2d3b3f7bed13f858da128cd932a2f8d36e1490`（v3.0.7 起；此前记为浮动的 main，读取时 85,906 B） | 语义第二参考；controller 的 tanh 门、per-pass cache 已按此 commit 核实 |
+| S22 | llama.cpp PR：已合并 #32217、#32694、#32704、#32799、#32855、#32218、#33053；未合并（2026-11-26 查询）#33060（head `89478df`）、#33063（`a5e1731`）、#33049（`39e7ac1`）、#33073（`f4fd1dc`）、#33062（`93e5e76`）；#33072 已关闭未合并 | 未合并的按 head commit 记录，采用前另立任务 | 长上下文 bias 语义、4090 融合（K3）、DFlash2 契约、NVFP4 转换的参考 |
 | S23 | conda 频道 `nvidia/label/cuda-12.8.1` | label 即版本 | 用户目录 CUDA 编译工具 |
 | S24 | rustup / static.rust-lang.org；备用 rsproxy.cn | Rust 1.100.0（由 S10 的 `rust-toolchain.toml` 决定） | 用户目录 Rust |
+| S25 | HF transformers PR #51161（last-history KV） | 动态 PR 页，状态以 2026-11-26 查询为准（open） | R4 的 B 臂 |
+| S26 | Goodfire, *Interpreting Inkling 2 Mini*（2026-11-20），https://www.goodfire.com/research/interpreting-inkling-2-mini/ | 文章 | T15 / R2 的第一个复现目标 |
+| S27 | LoomKV，arXiv:2611.32954v1 | v1 | KV 无损编码参考（[06](06_loop_research.md) §4） |
+| S28 | Inkling SRFT KV，arXiv:2611.29092v1；GitHub `aminems/inkling-1m-mlx` | `51e1653dc55aa4153e809d43f76ace45ea7e7769` | 模型特定的有损 KV 量化参考 |
+| S29 | GitHub `SqueezeAILab/2DSD` 分支 `feat/inkling-dspark` | `962874f303c3142406ab3eecfae2bb51567815c9` | 完整 coda 读出与 feature 契约参考 |
+| S30 | GitHub `lkyprogramer/inkling-4090-engine`（本项目的 Astral fork） | `e484873` 起 | 自有引擎的代码真源 |
+| S31 | 用户提交的研究评审，CodexGame 仓库 `docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md` | 提交 `1747d69` | v3.0.7 修订的依据；其中外部来源按本表核实 |
 
-v2.x 中的其他来源（Atomic、Ghost、Magnitude、2DSD、CUDA Rust 等）不再使用，仍保存在 `docs/atomic-inkling-4090-plan-v2.0/docs/02_evidence_register.md`。
+v2.x 中的其他来源（Atomic、Ghost、Magnitude、CUDA Rust 等）只作方法参考（[03](03_engine_landscape.md)），不再锁定，仍保存在 `docs/atomic-inkling-4090-plan-v2.0/docs/02_evidence_register.md`。

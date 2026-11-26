@@ -79,7 +79,7 @@ def main(argv=None):
     task_ids = re.findall(r"^\| (T\d{2}) \|", tasks_doc, re.M)
     ck(len(task_ids) == len(set(task_ids)) and task_ids, "task ids missing or duplicated")
     statuses = re.findall(r"\| (NOT_RUN|RUNNING|PASS|FAIL|BLOCKED|NO_BENEFIT|DEFERRED) \|\s*$", tasks_doc, re.M)
-    rows = re.findall(r"^\| (?:T\d{2}|R1–R7|O\d) \|", tasks_doc, re.M)
+    rows = re.findall(r"^\| (?:T\d{2}|R\d+(?:/R\d+)*|O\d) \|", tasks_doc, re.M)
     ck(len(statuses) == len(rows), "every task row needs one status from the vocabulary")
     referenced = set()
     for body in text.values():
@@ -87,8 +87,8 @@ def main(argv=None):
     ck(referenced <= set(task_ids), "unknown task ids referenced: %s" % sorted(referenced - set(task_ids)))
     checks["tasks"] = len(task_ids)
 
-    research = re.findall(r"^\| (R\d) \|", text.get("docs/06_loop_research.md", ""), re.M)
-    ck(research == ["R%d" % i for i in range(1, 8)], "research ids R1-R7")
+    research = re.findall(r"^\| (R\d+) \|", text.get("docs/06_loop_research.md", ""), re.M)
+    ck(research == ["R%d" % i for i in range(1, 11)], "research ids R1-R10")
 
     sources_doc = text.get("docs/09_sources.md", "")
     source_ids = re.findall(r"^\| (S\d{2}) \|", sources_doc, re.M)

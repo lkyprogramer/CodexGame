@@ -1,5 +1,15 @@
 # 版本变更
 
+## v3.0.7 · 2026-11-26
+
+逐条核实用户提交的研究评审（仓库 `docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md`，[09](docs/09_sources.md) S31）后修订文档。Astral 源码相关结论对照 fork 源码核实，外部来源 13 条按固定 commit 抓原文核对（9 条属实，4 条部分属实，按原文修正了表述）。
+
+- **验证（[05](docs/05_validation.md) §5–§7）**：V7 在 v3.0.4 复判时两侧不是同一统计量（原始 logit 对 u16 log-prob、窗口与 KL 定义不同、16 个末位对 2040 个位置），T12 的 V7 降为“有条件通过，待 T19 复核”；写明各项 PASS 的实际覆盖范围；起草统一数值口径 num-2、三类噪声对照、阈值校准规则和 `run.json` 记录格式。已批准的阈值不变。评审 §3.5 的前提（缺少生成提示）来自 T13 初稿的误记，已不成立，不需要因模板问题重跑。
+- **任务（[07](docs/07_tasks.md)）**：T04 关闭为 PASS；新增 T19（口径复判）、T20（覆盖补测）、T21（DSpark 成本模型）；T15–T18 按评审 RV-03 / 05 / 06 / 07 重写交付物；研究依赖拆开（R4 不再等 T17）。
+- **代码地图（[04](docs/04_astral_fork.md)）**：默认解码注意力是已有的 split-K online softmax，`logit[MAX_CTX]` 只在 simple 路径；8192 上限分散在四处；WP-D 改为四段并补上 SWA 环形缓冲的同批覆盖问题与边界用例；新增调优候选 K1–K7；fork 已公开。
+- **研究（[06](docs/06_loop_research.md)）**：重写 R1–R7（坐标与状态约定、tanh 门、三种读出、R4 三臂按原文核实），新增 R8（量化误差经循环传播）、R9（历史深度与当前深度）、R10（局部稳定性，可选），KV 压缩降为局部实验。
+- **其他**：[00](docs/00_plan.md) 的 330 tok/s 带宽上限与 launch-bound 改为待测假设（原算式不自洽）；[01](docs/01_model.md) 补 varloop 的 1:2:6:2:1 训练方式、随遍数变化的状态预算；[03](docs/03_engine_landscape.md) 补齐外部数字的条件、重新定位 v2 删除的参考项目；[09](docs/09_sources.md) 固定 S21，新增 S25–S31；[08](docs/08_runbooks.md) 标明命令模板与已执行脚本的区别；[VALIDATION](VALIDATION.md) 标为历史记录；`tools/check_package.py` 支持 R1–R10 和合并的研究行。
+
 ## v3.0.6 · 2026-11-26
 
 Astral fork 拆成独立公开仓库 [lkyprogramer/inkling-4090-engine](https://github.com/lkyprogramer/inkling-4090-engine)：删除 `patches/astral/`，通用分析脚本迁到 fork 的 `bench/llamacpp_compare/`（新旧名对照见 [08](docs/08_runbooks.md) §9）。按评审（`docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md` §4.1）核实源码后，更正 [04](docs/04_astral_fork.md)：Inkling 的预填走 `mma3`，不是 `mma5`。

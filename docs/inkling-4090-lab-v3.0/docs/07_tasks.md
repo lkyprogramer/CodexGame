@@ -8,7 +8,7 @@
 | T01 | 用户目录安装 Rust（rustup，toolchain 由仓库锁定） | T00 | 否 | `cargo --version`、`rustc --version`；驱动 check 通过 | PASS |
 | T02 | 用户目录 conda 安装 CUDA 12.8.1 编译工具（先 dry-run 并 scan） | T00 | 否 | `nvcc --version` 为 12.8；dry-run 包列表 scan 通过；驱动 check 通过 | PASS |
 | T03 | venv + modelscope；用 ModelScope 下载 A1–A4（A5/A6 可选）；改名；SHA256 校验；生成 lock | T00 | 否 | `models/models.lock.json`；SHA256 与 [01](01_model.md) §4 全部一致 | PASS |
-| T04 | clone Astral 到 49a0a2b，建分支 `inkling-4090`；CPU 侧 `cargo test` | T01 | 否 | 测试输出原文；失败项逐条记录原因 | FAIL |
+| T04 | clone Astral 到 49a0a2b，建分支 `inkling-4090`；CPU 侧 `cargo test` | T01 | 否 | 测试输出原文；失败项逐条记录原因。03:45 原判 FAIL（`mxfp4_block` 测试写法缺陷，非实现问题），T11 修复后 `cargo test` 全部通过，v3.0.7 关闭为 PASS；原记录保留在执行记录 | PASS |
 | T05 | GPU 构建 `ASTRAL_CUDA_ARCHS=89`；用 `cuobjdump` 列出各 fatbin 的 SASS 目标 | T02、T04 | 否 | `astral version` 显示 `["89"]` 和 nvcc 12.8；所有 fatbin 都含 sm_89 | PASS |
 | T06 | 构建 llama.cpp b12751（`CMAKE_CUDA_ARCHITECTURES=89`，使用 CUDA 12.8） | T02 | 否 | `llama-cli --version` 显示 commit `532d674` | PASS |
 | T07 | W1：`astral hw`、`astral selftest` | T05 | W | 原始输出；selftest 全部 PASS（V0） | PASS |
@@ -16,20 +16,29 @@
 | T09 | W1：`verify-embd`、`verify-model` 对 T08 的日志 | T08 | W | V3 PASS | PASS |
 | T10 | W1：分词对照；`astral generate` 与 llama.cpp 的前 32 / 128 token | T09 | W | V2；G1 | PASS |
 | T11 | WP-A：`ArchProfile::Sm89` 及测试（CPU 侧可完成，W 中复核）；修 T04 的 `mxfp4_block` 测试期望值；定位 T07 的 4 个 MXFP4 selftest 失败（只影响 Qwen 路径，限时 2 h，查不清就记为已知问题并向上游报告） | T07 | 否 | commit；`cargo test` 通过；`astral hw` 输出 `sm89`；MXFP4 失败的根因或已知问题记录 | PASS |
-| T12 | W2：噪声底 N0 → Astral KLD / top-1 → V5–V7 | T10 | W | G2 判定表及原始数据 | PASS |
+| T12 | W2：噪声底 N0 → Astral KLD / top-1 → V5–V7 | T10 | W | G2 判定表及原始数据。V7 的 v3.0.4 复判两侧口径不一致（[05](05_validation.md) §5.2），G2 在 T19 完成前为有条件通过 | PASS |
 | T13 | W2：DSpark（A3）`spec-generate` 等价性；接受长度 | T12 | W | V8；接受长度分布 | PASS |
 | T14 | W：性能基线，Astral 对 llama.cpp（无草稿 / 带草稿） | T12 | W | [05](05_validation.md) §4 报告；记录 G3 当前差距 | PASS |
-| T15 | WP-B：`ASTRAL_TRACE` 观测 | T12 | 开发否，验证 W | 关闭时逐位一致；JSONL schema 写入 fork 的文档 | NOT_RUN |
-| T16 | WP-C：4090 调优循环 | T14 | W | 每轮的 profile 和前后对比；G3 | NOT_RUN |
-| T17 | WP-D：长上下文 | T12 | W | G4；16K/32K 对 llama.cpp 的 KLD | NOT_RUN |
-| T18 | WP-E：遍数可配置；加载 varloop（A4） | T12、T03 | W | 3 遍时逐位一致；varloop 在 1–6 遍下的运行记录 | NOT_RUN |
-| R1–R7 | [06](06_loop_research.md) 的研究 | T15、T18（R4 还依赖 T17 的 KV 布局） | W | 每项交付数据与结论 | NOT_RUN |
+| T15 | WP-B：固定三遍的只读探针（评审 RV-03）：按 [04](04_astral_fork.md) WP-B 只在选定 token 和块边界记录 block / message / controller / router / attention 的稀疏 trace；不改遍数、不改 cache | T20（代码可先写） | 开发否，验证 W | trace schema 写入 fork 文档；探针关闭时与基线逐位一致；开 / 关的数值差异与 graph / eager 差异分别报告；性能只取关闭探针的数据 | NOT_RUN |
+| T16 | WP-C：4090 调优（评审 RV-05）。第一步是分阶段基线：prefill 512 / 2K / 8K、plain decode 在 1K / 4K / ~7K 历史、verify 批长 1–8、DSpark，得出热点表并只选一个 K1–K5 候选（[04](04_astral_fork.md) §3）；之后每轮 profile → 改动 → 前后对比 | T14、T20 | W | 热点表；每轮的 profile 与前后对比；G3 与 G2 不回退；两轮收益 < 3% 记 NO_BENEFIT | NOT_RUN |
+| T17 | WP-D：长上下文（评审 RV-07），按 [04](04_astral_fork.md) WP-D 的四段顺序：SWA ring（先在 8K 内验证）→ 扩展已有 split attention 并解除各处 `MAX_CTX` 上限 → 长 prefill 与参考 → 16K / 32K / 64K / 128K 逐级 | T20 | W | 状态不变量与 [04](04_astral_fork.md) §5 的边界用例；同 KV 的 attention 对照；每级峰值显存实测；G4。只改常量后能生成几个 token 不算完成 | NOT_RUN |
+| T18 | WP-E：遍数可配置；加载 varloop（A4）（评审 RV-06）。先核对 A4 配置与加载后的张量；建立 A4 自己的三遍基线；按 R 重建 visits / KV / conv / message / coda | T20、T03 | W | A1 默认 R = 3 时与改前逐位一致（不能用 A4 基线代替）；A4 在 1–5 遍下的运行记录，6 / 10 遍单列为外推 | NOT_RUN |
+| T19 | 验证口径复判（评审 RV-01）：在 fork `bench/llamacpp_compare/` 实现 [05](05_validation.md) §6 的统一计算器；两侧在 T12 的 16 个 prompt 末位导出 float32 logits；算三类噪声对照；按 §6.3 校准并冻结新阈值后复判 V7；为通过 / 门槛失败 / 空日志 / 截断日志补离线回归测试 | T12 | 计算否，导出 W | 策略 num-2 的定义与阈值（用户确认）；新旧口径的复判结果并列；同输入可重复得到同一 verdict | NOT_RUN |
+| T20 | 覆盖补测（评审 RV-02）：按 [05](05_validation.md) §5 补 prompt 末位、生成第 1 / 2 / 8 / 32 / 128 位、prefill chunk 边界前后、verify 批长 1 / 2 / 4 / 8，分别走默认 prefill → decode 与全 step；在少量边界保存完整 logits；用 prompts B 作保留集 | T19 | W | V5–V8 的覆盖表、严格 token 一致率、winner-vs-chosen gap、数值摘要和原始结果；旧样本与旧结果保留 | NOT_RUN |
+| T21 | 原生 DSpark 成本模型（评审 RV-08）：草稿长度 2 / 4 / 6（8 视 anchor / block 约定而定），代码与自然语言两类负载、两个上下文长度；记录 draft / verify / rollback 时间、提交 token、接受前缀、expert union | T16、T20 | W | 哪些负载开 DSpark、哪些关；严格 / 容差一致性分开报告；保留集上的净收益 | NOT_RUN |
+| R2/R3/R5/R8 | [06](06_loop_research.md) 第一轮机制研究（评审 RV-04）：共用 T15 的 trace，先观察再做单点干预，一次只改一个因素 | T15 | W | 支持 / 不支持 / 不确定的结论，含反例 | NOT_RUN |
+| R4 | 跨遍 KV 的三臂短上下文实验（8K 内，不等 T17） | T15 | W | 同上 | NOT_RUN |
+| R1 | varloop 深度曲线 | T18 | W | 同上 | NOT_RUN |
+| R6/R9/R10 | 早停可行性、历史深度与当前深度、局部稳定性 | R1、R2 | W | 同上；R6 先做离线 oracle，上界不够就停止 | NOT_RUN |
+| R7 | 草稿器研究（原生 DSpark 优化之后才评估新 drafter） | T21 | W | 同上 | NOT_RUN |
 | O1 | 可选：tqllm Docker 精确模式对照（需要用户同意） | T12 | W | 4090 上 tqllm 的 tok/s 与 KLD | DEFERRED |
 | O2 | 可选：生产 Strata 新版 + SQ-20 在业务集上与 Qwen3.8 对比 | — | W | 由用户另行决定 | DEFERRED |
 
 ## 关键路径
 
-T00 → (T01, T02, T03 并行) → T04 → T05 → **W1**（T07–T10）→ T11 → **W2**（T12–T13）→ T14 → T15 / T16 / T17 / T18 → R1–R7。
+T00 → (T01, T02, T03 并行) → T04 → T05 → **W1**（T07–T10）→ T11 → **W2**（T12–T13）→ T14 → **T19 → T20** → 其后并行准备：T15 → R2/R3/R5/R8、R4；T18 → R1；T17；T16 → T21 → R7；R6/R9/R10 等 R1、R2 的数据。
+
+v3.0.7 起按评审 §15.2 拆开了研究依赖：R4 的语义实验不再等 T17，机制研究不再等 T16 / T17。分支只表示可以独立准备，同一张 GPU 上的实际测量仍串行。评审的 RV-01–RV-08 对应关系：RV-01 → T19，RV-02 → T20，RV-03 → T15，RV-04 → R2/R3/R5/R8，RV-05 → T16 的第一步（T14 已给出 G3 基线），RV-06 → T18，RV-07 → T17，RV-08 → T21。
 
 P0（T00–T06）不需要停服，可以立即开始。第一次停服是 W1（约 60 分钟），需要先与用户确认时间。
 
@@ -55,3 +64,4 @@ P0（T00–T06）不需要停服，可以立即开始。第一次停服是 W1（
 | **T13** | 07:05–07:12 | **V8 PASS**：16 个 prompt 用 `spec-generate`（DSpark，k = 6，512 token），teacher-forced 检查中投机 token 与普通贪心不同的位置每个 prompt 0–15 个，最大 logit 差 0.605 ≤ 1.0。接受情况：每轮 1.84–3.93 个 token，草稿接受率 14–49%；投机解码平均 183 tok/s，普通贪心 143 tok/s，提速 1.28 倍（单个 prompt 1.0–1.87 倍）。接受率偏低是真实结果。Inkling 的 chat 模板没有生成提示，模型自己输出的第一个 token 就是 `<\|message_model\|>`，16 个参考序列全都以 `<\|message_model\|><\|content_thinking\|>` 开头，所以 prompt 格式是对的（初稿误记为缺少生成提示，07:20 更正）。生成内容以思考段为主，可能是草稿器在这类内容上接受率低的原因，尚未验证 |
 | **T12 复判** | 07:20 | 用户同意按 v3.0.4 修订 V7 阈值（[05](05_validation.md) §3）后复判：argmax 16/16 相同；窗口内最大差 1.18 ≤ 3.15；KL(step‖prefill) 最大 0.0147 ≤ 0.0284。**V7 PASS**，T12（G2）判 PASS |
 | **T14** | 07:20–08:32 | 按 [05](05_validation.md) §4：32 个 prompt（`prompts_set_a/b`，chat 模板 token id 由 Astral `/tokenize` 生成，V2 已证明与 llama.cpp 一致），流式 `/v1/completions`，512 token，greedy，`ignore_eos`，单请求，ctx 8192；每种配置 5 轮，另有 1 次预热不计；按 prompt 取中位数；llama.cpp 开 `-fa on`。脚本在 `tools/t14/`，结果在 `$LAB/runs/t14/20261126T072026Z/`。decode tok/s（各 prompt 中位数的均值）：**Astral 无草稿 143.1**（ITL p50/p95 7.01/7.05 ms，TTFT p50 90 ms）；**Astral DSpark 173.9**（单个 prompt 141–271）；llama.cpp 无草稿 74.7（ITL 13.2/13.4 ms，TTFT 197 ms）；llama.cpp DSpark k=3 为 90.5，k=6 为 86.3。配对统计（`paired_stats.py`，几何平均，95% CI）：Astral 对 llama.cpp，无草稿 **1.92×**（1.914–1.916），DSpark 对 DSpark（k3）**1.91×**（1.87–1.95）；DSpark 相对无草稿的增益，Astral 为 1.20×（1.14–1.27），llama.cpp 为 1.20×（1.15–1.26）。**G3 PASS**：要求 ≥ 1.5×，实测 1.92×；无草稿 143 tok/s 也超过期望值 120。显存时钟 10251 MHz，最高温度 74 °C。H100 上作者报告的 DSpark 增益是 1.36×，4090 上只有 1.20×，原因留给 T16 |
+| **评审核实** | 08:40–09:10 | 逐条核对用户提交的研究评审（仓库 `docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md`）：Astral 源码相关结论（mma3、split-K 注意力、`MAX_CTX` 的分布、`cmp-prefill` 只比末位、`verify-model` 的采样比较）全部属实；外部来源 13 条中 9 条属实、4 条部分属实（细节见 [06](06_loop_research.md)、[03](03_engine_landscape.md)、[09](09_sources.md)）；§3.5 的前提（缺少生成提示）来自本表 T13 的初稿误记，已不成立。据此：T04 关闭为 PASS；T12 的 V7 复判降为有条件通过；新增 T19–T21；T15–T18 与研究的依赖按评审重排 |

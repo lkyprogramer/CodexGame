@@ -5,15 +5,16 @@
 | 引擎 | 语言 / 许可 | Inkling 支持 | 报告的速度 | 与本项目的关系 |
 |---|---|---|---|---|
 | **Astral**（S10） | Rust 主机 + 手写 CUDA，Apache-2.0 | 专为 Inkling-2-Mini（另有 Qwen3.8）；GGUF 与原生 safetensors 都能加载；DSpark 自适应草稿长度 + conv 状态回滚 | H100 PCIe：172 tok/s 无草稿，233 tok/s 带 DSpark（32 prompt 平均）；vLLM 130 / 210 | **选定底座**。sm_89 能构建但作者未测试；上下文上限 8192 |
-| llama.cpp mainline（S20） | C++，MIT | `inkling2_loop` 已合并；DSpark 已合并；CUDA 侧的索引化相对 bias（#33063）与融合（#33060）尚未合并 | 4090 社区 ≈51 tok/s | **数值参考**：同一 GGUF 的 eval-callback、KLD 基准 |
+| llama.cpp mainline（S20） | C++，MIT | `inkling2_loop` 已合并；DSpark 已合并。未合并（2026-11-26）：#33060 CUDA 融合（short conv、depth mix、loop controller、L2 clip、SiTU 五条链）、#33063 CUDA / HIP 的 indexed-bias Flash Attention、#33062 NVFP4 直通转换、#33049 / #33073 DFlash2；#33072（moe-cache 中三遍共用物理专家槽）已关闭未合并 | 4090 社区 ≈51 tok/s；**4090 实测（T14）**：74.7 tok/s（b12751，`-fa on`） | **数值参考**：同一 GGUF 的 eval-callback、KLD 基准 |
 | HF transformers `inkling2_loop`（S21） | Python | 官方语义实现 | — | 语义第二参考；BF16 全量需 >48 GB，本机只能读代码 |
-| tqllm（S11） | C++，Apache-2.0 | 加载官方 checkpoint；精确模式 KLD 0.0023（对 BF16）；支持 DFlash2；声明支持 RTX 30/40/50 | — | 可选速度 / 精度对照（Docker，需用户同意） |
-| Xolotl（S12） | 基于 Strata，MIT | 4090 实测 | 113–127 tok/s，DSpark 136；k8v4 KV 下 512K | 4090 上的现实参照 |
-| atlas-ingine（S13） | Apache-2.0 | 自有 atlas-12g 量化 | 4090 报告 236.7 tok/s（64K） | 4090 上的速度上界参照；量化不同，不能直接比较 |
+| tqllm（S11） | C++，Apache-2.0 | 加载官方 checkpoint；默认的 “exact” 模式对 BF16 的 KLD 0.0023、top-1 98.4%（不是逐位相同）；支持 DFlash2；声明支持 RTX 30/40/50 | — | 可选速度 / 精度对照（Docker，需用户同意）。README 已写 1.8.0，模型指南仍示例 `1.7.0` 镜像：源码 commit 与镜像 digest 要分别记录 |
+| Xolotl（S12） | 基于 Strata，MIT | 4090 实测（作者） | 自有 14 GB XQ 权重：113（7K served 时 127），DSpark 136；NVFP4 parent：89，DSpark 137；k8v4 KV 下 512K | 4090 上的现实参照；对比时注意权重格式 |
+| atlas-ingine（S13） | Apache-2.0 | 自有 atlas-12g 权重（ATLAS2/3，约 14 GB） | 4090 报告 236.7 tok/s（64K，`--dense-fp8 --kv-fp8 --spec`，即**带推测解码**）；官方 NVFP4 在 3090 上 152.8 | 机制参照；权重、精度和投机条件都不同，**不是无草稿上界** |
 | LoopBridge（S14） | Python | 预填 / 解码的循环拆分研究（Mini 与 varloop） | — | R4 / R6 的方法参考 |
-| prototux llama.cpp 补丁（S15） | C++ | 跨遍 KV 共享 | 上下文约 2 倍，但出现重复退化 | R4 的反例数据 |
+| prototux llama.cpp 补丁（S15） | C++ | 跨遍 KV 共享：后续 pass 的全局层读首遍的 K/V、自己不存，并跳过这些层的 K/V 投影与 K/V conv；SWA 层与 conv 状态仍按 pass | 上下文约 2 倍；仓库 README 报告开启后 3000 token 贪心生成出现复读（默认关闭） | R4 的 C 臂 |
 | erisinky（S16） | Rust + Metal | 从零实现 | — | Rust 写法参考，不能在 CUDA 上用 |
 | Strata v0.2.22 + SQ 包（S17） | MIT | Inkling SQ-10/15/20 | — | 可选业务对照；与生产同栈 |
+| Transformers PR51161（S25） | Python | 只有末遍写入核心层 cache，前面的 pass 通过只读视图读取；conv 按 pass 保留（未合并） | 作者 A100 短测：KV 232.7 → 118.8 MiB；dynamic cache 速度相同，static cache 慢约 10% | R4 的 B 臂；不是“免费提速”的证据 |
 | vLLM / SGLang | Python | 仅 Hopper+（社区有 sm80/86 移植） | H100 130 / 136 | 不在 4090 上使用 |
 
 ## 为什么是 Astral
@@ -28,8 +29,14 @@
 3. **sm_89 风险低**：kernel 选择不依赖 `ArchProfile`，而是看 fatbin 里有没有对应 SASS，以及少数显式的 cc 判断（PDL 要求 cc ≥ 9，wgmma 要求 cc = 9）。非 Hopper 路径用 `mma.sync` / `dp4a` / `cp.async`，sm_89 全都支持。详见 [04](04_astral_fork.md) §2。
 4. **许可与语言**符合用户选择（Rust，Apache-2.0）。
 
+## 外部数字怎么用（v3.0.7）
+
+上表数字条件各不相同：权重格式（自有量化 / NVFP4 / GGUF）、是否带推测解码、KV 精度、上下文长度、GPU。它们只说明“某条件下做到过多少”，不构成本项目的上界或门槛；G3 只看 T14 在同一 GGUF 上的配对测量。T10 记录的“llama.cpp 66.7 tok/s”是单次、未开 `-fa` 的首次观察，已被 T14 的 74.7 取代。
+
+v2 删掉的参考项目按评审 §13 重新定位为**局部方法参考**，不作底座、不迁平台：ghost-infer（小 kernel、GPU 路由、按专家分组 → K1–K3）、Magnitude（按真实成本选方案、精度资格与测速分开 → kbench 结果表）、2DSD 的 `feat/inkling-dspark` 分支（完整 coda 读出、per-pass 状态、feature 契约 → T15 / R2 / R7；该分支的 registry 目标 revision 与本包不同，以文件 hash 判断是否同一权重）、LoomKV / GAAC / SplitZip / ZipFusion（位编码与净容量核算 → [06](06_loop_research.md) §4）、CUDA Rust proof preview（覆盖整数、共享内存、barrier、cluster、TMEM 的安全性质，README 未声称覆盖浮点；只考虑拿一个小的索引 / codec kernel 试验，不重写 Astral 的 CUDA）。GPU / RAM / SSD 多级 KV、动态专家 offload、多模型调度、通用自动 kernel 生成仍不做：A1 全驻显存，这些都不回答当前的循环机制问题。
+
 ## 主要风险
 
 - 作者只在 A100 和 H100 上做过验证；sm_89 只有 100 KB/SM 共享内存、128 个 SM、72 MB L2，调优参数需要重做。
-- 8192 上下文上限需要新写 kernel。
+- 8192 上下文上限：默认解码已经是 split-K online softmax，不需要从零写注意力 kernel，但要解除分散在四处的上限，并实现 SWA 环形缓冲（[04](04_astral_fork.md) §2、WP-D）。
 - 项目很新（2026-11 起），上游变动快：锁定 commit，按需 cherry-pick。
