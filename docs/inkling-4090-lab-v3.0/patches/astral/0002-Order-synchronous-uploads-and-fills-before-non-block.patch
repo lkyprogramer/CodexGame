@@ -1,0 +1,83 @@
+From d17a5190bfc69b64d8caafdfbfe1045439f56715 Mon Sep 17 00:00:00 2001
+From: lkyprogramer <lkyprogramer@users.noreply.github.com>
+Date: Thu, 26 Nov 2026 01:39:16 -0500
+Subject: [PATCH 2/3] Order synchronous uploads and fills before non-blocking
+ streams
+
+DeviceBuffer::zeroed (cuMemsetD8), copy_from_slice and VmmRegion::write
+(cuMemcpyHtoD from pageable memory) queue work on the legacy default
+stream and can return before it completes. Astral's streams are created
+with CU_STREAM_NON_BLOCKING, so a kernel launched right after could run
+before the fill or upload landed, or be overwritten by the fill.
+
+On an RTX 4090 (PCIe Gen3) this made the selftest fail 3-4 MXFP4 cases
+(n5120 k17408 b4/b8, n48 k4160 b8): outputs were partly zero, with a
+different count on every run. Both helpers now wait on the legacy stream
+before returning, which is what their docs already promised. selftest is
+80/80 on three runs; Inkling verify-model output and the 128-token greedy
+sequence are unchanged. Weight loading takes about 18 s instead of 13 s.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ crates/gpu/src/lib.rs | 15 ++++++++++++++-
+ crates/gpu/src/vmm.rs |  4 +++-
+ 2 files changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/crates/gpu/src/lib.rs b/crates/gpu/src/lib.rs
+index fdc68a5..2573b5e 100644
+--- a/crates/gpu/src/lib.rs
++++ b/crates/gpu/src/lib.rs
+@@ -44,6 +44,12 @@ use std::sync::Arc;
+ /// A raw device address.
+ pub type DevicePtr = sys::CUdeviceptr;
+ 
++/// Waits for work queued on the legacy default stream (synchronous memset / memcpy calls).
++pub(crate) fn sync_legacy_stream(d: &sys::Driver) -> Result<()> {
++    // SAFETY: the null handle names the legacy default stream of the bound context.
++    check("cuStreamSynchronize", unsafe { (d.fns.cuStreamSynchronize)(std::ptr::null_mut()) })
++}
++
+ fn drv() -> Result<&'static sys::Driver> {
+     sys::driver().map_err(|detail| AstralError::LibraryNotFound { lib: "libcuda".into(), detail })
+ }
+@@ -298,6 +304,10 @@ impl<T: DeviceCopy> DeviceBuffer<T> {
+         if bytes > 0 {
+             // SAFETY: `ptr` is a live allocation of `bytes` bytes.
+             check("cuMemsetD8_v2", unsafe { (d.fns.cuMemsetD8_v2)(buf.ptr, 0, bytes) })?;
++            // cuMemsetD8 on device memory is asynchronous on the legacy stream, which does not
++            // order with Astral's CU_STREAM_NON_BLOCKING streams: wait so a later kernel cannot
++            // be overwritten by the fill.
++            sync_legacy_stream(d)?;
+         }
+         Ok(buf)
+     }
+@@ -319,7 +329,10 @@ impl<T: DeviceCopy> DeviceBuffer<T> {
+         self.ctx.bind()?;
+         let d = drv()?;
+         // SAFETY: both regions are `bytes()` long; the host slice is valid for reads.
+-        check("cuMemcpyHtoD_v2", unsafe { (d.fns.cuMemcpyHtoD_v2)(self.ptr, data.as_ptr() as *const c_void, self.bytes()) })
++        check("cuMemcpyHtoD_v2", unsafe { (d.fns.cuMemcpyHtoD_v2)(self.ptr, data.as_ptr() as *const c_void, self.bytes()) })?;
++        // From pageable memory the call can return before the DMA lands; non-blocking streams
++        // are not ordered after it, so finish it here to keep the copy synchronous.
++        sync_legacy_stream(d)
+     }
+ 
+     /// Synchronous device-to-host copy of the whole buffer.
+diff --git a/crates/gpu/src/vmm.rs b/crates/gpu/src/vmm.rs
+index 7fdfe62..b60f866 100644
+--- a/crates/gpu/src/vmm.rs
++++ b/crates/gpu/src/vmm.rs
+@@ -122,7 +122,9 @@ impl VirtualRange {
+         self.ctx.bind()?;
+         let d = drv()?;
+         // SAFETY: destination is inside the mapped range (checked); source slice is valid.
+-        check("cuMemcpyHtoD_v2", unsafe { (d.fns.cuMemcpyHtoD_v2)(self.base + offset as u64, data.as_ptr() as *const c_void, data.len()) })
++        check("cuMemcpyHtoD_v2", unsafe { (d.fns.cuMemcpyHtoD_v2)(self.base + offset as u64, data.as_ptr() as *const c_void, data.len()) })?;
++        // See DeviceBuffer::copy_from_slice: finish the pageable DMA before returning.
++        crate::sync_legacy_stream(d)
+     }
+ 
+     /// Synchronous device-to-host read from the mapped region.
+-- 
+2.39.2
+

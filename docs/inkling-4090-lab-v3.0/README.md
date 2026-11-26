@@ -1,6 +1,6 @@
 # Inkling-2-Mini × RTX 4090 自有引擎实验室 v3.0
 
-**版本：3.0 · 2026-11-26（Asia/Shanghai）。本包是设计与执行输入；截至发布，4090 上尚未构建或运行任何引擎。**
+**版本：3.0.3 · 2026-11-26（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T13 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。**
 
 ## 目标
 
@@ -44,3 +44,13 @@
 | `tools/check_package.py` | 本包结构自检：链接、代码块、shell 语法、任务/来源 ID 引用 |
 
 `python3 -B -m unittest discover -s tests -v` 运行工具测试，`python3 -B tools/check_package.py` 做结构自检，`sha256sum -c PACKAGE_MANIFEST.sha256` 校验包完整性；本次结果见 [VALIDATION](VALIDATION.md)。v2.x 文档包（`docs/atomic-inkling-4090-plan-v2.0`）保留为历史，不再执行。
+
+## Astral fork 补丁
+
+fork 的提交以 `git format-patch` 形式保存在 [`patches/astral/`](patches/astral/)，基线是 `49a0a2b`，分支为 `inkling-4090`。当前没有 GitHub 上的 fork 仓库，这里是唯一的异地副本。复现方式：`git checkout -b inkling-4090 49a0a2b && git am patches/astral/*.patch`。
+
+| 补丁 | 内容 |
+|---|---|
+| 0001 | `ArchProfile::Sm89`；修正 `mxfp4_block` 测试的期望值（T11） |
+| 0002 | 同步上传 / 清零之后先等 legacy stream 完成，再交给 non-blocking stream（修复 T07 的 MXFP4 失败） |
+| 0003 | `astral dump-logits`（输出 llama.cpp KLD base 格式）和 `cmp-prefill` 的诊断输出（T12） |

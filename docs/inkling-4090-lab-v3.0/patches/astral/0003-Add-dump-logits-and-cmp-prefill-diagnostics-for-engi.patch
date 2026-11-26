@@ -1,0 +1,171 @@
+From d3b402e468bab1f9e76c31f01c15badca04a6d80 Mon Sep 17 00:00:00 2001
+From: lkyprogramer <lkyprogramer@users.noreply.github.com>
+Date: Thu, 26 Nov 2026 02:13:20 -0500
+Subject: [PATCH 3/3] Add dump-logits and cmp-prefill diagnostics for engine
+ comparisons
+
+dump-logits <model> <base> <out> replays the chunks and tokens of a
+llama.cpp --kl-divergence-base file through the token-by-token decode
+path and writes Astral's log-probs in the same format (b12751
+perplexity.cpp encoder), so KLD and top-1 agreement can be computed
+position by position against llama.cpp.
+
+cmp-prefill also prints the largest difference among tokens within 16
+logits of the top, where the overall largest difference sits, and
+KL(step || prefill).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ crates/cli/src/main.rs | 115 ++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 114 insertions(+), 1 deletion(-)
+
+diff --git a/crates/cli/src/main.rs b/crates/cli/src/main.rs
+index 4556941..180688c 100644
+--- a/crates/cli/src/main.rs
++++ b/crates/cli/src/main.rs
+@@ -20,7 +20,7 @@
+ use astral_core::Result;
+ use std::process::ExitCode;
+ 
+-const USAGE: &str = "usage: astral <hw [--bench | --bench-fresh] | selftest | gguf-info <model> [--tensors] | verify-embd <file> <log> | verify-model <file> <log> | generate <model> <n> <ids...> | spec-generate <model> <checkpoint dir> <k> <n> <ids...|@file> | serve <model> [--checkpoint <dir>] [--no-draft] [--k 6] [--host 0.0.0.0] [--port 8000] [--ctx 8192] [--name inkling-2-mini] | version>";
++const USAGE: &str = "usage: astral <hw [--bench | --bench-fresh] | selftest | gguf-info <model> [--tensors] | verify-embd <file> <log> | verify-model <file> <log> | generate <model> <n> <ids...> | dump-logits <model> <llama kld base> <out> | spec-generate <model> <checkpoint dir> <k> <n> <ids...|@file> | serve <model> [--checkpoint <dir>] [--no-draft] [--k 6] [--host 0.0.0.0] [--port 8000] [--ctx 8192] [--name inkling-2-mini] | version>";
+ 
+ fn main() -> ExitCode {
+     let args: Vec<String> = std::env::args().skip(1).collect();
+@@ -37,6 +37,7 @@ fn main() -> ExitCode {
+         Some("verify-embd") if args.len() >= 3 => cmd_verify_embd(&args[1], &args[2]),
+         Some("verify-model") if args.len() >= 3 => cmd_verify_model(&args[1], &args[2]),
+         Some("score") if args.len() >= 3 => cmd_score(&args[1], &args[2..]),
++        Some("dump-logits") if args.len() >= 4 => cmd_dump_logits(&args[1], &args[2], &args[3]),
+         Some("qwen-generate") if args.len() >= 4 => cmd_qwen_generate(&args[1], &args[2], &args[3..]),
+         Some("generate") if args.len() >= 4 => cmd_generate(&args[1], &args[2], &args[3..]),
+         Some("serve") if args.len() >= 2 => cmd_serve(&args[1..]),
+@@ -268,6 +269,87 @@ fn cmd_score(path: &str, ids: &[String]) -> Result<bool> {
+     Ok(true)
+ }
+ 
++/// `dump-logits <model> <base> <out>`: token-by-token log-probs in the format of llama.cpp's
++/// `llama-perplexity --kl-divergence-base` file, on the chunks and tokens read from `<base>`
++/// (one written by llama.cpp), so the two engines can be compared position by position.
++/// Mirrors b12751 `tools/perplexity/perplexity.cpp`: header `_logits_`, n_ctx, n_vocab,
++/// n_chunk, tokens; then per chunk the second half (positions n_ctx/2 .. n_ctx-2), each
++/// as [scale f32, min_log_prob f32, n_vocab x u16] padded to an even count. No BOS is added
++/// (Inkling's GGUF has add_bos false).
++fn cmd_dump_logits(path: &str, base: &str, out: &str) -> Result<bool> {
++    use std::io::{Read, Write};
++    let bad = |m: String| astral_core::AstralError::Invalid(m);
++    let mut f = std::io::BufReader::new(std::fs::File::open(base).map_err(|e| bad(format!("{base}: {e}")))?);
++    let mut magic = [0u8; 8];
++    let mut i32s = [0u8; 12];
++    f.read_exact(&mut magic).and_then(|_| f.read_exact(&mut i32s)).map_err(|e| bad(format!("{base}: {e}")))?;
++    if &magic != b"_logits_" {
++        return Err(bad(format!("{base}: not a llama.cpp logits file")));
++    }
++    let rd = |i: usize| i32::from_le_bytes(i32s[4 * i..4 * i + 4].try_into().unwrap());
++    let (n_ctx, n_vocab, n_chunk) = (rd(0), rd(1), rd(2));
++    if n_ctx < 4 || n_vocab < 2 || n_chunk < 1 {
++        return Err(bad(format!("{base}: bad header n_ctx {n_ctx} n_vocab {n_vocab} n_chunk {n_chunk}")));
++    }
++    let (n_ctx, n_vocab, n_chunk) = (n_ctx as usize, n_vocab as usize, n_chunk as usize);
++    let mut tb = vec![0u8; n_ctx * n_chunk * 4];
++    f.read_exact(&mut tb).map_err(|e| bad(format!("{base}: tokens: {e}")))?;
++    let tokens: Vec<u32> = tb.chunks_exact(4).map(|c| u32::from_le_bytes(c.try_into().unwrap())).collect();
++    let mut s = load_session(path, n_ctx as u32 + 1)?;
++    let first = n_ctx / 2;
++    let nv = 2 * n_vocab.div_ceil(2) + 4;
++    let mut w = std::io::BufWriter::new(std::fs::File::create(out).map_err(|e| bad(format!("{out}: {e}")))?);
++    let io = |e: std::io::Error| bad(format!("{out}: {e}"));
++    w.write_all(&magic).and_then(|_| w.write_all(&i32s)).and_then(|_| w.write_all(&tb)).map_err(io)?;
++    let mut rec = vec![0u16; nv];
++    let t0 = std::time::Instant::now();
++    for c in 0..n_chunk {
++        s.reset()?;
++        let toks = &tokens[c * n_ctx..(c + 1) * n_ctx];
++        for (j, &t) in toks[..n_ctx - 1].iter().enumerate() {
++            s.step(t)?;
++            if j < first {
++                continue;
++            }
++            let l = s.logits()?;
++            if l.len() != n_vocab {
++                return Err(bad(format!("vocab mismatch: astral {} vs file {n_vocab}", l.len())));
++            }
++            encode_log_probs(&l, &mut rec);
++            let bytes: Vec<u8> = rec.iter().flat_map(|v| v.to_le_bytes()).collect();
++            w.write_all(&bytes).map_err(io)?;
++        }
++        eprintln!("chunk {}/{n_chunk} done ({:.1} s)", c + 1, t0.elapsed().as_secs_f64());
++    }
++    w.flush().map_err(io)?;
++    Ok(true)
++}
++
++/// llama.cpp's `log_softmax` encoder (perplexity.cpp): log-probs within 16 of the max, as
++/// u16 steps of (max - min) / 65535 above `min_log_prob`; slots 0..4 hold scale and min.
++fn encode_log_probs(logits: &[f32], rec: &mut [u16]) {
++    let mut max = logits[0];
++    let mut min = logits[0];
++    for &v in &logits[1..] {
++        max = max.max(v);
++        min = min.min(v);
++    }
++    min = min.max(max - 16.0);
++    let sum: f64 = logits.iter().map(|&v| (v - max).exp() as f64).sum();
++    let lse = sum.ln() as f32;
++    let min_log_prob = min - max - lse;
++    let scale = (max - min) / 65535.0;
++    rec.fill(0);
++    let (sb, mb) = (scale.to_bits(), min_log_prob.to_bits());
++    rec[..4].copy_from_slice(&[sb as u16, (sb >> 16) as u16, mb as u16, (mb >> 16) as u16]);
++    if scale != 0.0 {
++        let inv = 1.0 / scale;
++        for (r, &v) in rec[4..].iter_mut().zip(logits) {
++            *r = if v > min { (inv * (v - min)).round_ties_even() as u16 } else { 0 };
++        }
++    }
++}
++
+ fn cmd_qwen_generate(dir: &str, n: &str, ids: &[String]) -> Result<bool> {
+     let n: usize = n.parse().map_err(|_| astral_core::AstralError::Invalid("n must be a number".into()))?;
+     let prompt: Vec<u32> = ids.iter().filter_map(|t| t.parse().ok()).collect();
+@@ -370,6 +452,37 @@ fn cmd_cmp_prefill(path: &str, ids: &[String]) -> Result<bool> {
+     let am = |v: &[f32]| v.iter().enumerate().fold((0, f32::MIN), |m, (i, &x)| if x > m.1 { (i, x) } else { m });
+     let diff = a.iter().zip(&b).map(|(x, y)| (x - y).abs()).fold(0f32, f32::max);
+     println!("{} tokens: max |logit diff| {diff:.4}; argmax step {:?} prefill {:?}", prompt.len(), am(&a), am(&b));
++    // Where the difference sits: within 16 of the top logit (the tokens with any probability)
++    // and over the whole vocabulary, plus KL(step || prefill) in nats.
++    let top = am(&a).1;
++    let (mut near, mut near_i, mut far_i) = (0f32, 0usize, 0usize);
++    for (i, (x, y)) in a.iter().zip(&b).enumerate() {
++        let d = (x - y).abs();
++        if *x > top - 16.0 && d > near {
++            near = d;
++            near_i = i;
++        }
++        if d >= diff {
++            far_i = i;
++        }
++    }
++    let lse = |v: &[f32]| {
++        let m = v.iter().fold(f32::MIN, |m, &x| m.max(x)) as f64;
++        m + v.iter().map(|&x| (x as f64 - m).exp()).sum::<f64>().ln()
++    };
++    let (la, lb) = (lse(&a), lse(&b));
++    let kl: f64 = a
++        .iter()
++        .zip(&b)
++        .map(|(&x, &y)| {
++            let pa = x as f64 - la;
++            pa.exp() * (pa - (y as f64 - lb))
++        })
++        .sum();
++    println!(
++        "  near-top max |diff| {near:.4} at {near_i} (step {:.3} prefill {:.3}); largest at {far_i} (step {:.3} prefill {:.3}); KL(step||prefill) {kl:.3e}",
++        a[near_i], b[near_i], a[far_i], b[far_i]
++    );
+     Ok(true)
+ }
+ 
+-- 
+2.39.2
+
