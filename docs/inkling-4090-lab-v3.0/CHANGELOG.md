@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.11 · 2026-11-26
+
+T20 完成（[07](docs/07_tasks.md)）：fork `18bf3e3` 新增 decode 路径与 DSpark verify 行的 logits 导出；保留集 B 上 prefill、decode、verify 2 / 4 / 8 行按 num-3 全部通过；自由生成首个分歧都在近平局处；c4096 密集 KLD 按 V4 公式通过。长文档 64 个边界位置按 num-3 FAIL，原因是双峰分岔位置（llama 自身也有），[05](docs/05_validation.md) §5 覆盖表、§6.6；长上下文判定口径的建议待用户决定。
+
 ## v3.0.10 · 2026-11-26
 
 T19 完成并改判 PASS：修复后 Astral prefill / step 两次运行 208 个文件逐位相同；V7 按 num-3 在保留集 C（80 个位置）上通过，Astral prefill 对 step 的差异是 llama.cpp 自身 ub512 对逐 token 差异的 0.36–0.87 倍；`verify-model` 与 128 token 贪心输出不变。G2 解除“有条件”。结果在 `tools/t19/results_c/`。
