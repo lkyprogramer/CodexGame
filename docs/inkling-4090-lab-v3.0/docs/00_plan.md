@@ -18,7 +18,7 @@
 |---|---|---|---|
 | P0 准备 | 驱动基线、用户目录工具链、资产下载、Astral 和 llama.cpp 构建 | 否 | G0：驱动指纹未变；`astral version` 显示 `kernels built for: ["89"]`；全部资产 SHA256 与 [01](01_model.md) §4 一致；CPU 侧 `cargo test` 通过 |
 | P1 首次上卡 | hw/selftest，GGUF 解析，逐算子比对，贪心生成 | W1 ≈60 min | G1：selftest 全部 PASS；`verify-model` 对 llama.cpp 的 eval-callback 日志 PASS；贪心前 32 token 与 llama.cpp 一致 |
-| P2 数值对齐 | 噪声底、KLD、top-1、teacher-forced、投机等价；T19 统一口径复判、T20 覆盖补测 | W2 ≈90 min | G2：[05](05_validation.md) §3 冻结阈值全部满足（v3.0.7：V7 待 T19 按统一口径复核，见 [05](05_validation.md) §5.2） |
+| P2 数值对齐 | 噪声底、KLD、top-1、teacher-forced、投机等价；T19 统一口径复判、T20 覆盖补测 | W2 ≈90 min | G2：[05](05_validation.md) §3 冻结阈值全部满足（V7 于 v3.0.10 按 num-3 在保留集 C 上复判通过，见 [07](07_tasks.md) T19） |
 | P3 移植与性能 | Sm89 档案、观测钩子、4090 调优、DSpark | 若干次 W ≤90 min | G3：无草稿 decode ≥ 同 GGUF 下 llama.cpp 的 1.5 倍，且每次优化后 G2 不回退 |
 | P4 长上下文 | 解除 8192 上限：SWA 环形缓冲 + 全局 KV 分块注意力 | 若干次 W | G4：32K 下 G2 指标不回退；64K、128K 的显存实测与 [01](01_model.md) §3 的预算偏差在 10% 以内 |
 | P5 循环研究 | [06](06_loop_research.md) R1–R10 | 按实验 | 每项研究交付数据 + 结论（支持 / 不支持 / 不确定）；不设速度门槛 |

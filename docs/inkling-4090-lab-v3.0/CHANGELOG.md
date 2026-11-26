@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.10 · 2026-11-26
+
+T19 完成并改判 PASS：修复后 Astral prefill / step 两次运行 208 个文件逐位相同；V7 按 num-3 在保留集 C（80 个位置）上通过，Astral prefill 对 step 的差异是 llama.cpp 自身 ub512 对逐 token 差异的 0.36–0.87 倍；`verify-model` 与 128 token 贪心输出不变。G2 解除“有条件”。结果在 `tools/t19/results_c/`。
+
 ## v3.0.9 · 2026-11-26
 
 查清并修复 Astral prefill 的运行间不确定性（两条 split-K 路径的 float `atomicAdd`；fork `35de94a` 改为分片写工作区、按固定顺序归约，16 token prefill +2.5%，更长无差别），[05](docs/05_validation.md) §6.5。用户采用 V7 的 num-3（同位置配对比值，概率加权的窗口差），fork `f8c976e` 实现 `judge-paired`；新增保留集 C（`tools/t19/prompts_set_c.json`），在其结果出来之前冻结。
