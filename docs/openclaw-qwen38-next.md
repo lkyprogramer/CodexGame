@@ -370,6 +370,13 @@ curl -fsS 'http://127.0.0.1:18343/metrics?requests=all'
 
 NGINX 日志属主是 `www-data:adm`，用 sudo-wrap 跑只读脚本。日志里没有提示词原文。
 
+持续监控（2026-11-24 起）：`/data/strata-data/prod-observe/monitor/strata_monitor.py` 由 hhtele 的 crontab 运行。
+
+- 每分钟采样一次：主机 CPU、内存、swap、PSI，unit cgroup，引擎 RSS、swap、major fault，同机 docker 容器 CPU，GPU，`/metrics` 计数，引擎日志字节数。
+- 每天 00:17 生成前一天的请求明细和日报。每个请求带约 1 分钟精度的完成时间，以及运行期间的同机负载；日报带告警。
+
+数据在 `monitor/data/`，原始采样保留 30 天，请求明细和日报保留 180 天，整个目录不超过 200 MB。`strata_monitor.py status` 查看现状，`strata_monitor.py cron remove` 卸载。说明见仓库里的 `docs/strata_4090_128k_lab/tools/monitor/README.md`。
+
 ### 6.4 学习画像（待验证，未启用）
 
 `data/expert-profile-iq3xxs-learned.bin` 在 2026-10-09 23:43 写出过一次，md5 与上游画像不同。要启用：
