@@ -1,0 +1,387 @@
+diff -ruN a/engine/cmake/strata_gpu_engine.cmake b/engine/cmake/strata_gpu_engine.cmake
+--- a/engine/cmake/strata_gpu_engine.cmake
++++ b/engine/cmake/strata_gpu_engine.cmake
+@@ -1073,6 +1073,13 @@
+   target_link_libraries(route_window_parity PRIVATE strata_kernels ${_strata_gpu_runtime_target})
+   add_test(NAME route_window_parity COMMAND route_window_parity)
+ 
++  # STRATA_VERIFY_ECAP's expert cap (CodexGame's port of upstream PR #3545): the kernel against a scalar reference of
++  # the same semantics, bitwise, on synthetic windows (GPU, no model)
++  add_executable(ecap_parity src/kernels/ecap_parity.cpp)
++  target_include_directories(ecap_parity PRIVATE ${_strata_gpu_include_directories})
++  target_link_libraries(ecap_parity PRIVATE strata_kernels ${_strata_gpu_runtime_target})
++  add_test(NAME ecap_parity COMMAND ecap_parity)
++
+   # STRATA_ROUTE_RESIDENT's swap: the warp-per-token kernel against a scalar reference of the same semantics,
+   # bitwise on the ids, the weights and the four counters (GPU, synthetic, no model)
+   add_executable(route_resident_parity src/kernels/route_resident_parity.cu)
+diff -ruN a/engine/include/strata/core/verify.hpp b/engine/include/strata/core/verify.hpp
+--- a/engine/include/strata/core/verify.hpp
++++ b/engine/include/strata/core/verify.hpp
+@@ -597,6 +597,7 @@
+     bool ar_on() const { return all_resident_ && !ar_off_; }
+     void refresh_ar();
+     uint32_t* h_plan_err_ = nullptr; uint32_t* m_plan_err_ = nullptr;   // set by resident_plan on a -1 (all-resident graph)
++    int32_t* h_ecap_ = nullptr; int32_t* m_ecap_ = nullptr;   // STRATA_VERIFY_ECAP: this window's cap (stage_inputs; 0 = off)
+     const int32_t* h_res_ = nullptr;      ///< the host residency table (VerifyHits::h_res)
+     bool device_plan_ = false;            ///< E-6: resident-only layers planned on the device (STRATA_VERIFY_DEVICE_PLAN)
+     uint32_t* skip_ = nullptr;            ///< E-6: per group, the ring whose plan the device built (0: the host's)
+@@ -625,6 +626,7 @@
+     void* next_user_ = nullptr;
+     bool ple_stage() const { return lb_ <= 1 && 1 < le_; }   ///< holds layer 1, where the PLE block runs
+     void stage_inputs(int T, const int32_t* tokens, int64_t pos0);
++    int ecap_for(int T) const;   ///< STRATA_VERIFY_ECAP: the cap a window of T tokens runs with (0: none)
+     bool staged_ = false;
+     bool copy_used_ = false;
+     bool capture_commit(std::string& err);
+diff -ruN a/engine/include/strata/kernels/verify_kernels.hpp b/engine/include/strata/kernels/verify_kernels.hpp
+--- a/engine/include/strata/kernels/verify_kernels.hpp
++++ b/engine/include/strata/kernels/verify_kernels.hpp
+@@ -147,6 +147,18 @@
+ /// copy_from_mapped, or zeros when *skip == value (n a multiple of 4, 16-byte aligned).
+ void copy_or_zero_from_mapped(float* dst, const float* src, long long n, const uint32_t* skip, uint32_t value,
+                               void* stream);
++/// STRATA_VERIFY_ECAP=N (relaxed MTP, opt-in, changes the output; CodexGame's port of upstream PR #3545, capping the
++/// window's expert set rather than its entries): before the plan and the doorbell read a group's routing, token 0
++/// keeps all k picks and the speculative tail (entries k..n-1) is walked by (weight desc, index asc): an entry whose
++/// expert is already kept stays as routed (no extra expert read), a new expert is kept while fewer than N distinct
++/// experts are, any other entry is dropped - weight 0 and the id of a kept expert (a resident one when `res_layer`
++/// names one; round robin), so the plan reads nothing for it and its contribution is exactly 0.  N is read on the
++/// device from `cap` (mapped memory the host writes per window: 0 for a prompt read); N <= k or n <= k: a no-op.
++/// Entries with an id outside [0, n_expert) are left as they are.  n <= kEcapMaxEntries, n_expert <= kEcapMaxExperts.
++inline constexpr int kEcapMaxEntries = 128;
++inline constexpr int kEcapMaxExperts = 1024;
++void verify_ecap(int32_t* ids, float* w, int n, int k, const int32_t* res_layer, int n_expert, const int32_t* cap,
++                 void* stream);
+ 
+ /// Rows of the S2/S4/S8 embedding for T token ids read from DEVICE memory; out (T, n).  Bitwise `embedding_gather`.
+ void embedding_gather_dev(const uint8_t* codes, const float* scales, const float* offsets, const int32_t* tokens,
+diff -ruN a/engine/src/core/verify.cpp b/engine/src/core/verify.cpp
+--- a/engine/src/core/verify.cpp
++++ b/engine/src/core/verify.cpp
+@@ -298,6 +298,18 @@
+     static const float lambda = strata::route_prior_resolve(env_s, false, false, 0.0);
+     return lambda;
+ }
++// STRATA_VERIFY_ECAP=N (opt-in, changes the output; CodexGame's port of upstream PR #3545): a speculative window's
++// draft rows routed to at most N distinct experts per layer, token 0's k picks always among them (verify_kernels.hpp).
++// Unset, or not above the model's k: off, nothing recorded.  STRATA_VERIFY_ECAP_READS=1 (measurement only: the
++// teacher-forced KL reads its text through the windows) applies it to prompt reads as well.  Both read once.
++inline int g_verify_ecap() {
++    static const int v = [] { const char* s = std::getenv("STRATA_VERIFY_ECAP"); return s != nullptr && std::atoi(s) > 0 ? std::atoi(s) : 0; }();
++    return v;
++}
++inline bool g_verify_ecap_reads() {
++    static const bool v = [] { const char* s = std::getenv("STRATA_VERIFY_ECAP_READS"); return s != nullptr && std::atoi(s) != 0; }();
++    return v;
++}
+ // The verify window's non-native router in one launch pair per layer (moe_route_window) instead of a pair per
+ // token (a router the native one does not take: the Coder's 256 experts).  On by default on gfx906 builds, as before; on every
+ // other backend OFF unless STRATA_ROUTE_WIN=1 (#3476: the PR measured +9% decode on a gfx1201 R9700 with bitwise equal outputs and
+@@ -806,7 +818,7 @@
+     if (arena_) cudaFree(arena_);
+     if (hcount_d_) cudaFree(hcount_d_);
+     void* hosts[] = {h_tok_, h_step_, h_pos_, h_commit_, h_ple_, h_out_, h_x_, h_ids_, h_w_, h_seq_, h_flag_, h_ymiss_,
+-                     h_flagA_, h_plan_, h_flagB_, h_plan_err_, h_nf_, herr_h_, hdrop_h_, h_bal_};
++                     h_flagA_, h_plan_, h_flagB_, h_plan_err_, h_nf_, herr_h_, hdrop_h_, h_bal_, h_ecap_};
+     for (void* h : hosts)
+         if (h) cudaFreeHost(h);
+ }
+@@ -1030,8 +1042,17 @@
+               mapped(64, (void**) &h_flagA_, (void**) &m_flagA_) &&
+               mapped(64, (void**) &h_flagB_, (void**) &m_flagB_) &&
+               mapped(64, (void**) &h_plan_err_, (void**) &m_plan_err_) &&
++              mapped(64, (void**) &h_ecap_, (void**) &m_ecap_) &&
+               mapped(T * K * N * 4, (void**) &h_ymiss_, (void**) &m_ymiss_);
+     if (!ok) { err = "verify: mapped staging allocation failed " + strata::core::pin_exhausted_hint(); return false; }
++    *(volatile int32_t*) h_ecap_ = 0;
++    if ((uint64_t) g_verify_ecap() > K) {
++        static std::atomic<bool> ecap_noted{false};
++        if (!ecap_noted.exchange(true))
++            std::fprintf(stderr, "strata: STRATA_VERIFY_ECAP=%d is ON (changes the output): a speculative window's draft rows are routed to at most "
++                                 "%d distinct experts per layer, token 0's %d among them%s\n", g_verify_ecap(), g_verify_ecap(), (int) K,
++                         g_verify_ecap_reads() ? "; STRATA_VERIFY_ECAP_READS=1: prompt reads as well (measurement only)" : "");
++    }
+     // DFlash2 taps: set_taps (the drafter) or STRATA_TAP_FILE (the research dump); off, and nothing is allocated or captured, otherwise
+     const char* tap_path = std::getenv("STRATA_TAP_FILE");
+     if (tap_path != nullptr && tap_path[0] == '\0') tap_path = nullptr;
+@@ -2423,6 +2444,14 @@
+         }
+         if (rs_on_ && G == 1 && n <= 16 && T <= 16)
+             strata::kernels::route_marginal_stats(ids_ + tb * K, n, (int) K, rs_dev_ + ((size_t) T * (size_t) g.n_layers + (size_t) l) * 16, cs);
++        // STRATA_VERIFY_ECAP=N (opt-in, changes the output): the draft rows' routing capped at N distinct experts before
++        // the plan and the doorbell read ids_ / w_ (verify_kernels.hpp).  Recorded into single-group windows only (a batch
++        // window's rows are other slots' tokens; a two-group window is a prompt read); per launch the cap comes from
++        // h_ecap_ (stage_inputs: 0 for a prompt read).
++        if (g_verify_ecap() > K && n > 1 && G == 1 && !batch_rec_ && n * K <= strata::kernels::kEcapMaxEntries &&
++            NE <= strata::kernels::kEcapMaxExperts)
++            strata::kernels::verify_ecap(ids_ + tb * K, w_ + tb * K, n * (int) K, (int) K,
++                                         hits_.d_res != nullptr ? hits_.d_res + l * g.n_expert : nullptr, (int) NE, m_ecap_, cs);
+         if (ar_on()) {
+             resident_plan(ids_ + tb * K, n * (int) K, (int) K, hits_.d_res + l * g.n_expert, (int) g.n_expert,
+                           hits_.cache_base, slot_off_d_, (long long) hits_.blob,
+@@ -3272,6 +3301,7 @@
+     if (hflag_out_h_ != nullptr) *(volatile uint32_t*) hflag_out_h_ = 0;
+     if (herr_h_ != nullptr) *(volatile uint32_t*) herr_h_ = 0;
+     if (hdrop_h_ != nullptr) *(volatile uint32_t*) hdrop_h_ = (g_test_drop > 0 && windows + 1 == g_test_drop) ? 1u : 0u;
++    if (h_ecap_ != nullptr) *(volatile int32_t*) h_ecap_ = ecap_for(T);
+     std::atomic_thread_fence(std::memory_order_seq_cst);
+     strata_store_fence();
+     last_t_ = T;
+@@ -3281,6 +3311,15 @@
+     staged_ = true;
+ }
+ 
++// STRATA_VERIFY_ECAP: the cap this window runs with.  The window graphs are recorded per T and serve prompt reads as well
++// as speculative windows; only the host knows which this one is.  A prompt read runs with head sampling off
++// (generate.cpp's read_windows / read_windows_pl) and commits every token, so it keeps every expert.
++int Verifier::ecap_for(int T) const {
++    const int cap = g_verify_ecap();
++    if (cap <= 0 || ss_ == nullptr || (int64_t) cap <= (int64_t) ss_->k || T < 2) return 0;
++    return head_sampling_ || g_verify_ecap_reads() ? cap : 0;
++}
++
+ void Verifier::collect_profile() {
+     cudaMemcpy(prof_h_.data(), prof_, prof_h_.size() * 8, cudaMemcpyDeviceToHost);
+     accumulate_profile(prof_h_.data());
+diff -ruN a/engine/src/kernels/cuda/verify_kernels.cu b/engine/src/kernels/cuda/verify_kernels.cu
+--- a/engine/src/kernels/cuda/verify_kernels.cu
++++ b/engine/src/kernels/cuda/verify_kernels.cu
+@@ -1616,6 +1616,77 @@
+     for (long long i = (long long) blockIdx.x * blockDim.x + threadIdx.x; i < n4; i += (long long) gridDim.x * blockDim.x)
+         dst[i] = zero ? make_float4(0.f, 0.f, 0.f, 0.f) : const_cast<const float4*>(src)[i];
+ }
++
++// STRATA_VERIFY_ECAP (verify_kernels.hpp): one block, a thread per entry.  Every tail entry finds its rank by
++// (weight desc, index asc) in parallel; thread 0 walks the tail in that order against a bitmap of the kept experts,
++// then spreads the drops round robin over the fold targets (the kept experts in VRAM, else all kept ones - a single
++// target would pile the drops into one group, which upstream measured slower than the reads it saved); the barrier
++// hands every thread its verdict.  No atomics: the same routing gives the same result.
++__global__ void __launch_bounds__(kEcapMaxEntries) ecap_kernel(int32_t* __restrict__ ids, float* __restrict__ w, int n,
++                                                                int k, const int32_t* __restrict__ res, int n_expert,
++                                                                const volatile int32_t* cap_p) {
++    __shared__ float s_w[kEcapMaxEntries];
++    __shared__ int32_t s_id[kEcapMaxEntries];
++    __shared__ int32_t s_res[kEcapMaxEntries];   // per entry: its expert's VRAM slot; < 0 none (or no table)
++    __shared__ int s_order[kEcapMaxEntries];     // tail rank -> entry
++    __shared__ int32_t s_to[kEcapMaxEntries];    // per entry: -1 as routed, -2 dropped (no target yet), else the target
++    __shared__ int s_kept[kEcapMaxEntries];      // per kept expert, in the order kept: the entry that brought it in
++    __shared__ int32_t s_tgt[kEcapMaxEntries];   // the fold targets
++    __shared__ uint32_t s_bits[kEcapMaxExperts / 32];
++    __shared__ int s_cap;
++    const int tid = threadIdx.x;
++    if (tid == 0) s_cap = *cap_p;
++    __syncthreads();
++    const int cap = s_cap;
++    if (cap <= k || n <= k) return;   // uniform across the block: this window runs as routed (a prompt read: no other read)
++    for (int i = tid; i < kEcapMaxExperts / 32; i += blockDim.x) s_bits[i] = 0u;
++    if (tid < n) {
++        const int32_t e = ids[tid];
++        s_w[tid] = w[tid];
++        s_id[tid] = e;
++        s_res[tid] = res != nullptr && e >= 0 && e < n_expert ? res[e] : -1;   // every entry's in one round, not thread 0's
++        s_to[tid] = -1;
++    }
++    __syncthreads();
++    if (tid >= k && tid < n) {
++        const float wt = s_w[tid];
++        int r = 0;
++        for (int j = k; j < n; ++j) r += (s_w[j] > wt || (s_w[j] == wt && j < tid)) ? 1 : 0;
++        s_order[r] = tid;
++    }
++    __syncthreads();
++    if (tid == 0) {
++        int nk = 0, nd = 0;
++        for (int i = 0; i < k; ++i) {   // token 0: every pick kept
++            const int32_t e = s_id[i];
++            if (e < 0 || e >= n_expert || ((s_bits[e >> 5] >> (e & 31)) & 1u)) continue;
++            s_bits[e >> 5] |= 1u << (e & 31);
++            s_kept[nk++] = i;
++        }
++        for (int r = 0; r < n - k; ++r) {
++            const int j = s_order[r];
++            const int32_t e = s_id[j];
++            if (e < 0 || e >= n_expert || ((s_bits[e >> 5] >> (e & 31)) & 1u)) continue;   // read anyway: rides along
++            if (nk < cap) { s_bits[e >> 5] |= 1u << (e & 31); s_kept[nk++] = j; continue; }
++            s_to[j] = -2; ++nd;
++        }
++        if (nd > 0 && nk > 0) {
++            int nt = 0;
++            for (int i = 0; i < nk; ++i)
++                if (s_res[s_kept[i]] >= 0) s_tgt[nt++] = s_id[s_kept[i]];
++            if (nt == 0)
++                for (int i = 0; i < nk; ++i) s_tgt[nt++] = s_id[s_kept[i]];
++            int c = 0;
++            for (int j = k; j < n; ++j)
++                if (s_to[j] == -2) s_to[j] = s_tgt[c++ % nt];
++        }
++    }
++    __syncthreads();
++    if (tid < n && s_to[tid] >= 0) {
++        ids[tid] = s_to[tid];
++        w[tid] = 0.0f;
++    }
++}
+ }  // namespace
+ 
+ void resident_plan(const int32_t* ids, int n_entries, int k, const int32_t* res_layer, int n_expert,
+@@ -1635,6 +1706,13 @@
+     }
+     check("resident_plan");
+ }
++void verify_ecap(int32_t* ids, float* w, int n, int k, const int32_t* res_layer, int n_expert, const int32_t* cap,
++                 void* stream) {
++    if (cap == nullptr || n <= k || n > kEcapMaxEntries || n_expert > kEcapMaxExperts) return;
++    ecap_kernel<<<1, kEcapMaxEntries, 0, (cudaStream_t) stream>>>(ids, w, n, k, res_layer, n_expert,
++                                                                  (const volatile int32_t*) cap);
++    check("verify_ecap");
++}
+ void wait_flag_ge_or(const uint32_t* flag, uint32_t value, const uint32_t* skip, void* stream) {
+     wait_flag_ge_or_kernel<<<1, 1, 0, (cudaStream_t) stream>>>(flag, value, skip);
+     check("wait_flag_ge_or");
+diff -ruN a/engine/src/kernels/ecap_parity.cpp b/engine/src/kernels/ecap_parity.cpp
+--- /dev/null
++++ b/engine/src/kernels/ecap_parity.cpp
+@@ -0,0 +1,142 @@
++// ecap_parity - STRATA_VERIFY_ECAP's expert cap against a scalar reference of the same semantics, bit for bit.
++//
++// `verify_ecap` rewrites a verify window's routing in place before the plan (CodexGame's port of upstream PR #3545,
++// capping the window's expert set): token 0 keeps all k picks; the tail, by (weight desc, index asc), keeps an entry
++// whose expert is already kept, keeps a new expert while fewer than `cap` distinct ones are, and drops the rest to
++// weight 0 and a kept expert's id (a resident one when there is one, round robin).  The committed position's
++// exactness and the plan's residency both hang on that, so this checks, on random windows shaped like the router
++// (512 experts, top-10, 2..12 tokens, some tied weights, a few invalid ids):
++//   * the kernel equals the reference exactly (ids and weights)
++//   * no cap (0, or not above k) and windows of one token: a no-op, bitwise
++//   * token 0 untouched; kept entries untouched; at most `cap` distinct valid experts; every dropped entry's weight
++//     exactly 0 and its id a kept expert's, a resident one whenever a kept expert is resident
++//   * the same input twice gives the same output
++#include "strata/kernels/verify_kernels.hpp"
++
++#include <cuda_runtime.h>
++
++#include <algorithm>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <random>
++#include <set>
++#include <vector>
++
++namespace {
++void ck(cudaError_t e, const char* what) {
++    if (e != cudaSuccess) { std::fprintf(stderr, "%s: %s\n", what, cudaGetErrorString(e)); std::exit(2); }
++}
++
++// the semantics, written plainly
++void reference(std::vector<int32_t>& ids, std::vector<float>& w, int k, const std::vector<int32_t>& res, int n_expert, int cap) {
++    const int n = (int) ids.size();
++    if (cap <= k || n <= k) return;
++    std::vector<int> tail;
++    for (int j = k; j < n; ++j) tail.push_back(j);
++    std::stable_sort(tail.begin(), tail.end(), [&](int a, int b) { return w[a] > w[b]; });   // ties: index order
++    std::vector<int32_t> kept;
++    std::set<int32_t> in;
++    auto valid = [&](int32_t e) { return e >= 0 && e < n_expert; };
++    for (int i = 0; i < k; ++i)
++        if (valid(ids[i]) && in.insert(ids[i]).second) kept.push_back(ids[i]);
++    std::vector<int> dropped;
++    for (int j : tail) {
++        const int32_t e = ids[j];
++        if (!valid(e) || in.count(e)) continue;
++        if ((int) kept.size() < cap) { in.insert(e); kept.push_back(e); continue; }
++        dropped.push_back(j);
++    }
++    if (dropped.empty() || kept.empty()) return;
++    std::vector<int32_t> tgt;
++    for (int32_t e : kept) if (res[e] >= 0) tgt.push_back(e);
++    if (tgt.empty()) tgt = kept;
++    std::sort(dropped.begin(), dropped.end());
++    for (size_t i = 0; i < dropped.size(); ++i) { ids[dropped[i]] = tgt[i % tgt.size()]; w[dropped[i]] = 0.0f; }
++}
++}  // namespace
++
++int main() {
++    const int E = 512, K = 10;
++    int bad = 0, cases = 0;
++    std::mt19937 rng(11);
++    std::uniform_real_distribution<float> u01(0.0f, 1.0f);
++    int32_t *d_ids, *d_res, *h_cap, *m_cap;
++    float* d_w;
++    ck(cudaMalloc(&d_ids, strata::kernels::kEcapMaxEntries * 4), "ids");
++    ck(cudaMalloc(&d_w, strata::kernels::kEcapMaxEntries * 4), "w");
++    ck(cudaMalloc(&d_res, E * 4), "res");
++    ck(cudaHostAlloc((void**) &h_cap, 64, cudaHostAllocMapped), "cap");
++    ck(cudaHostGetDevicePointer((void**) &m_cap, h_cap, 0), "cap ptr");
++    for (int round = 0; round < 40; ++round) {
++        // a residency table: about 3 in 4 experts in VRAM (some rounds none, some all)
++        std::vector<int32_t> res(E);
++        const float p_res = round % 10 == 3 ? 0.0f : round % 10 == 7 ? 1.0f : 0.75f;
++        for (int e = 0; e < E; ++e) res[e] = u01(rng) < p_res ? e : -1;
++        ck(cudaMemcpy(d_res, res.data(), E * 4, cudaMemcpyHostToDevice), "up res");
++        // a pool of experts the window's tokens share (consecutive tokens overlap), distinct within a token
++        std::vector<int> pool(E);
++        for (int i = 0; i < E; ++i) pool[i] = i;
++        std::shuffle(pool.begin(), pool.end(), rng);
++        const int span = 14 + (int) (u01(rng) * 40);
++        for (int T : {1, 2, 3, 4, 5, 8, 12}) {
++            const int n = T * K;
++            std::vector<int32_t> ids0(n);
++            std::vector<float> w0(n);
++            for (int t = 0; t < T; ++t) {
++                std::vector<int> sub(pool.begin(), pool.begin() + span);
++                std::shuffle(sub.begin(), sub.end(), rng);
++                for (int j = 0; j < K; ++j) ids0[t * K + j] = sub[j];
++                float s = 0.0f;
++                for (int j = 0; j < K; ++j) { w0[t * K + j] = u01(rng); s += w0[t * K + j]; }
++                for (int j = 0; j < K; ++j) w0[t * K + j] /= s;
++                std::sort(w0.begin() + t * K, w0.begin() + (t + 1) * K, [](float a, float b) { return a > b; });
++            }
++            if (round % 4 == 1 && n > K + 3) { w0[K + 1] = w0[K + 2]; w0[n - 1] = w0[K + 1]; }   // ties
++            if (round % 5 == 2 && n > K + 1) ids0[n - 1] = -1;                                    // an invalid id
++            for (int cap : {0, K, K + 1, 14, 16, 20, 24, 32, 200}) {
++                std::vector<int32_t> ids_ref = ids0;
++                std::vector<float> w_ref = w0;
++                reference(ids_ref, w_ref, K, res, E, cap);
++                std::vector<int32_t> ids_a(n), ids_b(n);
++                std::vector<float> w_a(n), w_b(n);
++                for (int pass = 0; pass < 2; ++pass) {
++                    ck(cudaMemcpy(d_ids, ids0.data(), n * 4, cudaMemcpyHostToDevice), "up ids");
++                    ck(cudaMemcpy(d_w, w0.data(), n * 4, cudaMemcpyHostToDevice), "up w");
++                    *(volatile int32_t*) h_cap = cap;
++                    strata::kernels::verify_ecap(d_ids, d_w, n, K, d_res, E, m_cap, nullptr);
++                    ck(cudaDeviceSynchronize(), "sync");
++                    ck(cudaMemcpy(pass ? ids_b.data() : ids_a.data(), d_ids, n * 4, cudaMemcpyDeviceToHost), "down ids");
++                    ck(cudaMemcpy(pass ? w_b.data() : w_a.data(), d_w, n * 4, cudaMemcpyDeviceToHost), "down w");
++                }
++                ++cases;
++                const bool same = std::memcmp(ids_a.data(), ids_ref.data(), n * 4) == 0 && std::memcmp(w_a.data(), w_ref.data(), n * 4) == 0;
++                const bool det = ids_a == ids_b && std::memcmp(w_a.data(), w_b.data(), n * 4) == 0;
++                // the contract, independently of the reference
++                bool ok = same && det;
++                for (int j = 0; j < K && ok; ++j) ok = ids_a[j] == ids0[j] && w_a[j] == w0[j];
++                const bool off = cap <= K || T == 1;
++                if (off) ok = ok && ids_a == ids0 && std::memcmp(w_a.data(), w0.data(), n * 4) == 0;
++                std::set<int32_t> distinct;
++                bool any_res = false;
++                for (int j = 0; j < n; ++j) if (ids_a[j] >= 0 && !(w_a[j] == 0.0f && ids_a[j] != ids0[j])) distinct.insert(ids_a[j]);
++                for (int32_t e : distinct) any_res = any_res || res[e] >= 0;
++                if (!off) ok = ok && (int) distinct.size() <= std::max(cap, K);
++                for (int j = K; j < n && ok; ++j) {
++                    if (ids_a[j] == ids0[j] && w_a[j] == w0[j]) continue;                 // kept as routed
++                    ok = w_a[j] == 0.0f && distinct.count(ids_a[j]) == 1 && (!any_res || res[ids_a[j]] >= 0);
++                }
++                if (!ok) {
++                    ++bad;
++                    std::printf("  round %d T %d cap %d: %s%s\n", round, T, cap, same ? "" : "differs from the reference ",
++                                det ? "" : "nondeterministic");
++                }
++            }
++        }
++    }
++    cudaFree(d_ids); cudaFree(d_w); cudaFree(d_res); cudaFreeHost(h_cap);
++    if (bad) { std::printf("ecap_parity FAILED: %d of %d cases\n", bad, cases); return 1; }
++    std::printf("ecap_parity OK (%d cases)\n", cases);
++    return 0;
++}

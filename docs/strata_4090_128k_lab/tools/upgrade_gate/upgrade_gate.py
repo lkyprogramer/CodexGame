@@ -1,17 +1,25 @@
 """One-command upgrade gate for a new Strata release on the 4090 (prepared 2026-11-21, CodexGame lab).
 
     upgrade_gate.py prepare TAG [--tree DIR] [-j N]  fetch the tag, export engine/terminal, apply the PT0/#1536 patch, build
+                    [--label L --patch P --target T] a probe build: P (repeatable) applied after PT0, T (repeatable) built
+                                                     beside the engine, results under L (tree /home/hhtele/strata-L)
                                                      (CUDA 12.3, sm_89), assemble a tree; production keeps running
     upgrade_gate.py kl TAG [--repeat]                teacher-forced KL against the stored v0.2.17 runs (stops production ~10 min)
     upgrade_gate.py gate TAG [--force] [--limit N]   one task-gate arm against the stored b2 arm (stops production ~2 h);
                                                      --limit N is a wiring smoke test in TAG/smoke, no decision
     upgrade_gate.py probe LABEL [--limit N]          an arm of the production tree itself with other --env/--arg, against the
-                                                     stored b2 arm (no new release, no KL phase); results in LABEL/
+                                                     stored b2 arm (no new release, no KL phase); results in LABEL/;
+                                                     --baseline ts0 pairs a full arm with the stored exact-routing arm instead
       gate and probe take --env K=V and --arg FLAG[=VALUE] (repeatable): extra engine env, extra or replaced engine CLI args,
       and --sampling KEY=VALUE: the run config's sampling block (the server's defaults for fields a request leaves out)
     upgrade_gate.py replay LABEL --build | --freeze | --run NAME [--rerun] | --eval
                                                      fixed-history replay of a long Pi-shaped session on the production tree,
                                                      runs and rules from LABEL/PREREG.json (stops production per run)
+    upgrade_gate.py approx LABEL                     stage 1 of an approximate-routing probe (LABEL/PREREG.json, verdict_kind
+                                                     approx): teacher-forced KL of the production tree under each preregistered
+                                                     env, screened against exact routing (one production stop, ~2 min a run);
+                                                     its replay runs and --eval go through replay, its gate arms through
+                                                     probe LABEL --baseline ts0 --env ...
     upgrade_gate.py report TAG
     upgrade_gate.py all TAG [-j N]                   prepare -> kl -> gate (only when kl says PROCEED) -> report
     upgrade_gate.py switch TAG --yes [--force]       hand production over to the new tree; rolls back by itself if health fails
@@ -44,6 +52,7 @@ TAIL_SKIP = '7'
 # (all 0.047, agent segment 0.136; V0217-TAILSKIP-KL).  Above either bound the task gate is not run (KL_REGRESSION).
 KL_ALL_MAX, KL_AGENT_MAX = 0.060, 0.170
 GUARD_AVAIL_MIB, GUARD_TEMP = 3072, 85
+MONITOR_SAMPLES = Path('/data/strata-data/prod-observe/monitor/data/samples')   # tools/monitor: co-tenant CPU during a run
 
 
 class Stop(Exception):
@@ -150,21 +159,22 @@ def health(port, timeout_s):
 
 
 # ---------------------------------------------------------------- prepare
-def prepare(tag, tree=None, jobs=8):
-    W = wdir(tag); W.mkdir(parents=True, exist_ok=True)
-    tree = Path(tree) if tree else Path('/home/hhtele/strata-' + tag.lstrip('v'))
-    done = load(tag, 'PREPARE.json')
+def prepare(tag, tree=None, jobs=8, label=None, patches=(), targets=()):
+    label = label or tag
+    W = wdir(label); W.mkdir(parents=True, exist_ok=True)
+    tree = Path(tree) if tree else Path('/home/hhtele/strata-' + label.lstrip('v'))
+    done = load(label, 'PREPARE.json')
     if done and done.get('status') == 'READY' and Path(done['tree']).exists():
         log('prepare: already READY at', done['tree']); return done
     if tree.exists(): raise Stop('tree %s exists and has no READY record; move it away by hand' % tree)
-    cur = cur_tree(); doc = dict(tag=tag, tree=str(tree), from_tree=str(cur), started=time.strftime('%Y-%m-%d %H:%M:%S'), status='RUNNING')
+    cur = cur_tree(); doc = dict(tag=tag, label=label, tree=str(tree), from_tree=str(cur), started=time.strftime('%Y-%m-%d %H:%M:%S'), status='RUNNING')
     try:
-        return _prepare(tag, tree, jobs, W, cur, doc)
+        return _prepare(tag, tree, jobs, W, cur, doc, label, [Path(p).resolve() for p in patches], list(targets))
     except Stop as e:
-        save(tag, 'PREPARE.json', dict(doc, status='STOPPED', stop=str(e))); raise
+        save(label, 'PREPARE.json', dict(doc, status='STOPPED', stop=str(e))); raise
 
 
-def _prepare(tag, tree, jobs, W, cur, doc):
+def _prepare(tag, tree, jobs, W, cur, doc, label, patches, targets):
     PATCH = patch_for(tag)
     if not PATCH.exists(): raise Stop('missing %s' % PATCH)
     doc.update(patch=str(PATCH), patch_sha256=sha(PATCH))
@@ -203,12 +213,23 @@ def _prepare(tag, tree, jobs, W, cur, doc):
     for f in files:
         if (src / f).exists(): (orig / f).parent.mkdir(parents=True, exist_ok=True); shutil.copy2(src / f, orig / f)
     r = run(['patch', '-p1', '-F0', '-N', '--batch', '--dry-run', '-d', src, '-i', PATCH])
-    if r.returncode: save(tag, 'patch-dry-run.txt.json', dict(out=r.stdout + r.stderr)); raise Stop('PATCH_CONFLICT: the PT0/#1536 patch needs a hand port:\n' + r.stdout[-1500:])
+    if r.returncode: save(label, 'patch-dry-run.txt.json', dict(out=r.stdout + r.stderr)); raise Stop('PATCH_CONFLICT: the PT0/#1536 patch needs a hand port:\n' + r.stdout[-1500:])
     r = run(['patch', '-p1', '-F0', '-N', '--batch', '-d', src, '-i', PATCH], check=True)
     doc['patch_output'] = r.stdout.strip().splitlines()
     regen = ''.join(run(['diff', '-uNp', '--label', 'a/' + f, '--label', 'b/' + f, orig / f, src / f]).stdout for f in files)
     (W / ('pt0-reply-reuse.%s.patch' % tag)).write_text(regen)
     doc['patched_files'] = {f: sha(src / f) for f in files}
+    # a probe build's own patches (--patch): after PT0, zero fuzz, in the order given
+    doc['extra_patches'] = []
+    for P in patches:
+        if not P.exists(): raise Stop('missing %s' % P)
+        pf = re.findall(r'^\+\+\+ b/(\S+)', P.read_text(), re.M)
+        r = run(['patch', '-p1', '-F0', '-N', '--batch', '--dry-run', '-d', src, '-i', P])
+        if r.returncode: raise Stop('PATCH_CONFLICT: %s does not apply to %s + PT0 with zero fuzz:\n%s' % (P, tag, (r.stdout + r.stderr)[-1500:]))
+        run(['patch', '-p1', '-F0', '-N', '--batch', '-d', src, '-i', P], check=True)
+        doc['extra_patches'].append(dict(patch=str(P), sha256=sha(P), files={f: sha(src / f) for f in pf}))
+        doc['patched_files'].update({f: sha(src / f) for f in pf})
+        log('patch', P.name, len(pf), 'files')
     # the patch's own tests plus the serve suites it touches (CPU only, ~2.5 min; the v0.2.17 port ran 492 OK)
     log('unit tests: serve.test_prompt_encoder serve.test_frontend serve.test_server')
     rc, g = run_guarded(['nice', '-n', '10', cur / 'python/bin/python3', '-B', '-m', 'unittest', 'serve.test_prompt_encoder', 'serve.test_frontend',
@@ -226,9 +247,12 @@ def _prepare(tag, tree, jobs, W, cur, doc):
                          '-DCMAKE_CUDA_COMPILER=' + NVCC], W / 'cmake.log', 1800)
     if rc or g: raise Stop('cmake failed rc=%s %s (see cmake.log)' % (rc, g))
     t0 = time.monotonic(); log('build: ninja -j', jobs)
-    rc, g = run_guarded(['nice', '-n', '10', CMAKE, '--build', B, '--target', 'strata', '-j', jobs], W / 'build.log', 7200)
+    rc, g = run_guarded(['nice', '-n', '10', CMAKE, '--build', B, '--target', 'strata', *targets, '-j', jobs], W / 'build.log', 7200)
     if rc or g: raise Stop('build failed rc=%s %s (see build.log)' % (rc, g))
     eng = B / 'strata'
+    doc['targets'] = {t: str(B / t) for t in targets}           # GPU tests: run with production stopped (approx LABEL, kl.tests)
+    missing_t = [t for t in targets if not (B / t).exists()]
+    if missing_t: raise Stop('built targets not found in %s: %s' % (B, missing_t))
     doc.update(build_s=round(time.monotonic() - t0), engine_sha256=sha(eng), engine_version=run([eng, '--version']).stdout.strip())
     log('engine', doc['engine_version'], doc['engine_sha256'][:16], 'in %d s' % doc['build_s'])
     # tree: everything except terminal/ and engine comes from the current production tree, paths rewritten
@@ -237,6 +261,7 @@ def _prepare(tag, tree, jobs, W, cur, doc):
     (tree / 'engine').mkdir(); shutil.copy2(eng, tree / 'engine/strata')
     shutil.copytree(cur / 'python', tree / 'python', symlinks=True)
     shutil.copy2(PATCH, tree / PATCH.name)
+    for P in patches: shutil.copy2(P, tree / P.name)
     for d in ('data', 'slots', 'state/data', 'state/xdg-data', 'state/xdg-config', 'state/xdg-cache', 'state/draft-costs'): (tree / d).mkdir(parents=True, exist_ok=True)
     cfg = json.loads((cur / 'strata-iq3_xxs.json').read_text()); a = cfg['args']
     prof = Path(a[a.index('--expert-profile') + 1])
@@ -270,10 +295,11 @@ def _prepare(tag, tree, jobs, W, cur, doc):
     ident = {k: doc[k] for k in ('tag', 'tag_object', 'tag_commit', 'engine_sha256', 'engine_version', 'patch_sha256', 'patched_files',
                                  'config_sha256', 'run_sha256', 'expert_profile_sha256')}
     ident.update(python=str(cur / 'python') + ' (copied)', created=time.strftime('%Y-%m-%d'), by='upgrade_gate.py')
+    if doc['extra_patches']: ident.update(label=label, extra_patches=[dict(patch=Path(x['patch']).name, sha256=x['sha256']) for x in doc['extra_patches']])
     (tree / 'IDENTITY.json').write_text(json.dumps(ident, indent=1) + '\n')
     doc.update(status='READY', finished=time.strftime('%Y-%m-%d %H:%M:%S'))
     if doc['flags_not_in_help']: log('WARN flags not in --help (check before the KL phase):', doc['flags_not_in_help'])
-    log('prepare READY', tree); return save(tag, 'PREPARE.json', doc)
+    log('prepare READY', tree); return save(label, 'PREPARE.json', doc)
 
 
 # ---------------------------------------------------------------- kl
@@ -326,6 +352,14 @@ BUCKETS = (('<4K', 0, 4096), ('4K-32K', 4096, 32768), ('32K-64K', 32768, 65536),
 DT_FIELDS = dict(T=r'avg T ([\d.]+)', tok_win=r'([\d.]+) tokens/window', ms_win=r'([\d.]+) ms/window', adapt_wait=r'adapt wait ([\d.]+)',
                  reach=r'GPU-reach wait ([\d.]+)', cpu_ms=r' CPU ([\d.]+)\]', draft=r'draft ([\d.]+)', adapt_join=r'adapt join ([\d.]+)',
                  cpu_entries=r'CPU experts [\d.]+ \(([\d.]+) entries\)', swaps=r'([\d.]+) swaps/window')
+
+
+def arm_env(extra):
+    """An arm's engine env: B2's tail skip unless the arm sets its own, plus the arm's extra env; never a forbidden one."""
+    env = dict(STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP); env.update({k: str(v) for k, v in (extra or {}).items()})
+    bad = FORBIDDEN_ENV & set(env)
+    if bad: raise Stop('%s are never enabled in this lab' % sorted(bad))
+    return env
 
 
 def parse_arg_specs(specs):
@@ -480,15 +514,28 @@ def gate(tag, force=False, limit=None, extra_env=None, arg_specs=None, sampling=
     return run_arm(tag, Path(prep['tree']), arm_name(tag), ident, force, limit, extra_env, arg_specs, sampling)
 
 
-def probe(label, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None):
+def probe(label, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None, baseline=BASE_ARM, tree_label=None):
     """An arm of the production tree itself with other engine env or CLI args (no new release), paired with the stored b2
-    arm: a smoke with --limit, else a full task-gate arm.  No KL phase: quant_quality's yardstick pins the expert placement
-    (--expert-cache 1, --adapt-every 100000), so it cannot see placement or adaptive-tier changes; other changes need their
-    own numerical check first."""
-    tree, cur = b2_production_tree(force)
-    if not limit and not extra_env and not arg_specs and not sampling: raise Stop('a full arm without changes would be b2 again')
-    ident = dict(engine_sha256=sha(cur['exe']), patched_files=None, config_sha256=sha(tree / 'strata-iq3_xxs.json'), kl_verdict='NOT_RUN (probe)')
-    return run_arm(label, tree, BASE_ARM, ident, True, limit, extra_env, arg_specs, sampling)
+    arm, or with the stored exact-routing ts0 arm (baseline='ts0', for routing approximations): a smoke with --limit, else a
+    full task-gate arm.  No KL phase here: quant_quality's yardstick pins the expert placement (--expert-cache 1,
+    --adapt-every 100000), so it cannot see placement or adaptive-tier changes; other changes need their own numerical
+    check first (routing env: approx LABEL).  tree_label: the tree `prepare --label` built (a probe build) instead of
+    production; its arms are named after that label."""
+    tree, cur = run_tree(tree_label, force)
+    if not limit and not extra_env and not arg_specs and not sampling and not tree_label: raise Stop('a full arm without changes would be b2 again')
+    klr = load(label, 'KL.json') or {}; env = arm_env(extra_env)
+    hit = next((n for n, r in (klr.get('runs') or {}).items() if r.get('env') == env and klr.get('tree_label') == tree_label), None)
+    ident = dict(engine_sha256=sha(cur['exe']), patched_files=load(tree_label, 'PREPARE.json')['patched_files'] if tree_label else None,
+                 config_sha256=sha(tree / 'strata-iq3_xxs.json'),
+                 kl_verdict='approx KL run %s: %s' % (hit, klr['runs'][hit]['screen']) if hit else 'NOT_RUN (probe)')
+    return run_arm(label, tree, arm_name(tree_label) if tree_label else BASE_ARM, ident, True, limit, extra_env, arg_specs, sampling, baseline)
+
+
+def cfg_norm(c):
+    """A run config without what gate17 rewrites per arm."""
+    c = json.loads(json.dumps(c)); a = c['args']; a[a.index('--expert-profile-save') + 1] = None
+    for k in ('port', 'log', 'slot_save_path'): c.pop(k, None)
+    return c
 
 
 def b2_production_tree(force=False):
@@ -496,12 +543,23 @@ def b2_production_tree(force=False):
     tree = cur_tree(); b2c = json.loads((GD / 'arms' / BASE_ARM / 'config.json').read_text())
     if Path(b2c['cwd']) != tree: raise Stop('production runs %s, not the tree of the stored b2 arm (%s)' % (tree, b2c['cwd']))
     cur = json.loads((tree / 'strata-iq3_xxs.json').read_text())
-    def norm(c):                    # what gate17 rewrites per arm does not count
-        c = json.loads(json.dumps(c)); a = c['args']; a[a.index('--expert-profile-save') + 1] = None
-        for k in ('port', 'log', 'slot_save_path'): c.pop(k, None)
-        return c
-    if norm(cur) != norm(b2c) and not force: raise Stop('the production config is not the one the stored b2 arm ran, so its arms would not pair with b2 (--force overrides)')
+    if cfg_norm(cur) != cfg_norm(b2c) and not force: raise Stop('the production config is not the one the stored b2 arm ran, so its arms would not pair with b2 (--force overrides)')
     return tree, cur
+
+
+def run_tree(tree_label=None, force=False):
+    """The tree a probe, replay or approx run uses: the production tree (b2_production_tree), or the tree `prepare --label
+    tree_label` built (a probe build: the same release plus patches), refused unless it is READY, its engine is the one it
+    built and its config is the production one with the tree's paths.  Returns (tree, its config)."""
+    tree, cur = b2_production_tree(force)
+    if not tree_label: return tree, cur
+    prep = load(tree_label, 'PREPARE.json')
+    if not prep or prep.get('status') != 'READY': raise Stop('%s has no READY prepare (upgrade_gate.py prepare ... --label %s)' % (tree_label, tree_label))
+    t = Path(prep['tree']); c = json.loads((t / 'strata-iq3_xxs.json').read_text())
+    if sha(c['exe']) != prep['engine_sha256']: raise Stop('the engine of %s is not the one prepare built' % t)
+    if cfg_norm(c) != cfg_norm(json.loads(json.dumps(cur).replace(str(tree), str(t)))):
+        raise Stop('the config of %s is not the production one with its paths' % t)
+    return t, c
 
 
 def arm_config(wtag, tree, arm, specs, gate17, sampling=None):
@@ -532,11 +590,11 @@ def loop_signs(server_stdout, finishes):
     return dict(finish_length=sum(1 for x in finishes if x == 'length'), repeat_notices=rep)
 
 
-def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None):
-    """One task-gate arm of tree (a smoke with --limit) with extra engine env, CLI args and sampling defaults; results under UG/wtag."""
-    extra_env = dict(extra_env or {}); bad = FORBIDDEN_ENV & set(extra_env)
-    if bad: raise Stop('%s are never enabled in this lab' % sorted(bad))
-    specs = parse_arg_specs(arg_specs); env = dict(extra_env, STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP)
+def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, arg_specs=None, sampling=None, baseline=BASE_ARM):
+    """One task-gate arm of tree (a smoke with --limit) with extra engine env, CLI args and sampling defaults; results under
+    UG/wtag.  A full arm pairs with the stored arm `baseline`: b2, or ts0 (exact routing)."""
+    extra_env = dict(extra_env or {}); env = arm_env(extra_env)     # an arm's own STRATA_ROUTE_TAIL_SKIP wins over B2's
+    specs = parse_arg_specs(arg_specs)
     pre = json.loads((GD / 'PREREG.json').read_text())
     sampling = dict(sampling or {})
     suffix = arm_suffix(extra_env, specs) + sampling_suffix(sampling); arm = base + suffix if suffix or base != BASE_ARM else BASE_ARM + '-control'
@@ -567,14 +625,15 @@ def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, ar
                    b2_pass1=b2[r['task_id']].get('pass1'), b2_pass2=b2[r['task_id']].get('pass2')) for r in rows])
         log('smoke', arm, json.dumps(speed)); return save(wtag, 'SMOKE-%s.json' % arm, doc)
     # addendum preregistration: written before the arm runs, refuses to change afterwards
-    pa = GD / ('PREREG-%s.json' % arm)
+    vs = '' if baseline == BASE_ARM else '-vs-' + baseline        # pairing with b2 keeps the original file names
+    pa = GD / ('PREREG-%s%s.json' % (arm, vs))
     add = dict(tag=wtag, tree=str(tree), engine_sha256=ident['engine_sha256'], patched_files=ident['patched_files'],
                config_sha256=sha(run_cfg) if specs or sampling else ident['config_sha256'],
-               base_prereg_sha256=sha(GD / 'PREREG.json'), driver_sha256=sha(GD / 'gate17.py'), baseline='b2 (stored v0.2.17 arm, not re-run)',
-               baseline_rows_sha256=sha(GD / 'arms/b2/rows.jsonl'), candidate=arm, env=env, margin=pre['margin'],
+               base_prereg_sha256=sha(GD / 'PREREG.json'), driver_sha256=sha(GD / 'gate17.py'), baseline='%s (stored v0.2.17 arm, not re-run)' % baseline,
+               baseline_rows_sha256=sha(GD / 'arms' / baseline / 'rows.jsonl'), candidate=arm, env=env, margin=pre['margin'],
                kl_verdict=ident['kl_verdict'], forced=bool(force),
                note='same task ids, seeds (1000+index), prompts, grader image and driver as PREREG.json; the two original arms also ran one '
-                    'after the other, so reusing the stored b2 arm keeps the pairing by task and seed')
+                    'after the other, so reusing the stored %s arm keeps the pairing by task and seed' % baseline)
     if specs: add['args'] = args_doc               # only then: older addenda have no such key
     if sampling: add['sampling'] = sampling
     if pa.exists():
@@ -583,6 +642,7 @@ def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, ar
     else:
         pa.write_text(json.dumps(dict(add, created=time.strftime('%Y-%m-%d %H:%M:%S')), indent=1) + '\n')
     ad = GD / 'arms' / arm
+    gname = 'GATE.json' if arm == base else 'GATE-%s%s.json' % (arm, vs)
     have = [json.loads(l) for l in open(ad / 'rows.jsonl')] if (ad / 'rows.jsonl').exists() else []
     if len(have) == pre['n'] and not any('error' in r for r in have):
         log('arm %s already complete (%d rows): deciding only, production untouched' % (arm, len(have)))
@@ -591,22 +651,25 @@ def run_arm(wtag, tree, base, ident, force=False, limit=None, extra_env=None, ar
             gate17.arm(arm, env)
     rows = [json.loads(l) for l in open(ad / 'rows.jsonl')] if (ad / 'rows.jsonl').exists() else []
     if len(rows) != pre['n'] or any('error' in r for r in rows):
-        save(wtag, 'GATE.json' if arm == base else 'GATE-%s.json' % arm, dict(tag=wtag, arm=arm, status='ARM_INCOMPLETE', rows=len(rows))); raise Stop('arm incomplete: %d of %d rows' % (len(rows), pre['n']))
-    gate17.pairs('b2', arm)
-    pin = GD / ('PAIRS-%s-vs-b2.json' % arm); pout = GD / ('GATE-%s-vs-b2.json' % arm)
+        save(wtag, gname, dict(tag=wtag, arm=arm, status='ARM_INCOMPLETE', rows=len(rows))); raise Stop('arm incomplete: %d of %d rows' % (len(rows), pre['n']))
+    gate17.pairs(baseline, arm)
+    pin = GD / ('PAIRS-%s-vs-%s.json' % (arm, baseline)); pout = GD / ('GATE-%s-vs-%s.json' % (arm, baseline))
     r = run([sys.executable, '-B', GD / 'quality_gate.py', '--input', pin, '--output', pout])
     res = json.loads(pout.read_text())
     speed = {}
     if (ad / 'engine.log').exists():
         run([sys.executable, '-B', PRODLOG, ad / 'engine.log', '--json', ad / 'prodlog-summary.json'])
-        for n in ('b2', arm):
-            s = json.loads((GD / 'arms' / n / 'prodlog-summary.json').read_text()); s = s.get('summary', s)   # prodlog --json nests it
+        for n in dict.fromkeys((BASE_ARM, baseline, arm)):
+            f = GD / 'arms' / n / 'prodlog-summary.json'
+            if not f.exists(): continue
+            s = json.loads(f.read_text()); s = s.get('summary', s)   # prodlog --json nests it
             speed[n] = dict(decode_tok_s=round(s['generated_tokens'] / s['decode_seconds'], 1), generated_tokens=s['generated_tokens'], requests=s['requests'])
     p = {n: dict(pass1=sum(x.get('pass1', False) for x in rs), pass2=sum(x.get('pass2', False) for x in rs))
-         for n, rs in (('b2', [json.loads(l) for l in open(GD / 'arms/b2/rows.jsonl')]), (arm, rows))}
-    doc = dict(tag=wtag, arm=arm, quality_gate_rc=r.returncode, status=res.get('status'), inference=res.get('inference'), passes=p, speed=speed,
+         for n, rs in [(b, [json.loads(l) for l in open(GD / 'arms' / b / 'rows.jsonl')]) for b in dict.fromkeys((BASE_ARM, baseline))] + [(arm, rows)]}
+    doc = dict(tag=wtag, arm=arm, baseline=baseline, quality_gate_rc=r.returncode, status=res.get('status'), inference=res.get('inference'), passes=p,
+               speed=speed, loop_signs=loop_signs(ad / 'server-stdout.txt', [a.get('finish') for x in rows for a in x.get('attempts', [])]),
                files=[str(pa), str(pin), str(pout)])
-    log('gate', doc['status'], json.dumps(p), json.dumps(speed)); return save(wtag, 'GATE.json' if arm == base else 'GATE-%s.json' % arm, doc)
+    log('gate', doc['status'], json.dumps(p), json.dumps(speed)); return save(wtag, gname, doc)
 
 
 # ---------------------------------------------------------------- report / switch
@@ -792,9 +855,13 @@ def replay_run(label, name, force=False, rerun=False):
     pre = replay_prereg(label); replay_check_frozen(label)
     spec = next((r for r in pre['runs'] if r['run'] == name), None)
     if not spec: raise Stop('run %r is not preregistered (%s)' % (name, [r['run'] for r in pre['runs']]))
+    if pre.get('verdict_kind') == 'approx' and spec.get('kl_run'):
+        klr = load(label, 'KL.json') or {}; st = ((klr.get('runs') or {}).get(spec['kl_run']) or {}).get('screen')
+        if klr.get('verdict') != 'SCREENED' or st != 'PASS': raise Stop('run %s: KL screen of %s is %s (stage 1 %s)' % (name, spec['kl_run'], st, klr.get('verdict')))
+    env = arm_env(spec.get('env'))
     all_flags = {f for r in pre['runs'] for f, _ in parse_arg_specs(r['args'])}
     specs = parse_arg_specs(spec['args']); arm = spec['arm']; sampling = parse_sampling(['%s=%s' % kv for kv in (spec.get('sampling') or {}).items()])
-    tree, cur = b2_production_tree(force)
+    tree, cur = run_tree(spec.get('tree_label'), force)
     sys.path.insert(0, str(GD)); import gate17
     run_cfg, not_in_help = arm_config(label, tree, arm, specs, gate17, sampling)
     W = wdir(label); ad = W / 'runs' / name
@@ -805,9 +872,9 @@ def replay_run(label, name, force=False, rerun=False):
         ad.rename(kept); log('kept the failed run as', kept)
     ad.mkdir(parents=True)
     doc = json.loads((W / 'REPLAY.json').read_text()); bodies = list(replay_bodies(doc))
-    env = dict(STRATA_ROUTE_TAIL_SKIP=TAIL_SKIP); rows = []; guard = []; err = None
+    rows = []; guard = []; err = None; t_run = [None, None]
     with production_stopped():
-        p = gate17.start_server(ad, env); stop = threading.Event()
+        p = gate17.start_server(ad, env); stop = threading.Event(); t_run[0] = time.time()
         def mon():
             while not stop.wait(5):
                 s = snapshot()
@@ -831,16 +898,18 @@ def replay_run(label, name, force=False, rerun=False):
                 log(name, i, row.get('prompt_tokens'), row.get('completion_tokens'), row.get('finish'), row['wall_s'], row.get('error') or '')
                 if 'error' in row: err = row['error']; break
         finally:
-            stop.set(); gate17.stop_server(p); log('RUN_END', name, 'guard' if guard else err or '')
+            t_run[1] = time.time(); stop.set(); gate17.stop_server(p); log('RUN_END', name, 'guard' if guard else err or '')
     reqs, waited = engine_requests(ad / 'engine.log')
     argv = started_args(ad / 'engine.log')
     aligned = len(reqs) == len(rows) == len(bodies) and all(r.get('prompt_tokens') is not None and abs(q['prompt'] - r['prompt_tokens']) <= 64 for q, r in zip(reqs, rows))
     ran = json.loads((ad / 'config.json').read_text()) if (ad / 'config.json').exists() else {}
     checks = dict(all_requests_ok=not err and len(rows) == len(bodies), engine_requests=len(reqs), aligned=aligned,
-                  flags_ok=flags_ok(argv, specs, all_flags), sampling_ok=(ran.get('sampling') or {}) == sampling, no_guard=not guard)
+                  flags_ok=flags_ok(argv, specs, all_flags), sampling_ok=(ran.get('sampling') or {}) == sampling, no_guard=not guard,
+                  env_ok=all(str((ran.get('env') or {}).get(k)) == v for k, v in env.items()))
     st = window_stats(reqs); ge = window_stats([q for q in reqs if q['prompt'] >= REPLAY_GE])['all']
     if st['all']['windows']: st['all']['overlap_wait_ms_per_window'] = round(waited / st['all']['windows'], 3)
-    out = dict(label=label, run=name, arm=arm, args=[[f, v] for f, v in specs], sampling=sampling, flags_not_in_help=not_in_help, config=str(run_cfg),
+    out = dict(label=label, run=name, arm=arm, tree=str(tree), args=[[f, v] for f, v in specs], sampling=sampling, env=env, t_start=t_run[0], t_end=t_run[1],
+               flags_not_in_help=not_in_help, config=str(run_cfg),
                loop_signs=loop_signs(ad / 'server-stdout.txt', [r.get('finish') for r in rows]),
                config_sha256=sha(run_cfg), engine_sha256=sha(cur['exe']), started_args=argv, error=err, guard=guard,
                checks=checks, valid=all(v for k, v in checks.items() if k != 'engine_requests'), ge32k=ge, buckets=st,
@@ -852,6 +921,7 @@ def replay_run(label, name, force=False, rerun=False):
 def replay_eval(label):
     pre = replay_prereg(label)
     if pre.get('verdict_kind') == 'sampling': return sampling_eval(label, pre)
+    if pre.get('verdict_kind') == 'approx': return approx_eval(label, pre)
     runs = {}
     for r in pre['runs']:
         d = load(label, 'RUN-%s.json' % r['run'])
@@ -886,9 +956,181 @@ def sampling_eval(label, pre):
     log('verdict', json.dumps(v)); return save(label, 'VERDICT.json', v)
 
 
+# ---------------------------------------------------------------- approximate routing (plans/B2_APPROX_20261124.md)
+KL_EXACT, KL_B2 = KD / 'runs/auto-ts0-a.tsv', KD / 'runs/auto-ts7.tsv'
+
+
+def scoring_seconds(console):
+    """Sum of quant_quality's per-segment scoring times ('code: 999 positions, 9.9 s'): its own speed, engine load excluded."""
+    if not Path(console).exists(): return None
+    xs = re.findall(r'^\w+: \d+ positions, ([\d.]+) s', Path(console).read_text(errors='replace'), re.M)
+    return round(sum(float(x) for x in xs), 1) if xs else None
+
+
+def kl_screen(cmp, spec):
+    """The stage-1 verdict.  cmp: run -> dict(exact=quant_quality compare result against exact routing, b2=the same against
+    the stored B2 run), each {'all': {kl, top1, ...}, 'agent': {...}, ...}.  The identity run must reproduce the stored B2
+    run exactly (else INVALID); any other run passes when its KL against exact routing, all and agent segment, is within
+    the preregistered bounds."""
+    sc = spec['screen']; ident = spec.get('identity_run'); out = dict(thresholds=sc, runs={})
+    for n, d in cmp.items():
+        ex = d['exact']; ok = ex['all']['kl'] <= sc['kl_all_max'] and ex['agent']['kl'] <= sc['kl_agent_max']
+        out['runs'][n] = dict(kl_all=ex['all']['kl'], top1=ex['all']['top1'], kl_agent=ex['agent']['kl'], kl_vs_b2=d['b2']['all']['kl'],
+                              top1_vs_b2=d['b2']['all']['top1'], screen='IDENTITY' if n == ident else 'PASS' if ok else 'FAIL')
+    if ident:
+        d = cmp.get(ident); same = bool(d) and d['b2']['all']['kl'] == 0 and d['b2']['all']['top1'] == 1
+        out['identity'] = dict(run=ident, identical_to_stored_b2=same)
+        if not same: out['verdict'] = 'INVALID'; return out
+    out['verdict'] = 'SCREENED'; return out
+
+
+def approx_kl(label, force=False):
+    """Stage 1: teacher-forced KL of the production tree under each preregistered env (LABEL/PREREG.json 'kl'), with one
+    production stop for all runs not done yet; then the screen against the stored v0.2.17 runs (exact routing, B2)."""
+    pre = load(label, 'PREREG.json')
+    if not pre or pre.get('verdict_kind') != 'approx' or 'kl' not in pre: raise Stop('%s has no approx preregistration' % wdir(label))
+    replay_check_frozen(label)
+    tl = pre['kl'].get('tree_label'); tests = pre['kl'].get('tests') or []
+    tree, cur = run_tree(tl, force)
+    K = wdir(label) / 'kl'; K.mkdir(parents=True, exist_ok=True)
+    PY = tree / 'python/bin/python3'; QQ = tree / 'terminal/tools/quant_quality.py'
+    cfg = json.loads((tree / 'strata-iq3_xxs.json').read_text()); a = cfg['args']
+    a[a.index('--expert-profile-save') + 1] = str(K / 'expert-profile-learned.bin')
+    cfg.update(cwd=str(K), log=str(K / 'unused.log'), slot_save_path=str(K / 'slots'))
+    (K / 'config.json').write_text(json.dumps(cfg, indent=1) + '\n')
+    runs = pre['kl']['runs']; envs = {r['run']: arm_env(r['env']) for r in runs}      # a forbidden env stops here, production untouched
+    reuse = pre['kl'].get('reuse') or {}
+    for n, r in reuse.items():
+        if sha(r['tsv']) != r['sha256']: raise Stop('reused KL run %s changed: %s' % (n, r['tsv']))
+    todo = [r['run'] for r in runs if not (load(label, 'kl/%s.run.json' % r['run']) or {}).get('ok')]
+    tests_due = bool(tests) and not (load(label, 'kl/tests.json') or {}).get('ok')
+    if tests and not tl: raise Stop('kl.tests needs kl.tree_label (the build that has them)')
+    if todo or tests_due:
+        with production_stopped():
+            if tests_due:           # the probe build's GPU tests (prepare --target), on the idle card before any KL run
+                built = load(tl, 'PREPARE.json').get('targets') or {}; res = {}
+                for t in tests:
+                    if t not in built: raise Stop('test %s was not built by prepare --label %s --target' % (t, tl))
+                    rc, g = run_guarded([built[t]], K / ('test-%s.txt' % t), 900, cwd=K, temp_guard=True)
+                    res[t] = dict(rc=rc, guard=g, tail=(K / ('test-%s.txt' % t)).read_text(errors='replace').strip().splitlines()[-3:])
+                    log('test', t, 'rc', rc, res[t]['tail'][-1:] if res[t]['tail'] else '')
+                ok = all(not r['rc'] and not r['guard'] for r in res.values())
+                save(label, 'kl/tests.json', dict(tests=res, ok=ok, engine_sha256=sha(cur['exe'])))
+                if not ok: raise Stop('GPU tests failed: %s' % {k: v['rc'] for k, v in res.items()})
+            for n in todo:
+                out = K / (n + '.tsv')
+                for p in K.glob(n + '.tsv*'): p.unlink()
+                while snapshot()['temp'] > 50: time.sleep(5)
+                t0 = time.monotonic(); log('KL run', n, json.dumps(envs[n]))
+                rc, g = run_guarded([PY, '-B', QQ, 'run', '--config', K / 'config.json', '--out', out, '--ids', KD / 'ids.json',
+                                     *[x for kv in sorted(envs[n].items()) for x in ('--env', '%s=%s' % kv)], '--gpu-experts', 'auto'],
+                                    K / (n + '.console.txt'), 2400, cwd=K, temp_guard=True)
+                save(label, 'kl/%s.run.json' % n, dict(run=n, env=envs[n], rc=rc, guard=g, wall_s=round(time.monotonic() - t0, 1),
+                                                       ok=not rc and not g and out.exists()))
+                if rc or g: raise Stop('KL run %s failed rc=%s %s' % (n, rc, g))
+    paths = {r['run']: K / (r['run'] + '.tsv') for r in runs}
+    for n, r in reuse.items():
+        paths[n] = Path(r['tsv']); envs[n] = arm_env(r['env'])
+    cmp = {n: {} for n in paths}
+    for key, ref in (('exact', KL_EXACT), ('b2', KL_B2)):
+        js = K / ('COMPARE-%s.json' % key)
+        r = run([PY, '-B', QQ, 'compare', ref, *paths.values(), '--segments', '--json', js])
+        if r.returncode or not js.exists(): raise Stop('quant_quality compare failed: %s' % r.stderr[-800:])
+        res = json.loads(js.read_text())
+        for n, p in paths.items(): cmp[n][key] = res[str(p)]
+    console = lambda p: p.with_name(p.name[:-len('.tsv')] + '.console.txt')
+    v = kl_screen(cmp, pre['kl'])
+    for n, p in paths.items(): v['runs'][n].update(env=envs[n], scoring_s=scoring_seconds(console(p)))
+    v['references'] = {k: dict(tsv=str(p), scoring_s=scoring_seconds(console(p))) for k, p in (('exact', KL_EXACT), ('b2', KL_B2))}
+    v.update(engine_sha256=sha(cur['exe']), ids_sha256=sha(KD / 'ids.json'), config=str(K / 'config.json'), tree=str(tree), tree_label=tl)
+    for n, x in v['runs'].items():
+        log('KL %-8s all %.4f top1 %.3f agent %.4f | vs B2 %.4f | scoring %s s -> %s' % (n, x['kl_all'], x['top1'], x['kl_agent'], x['kl_vs_b2'], x['scoring_s'], x['screen']))
+    log('KL screen', v['verdict']); return save(label, 'KL.json', v)
+
+
+def cotenant_cpu(t0, t1, samples=None):
+    """Mean CPU cores of the docker co-tenants while a run ran, from the production monitor's minute samples
+    (tools/monitor); None when there are none for that time."""
+    import gzip
+    samples = MONITOR_SAMPLES if samples is None else Path(samples)
+    if t0 is None or t1 is None: return None
+    vals = []
+    for day in sorted({time.strftime('%Y-%m-%d', time.localtime(t)) for t in (t0, t1)}):
+        for p in (samples / (day + '.jsonl'), samples / (day + '.jsonl.gz')):
+            if not p.exists(): continue
+            with (gzip.open(p, 'rt', errors='replace') if p.suffix == '.gz' else open(p, errors='replace')) as f:
+                for line in f:
+                    try: s = json.loads(line)
+                    except ValueError: continue
+                    if t0 < s.get('ts', 0) <= t1 + 60:        # a sample covers the minute before it
+                        v = [x['cpu'] for x in (s.get('docker') or {}).values() if isinstance(x.get('cpu'), (int, float))]
+                        if v: vals.append(sum(v))
+            break
+    return round(sum(vals) / len(vals), 3) if vals else None
+
+
+def approx_verdict(fresh, cands, kl, reused=None, floor=0.04, busy_cpu=1.0, close=0.03, max_gate=2):
+    """The preregistered stage-2 verdict.  fresh: the bracketing control runs (name -> run); cands: the replay runs of the
+    candidates whose KL screen passed; a run is dict(valid, ms_win, tok_win, decode_tok_s, finish_length, repeat_notices,
+    cotenant_cpu) over the requests with prompt >= 32K; kl: candidate -> its stage-1 figures; reused: earlier controls
+    (recorded drift only).  Stage 3 gets at most max_gate candidates: the fastest first, except that a candidate within
+    `close` of the fastest with a lower KL against exact routing goes first."""
+    runs = dict(fresh, **cands)
+    bad = [n for n, r in runs.items() if not r.get('valid')]
+    if bad: return dict(verdict='INVALID', invalid=bad)
+    busy = [n for n, r in runs.items() if isinstance(r.get('cotenant_cpu'), (int, float)) and r['cotenant_cpu'] >= busy_cpu]
+    if busy: return dict(verdict='CONTENDED', rerun=busy)
+    mean = lambda k: sum(r[k] for r in fresh.values()) / len(fresh)
+    cm = mean('decode_tok_s'); d = [r['decode_tok_s'] for r in fresh.values()]
+    aa = (max(d) - min(d)) / cm; bar = max(floor, 2 * aa)
+    lim = {k: max(r[k] for r in fresh.values()) + 1 for k in ('finish_length', 'repeat_notices')}
+    out = dict(control_decode_tok_s=round(cm, 1), aa=round(aa, 4), bar=round(bar, 4), arms={})
+    if reused: out['drift_vs_reused'] = round(cm / (sum(r['decode_tok_s'] for r in reused) / len(reused)) - 1, 4)
+    for n, c in cands.items():
+        g = c['decode_tok_s'] / cm - 1
+        checks = dict(gain_ge_bar=g >= bar, loops_ok=all(c[k] <= lim[k] for k in lim))
+        out['arms'][n] = dict(gain=round(g, 4), ms_win_change=round(c['ms_win'] / mean('ms_win') - 1, 4),
+                              tok_win_change=round(c['tok_win'] / mean('tok_win') - 1, 4), kl_all=kl[n]['kl_all'], checks=checks,
+                              verdict='PASS' if all(checks.values()) else 'NO_PASS')
+    passing = {n: a['gain'] for n, a in out['arms'].items() if a['verdict'] == 'PASS'}
+    if not passing:
+        out.update(verdict='NO_GAIN', stage3=[]); return out
+    order = sorted(passing, key=lambda n: -passing[n])
+    first = min((n for n in order if passing[order[0]] - passing[n] < close), key=lambda n: kl[n]['kl_all'])
+    out.update(verdict='STAGE3', stage3=([first] + [n for n in order if n != first])[:max_gate]); return out
+
+
+def run_figures(lb, n):
+    """A replay run's figures over the requests with prompt >= 32K, its loop signs and the co-tenants' CPU while it ran."""
+    d = load(lb, 'RUN-%s.json' % n)
+    if not d: raise Stop('missing %s/RUN-%s.json' % (wdir(lb), n))
+    ls = d.get('loop_signs')
+    if ls is None:              # runs made before loop_signs existed: from their rows and server output
+        ad = wdir(lb) / 'runs' / n
+        ls = loop_signs(ad / 'server-stdout.txt', [json.loads(l).get('finish') for l in open(ad / 'rows.jsonl')])
+    return dict(valid=d['valid'], cotenant_cpu=cotenant_cpu(d.get('t_start'), d.get('t_end')),
+                **{k: d['ge32k'][k] for k in ('ms_win', 'tok_win', 'decode_tok_s')}, **ls)
+
+
+def approx_eval(label, pre):
+    klr = load(label, 'KL.json')
+    if not klr or klr.get('verdict') != 'SCREENED': raise Stop('stage 1 has no SCREENED verdict (upgrade_gate.py approx %s)' % label)
+    fresh = {n: run_figures(label, n) for n in pre['controls']}
+    cands, kl = {}, {}
+    for c in pre['candidates']:
+        k = klr['runs'].get(c['kl_run'])
+        if k and k['screen'] == 'PASS': cands[c['run']] = run_figures(label, c['run']); kl[c['run']] = k
+    ref = pre.get('reuse_controls')
+    reused = [run_figures(ref['label'], n) for n in ref['runs']] if ref else None
+    v = approx_verdict(fresh, cands, kl, reused)
+    v.update(screened_out=[c['run'] for c in pre['candidates'] if c['run'] not in cands],
+             inputs=dict(fresh=fresh, cands=cands, reused=reused, kl={n: {x: k.get(x) for x in ('kl_all', 'kl_agent', 'env')} for n, k in kl.items()}))
+    log('verdict', json.dumps({k: x for k, x in v.items() if k != 'inputs'})); return save(label, 'VERDICT.json', v)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'probe', 'replay', 'report', 'all', 'switch']); ap.add_argument('tag', help='release tag, or a run label for probe')
+    ap.add_argument('cmd', choices=['prepare', 'kl', 'gate', 'probe', 'replay', 'approx', 'report', 'all', 'switch']); ap.add_argument('tag', help='release tag, or a run label for probe/replay/approx')
     ap.add_argument('--tree'); ap.add_argument('-j', type=int, default=8); ap.add_argument('--repeat', action='store_true')
     ap.add_argument('--force', action='store_true'); ap.add_argument('--limit', type=int); ap.add_argument('--yes', action='store_true')
     ap.add_argument('--env', action='append', default=[], help='extra engine env for the gate arm, K=V (repeatable; names the arm)')
@@ -901,9 +1143,20 @@ def main():
     ap.add_argument('--run', metavar='NAME', help='replay: one preregistered run (its args come from LABEL/PREREG.json)')
     ap.add_argument('--rerun', action='store_true', help='replay --run: once, after an infrastructure failure; the failed run is kept')
     ap.add_argument('--eval', action='store_true', help='replay: the preregistered verdict over the runs so far (VERDICT.json)')
+    ap.add_argument('--baseline', default=BASE_ARM, choices=(BASE_ARM, 'ts0'), help='probe: the stored arm a full arm pairs with (ts0: exact routing)')
+    ap.add_argument('--label', help='prepare: a probe build\'s own label (work dir, tree /home/hhtele/strata-LABEL); the tag is still what is fetched')
+    ap.add_argument('--patch', action='append', default=[], help='prepare --label: a patch applied after PT0 with zero fuzz (repeatable, in order)')
+    ap.add_argument('--target', action='append', default=[], help='prepare --label: a build target beside the engine, e.g. a GPU parity test (repeatable)')
+    ap.add_argument('--tree-label', help='probe: run the tree prepare --label built instead of production')
     a = ap.parse_args()
-    if a.cmd == 'replay' and (a.env or a.arg or a.limit or a.sampling): raise SystemExit('replay takes its args from the preregistration, not --env/--arg/--sampling/--limit')
-    if a.cmd in ('probe', 'replay'):
+    if (a.label or a.patch or a.target) and a.cmd != 'prepare': raise SystemExit('--label/--patch/--target are for prepare')
+    if (a.patch or a.target) and not a.label: raise SystemExit('a patched build needs its own --label (the release keeps its own prepare)')
+    if a.label and not (a.label.startswith(a.tag) and re.fullmatch(r'[-.][-.\w]+', a.label[len(a.tag):])):
+        raise SystemExit('--label looks wrong (the tag plus a suffix, e.g. v0.2.17-xp): %r' % a.label)
+    if a.tree_label and a.cmd != 'probe': raise SystemExit('--tree-label is for probe (replay/approx name their tree in the preregistration)')
+    if a.cmd in ('replay', 'approx') and (a.env or a.arg or a.limit or a.sampling): raise SystemExit('%s takes its runs from the preregistration, not --env/--arg/--sampling/--limit' % a.cmd)
+    if a.baseline != BASE_ARM and (a.cmd != 'probe' or a.limit): raise SystemExit('--baseline is for a full probe arm')
+    if a.cmd in ('probe', 'replay', 'approx'):
         if not re.fullmatch(r'[a-z][-.\w]*', a.tag) or re.match(r'v\d', a.tag): raise SystemExit('probe label looks wrong (lower-case, not a tag): %r' % a.tag)
     elif not re.fullmatch(r'v\d+\.\d+\.\d+[-.\w]*', a.tag): raise SystemExit('tag looks wrong: %r' % a.tag)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))     # turn SIGTERM into SystemExit so finally blocks restore production
@@ -914,10 +1167,11 @@ def main():
     phase = {'prepare': 'PREPARE.json', 'kl': 'KL.json', 'gate': 'GATE.json'}
     cur = a.cmd
     try:
-        if a.cmd == 'prepare': prepare(a.tag, a.tree, a.j)
+        if a.cmd == 'prepare': prepare(a.tag, a.tree, a.j, a.label, a.patch, a.target)
         elif a.cmd == 'kl': kl(a.tag, a.repeat)
         elif a.cmd == 'gate': gate(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg, parse_sampling(a.sampling))
-        elif a.cmd == 'probe': probe(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg, parse_sampling(a.sampling))
+        elif a.cmd == 'probe': probe(a.tag, a.force, a.limit, dict(x.split('=', 1) for x in a.env), a.arg, parse_sampling(a.sampling), a.baseline, a.tree_label)
+        elif a.cmd == 'approx': approx_kl(a.tag, a.force)
         elif a.cmd == 'replay':
             if a.build: replay_build(a.tag)
             if a.freeze: replay_freeze(a.tag)
@@ -934,7 +1188,8 @@ def main():
     except Stop as e:
         log('STOP', cur, e)
         if cur in phase:
-            d = load(a.tag, phase[cur]) or {}; d.update(stop=str(e), status=d.get('status') if d.get('status') not in (None, 'RUNNING') else 'STOPPED'); save(a.tag, phase[cur], d)
+            wl = a.label if cur == 'prepare' and a.label else a.tag      # a probe build stops under its own label
+            d = load(wl, phase[cur]) or {}; d.update(stop=str(e), status=d.get('status') if d.get('status') not in (None, 'RUNNING') else 'STOPPED'); save(wl, phase[cur], d)
         if a.cmd == 'all': report(a.tag)
         sys.exit(2)
 

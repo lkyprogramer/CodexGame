@@ -1,9 +1,9 @@
 """CPU-only checks of upgrade_gate.py's arm helpers (--arg, the config stand-in, per-window figures, the long-context
-replay and its verdicts, sampling defaults); no GPU, no 4090 paths.
+replay and its verdicts, sampling defaults, the approximate-routing screen and verdict); no GPU, no 4090 paths.
 
     python3 -B -m unittest test_upgrade_gate      (from this directory)
 """
-import json, tempfile, unittest
+import gzip, json, tempfile, time, unittest
 from pathlib import Path
 
 import upgrade_gate as ug
@@ -177,6 +177,112 @@ class Sampling(unittest.TestCase):
         self.assertEqual(ug.sampling_verdict(controls, ref, {'T06': cand(165.0, 0.6)}, sref, {})['arms']['T06']['verdict'], 'INVALID')
         wide = [ctl(140.0), ctl(150.0), ctl(145.0)]                # AA 6.9% -> bar 13.8%
         self.assertEqual(ug.sampling_verdict(wide, ref, {'T06': cand(160.0, 0.6)}, sref, {'T06': smk(150, 140)})['arms']['T06']['verdict'], 'NO_PASS')
+
+
+
+class Approx(unittest.TestCase):
+    def test_arm_env(self):
+        self.assertEqual(ug.arm_env({}), {'STRATA_ROUTE_TAIL_SKIP': '7'})
+        self.assertEqual(ug.arm_env({'STRATA_ROUTE_TAIL_SKIP': 5, 'STRATA_ROUTE_PRIOR': 0.5}),
+                         {'STRATA_ROUTE_TAIL_SKIP': '5', 'STRATA_ROUTE_PRIOR': '0.5'})      # the arm's own rank wins
+        for bad in ({'STRATA_ROUTE_RESIDENT': '1'}, {'STRATA_STAGE_PIN': '1'}):
+            with self.assertRaises(ug.Stop): ug.arm_env(bad)
+
+    def test_scoring_seconds(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'x.console.txt'
+            p.write_text('engine: /x --serve\ncode: 999 positions, 9.9 s\ndocs: 999 positions, 7.8 s\nagent: 999 positions, 9.8 s\n')
+            self.assertEqual(ug.scoring_seconds(p), 27.5)
+            self.assertIsNone(ug.scoring_seconds(Path(d) / 'missing.txt'))
+
+    def test_kl_screen(self):
+        r = lambda kl, ag, top1=0.93: {'all': dict(kl=kl, top1=top1), 'agent': dict(kl=ag, top1=top1)}
+        spec = dict(screen=dict(kl_all_max=0.10, kl_agent_max=0.25), identity_run='ts7')
+        cmp = {'ts7': dict(exact=r(0.047, 0.136), b2=r(0.0, 0.0, 1.0)), 'ts5': dict(exact=r(0.074, 0.186), b2=r(0.03, 0.06)),
+               'p10': dict(exact=r(0.09, 0.27), b2=r(0.05, 0.12)), 'p20': dict(exact=r(0.12, 0.2), b2=r(0.08, 0.1))}
+        v = ug.kl_screen(cmp, spec)
+        self.assertEqual(v['verdict'], 'SCREENED')
+        self.assertEqual({n: x['screen'] for n, x in v['runs'].items()}, dict(ts7='IDENTITY', ts5='PASS', p10='FAIL', p20='FAIL'))
+        cmp['ts7']['b2'] = r(0.0001, 0.0, 0.999)                  # the yardstick moved: nothing can be judged
+        self.assertEqual(ug.kl_screen(cmp, spec)['verdict'], 'INVALID')
+
+    def test_verdict(self):
+        run = lambda t, ms=17.5, tw=2.4, fl=0, rep=0, co=None, ok=True: dict(valid=ok, ms_win=ms, tok_win=tw, decode_tok_s=t, finish_length=fl,
+                                                                         repeat_notices=rep, cotenant_cpu=co)
+        fresh = dict(C0a=run(140.0), C0b=run(141.4))              # AA 1.0% -> bar 4%
+        kl = dict(TS5=dict(kl_all=0.074), P10=dict(kl_all=0.06), TS6=dict(kl_all=0.06), P05=dict(kl_all=0.03))
+        cands = dict(TS5=run(158.0, ms=16.0), P10=run(152.0), TS6=run(150.0), P05=run(143.0))
+        v = ug.approx_verdict(fresh, cands, kl, reused=[run(145.15)])
+        self.assertEqual((v['bar'], v['verdict']), (0.04, 'STAGE3'))
+        self.assertEqual({n: a['verdict'] for n, a in v['arms'].items()}, dict(TS5='PASS', P10='PASS', TS6='PASS', P05='NO_PASS'))
+        self.assertEqual(v['stage3'], ['TS5', 'P10'])             # 12.4% vs 7.9%: the fastest goes first
+        self.assertEqual(v['drift_vs_reused'], round(140.7 / 145.15 - 1, 4))
+        cands['P10'] = run(157.0)                                  # within 3 points of TS5 with lower KL: it goes first
+        self.assertEqual(ug.approx_verdict(fresh, cands, kl)['stage3'], ['P10', 'TS5'])
+        cands['P10'] = run(157.0, fl=2)                            # more length stops than any control + 1
+        v = ug.approx_verdict(fresh, cands, kl)
+        self.assertFalse(v['arms']['P10']['checks']['loops_ok']); self.assertEqual(v['stage3'], ['TS5', 'TS6'])
+        self.assertEqual(ug.approx_verdict(dict(C0a=run(140.0), C0b=run(150.0)), dict(TS5=run(158.0)), kl)['verdict'], 'NO_GAIN')   # bar 13.8%
+        self.assertEqual(ug.approx_verdict(fresh, dict(TS5=run(158.0, ok=False)), kl), dict(verdict='INVALID', invalid=['TS5']))
+        self.assertEqual(ug.approx_verdict(fresh, dict(TS5=run(158.0, co=1.5)), kl), dict(verdict='CONTENDED', rerun=['TS5']))
+        self.assertEqual(ug.approx_verdict(fresh, {}, kl)['verdict'], 'NO_GAIN')
+
+    def test_cotenant_cpu(self):
+        with tempfile.TemporaryDirectory() as d:
+            t0 = time.mktime((2026, 11, 24, 1, 0, 0, 0, 0, -1)); day = time.strftime('%Y-%m-%d', time.localtime(t0))
+            s = lambda ts, a, b: json.dumps(dict(ts=ts, docker={'x': dict(cpu=a), 'y': dict(cpu=b)}))
+            lines = [s(t0 - 60, 9.0, 9.0), s(t0 + 60, 0.5, 0.1), s(t0 + 120, 1.0, None), s(t0 + 400, 9.0, 9.0)]
+            with gzip.open(Path(d) / (day + '.jsonl.gz'), 'wt') as f: f.write('\n'.join(lines) + '\n')
+            self.assertEqual(ug.cotenant_cpu(t0, t0 + 100, d), 0.8)     # the samples at +60 and +120 (0.6 and 1.0)
+            self.assertIsNone(ug.cotenant_cpu(t0 + 1000, t0 + 1100, d))
+            self.assertIsNone(ug.cotenant_cpu(None, t0, d))
+
+
+class ProbeBuild(unittest.TestCase):
+    def test_cli_guards(self):
+        import sys
+        bad = [['prepare', 'v0.2.17', '--patch', 'x.patch'],                     # a patched build needs its own label
+               ['prepare', 'v0.2.17', '--label', 'xp', '--patch', 'x.patch'],     # the label is the tag plus a suffix
+               ['prepare', 'v0.2.17', '--label', 'v0.2.17'],
+               ['probe', 'lab-x', '--label', 'v0.2.17-xp'],                       # --label/--patch/--target: prepare only
+               ['replay', 'lab-x', '--eval', '--tree-label', 'v0.2.17-xp']]       # replay names its tree in the prereg
+        old = sys.argv
+        try:
+            for argv in bad:
+                sys.argv = ['upgrade_gate.py'] + argv
+                with self.assertRaises(SystemExit, msg=argv): ug.main()
+        finally:
+            sys.argv = old
+
+    def test_run_tree(self):
+        with tempfile.TemporaryDirectory() as d:
+            P, X = Path(d) / 'strata-0.2.17', Path(d) / 'strata-0.2.17-xp'
+            def cfg(t, save):
+                return dict(exe=str(t / 'engine/strata'), port=1, log=str(t / 'a.log'),
+                            args=['--expert-profile', str(t / 'data/p.bin'), '--expert-profile-save', save, '--spec', '6'])
+            for t in (P, X):
+                (t / 'engine').mkdir(parents=True); (t / 'engine/strata').write_text(t.name)
+            prod = cfg(P, str(P / 'learned.bin'))
+            (X / 'strata-iq3_xxs.json').write_text(json.dumps(dict(cfg(X, '/elsewhere.bin'), port=2)))
+            prep = dict(status='READY', tree=str(X), engine_sha256=ug.sha(X / 'engine/strata'))
+            saved = ug.b2_production_tree, ug.load
+            ug.b2_production_tree = lambda force=False: (P, prod)
+            ug.load = lambda lb, name: prep if (lb, name) == ('v0.2.17-xp', 'PREPARE.json') else None
+            try:
+                self.assertEqual(ug.run_tree(None), (P, prod))
+                t, c = ug.run_tree('v0.2.17-xp')
+                self.assertEqual((t, c['exe']), (X, str(X / 'engine/strata')))
+                with self.assertRaises(ug.Stop): ug.run_tree('v0.2.17-other')             # no prepare
+                prep['status'] = 'STOPPED'
+                with self.assertRaises(ug.Stop): ug.run_tree('v0.2.17-xp')                # not READY
+                prep.update(status='READY', engine_sha256='0' * 64)
+                with self.assertRaises(ug.Stop): ug.run_tree('v0.2.17-xp')                # engine replaced
+                prep['engine_sha256'] = ug.sha(X / 'engine/strata')
+                c2 = json.loads((X / 'strata-iq3_xxs.json').read_text()); c2['args'][-1] = '8'
+                (X / 'strata-iq3_xxs.json').write_text(json.dumps(c2))
+                with self.assertRaises(ug.Stop): ug.run_tree('v0.2.17-xp')                # config drifted from production
+            finally:
+                ug.b2_production_tree, ug.load = saved
 
 
 if __name__ == '__main__':

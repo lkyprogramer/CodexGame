@@ -1,0 +1,57 @@
+diff -ruN a/engine/include/strata/kernels/verify_kernels.hpp b/engine/include/strata/kernels/verify_kernels.hpp
+--- a/engine/include/strata/kernels/verify_kernels.hpp
++++ b/engine/include/strata/kernels/verify_kernels.hpp
+@@ -139,6 +139,8 @@
+ void gpu_stamp(unsigned long long* buf, int i, void* stream);
+ /// an empty one-thread kernel (a graph node that does nothing: STRATA_DUMMY_NODES measures what a node costs in a window)
+ void gpu_noop(void* stream);
++// lab (CodexGame M4, measurement only): one thread spins us microseconds of GPU global time on the stream
++void lab_delay_us(int us, void* stream);
+ /// dst[r][0, w) = src[r][0, w) for `rows` rows of source stride `src_w` floats (the query half of each q/gate head
+ /// pair): the strided device-to-device cudaMemcpy2DAsync as a kernel, so the window's chain stays kernel to kernel.
+ /// w and src_w multiples of 4 floats, both pointers 16-byte aligned.
+diff -ruN a/engine/src/core/verify.cpp b/engine/src/core/verify.cpp
+--- a/engine/src/core/verify.cpp
++++ b/engine/src/core/verify.cpp
+@@ -1933,6 +1933,9 @@
+         {   // measurement only: STRATA_DUMMY_NODES=k adds k empty kernel nodes per layer (what one node costs in a window)
+             static const int dummy = [] { const char* e = std::getenv("STRATA_DUMMY_NODES"); return e != nullptr ? std::atoi(e) : 0; }();
+             for (int d = 0; d < dummy; ++d) gpu_noop(cs);
++            // lab (CodexGame M4, measurement only): STRATA_LAB_DELAY_PRE_US=n spins n us here, on the chain before the doorbell
++            static const int lab_pre = [] { const char* e = std::getenv("STRATA_LAB_DELAY_PRE_US"); return e != nullptr ? std::atoi(e) : 0; }();
++            lab_delay_us(lab_pre, cs);
+         }
+         if (inputs_pending) {   // the window's steps and positions, before the first mixer reads them
+             join(1);
+@@ -2752,6 +2755,10 @@
+             }
+             stamp(l, 19, grp);
+             grouped(p_ptr, p_start, p_counts, 0, hit_out, true);
++            {   // lab (CodexGame M4, measurement only): STRATA_LAB_DELAY_HIT_US=n spins n us after the resident experts
++                static const int lab_hit = [] { const char* e = std::getenv("STRATA_LAB_DELAY_HIT_US"); return e != nullptr ? std::atoi(e) : 0; }();
++                lab_delay_us(lab_hit, cs);
++            }
+             stamp(l, 20, grp);
+             if (device_plan_) wait_flag_ge_or(m_flagB_, ring, skip_ + grp, cs);
+             else if (m_bal_ != nullptr)   // set_pcie_balance: the PCIe part starts
+diff -ruN a/engine/src/kernels/cuda/verify_kernels.cu b/engine/src/kernels/cuda/verify_kernels.cu
+--- a/engine/src/kernels/cuda/verify_kernels.cu
++++ b/engine/src/kernels/cuda/verify_kernels.cu
+@@ -1936,6 +1936,17 @@
+ __global__ void noop_kernel() {}
+ }  // namespace
+ void gpu_noop(void* stream) { noop_kernel<<<1, 32, 0, (cudaStream_t) stream>>>(); }
++
++// lab (CodexGame M4): a delay of known length on one stream, to read how much of it reaches the window time
++__global__ void lab_delay_kernel(unsigned long long ns) {
++    unsigned long long t0, t;
++    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t0));
++    do { asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t)); } while (t - t0 < ns);
++}
++
++void lab_delay_us(int us, void* stream) {
++    if (us > 0) lab_delay_kernel<<<1, 1, 0, (cudaStream_t) stream>>>((unsigned long long) us * 1000ull);
++}
+ void gpu_stamp(unsigned long long* buf, int i, void* stream) {
+     if (pdl_scope()) launch_pdl(gpu_stamp_kernel<true>, dim3(1), dim3(1), 0, (cudaStream_t) stream, buf, i);
+     else gpu_stamp_kernel<false><<<1, 1, 0, (cudaStream_t) stream>>>(buf, i);

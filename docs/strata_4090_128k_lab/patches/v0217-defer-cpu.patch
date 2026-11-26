@@ -1,0 +1,725 @@
+diff -ruN a/engine/include/strata/core/expert_source.hpp b/engine/include/strata/core/expert_source.hpp
+--- a/engine/include/strata/core/expert_source.hpp
++++ b/engine/include/strata/core/expert_source.hpp
+@@ -413,6 +413,12 @@
+     /// kernel reads the mapped arena directly; 2 = a copy kernel stages it inside the graph.  For 1 and 2 `ptr2`
+     /// holds the arena's device alias.
+     int pcie_mode = 0;
++    /// STRATA_VERIFY_DEFER_CPU_BELOW (verify.cpp): the group's routing weights as the doorbell published them (entry
++    /// token * k + j).  With `partial` set and heavy > 0 the pool computes the experts of the CPU entries whose weight is
++    /// >= heavy first and calls partial(ctx) before the others.  Null / 0: one pass, as always.
++    const float* weights = nullptr;
++    float heavy = 0.0f;
++    void (*partial)(void* ctx) = nullptr;
+     int32_t cpu_jobs = 0;   ///< host only: the distinct experts the pool computes for the layer just published
+     float* hit_out_dev = nullptr;   ///< device address of this group's hit_out buffer on the primary GPU (P2P peer scatter)
+ };
+diff -ruN a/engine/include/strata/core/peer_experts.hpp b/engine/include/strata/core/peer_experts.hpp
+--- a/engine/include/strata/core/peer_experts.hpp
++++ b/engine/include/strata/core/peer_experts.hpp
+@@ -32,6 +32,11 @@
+ /// the peer card writes into are then allocated with cudaHostAllocPortable; without a peer the flag stays off.
+ void set_peer_portable(bool on);
+ bool peer_portable();
++/// STRATA_VERIFY_DEFER_CPU_BELOW (verify.cpp): set once at startup, before the verifiers' init, when the verify windows'
++/// pool also takes rows from another GPU (--peer-device, --expert-cache-device1..3), which land after the CPU's; `what`
++/// names it.  Null (the default): none.
++void set_pool_gpu_helper(const char* what);
++const char* pool_gpu_helper();
+ 
+ class PeerExperts {
+ public:
+diff -ruN a/engine/include/strata/core/verify.hpp b/engine/include/strata/core/verify.hpp
+--- a/engine/include/strata/core/verify.hpp
++++ b/engine/include/strata/core/verify.hpp
+@@ -750,11 +750,26 @@
+     GpuPlanSink sink_;
+     uint32_t cur_layer_ = 0;
+     static void publish_plan(void* ctx);
++    static void raise_partial(void* ctx);   // STRATA_VERIFY_DEFER_CPU_BELOW: the pool's partial hook (h_pflag_)
+     void set_plan_slot(int grp);
+     bool split_ = false;   // opt-in (--spec-split): exact but slower, see the overlap study
+     std::function<bool(cudaStream_t, std::string&)> pre_launch_;   // set_pre_launch
+     int groups_[strata::kernels::kVerifyLongT + 1] = {};
+     float* h_ymiss_ = nullptr;   float* m_ymiss_ = nullptr;     // T * k * n_embd
++    // STRATA_VERIFY_DEFER_CPU=1 (opt-in, changes the output): a decode window's layer l adds the CPU's expert rows to the
++    // residual before layer l+1's FFN-side read instead of waiting for them in its own combine (record_window)
++    bool defer_ = false;
++    bool defer_check_ = false;             ///< STRATA_VERIFY_DEFER_CPU=check: the same steps, the rows added back in layer l
++                                           ///< itself (no deferral: the default's sums in another order)
++    bool defer_said_ = false;              ///< the reason a window runs without deferral was printed
++    float* def_parts_ = nullptr;           ///< device: a deferred layer's CPU rows (T * k * n_embd)
++    // STRATA_VERIFY_DEFER_CPU_BELOW=<w> (with =1 or =check; 0.1 when unset, 0 when w >= 1): the pool computes the CPU
++    // rows whose routing weight is >= w first and raises h_pflag_; post(l) of a deferred layer waits for that and
++    // combines those rows, the lighter ones join late.  Not with STRATA_VERIFY_DEVICE_PLAN.
++    float defer_heavy_ = 0.0f;
++    uint32_t* h_pflag_ = nullptr; uint32_t* m_pflag_ = nullptr;  // the pool has written the heavy CPU rows (partial flag)
++    bool defer_ok(int T, std::string* why) const;   ///< the T-token window may be captured with deferral
++    bool heavy_layer(int T, int64_t l) const;       ///< STRATA_VERIFY_DEFER_CPU_BELOW: post(l) waits for the partial flag
+ 
+     // device
+     void* arena_ = nullptr;
+diff -ruN a/engine/include/strata/kernels/verify_kernels.hpp b/engine/include/strata/kernels/verify_kernels.hpp
+--- a/engine/include/strata/kernels/verify_kernels.hpp
++++ b/engine/include/strata/kernels/verify_kernels.hpp
+@@ -116,6 +116,20 @@
+ /// The reading stage's hand-off wait, bounded: spin until *flag >= value, or after timeout_ns (0: no bound) set
+ /// *err = 1 (mapped) and return, so the window's graph completes and the host fails the window cleanly.
+ void wait_handoff(const uint32_t* flag, uint32_t value, uint32_t* err, unsigned long long timeout_ns, void* stream);
++/// STRATA_VERIFY_DEFER_CPU: a layer's CPU expert rows added to the residual late.  For token t < n_tok, column d:
++/// s = sum_j w[t*k + j] * parts[(t*k + j)*n_embd + d] (the combine's order), then for every stream c < hc
++/// R[(t*hc + c)*n_embd + d] += 2*sigmoid(inject[t*hc + c] / hc) * s (the pending write of the fused read).
++/// Graph-capturable.
++void defer_add_rows(const float* parts, const float* w, const float* inject, float* R, int64_t n_embd, int k, int hc,
++                    int n_tok, void* stream);
++/// n floats of +0.0 (n a multiple of 4, 16-byte aligned): a kernel node where a memset node would break the window's
++/// kernel-to-kernel chain (pdl.hpp).  Graph-capturable.
++void fill_zero(float* dst, long long n, void* stream);
++/// STRATA_VERIFY_DEFER_CPU_BELOW: copy_rows_from_mapped's CPU rows split by routing weight - row i (rows = tokens * k) is
++/// copied when it is not one of the plan's GPU rows hit_rows[0, *count) and (w[i] >= heavy) == take_heavy, and is
++/// +0.0 otherwise.  width a multiple of 4, both pointers 16-byte aligned.  Graph-capturable.
++void copy_rows_by_weight(float* dst, const float* src, int64_t rows, int64_t width, const int32_t* hit_rows,
++                         const int32_t* count, const float* w, float heavy, bool take_heavy, void* stream);
+ /// wait_flag_ge, also writing the GPU's clock (ns, gpu_stamp's) as the kernel starts into *t_in and as it returns
+ /// into *t_out (either may be null): the verify window's PCIe-share balance, at no extra launch.
+ void wait_flag_ge_stamped(const uint32_t* flag, uint32_t value, unsigned long long* t_in, unsigned long long* t_out,
+diff -ruN a/engine/src/core/expert_source.cpp b/engine/src/core/expert_source.cpp
+--- a/engine/src/core/expert_source.cpp
++++ b/engine/src/core/expert_source.cpp
+@@ -5760,13 +5760,61 @@
+         d.ms_run += run_ms_extra;    // the batches ran inside the job loop: the pool's time stays the pool's
+         d.ms_jobs -= run_ms_extra;
+     }
++    // STRATA_VERIFY_DEFER_CPU_BELOW (verify.cpp): the experts of the heavy CPU entries (routing weight >= ps->heavy) run
++    // first and ps->partial tells the GPU they are done.  A row comes out as in one pass: the pool cuts every phase by
++    // output rows, so a row never depends on the other jobs (the S2 pool's one-token path for more than kMaxSplitMulti
++    // experts would not: no split there).  Not with a peer GPU or a helper cache GPU, whose rows land only after the
++    // CPU's (the verifier turns the split off at init then: pool_gpu_helper).  Not when 149-cold's batches already ran
++    // the experts in landing order (npend > 0).  Not split: one pass, the verifier raises the partial flag with the
++    // full one, and that layer waits for all its rows (said once).
++    const GpuPlanSink* ps = d.plan;
++    const bool heavy = ps != nullptr && ps->partial != nullptr && ps->weights != nullptr && ps->heavy > 0.0f;
++    const char* no_split = !heavy ? nullptr
++                         : (n > kMaxWindowEntries || n > ps->cap) ? "more entries than the plan holds"
++                         : (d.peer != nullptr || d.remote_count > 0) ? "a peer or helper cache GPU adds rows after the CPU's"
++                         : npend > 0 ? "STRATA_COLD_OVERLAP ran its experts as their reads landed"
++                         : (!native && njobs > ExpertPool::kMaxSplitMulti)
++                             ? "more CPU experts than the S2 pool's multi-token path takes"
++                             : nullptr;
++    const bool split = heavy && no_split == nullptr;
++    if (no_split != nullptr) {
++        static std::atomic<bool> said{false};
++        if (!said.exchange(true))
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW: a layer's CPU rows not split (%s): it waits "
++                                 "for all of them (said once)\n", no_split);
++    }
++    int nfirst = njobs;
++    if (split && njobs > 0) {
++        // a job is heavy when one of its rows is (port to v0.2.17: classified by the job's own output rows, not by
++        // job_of, which points at an expert's last job when a 9..16-row window gives it more than MAXT tokens)
++        bool heavy_job[kMaxWindowEntries] = {};
++        for (int j = 0; j < njobs; ++j) {
++            const ExpertJobMulti& jb = d.jobs_multi[(size_t) j];
++            for (int r = 0; r < jb.nt && !heavy_job[j]; ++r) {
++                const int64_t i = (int64_t) (jb.out[r] - out) / (int64_t) H;
++                heavy_job[j] = i >= 0 && i < n && ps->weights[i] >= ps->heavy;
++            }
++        }
++        static thread_local std::vector<ExpertJobMulti> order;
++        order.clear();
++        for (int pass = 0; pass < 2; ++pass)
++            for (int j = 0; j < njobs; ++j)
++                if (heavy_job[j] == (pass == 0)) order.push_back(d.jobs_multi[(size_t) j]);
++        nfirst = 0;
++        for (int j = 0; j < njobs; ++j) nfirst += heavy_job[j] ? 1 : 0;
++        std::copy(order.begin(), order.end(), d.jobs_multi.begin());
++    }
+     const auto c3 = std::chrono::steady_clock::now();
+     if (d.plan != nullptr) d.plan->cpu_jobs = njobs;
+     pt("run", njobs);
+-    if (njobs > 0 && npend == 0) {
+-        if (native) d.pool->run_split_multi_native(lay.fmt[(size_t) d.layers], d.jobs_multi.data(), njobs, arithmetic);
+-        else d.pool->run_split_multi(d.jobs_multi.data(), njobs);
+-    }
++    auto run_jobs = [&](ExpertJobMulti* jobs, int nj) {
++        if (nj <= 0 || npend > 0) return;   // 149-cold: the batches above ran them
++        if (native) d.pool->run_split_multi_native(lay.fmt[(size_t) d.layers], jobs, nj, arithmetic);
++        else d.pool->run_split_multi(jobs, nj);
++    };
++    run_jobs(d.jobs_multi.data(), nfirst);
++    if (split) ps->partial(ps->ctx);
++    run_jobs(d.jobs_multi.data() + nfirst, njobs - nfirst);
+     if (d.remote_count > 0) {
+         static thread_local std::string remote_error;
+         for (int r = 0; r < d.remote_count; ++r)
+diff -ruN a/engine/src/core/peer_experts.cpp b/engine/src/core/peer_experts.cpp
+--- a/engine/src/core/peer_experts.cpp
++++ b/engine/src/core/peer_experts.cpp
+@@ -23,6 +23,9 @@
+ static bool g_peer_portable = false;
+ void set_peer_portable(bool on) { g_peer_portable = on; }
+ bool peer_portable() { return g_peer_portable; }
++static const char* g_pool_gpu_helper = nullptr;
++void set_pool_gpu_helper(const char* what) { g_pool_gpu_helper = what; }
++const char* pool_gpu_helper() { return g_pool_gpu_helper; }
+ 
+ namespace {
+ 
+diff -ruN a/engine/src/core/verify.cpp b/engine/src/core/verify.cpp
+--- a/engine/src/core/verify.cpp
++++ b/engine/src/core/verify.cpp
+@@ -664,7 +664,7 @@
+     // the words the spin kernels read (wait_flag_ge, wait_flag_ge_or) are mapped host memory, so a store here
+     // reaches them with no API call; UINT32_MAX is past every ring.  (E-6's skip words are device memory, but
+     // wait_flag_ge_or also returns on its flag.)  A host function raising flag B later only raises.
+-    for (uint32_t* p : {h_flag_, h_flagA_, h_flagB_, hflag_in_h_})   // + an overlapped split's hand-off wait
++    for (uint32_t* p : {h_flag_, h_flagA_, h_flagB_, hflag_in_h_, h_pflag_})   // + an overlapped split's hand-off wait
+         if (p != nullptr) *(volatile uint32_t*) p = UINT32_MAX;
+     std::atomic_thread_fence(std::memory_order_seq_cst);
+     strata_store_fence();
+@@ -695,8 +695,9 @@
+     if (!g_trace || f == nullptr) return;
+     static const char* names[kProfPer] = {"pre", "hc-read0", "qkv gemv", "conv", "ab", "z", "rec", "kv-idx",
+                                           "k/v rope", "kv append", "q", "scores+topk", "kv-resolve", "attention",
+-                                          "gate", "", "out-proj", "router+ring", "shared", "waitA", "VRAM hits", "waitB",
+-                                          "PCIe grp", "waitCPU", "combine", "", "head", "", "", "", "", "", "", "router done"};
++                                          "gate", "out-proj", "late rows", "router+ring", "shared", "waitA", "VRAM hits",
++                                          "waitB", "PCIe grp", "waitCPU", "combine", "", "head", "", "", "", "", "", "",
++                                          "router done"};
+     const uint64_t end = g_trace_next.load();
+     const uint64_t n = end < 160 ? end : 160;
+     std::fprintf(f, "strata verify trace (#649): the last %llu handshake events (host clock, us before the last; "
+@@ -749,8 +750,9 @@
+     const char* where = progress().where.load();
+     const bool current = where != nullptr && std::strncmp(where, "verify window", 13) == 0;
+     std::fprintf(f, "  verify window%s: %d tokens at position %lld, host at layer step %u; the GPU rang %u; flags: "
+-                    "served %u, plan (A) %u, copies (B) %u\n", current ? "" : " (last window, not the current stage)",
+-                 last_t_, (long long) last_pos0_, cur_layer_ + 1, rd(h_seq_), rd(h_flag_), rd(h_flagA_), rd(h_flagB_));
++                    "served %u, plan (A) %u, copies (B) %u%s\n", current ? "" : " (last window, not the current stage)",
++                 last_t_, (long long) last_pos0_, cur_layer_ + 1, rd(h_seq_), rd(h_flag_), rd(h_flagA_), rd(h_flagB_),
++                 h_pflag_ != nullptr ? (", heavy rows (P) " + std::to_string(rd(h_pflag_))).c_str() : "");
+     trace_dump(f);   // #649: STRATA_VERIFY_TRACE=1 only
+ }
+ 
+@@ -818,7 +820,8 @@
+     if (arena_) cudaFree(arena_);
+     if (hcount_d_) cudaFree(hcount_d_);
+     void* hosts[] = {h_tok_, h_step_, h_pos_, h_commit_, h_ple_, h_out_, h_x_, h_ids_, h_w_, h_seq_, h_flag_, h_ymiss_,
+-                     h_flagA_, h_plan_, h_flagB_, h_plan_err_, h_nf_, herr_h_, hdrop_h_, h_bal_, h_ecap_};
++                     h_flagA_, h_plan_, h_flagB_, h_plan_err_, h_nf_, herr_h_, hdrop_h_, h_bal_, h_ecap_,
++                     h_pflag_};
+     for (void* h : hosts)
+         if (h) cudaFreeHost(h);
+ }
+@@ -1025,6 +1028,53 @@
+     const uint64_t TS = (uint64_t) (s.idx_block - 1) * ID;
+     const int max_in = (int) std::max<uint64_t>(std::max<uint64_t>(N, ZV), NH * HD);
+ 
++    bool below_set = false;   // STRATA_VERIFY_DEFER_CPU_BELOW given (the start-up line says so)
++    float below = 0.0f;       // the weight in use (>= 1: every CPU row deferred)
++    {   // STRATA_VERIFY_DEFER_CPU=1 or =check (opt-in): read before the allocations (one buffer more, see record_window)
++        const char* v = std::getenv("STRATA_VERIFY_DEFER_CPU");
++        defer_check_ = v != nullptr && std::strcmp(v, "check") == 0;
++        defer_ = defer_check_ || (v != nullptr && std::strcmp(v, "1") == 0);
++        if (!defer_ && v != nullptr && v[0] != '\0' && std::strcmp(v, "0") != 0)
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU=%s is not 1 or check: no deferral\n", v);
++        // set_pcie_balance (before init): its GPU fit ends at post(l)'s wait for the CPU rows, which a deferred layer
++        // does not make - no deferral, and nothing of it allocated or said but this line
++        const bool bal_off = defer_ && bal_ != nullptr;
++        if (bal_off) {
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU=%s is not taken with STRATA_PCIE_BALANCE=1 (its "
++                                 "fit times the wait for the CPU rows, which a deferred layer does not make): no deferral\n",
++                         v);
++            defer_ = false;
++            defer_check_ = false;
++        }
++        // STRATA_VERIFY_DEFER_CPU_BELOW=<w>: only the CPU rows of routing weight below w are deferred, the others are
++        // waited for in their own layer.  Unset: 0.1.  w >= 1: every CPU row deferred, no split (no partial flag).
++        constexpr float kBelowDefault = 0.1f;
++        const char* h = std::getenv("STRATA_VERIFY_DEFER_CPU_BELOW");
++        const bool h_given = h != nullptr && h[0] != '\0';
++        if (defer_) {
++            char* end = nullptr;
++            const float hv = h_given ? std::strtof(h, &end) : 0.0f;
++            below_set = h_given && end != h && *end == '\0' && hv > 0.0f;   // (NaN fails > 0)
++            if (h_given && !below_set)
++                std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW=%s is not a weight above 0: the "
++                                     "default, %.1f\n", h, kBelowDefault);
++            below = below_set ? hv : kBelowDefault;
++            defer_heavy_ = below < 1.0f ? below : 0.0f;
++        } else if (h_given && !bal_off) {
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW=%s ignored (it needs "
++                                 "STRATA_VERIFY_DEFER_CPU=1 or check)\n", h);
++        }
++        if (defer_heavy_ > 0.0f && pool_gpu_helper() != nullptr) {   // its rows land after the CPU's: nothing to split
++            if (below_set)
++                std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW is not taken with %s (its rows land "
++                                     "after the CPU's): every CPU row joins late\n", pool_gpu_helper());
++            else
++                std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU: the heavy rows (weight >= %g, the default) "
++                                     "are not kept on time with %s (its rows land after the CPU's): every CPU row joins "
++                                     "late\n", defer_heavy_, pool_gpu_helper());
++            defer_heavy_ = 0.0f;
++        }
++    }
+     // ---- mapped staging
+     bool ok = mapped(T * 4, (void**) &h_tok_, (void**) &m_tok_) &&
+               mapped(T * strata::kernels::kStepCount * 4, (void**) &h_step_, (void**) &m_step_) &&
+@@ -1043,7 +1093,8 @@
+               mapped(64, (void**) &h_flagB_, (void**) &m_flagB_) &&
+               mapped(64, (void**) &h_plan_err_, (void**) &m_plan_err_) &&
+               mapped(64, (void**) &h_ecap_, (void**) &m_ecap_) &&
+-              mapped(T * K * N * 4, (void**) &h_ymiss_, (void**) &m_ymiss_);
++              mapped(T * K * N * 4, (void**) &h_ymiss_, (void**) &m_ymiss_) &&
++              (defer_heavy_ <= 0.0f || mapped(64, (void**) &h_pflag_, (void**) &m_pflag_));
+     if (!ok) { err = "verify: mapped staging allocation failed " + strata::core::pin_exhausted_hint(); return false; }
+     *(volatile int32_t*) h_ecap_ = 0;
+     if ((uint64_t) g_verify_ecap() > K) {
+@@ -1120,6 +1171,13 @@
+             std::fprintf(stderr, "strata: STRATA_TAP_FILE %s: %zu taps of %lld floats per row\n", tap_path, nt, (long long) N);
+         }
+         tap_on_ = true;
++        if (defer_) {   // (before the start-up lines below, which then say nothing of a deferral; defer_ok says no too)
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU is not taken with the DFlash2 taps (a tap copies "
++                                 "layer l's output before a deferred layer's CPU rows join it): no deferral\n");
++            defer_ = false;
++            defer_check_ = false;
++            defer_heavy_ = 0.0f;
++        }
+     }
+     if (tap_split_path != nullptr) {
+         const size_t nt_all = (size_t) tap_total();
+@@ -1167,6 +1225,7 @@
+         sink_.publish = &Verifier::publish_plan;
+         sink_.fetch = &Verifier::fetch_dma;
+         sink_.ctx = this;
++        sink_.heavy = defer_heavy_;   // STRATA_VERIFY_DEFER_CPU_BELOW (run and service set the weights and the hook per layer)
+     }
+ 
+     // APR: the rotated copy of the expert input (nat_xr_, T x N floats) only where a layer's gate/up is
+@@ -1220,6 +1279,8 @@
+         one_ = b.take<int32_t>(4);
+         hist_snap_ = b.take<float>(T * HS);
+         ple_key_ = b.take<float>(T * (uint64_t) strata::kernels::NG_HC_DIM); ple_val_ = b.take<float>(T * N);
++        // STRATA_VERIFY_DEFER_CPU (record_window), after everything else: the default layout is unchanged
++        if (defer_) def_parts_ = b.take<float>(T * K * N);
+     };
+     Bump count;
+     carve(count);
+@@ -1434,6 +1495,33 @@
+     std::fprintf(stderr, "strata verify: window up to %d tokens, %.1f MiB of device buffers%s\n", max_t,
+                  (double) count.used / 1048576.0,
+                  all_resident_ ? " (100% VRAM resident: zero-doorbell graph)" : "");
++    if (defer_check_)
++        std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU=check (a check of the late addition): the CPU's expert "
++                             "rows of layer l are left out of its combine and added back right after it - no deferral\n");
++    else if (defer_)
++        std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU=1 (changes the output): the CPU's expert rows of layer l "
++                             "join the residual before layer l+1's FFN-side read (its mixer runs without them; the "
++                             "stage's last layer exact)\n");
++    if (defer_heavy_ > 0.0f && device_plan_) {
++        if (below_set)
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW is not taken with "
++                                 "STRATA_VERIFY_DEVICE_PLAN=1: every CPU row joins late\n");
++        else
++            std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU: the heavy rows (weight >= %g, the default) are "
++                                 "not kept on time with STRATA_VERIFY_DEVICE_PLAN=1: every CPU row joins late\n",
++                         defer_heavy_);
++        defer_heavy_ = 0.0f;
++        sink_.heavy = 0.0f;
++        cudaFreeHost(h_pflag_);   // (nothing raises or waits for it then: as if it had never been allocated)
++        h_pflag_ = nullptr;
++        m_pflag_ = nullptr;
++    }
++    if (defer_heavy_ > 0.0f)
++        std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW=%g%s: a deferred layer waits for its CPU rows "
++                             "of routing weight >= %g (the pool computes them first) and combines them; the lighter "
++                             "ones join late\n", defer_heavy_, below_set ? "" : " (the default)", defer_heavy_);
++    else if (defer_ && below >= 1.0f)
++        std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU_BELOW=%g: every CPU row joins late\n", below);
+     return true;
+ }
+ 
+@@ -1508,6 +1596,53 @@
+     };
+     bool sg_gated_[2] = {false, false};   // per group: the combine applies the shared gate
+     if (!batch_rec_) groups_[T] = G;
++    // STRATA_VERIFY_DEFER_CPU=1 (opt-in, changes the output; defer_ok says which windows): post(l) of a deferred layer
++    // combines without the CPU's rows (shared expert, VRAM hits and the PCIe share only) and does not wait for them, and
++    // pre(l+1) adds them to the residual before its FFN-side read: the CPU computes layer l while the GPU runs layer
++    // l+1's mixer, which is the only part that runs without them.  The addition is the pending write's own
++    // arithmetic, 2*sigmoid(inject_l / hc) * the rows' weighted sum.  The stage's last layer is not deferred, nor layer
++    // 0 when layer 1 runs the PLE block (pre(1) copies the PLE rows, which the host writes just before flag 1, and
++    // relies on post(0)'s wait for it).  STRATA_VERIFY_PROFILE shows the late wait and add as "late rows".
++    // Nothing the late addition reads has changed by then, and no buffer the host shares is reused earlier than without
++    // deferral: pre(l+1)'s attention-side read writes inj_ (not layer l's inject inj2_), its router w_ and the next plan
++    // (plan_, skip_) come after the addition, and so does its doorbell - so the host's pool(l+1), which overwrites the
++    // doorbell payload and h_ymiss_, starts only after the GPU has waited for flag l and copied layer l's rows.
++    const bool dfr = defer_ok(T, nullptr);
++    auto deferred = [&](int64_t l) { return dfr && l + 1 < le_ && !(ple_on && l == 0); };
++    // STRATA_VERIFY_DEFER_CPU_BELOW: post(l) of a deferred layer waits for the partial flag and takes the CPU rows of routing
++    // weight >= defer_heavy_; late_add takes the others (copy_rows_by_weight, the plan's GPU rows zeroed as by
++    // copy_rows_from_mapped).  The host's side is heavy_layer (the same layers).
++    const bool heavy = dfr && defer_heavy_ > 0.0f;
++    // STRATA_VERIFY_DEFER_CPU: layer dl's CPU rows, the copy post(dl) would have made, weighted as its combine weights them
++    // and added to every stream as its pending write would have.  Where: pre(dl+1) before its FFN-side read (=1), or
++    // post(dl) itself after its combine (=check: the default path's sums in another order, so a run that differs from
++    // the default by more than its own run-to-run noise has a wrong copy or wrong arithmetic; it does not exercise the
++    // host computing layer dl while the GPU runs layer dl+1)
++    auto late_add = [&](int64_t dl, int grp) {
++        const int tb = tb_[grp], n = te_[grp] - tb_[grp];
++        const uint32_t ring_d = (uint32_t) ((dl - lb_) * G + grp + 1);
++        const int32_t* pl = plan_ + (size_t) grp * (size_t) (plan_i32_ + 16);   // counts | start | dst: layer dl's plan
++        const float* ym = m_ymiss_ + (size_t) tb * K * N;
++        if (device_plan_) {
++            wait_flag_ge_or(m_flag_, ring_d, skip_ + grp, cs);
++            copy_or_zero_from_mapped(def_parts_, ym, (long long) n * K * N, skip_ + grp, ring_d, cs);
++        } else {
++            wait_flag_ge(m_flag_, ring_d, cs);
++#if !defined(STRATA_GPU_METAL)
++            if (heavy)   // the light rows (the heavy ones are in layer dl's combine already)
++                copy_rows_by_weight(def_parts_, ym, (int64_t) n * K, N, pl + 4 + MT * K + 1, pl + 1, w_ + tb * K,
++                                    defer_heavy_, false, cs);
++            else
++#endif
++            if (dec_batch)   // the GPU's own rows (p_dst[0, counts[1])) are zeros
++                copy_rows_from_mapped(def_parts_, ym, (int64_t) n * K, N, pl + 4 + MT * K + 1, pl + 1, cs);
++            else
++                copy_from_mapped(def_parts_, ym, (int64_t) n * K * N, cs);
++        }
++#if !defined(STRATA_GPU_METAL)   // (the Metal window is metal/src/engine/window.cpp: no deferral, no entry point there)
++        defer_add_rows(def_parts_, w_ + tb * K, inj2_ + tb * HC, Rt(tb), N, (int) K, (int) HC, n, cs);
++#endif
++    };
+     // Programmatic dependent launch (pdl.hpp; sm_90+, opt-in: STRATA_DF_PDL=1): the window's quantizations and dense
+     // projections may start while the kernel before them finishes, loading their weights before they wait for its
+     // output.  Only a launch whose predecessors in the graph are all kernels gets programmatic edges; every value is
+@@ -2375,6 +2510,10 @@
+             err = "verify layer " + std::to_string(l) + ": " + e.what();
+             return false;
+         }
++        stamp(l, 15, grp);   // the profile: the mixer's out-projection ends here
++        // STRATA_VERIFY_DEFER_CPU=1: the previous layer's CPU rows join the residual here, before the FFN-side read (late_add;
++        // the profile's "late rows", 15 to 16)
++        if (!defer_check_ && l > lb_ && deferred(l - 1)) late_add(l - 1, grp);
+         stamp(l, 16, grp);
+         const bool q8_ffn = gr_read_group(1, true, inj_, inj2_);   // true: nat_xq_ holds the MoE input's q8_1 (STRATA_QFUSE)
+         stamp(l, 32, grp);   // the profile only: the FFN-side read ends here, the router starts
+@@ -2470,7 +2609,8 @@
+ #endif
+             // #578: the helper GPUs reduce with the routing weights - publish them; set_always_publish: the rows
+             // whatever the device's residency table says (pipelined windows)
+-            if (remote_opt_ || always_publish_)
++            // (STRATA_VERIFY_DEFER_CPU_BELOW: the pool reads the weights too)
++            if (remote_opt_ || always_publish_ || heavy)
+                 doorbell_publish(xm, ids_ + tb * K, w_ + tb * K, (int64_t) n * N, (int64_t) n * K, m_x_ + tb * N,
+                                  m_ids_ + tb * K, m_w_ + tb * K, m_seq_, cs);
+             else {
+@@ -2640,7 +2780,18 @@
+                 note_prio_tail(sh_cs_, -1);
+                 cudaEventRecord(ev_join_, sh_cs_);
+             }
+-            if (device_plan_) {   // no CPU share when the device planned the group: its rows are zeros
++            // STRATA_VERIFY_DEFER_CPU: no wait, no CPU rows now (late_add adds them later): zeros, plus the hits
++            if (deferred(l)) {
++                if (heavy) wait_flag_ge(m_pflag_, ring, cs);   // STRATA_VERIFY_DEFER_CPU_BELOW: the heavy rows (waitCPU)
++                stamp(l, 23, grp);   // (no split, no wait: the zeroing counts as copy+combine, as the copy it replaces)
++#if !defined(STRATA_GPU_METAL)   // (as late_add's defer_add_rows)
++                if (heavy)
++                    copy_rows_by_weight(parts_out, m_ymiss_ + (size_t) tb * K * N, (int64_t) n * K, N, p_dst, p_counts + 1,
++                                        w_ + tb * K, defer_heavy_, true, cs);
++                else
++                    fill_zero(parts_out, (long long) n * K * N, cs);
++#endif
++            } else if (device_plan_) {   // no CPU share when the device planned the group: its rows are zeros
+                 wait_flag_ge_or(m_flag_, ring, skip_ + grp, cs);
+                 copy_or_zero_from_mapped(parts_out, m_ymiss_ + (size_t) tb * K * N, (long long) n * K * N,
+                                          skip_ + grp, ring, cs);
+@@ -2700,6 +2851,8 @@
+         }
+         if (remote_opt_) remote_opt_->combine(bo_ + tb * N, y_dummy_ + tb * N, tb, n,
+                               device_plan_ ? skip_ + grp : nullptr, ring, cs);
++        // STRATA_VERIFY_DEFER_CPU=check (late_add): this layer's own rows, here; =1 adds them in pre(l + 1)
++        if (defer_check_ && deferred(l)) late_add(l, grp);
+         stamp(l, 24, grp);
+         if (tap_on_ && (!batch_rec_ || tap_batch_) && l < (int64_t) tap_slot_.size() && tap_slot_[(size_t) l] >= 0) {
+             // the layer's completed output: R with this FFN half's write applied (the next layer's read would fold it), the mean of
+@@ -2868,7 +3021,7 @@
+     if (!prof_on_) return std::string();
+     static const char* names[kProfPer] = {"-", "hc-read0", "qkv gemv", "conv", "ab", "z", "rec", "q8+kv-idx",
+                                           "k/v+norm-rope", "kv+idx append", "q+q-idx", "scores+topk", "kv-resolve",
+-                                          "attention", "gate", "", "out-proj", "router+plan", "shared+quant",
++                                          "attention", "gate", "out-proj", "late rows", "router+plan", "shared+quant",
+                                           "waitA", "VRAM hits", "waitB", "PCIe grp", "waitCPU", "copy+combine",
+                                           "(gap)", "head", "hc0 norm", "hc0 down", "hc0 up", "hc1 norm", "hc1 down", "hc1 up"};
+     std::string out;
+@@ -2928,7 +3081,7 @@
+     if (!prof_on_ || prof_windows_ == 0) return std::string();
+     static const char* names[kProfPer] = {"-", "hc-read0", "q8+qkv/q-idx gemv", "conv", "ab", "z", "rec", "q8+kv-idx",
+                                           "k/v+norm-rope", "kv+idx append", "q+q-idx", "scores+topk", "kv-resolve",
+-                                          "attention", "gate", "", "out-proj", "plan+bell", "shared+quant",
++                                          "attention", "gate", "out-proj", "late rows", "plan+bell", "shared+quant",
+                                           "waitA", "VRAM hits", "waitB", "PCIe grp", "waitCPU", "copy+combine",
+                                           "(gap)", "head", "  hc0 norm", "  hc0 down", "  hc0 up", "  hc1 norm", "  hc1 down", "  hc1 up",
+                                           "router (proj+topk)"};
+@@ -2970,14 +3123,60 @@
+     }
+ }
+ 
++// STRATA_VERIFY_DEFER_CPU: the windows record_window may capture with deferral - one sequence's decode window, one token
++// group, CPU rows to defer and the plain combine and residual writes around them.  (STRATA_LFUSE's gated combine runs
++// only on the all-resident graph, so it never meets a deferred layer.)
++bool Verifier::defer_ok(int T, std::string* why) const {
++    auto no = [&](const char* w) {
++        if (why != nullptr) *why = w;
++        return false;
++    };
++    if (!defer_) return no("STRATA_VERIFY_DEFER_CPU is off");
++    if (batch_rec_) return no("a batch window");
++    if (split_ && T >= 2) return no("--spec-split's two token groups");
++    // (port to v0.2.17: a window past kVerifyMaxT tokens (--lookup-max-t) runs as two token groups too - record_window's G)
++    if (T > (int) strata::kernels::kVerifyMaxT) return no("a window past the token group's rows (--lookup-max-t): two token groups");
++    if (remote_opt_ != nullptr) return no("--remote-expert-opt");
++    // (set_pcie_balance's GPU fit ends at the wait for the CPU rows, which a deferred layer does not make: init turns
++    // deferral off then, as the balance is set before it; this keeps a stamped window from being captured deferred)
++    if (m_bal_ != nullptr) return no("STRATA_PCIE_BALANCE");
++    // (a tap copies layer l's output in post(l), before a deferred layer's CPU rows join it in pre(l+1))
++    if (tap_on_) return no("the DFlash2 taps (--draft dflash2, STRATA_TAP_FILE)");
++    if (ar_on()) return no("every expert of the stage is in VRAM: no CPU rows");
++    // record_window's deferred(): not the stage's last layer, nor layer 0 under the PLE block
++    const bool ple_layer0 = lb_ == 0 && ss_->ple.ready() && ple_stage();
++    if (le_ - 1 - lb_ - (ple_layer0 ? 1 : 0) < 1) return no("no layer of the stage to defer");
++    // (STRATA_FUSE_HEAD_GR changes only the last layer's write, which is never deferred)
++    const strata::kernels::Cvec& cv = strata::kernels::cvec();
++    for (int64_t l = lb_; l < le_; ++l)
++        if (cv.covers(l)) return no("a control vector covers a layer of the stage");
++    return true;
++}
++
++// record_window's `heavy && deferred(l)`: the layers whose pool runs the heavy jobs first and raises the partial flag
++// (the others run in one pass; run and service raise the partial flag after every pool call anyway, so a layer this
++// misjudges is slower, never stuck)
++bool Verifier::heavy_layer(int T, int64_t l) const {
++    if (defer_heavy_ <= 0.0f || l + 1 >= le_ || (l == 0 && ss_->ple.ready() && ple_stage())) return false;
++    return defer_ok(T, nullptr);
++}
++
+ bool Verifier::capture(int T, std::string& err) {
+     const auto cap_t0 = std::chrono::steady_clock::now();
+     cudaGraphExec_t& exec_t = ar_off_ ? exec_nr_[sel_long_][T] : exec_[sel_long_][T];
+     if (exec_t != nullptr) return true;
++    std::string dwhy;
++    const bool dfr = defer_ok(T, &dwhy);   // STRATA_VERIFY_DEFER_CPU (record_window decides the same)
++    if (defer_ && !dfr && !defer_said_) {
++        defer_said_ = true;
++        std::fprintf(stderr, "strata verify: STRATA_VERIFY_DEFER_CPU: the %d-token window runs without deferral (%s)\n", T,
++                     dwhy.c_str());
++    }
+     {   // said before the capture: a process that exits inside it (#1275: Windows, 313 MiB free) leaves this line as the trace
+         size_t free_b = 0, total_b = 0;
+         if (cudaMemGetInfo(&free_b, &total_b) == cudaSuccess)
+-            std::fprintf(stderr, "strata verify: capturing the %d-token window (%zu MiB of VRAM free)\n", T, free_b >> 20);
++            std::fprintf(stderr, "strata verify: capturing the %d-token window (%zu MiB of VRAM free)%s\n", T, free_b >> 20,
++                         dfr ? ", deferred" : "");
+         else
+             (void) cudaGetLastError();
+     }
+@@ -3302,6 +3501,7 @@
+     if (herr_h_ != nullptr) *(volatile uint32_t*) herr_h_ = 0;
+     if (hdrop_h_ != nullptr) *(volatile uint32_t*) hdrop_h_ = (g_test_drop > 0 && windows + 1 == g_test_drop) ? 1u : 0u;
+     if (h_ecap_ != nullptr) *(volatile int32_t*) h_ecap_ = ecap_for(T);
++    if (h_pflag_ != nullptr) *(volatile uint32_t*) h_pflag_ = 0;   // STRATA_VERIFY_DEFER_CPU_BELOW: the partial flag
+     std::atomic_thread_fence(std::memory_order_seq_cst);
+     strata_store_fence();
+     last_t_ = T;
+@@ -3779,6 +3979,11 @@
+         const int tb = gtb[grp], n = gte[grp] - gtb[grp];
+         progress_at("verify window: the CPU experts of layer", l);
+         if (remote_opt_) remote_opt_->begin(h_w_ + (size_t) tb * ss.k, tb, n);
++        if (defer_heavy_ > 0.0f) {   // STRATA_VERIFY_DEFER_CPU_BELOW: this layer's split, if post(l) waits for it
++            const bool split = heavy_layer(T, l);
++            sink_.weights = split ? h_w_ + (size_t) tb * ss.k : nullptr;
++            sink_.partial = split ? &Verifier::raise_partial : nullptr;
++        }
+         if (pool != nullptr)
+             pool(user, h_x_ + (size_t) tb * g.n_embd, h_ids_ + (size_t) tb * ss.k, n, ss.k,
+                  h_ymiss_ + (size_t) tb * ss.k * g.n_embd, l);
+@@ -3817,6 +4022,7 @@
+             strata_store_fence();
+             ms_host += ms_since(tp);
+         }
++        if (h_pflag_ != nullptr) raise_flag(h_pflag_, want);   // STRATA_VERIFY_DEFER_CPU_BELOW: (the pool raised it if it split)
+         if (!(test_stall && k + 1 == steps)) *flag = want;
+         if (h_bal_ != nullptr) bal_p_[(size_t) ((k / G) * 2 + grp)] = ms_since(b);
+         ms_wait += std::chrono::duration<double, std::milli>(b - a).count();
+@@ -4088,6 +4294,15 @@
+     *(volatile uint32_t*) v->h_flagA_ = v->cur_layer_ + 1;
+ }
+ 
++// STRATA_VERIFY_DEFER_CPU_BELOW: the pool has written the rows of the heavy CPU entries (expert_pool_dispatch_multi)
++void Verifier::raise_partial(void* ctx) {
++    Verifier* v = (Verifier*) ctx;
++    if (v->h_pflag_ == nullptr) return;
++    std::atomic_thread_fence(std::memory_order_seq_cst);
++    strata_store_fence();
++    raise_flag(v->h_pflag_, v->cur_layer_ + 1);
++}
++
+ bool Verifier::window_logprobs(const int32_t* targets, int T, int64_t pos0, int32_t extra_id, std::FILE* out,
+                                std::string& err) {
+     if (next_ != nullptr) return next_->window_logprobs(targets, T, pos0, extra_id, out, err);
+@@ -5124,6 +5339,8 @@
+         // The recorded graph consumes the helper mask and weighted sum just as
+         // the solo graph does. Reset both and supply this layer's routing weights.
+         if (remote_opt_) remote_opt_->begin(h_w_, 0, S);
++        sink_.weights = nullptr;   // (STRATA_VERIFY_DEFER_CPU_BELOW: a batch window never defers - one pass)
++        sink_.partial = nullptr;
+         if (pool != nullptr) pool(user, h_x_, h_ids_, S, ss_->k, h_ymiss_, l);
+         if (remote_opt_) remote_opt_->end();
+         progress_tick();
+@@ -5344,6 +5561,8 @@
+         cur_layer_ = want - 1;
+         set_plan_slot(0);
+         if (remote_opt_) remote_opt_->begin(h_w_, 0, S);
++        sink_.weights = nullptr;   // (as run_slot_rows)
++        sink_.partial = nullptr;
+         if (pool != nullptr) pool(user, h_x_, h_ids_, S, ss_->k, h_ymiss_, lb_ + k);
+         if (remote_opt_) remote_opt_->end();
+         progress_tick();
+@@ -5524,10 +5743,11 @@
+         const cudaError_t q = cudaEventQuery(e);
+         return q == cudaSuccess ? "done" : q == cudaErrorNotReady ? "PENDING" : "error";
+     };
+-    std::fprintf(f, "  %s: %s T=%d pos %lld served %lld/%lld; GPU rang %u, flags served %u A %u B %u; window event %s, "
++    std::fprintf(f, "  %s: %s T=%d pos %lld served %lld/%lld; GPU rang %u, flags served %u A %u B %u%s; window event %s, "
+                     "commit event %s (commit launched %d)\n", name, fl_active_ ? "IN FLIGHT" : "idle", last_t_,
+                  (long long) last_pos0_, (long long) fl_k_, (long long) fl_total_, rd(h_seq_), rd(h_flag_), rd(h_flagA_),
+-                 rd(h_flagB_), ev(ev_done_), ev(ev_commit_), (int) commit_live_);
++                 rd(h_flagB_), h_pflag_ != nullptr ? (" P " + std::to_string(rd(h_pflag_))).c_str() : "", ev(ev_done_),
++                 ev(ev_commit_), (int) commit_live_);
+ }
+ 
+ bool Verifier::capture_all(std::string& err) {
+@@ -5703,6 +5923,11 @@
+         set_plan_slot(grp);
+         const int tb = gtb[grp], n = gte[grp] - gtb[grp];
+         progress_at("verify window (pipelined): the CPU experts of layer", l);
++        if (defer_heavy_ > 0.0f) {   // STRATA_VERIFY_DEFER_CPU_BELOW (as run)
++            const bool split = heavy_layer(T, l);
++            sink_.weights = split ? h_w_ + (size_t) tb * ss.k : nullptr;
++            sink_.partial = split ? &Verifier::raise_partial : nullptr;
++        }
+         if (pool != nullptr)
+             pool(user, h_x_ + (size_t) tb * g.n_embd, h_ids_ + (size_t) tb * ss.k, n, ss.k,
+                  h_ymiss_ + (size_t) tb * ss.k * g.n_embd, l);
+@@ -5722,6 +5947,7 @@
+             raise_flag_b_ordered(want);   // behind any copy still queued from an earlier layer
+         }
+         if (fl_k_ == 0 && !gather_ple()) return -1;
++        if (h_pflag_ != nullptr) raise_flag(h_pflag_, want);   // STRATA_VERIFY_DEFER_CPU_BELOW (as run)
+         *(volatile uint32_t*) h_flag_ = want;
+         ++fl_k_;
+         ms_pool += ms_since(b);
+diff -ruN a/engine/src/kernels/cuda/verify_kernels.cu b/engine/src/kernels/cuda/verify_kernels.cu
+--- a/engine/src/kernels/cuda/verify_kernels.cu
++++ b/engine/src/kernels/cuda/verify_kernels.cu
+@@ -1734,6 +1734,86 @@
+ }
+ 
+ namespace {
++// blockIdx.y = the token; one thread per column: the combine's sum (combine_k10_vec4: the first product rounded, then
++// one FMA per expert in order), then the fused read's pending write per stream (fused_gr.cu: fmaf(bo, 2*sigmoid(inj/hc), R))
++__global__ void defer_add_rows_kernel(const float* __restrict__ parts, const float* __restrict__ w,
++                                      const float* __restrict__ inject, float* __restrict__ R, int64_t n_embd, int k,
++                                      int hc) {
++    const int64_t t = blockIdx.y;
++    const int64_t d = (int64_t) blockIdx.x * blockDim.x + threadIdx.x;
++    if (d >= n_embd) return;
++    const float* p = parts + t * k * n_embd + d;
++    const float* wt = w + t * k;
++    float s = p[0] * wt[0];
++    for (int j = 1; j < k; ++j) s = fmaf(p[(int64_t) j * n_embd], wt[j], s);
++    const float* inj = inject + t * hc;
++    float* r = R + t * hc * n_embd + d;
++    for (int c = 0; c < hc; ++c) {
++        const float gw = 2.0f * (1.0f / (1.0f + __expf(-(inj[c] / (float) hc))));
++        r[(int64_t) c * n_embd] = fmaf(s, gw, r[(int64_t) c * n_embd]);
++    }
++}
++}  // namespace
++namespace {
++__global__ void fill_zero_kernel(float4* __restrict__ dst, long long n4) {
++    for (long long i = (long long) blockIdx.x * blockDim.x + threadIdx.x; i < n4; i += (long long) gridDim.x * blockDim.x)
++        dst[i] = make_float4(0.f, 0.f, 0.f, 0.f);
++}
++}  // namespace
++void fill_zero(float* dst, long long n, void* stream) {
++    if (n <= 0) return;
++    if ((n & 3) != 0 || ((uintptr_t) dst & 15) != 0) {
++        std::fprintf(stderr, "fill_zero: n must be a multiple of 4 and dst 16-byte aligned\n");
++        std::exit(1);
++    }
++    const long long n4 = n / 4;
++    const int blocks = (int) ((n4 + 255) / 256 < 64 ? (n4 + 255) / 256 : 64);
++    fill_zero_kernel<<<blocks, 256, 0, (cudaStream_t) stream>>>((float4*) dst, n4);
++    check("fill_zero");
++}
++namespace {
++// copy_rows_from_mapped_kernel (elementwise.cu) with the routing weight's test: block = row
++__global__ void copy_rows_by_weight_kernel(float4* __restrict__ dst, const volatile float4* src, int64_t row4,
++                                           const int32_t* __restrict__ hit_rows, const int32_t* __restrict__ count,
++                                           const float* __restrict__ w, float heavy, int take_heavy) {
++    const int row = blockIdx.x;
++    __shared__ int take;
++    if (threadIdx.x == 0) {
++        int h = 0;
++        const int c = *count;
++        for (int i = 0; i < c; ++i) h |= hit_rows[i] == row;
++        take = !h && ((w[row] >= heavy ? 1 : 0) == take_heavy);
++    }
++    __syncthreads();
++    float4* d = dst + (int64_t) row * row4;
++    if (!take) {
++        for (int64_t i = threadIdx.x; i < row4; i += blockDim.x) d[i] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++    } else {
++        const volatile float4* sr = src + (int64_t) row * row4;
++        for (int64_t i = threadIdx.x; i < row4; i += blockDim.x) d[i] = const_cast<const float4*>(sr)[i];
++    }
++}
++}  // namespace
++void copy_rows_by_weight(float* dst, const float* src, int64_t rows, int64_t width, const int32_t* hit_rows,
++                         const int32_t* count, const float* w, float heavy, bool take_heavy, void* stream) {
++    if (rows <= 0) return;
++    if ((width & 3) != 0 || ((uintptr_t) dst & 15) != 0 || ((uintptr_t) src & 15) != 0) {
++        std::fprintf(stderr, "copy_rows_by_weight: width must be a multiple of 4 and both pointers 16-byte aligned\n");
++        std::exit(1);
++    }
++    copy_rows_by_weight_kernel<<<(unsigned) rows, 128, 0, (cudaStream_t) stream>>>(
++        (float4*) dst, (const volatile float4*) src, width / 4, hit_rows, count, w, heavy, take_heavy ? 1 : 0);
++    check("copy_rows_by_weight");
++}
++void defer_add_rows(const float* parts, const float* w, const float* inject, float* R, int64_t n_embd, int k, int hc,
++                    int n_tok, void* stream) {
++    if (n_tok <= 0 || n_embd <= 0) return;
++    defer_add_rows_kernel<<<dim3((unsigned) ((n_embd + 255) / 256), (unsigned) n_tok), 256, 0, (cudaStream_t) stream>>>(
++        parts, w, inject, R, n_embd, k, hc);
++    check("defer_add_rows");
++}
++
++namespace {
+ __global__ void wait_copy_i32_kernel(const volatile uint32_t* flag, uint32_t value, int32_t* __restrict__ dst,
+                                      const volatile int32_t* src, int n) {
+     if (threadIdx.x == 0) {
+diff -ruN a/engine/src/program/generate.cpp b/engine/src/program/generate.cpp
+--- a/engine/src/program/generate.cpp
++++ b/engine/src/program/generate.cpp
+@@ -9814,6 +9814,9 @@
+     for (int r = 0; r < 3; ++r) if (o.expert_cache_remote[(size_t) r] > 0)
+         drive.d.remote[drive.d.remote_count++] = &remote_experts[(size_t) r];
+     drive.d.peer = peer.valid() ? &peer : nullptr;
++    // STRATA_VERIFY_DEFER_CPU_BELOW needs the CPU's rows to land last: the verifiers' init reads this (below)
++    strata::core::set_pool_gpu_helper(drive.d.peer != nullptr ? "--peer-device"
++                                      : drive.d.remote_count > 0 ? "--expert-cache-device1..3" : nullptr);
+     drive.d.hit_cpu_order = o.expert_cache_cpu_order;
+     drive.d.split_rows = !o.no_split_rows;
+     drive.d.pool = &pool;
