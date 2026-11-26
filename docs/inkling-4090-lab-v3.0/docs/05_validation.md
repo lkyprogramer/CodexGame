@@ -35,6 +35,7 @@ V4 的 Astral 侧用 T12 新增的 `astral dump-logits` 导出。llama.cpp KLD b
 | V6 | 16 个 prompt × 500 位置；不一致只允许出现在 margin ≤ 1.0 logit 的位置 |
 | V7 | **（v3.0.7 注：此行两侧不是同一个统计量，见 §5.2；T12 按此行的复判降为“历史判定，待 T19 复核”）** argmax 相同；距 top 16 logit 以内的 token 上最大绝对差 ≤ N0_near_p99；KL(step‖prefill) ≤ N0_p99。N0_near_p99 是 llama.cpp `-ub 512` 对 `-ub 1` 时，每个位置在同一窗口内最大 log-prob 差的 p99（2026-11-26 实测 3.15）；N0_p99 与 V4 的定义相同（实测 0.0284）。全词表最大差只记录，不参与判定 |
 | V8 | teacher-forced 下，投机 token 与普通贪心不同的位置全部是近平局（margin ≤ 1.0 logit） |
+| V7（num-2，2026-11-26 09:05 UTC 冻结，用户确认前为提案） | 用 fork `logit_compare.py`（[05](05_validation.md) §6.1 的口径）在 T19 的 A 组 96 个位置上比较 Astral step（参考侧）与 prefill（候选）。① argmax 不同只允许出现在 step 一侧 top-2 margin < 0.5 的位置；② `max_near` 与 `KL` 的 mean / p90 / max 各自 ≤ 2 × 参考形状对照（llama.cpp 逐 token 对 ub512，同一批 A 组位置、同一计算器）的对应值：max_near ≤ 0.627 / 1.620 / 3.133，KL ≤ 0.00143 / 0.00305 / 0.041；③ 位置齐全、唯一、有限，否则判不完整。系数 2 沿用 V4 的 2·N0。B 组 32 个位置用同一规则作保留集。规则文件 `tools/t19/rule_num2.json`（来源 `ref_shape_a.jsonl` SHA256 `e94dc19867934647…`） |
 
 阈值来源：Unsloth 报告 Q4_K_XL 对 Q8 的 KLD 为 0.0107，同一文件跨引擎的差异应明显低于量化误差，因此平均 KLD 下限取 0.005。Astral 作者在 H100 上观察到批量 kernel 与单 token kernel 的差异最多约 1 logit，V6–V8 的 1.0 logit 来自这里。tqllm 精确模式对 BF16 的 KLD 0.0023 只作外部旁证。 V7 改为相对噪声底判定的原因：T12 实测 llama.cpp 自身批量对逐 token，在概率窗口内有 19.4% 的位置最大差超过 1.0（p99 3.15），原阈值连参考实现自己都达不到；尾部 token 的绝对差对分布几乎没有影响，所以改用窗口内的差和 KL 来判定。
 
