@@ -1,0 +1,17 @@
+tensors: A1 744, A4 744, only in A1 0, only in A4 0, same name with other type/shape 0
+
+model R | ppl | KL vs same model R=3: mean p99 | top-1 vs R=3 | KL vs llama.cpp A1: mean | decode tok/s | greedy = R=3 for first n of 128
+A4 R=1  | 3.6669 | 0.0408 0.4330 | 93.24% | 0.1094 | 280.6 | 19
+A4 R=2  | 3.6262 | 0.0207 0.1958 | 94.71% | 0.1015 | 189.8 | 5
+A4 R=3  | 3.5631 | 0.0000 0.0000 | 100.00% | 0.0933 | 143.3 | 128
+A4 R=4  | 3.5516 | 0.0063 0.0656 | 97.65% | 0.0952 | 115.8 | 5
+A4 R=5  | 3.5425 | 0.0108 0.1027 | 96.96% | 0.0978 | 96.8 | 5
+A4 R=6  | 3.5470 | 0.0144 0.1556 | 96.47% | 0.0997 | 82.7 | 5 (extrapolation)
+A4 R=10 | 3.5506 | 0.0210 0.2239 | 95.39% | 0.1039 | 53.2 | 5 (extrapolation)
+A1 R=1  | 6.8125 | 0.6739 4.0318 | 71.13% | 0.6731 | 279.9 | 2
+A1 R=2  | 6.3795 | 0.5958 4.8427 | 73.58% | 0.5953 | 190.5 | 2
+A1 R=3  | 3.5359 | 0.0000 0.0000 | 100.00% | 0.0018 | 143.4 | 128
+
+prefill vs step (A4, 4 set-C sequences, 5 lengths each):
+  R=1: KL mean 2.28e-04 max 1.22e-03, argmax differ 0
+  R=5: KL mean 6.88e-04 max 5.84e-03, argmax differ 0

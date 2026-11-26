@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.13 · 2026-11-26
+
+T18 完成：fork `02259e1` 的 `ASTRAL_PASSES` 与 varloop（A4）原生加载。A1 默认三遍逐位不变；A4 的 1–5 遍运行记录与 6 / 10 遍外推，A1 截断对照。记录见 [07](docs/07_tasks.md)。
+
 ## v3.0.12 · 2026-11-26
 
 T15 完成：fork `2c2f424` 的 `astral trace` 只读探针（schema 见 fork `docs/trace.md`）；探针关、探针开、eager 三者逐位一致，decode 速度不变，主机重算与 GPU 输出对账误差 ≤ 1.1e-6。记录见 [07](docs/07_tasks.md)；[06](docs/06_loop_research.md) §3 注明实现范围。
