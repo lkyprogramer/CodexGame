@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.9 · 2026-11-26
+
+查清并修复 Astral prefill 的运行间不确定性（两条 split-K 路径的 float `atomicAdd`；fork `35de94a` 改为分片写工作区、按固定顺序归约，16 token prefill +2.5%，更长无差别），[05](docs/05_validation.md) §6.5。用户采用 V7 的 num-3（同位置配对比值，概率加权的窗口差），fork `f8c976e` 实现 `judge-paired`；新增保留集 C（`tools/t19/prompts_set_c.json`），在其结果出来之前冻结。
+
 ## v3.0.8 · 2026-11-26
 
 执行 T19。fork 新增 `astral dump-final-logits`、`bench/llamacpp_compare/final_logits.cpp`、`logit_compare.py`（含离线测试，`a8ca269`）；本包新增 `tools/t19/`（manifest、导出、判定脚本、冻结的规则与小体量结果）。按先冻结规则（`92f4c40`）再看候选的顺序，V7 num-2 在 A、B 两组都判 FAIL；分析表明失败来自规则的两个缺陷（窗口 max 被极小概率 token 主导；绝对限值不能跨位置分布迁移），同位置上 Astral 的 prefill / step 差异与 llama.cpp 自身的 ub512 / 逐 token 差异同量级。num-3 提案写在 [05](docs/05_validation.md) §6.4，待用户决定。另发现 Astral prefill 路径两次运行之间不逐位一致（§6.5），[06](docs/06_loop_research.md) 的逐位一致要求限定在 step 路径。

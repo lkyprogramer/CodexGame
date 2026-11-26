@@ -35,6 +35,7 @@ V4 的 Astral 侧用 T12 新增的 `astral dump-logits` 导出。llama.cpp KLD b
 | V6 | 16 个 prompt × 500 位置；不一致只允许出现在 margin ≤ 1.0 logit 的位置 |
 | V7 | **（v3.0.7 注：此行两侧不是同一个统计量，见 §5.2；T12 按此行的复判降为“历史判定，待 T19 复核”）** argmax 相同；距 top 16 logit 以内的 token 上最大绝对差 ≤ N0_near_p99；KL(step‖prefill) ≤ N0_p99。N0_near_p99 是 llama.cpp `-ub 512` 对 `-ub 1` 时，每个位置在同一窗口内最大 log-prob 差的 p99（2026-11-26 实测 3.15）；N0_p99 与 V4 的定义相同（实测 0.0284）。全词表最大差只记录，不参与判定 |
 | V8 | teacher-forced 下，投机 token 与普通贪心不同的位置全部是近平局（margin ≤ 1.0 logit） |
+| V7（**num-3**，用户 2026-11-26 采用；规则 `tools/t19/rule_num3.json`，在 C 组结果出来之前提交推送） | 用 fork `logit_compare.py judge-paired` 在**同一批位置**上比较 Astral（step 为参考侧、prefill 为候选）与参考形状对照（llama.cpp 逐 token 对 ub512）：① argmax 不同只允许出现在 step 一侧 top-2 margin < 0.5 的位置；② 候选 / 参考的比值：`near_w`（窗口内按参考概率加权的 log-prob 差）的 mean、p90 ≤ 2，KL 的 mean、p90、max ≤ 2；③ `max_near` 只记录、不判定；④ 位置齐全、唯一、有限，参考侧同样要求。**判定集是全新的 C 组**（`tools/t19/prompts_set_c.json` 16 个 prompt × 5 个长度 = 80 个位置，llama.cpp 贪心续写 160 token）；A、B 组看过 num-2 结果，只作描述 |
 | V7（num-2，2026-11-26 09:02 UTC 冻结（提交 `92f4c40`），用户确认前为提案；T19 按此判 FAIL，规则缺陷见 §6.4） | 用 fork `logit_compare.py`（[05](05_validation.md) §6.1 的口径）在 T19 的 A 组 96 个位置上比较 Astral step（参考侧）与 prefill（候选）。① argmax 不同只允许出现在 step 一侧 top-2 margin < 0.5 的位置；② `max_near` 与 `KL` 的 mean / p90 / max 各自 ≤ 2 × 参考形状对照（llama.cpp 逐 token 对 ub512，同一批 A 组位置、同一计算器）的对应值：max_near ≤ 0.627 / 1.620 / 3.133，KL ≤ 0.00143 / 0.00305 / 0.041；③ 位置齐全、唯一、有限，否则判不完整。系数 2 沿用 V4 的 2·N0。B 组 32 个位置用同一规则作保留集。规则文件 `tools/t19/rule_num2.json`（来源 `ref_shape_a.jsonl` SHA256 `e94dc19867934647…`） |
 
 阈值来源：Unsloth 报告 Q4_K_XL 对 Q8 的 KLD 为 0.0107，同一文件跨引擎的差异应明显低于量化误差，因此平均 KLD 下限取 0.005。Astral 作者在 H100 上观察到批量 kernel 与单 token kernel 的差异最多约 1 logit，V6–V8 的 1.0 logit 来自这里。tqllm 精确模式对 BF16 的 KLD 0.0023 只作外部旁证。 V7 改为相对噪声底判定的原因：T12 实测 llama.cpp 自身批量对逐 token，在概率窗口内有 19.4% 的位置最大差超过 1.0（p99 3.15），原阈值连参考实现自己都达不到；尾部 token 的绝对差对分布几乎没有影响，所以改用窗口内的差和 KL 来判定。
@@ -99,22 +100,22 @@ V4 的 u16 KLD 文件继续使用，但抽少量位置同时导出 float32 logit
 - 样本：prompts A（`prompts16.json`）已在 T10–T13 看过，只用于定位和校准；prompts B（`promptsB.json`）在 T14 只用于计时、未用于任何数值判定（推断，T19 开始前核对脚本记录），作为数值保留集。若发现 B 已被用于选阈值，另冻结一个小的 C 集。
 - 位置数少时不再要求“候选所有位置的最大值 < 参考 p99”；改用事先选定的分位数或超阈率，并按 prompt 聚类统计。
 
-### 6.4 num-2 在 T19 中暴露的缺陷与 num-3 提案（待用户决定）
+### 6.4 num-2 在 T19 中暴露的缺陷与 num-3（2026-11-26 用户采用）
 
 T19 按冻结的 num-2 规则判 FAIL（[07](07_tasks.md) 执行记录），但失败点集中在规则本身：
 
 1. **窗口过宽，max 被极小概率 token 主导。** A 组唯一超限的位置（`a00` 长度 39）窗口内只有 2 个 token，第二名在 Astral step 里 log-prob 约 −12.7（概率约 3e-6），prefill 里约 −19，差 6.3；该位置 KL 只有 1.6e-5。`max_near` 的 max 统计量对这类 token 极敏感，与分布差异几乎无关。
 2. **绝对限值不能跨位置分布迁移。** 限值来自 A 组位置（长 prompt 末位与生成段），B 组是短 prompt 的中段和末位，熵更高：llama.cpp 自己在 B 组的形状对照 KL 均值 0.0077，同样超过限值（0.0014），而 Astral 在 B 组是 0.0055，比参考自己还小。
 
-**num-3 提案**（未生效；需要你确认，并且因为是看过 T19 结果之后提出的，生效后要用一个新的保留集 C 判定，A、B 只作描述）：
+**num-3**（用户已采用，定义见 §3；因为是看过 T19 结果之后提出的，用新的保留集 C 判定，A、B 只作描述）：
 
 - 同位置配对：候选与参考形状对照在**同一批位置**上比较，判定量是候选 / 参考的比值（mean 与 p90 各 ≤ 2），不再使用从别的位置集算出的绝对限值；
 - 窗口内的差按参考概率加权（或把窗口收窄到 log p ≥ max − 8），`max_near` 的 max 只记录、不判定；KL 的 max 仍判定（≤ 2 × 同位置参考的 max）；
 - argmax 规则不变。
 
-### 6.5 Astral prefill 的运行间不确定性（T19 发现）
+### 6.5 Astral prefill 的运行间不确定性（T19 发现，已修复）
 
-同一输入跑两次：Astral **step 路径逐位相同**，**prefill 路径每个位置都不同**（两次之间 KL 均值 7.6e-5、最大 0.0024，`max_near` 最大 4.5，argmax 不变）。llama.cpp 逐 token 两次逐位相同。推断（读代码所得，未做消融实验）：prefill 用的 loop controller GEMM（K 切 8 份）与 MMA GEMM 的 split-K 都以 float `atomicAdd` 累加，加法顺序不固定；不是 d17a519 那类跨 stream 竞争，但在关掉 split-K 对照之前不能完全排除。影响：凡要求“逐位一致”的检查（T15 探针开 / 关、T18 改前改后）只能在 step 路径上做；prefill 路径改用 §6 的容差口径，并以 prefill 自身的运行间差异作第四类噪声对照。
+同一输入跑两次：Astral **step 路径逐位相同**，**prefill 路径每个位置都不同**（两次之间 KL 均值 7.6e-5、最大 0.0024，`max_near` 最大 4.5，argmax 不变）。llama.cpp 逐 token 两次逐位相同。**根因（消融确认）**：prefill 的两条 split-K 路径——分组张量核 GEMM（`Gemv::launch_mma` / `gemm_mma3`）和 loop controller 的下投影（`InklingOps::ctrl_t`，K 切 8 份）——都用 float `atomicAdd` 合并各分片，舍入取决于 block 完成顺序。只关其中一条仍不可复现，两条都关后 24/24 个文件逐位相同；MoE 分组用的整数 `atomicAdd` 不影响结果；不是竞争条件。直接关掉拆分会让 16 token 的 prefill 慢 40%，所以没有采用。**修复**（fork `35de94a`）：各分片把部分和写进工作区里自己的一份，再由新的 kernel 按分片顺序相加。修复后 prefill 两次运行逐位相同；交替各 8 次的 A/B 中位数：16 token 59.5 → 61.0 ms（+2.5%），128、512 token 无差别。selftest 新增两条路径的可复现性用例（85/85 通过）。修复后，T15 / T18 的“逐位一致”检查在 prefill 路径上同样适用。
 
 ## 7. 运行记录格式（v3.0.7 起）
 
