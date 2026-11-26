@@ -169,3 +169,18 @@ llama.cpp 侧的 128 token 贪心序列与分词对照（V2/V5），在 W1 或 W
 ```bash
 python3 "$PKG/tools/paired_stats.py" --input "$LAB/runs/t14/decode_ms.csv" --output "$LAB/runs/t14/decode_stats.json"
 ```
+
+## 9. 分析脚本的位置
+
+通用的对照与压测脚本已迁到 fork 仓库的 [`bench/llamacpp_compare/`](https://github.com/lkyprogramer/inkling-4090-engine/tree/main/bench/llamacpp_compare)，在 4090 上的路径是 `$LAB/src/astral/bench/llamacpp_compare/`。本包 `tools/w1`、`tools/w2`、`tools/t14` 里的 shell 脚本是当次执行的原样记录，其中 `$R/<旧名>` 指当时复制到 `$LAB/runs/` 的副本。新旧名称对应：
+
+| 本包旧名 | fork 中的新名 | 变化 |
+|---|---|---|
+| `tokparity.py` | `tokenizer_parity.py` | 有差异时退出码为 1 |
+| `kld.py` | `kld_compare.py` | 无 |
+| `nearcmp.py` | `near_top_diff.py` | 可以传多个候选文件 |
+| `refseq.py` | `greedy_reference.py` | 无 |
+| `v567.py` | `teacher_forced_verdicts.py` | 输入缺失或不完整时判失败；结果写入退出码；V7 阈值要显式传参（`--v7-near-max`、`--v7-kl-max`），单位必须与 `cmp-prefill` 一致 |
+| `t14_bench.py` / `t14_ids.py` / `t14_report.py` | `stream_bench.py` / `chat_prompt_ids.py` / `stream_report.py` | 无 |
+
+迁移后在 4090 上用 W2、T14 的原始数据重跑过：KLD 0.001796 / p99 0.0228、N0 窗口内差的 p99 3.149、V5 / V6 / V7（只判 argmax）通过，与原记录一致。

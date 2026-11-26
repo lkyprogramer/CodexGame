@@ -26,7 +26,7 @@
 | `crates/hw/src/lib.rs:116` | profile 只用于填充报告字段 | 同上 |
 | `crates/kernels/src/lib.rs:38-44` | fatbin 中没有当前 GPU 可用的 SASS 时，加载报 209，并提示重新设置 `ASTRAL_CUDA_ARCHS` | 构建 `89`（sm_80 的 SASS 也能在 8.9 上运行，可用于二分定位） |
 | `crates/gpu/src/lib.rs:204` | PDL 只在 cc ≥ 9 启用 | 4090 上没有 PDL；依靠 CUDA graph 摊薄 launch 开销 |
-| `crates/kernels/src/ops.rs:902` | wgmma 只在 cc = 9 且构建含 90a 时启用 | 4090 的预填走 `mma5`（`mma.sync`）路径 |
+| `crates/kernels/src/ops.rs:902` | wgmma 只在 cc = 9 且构建含 90a 时启用 | 4090 上 Inkling 的预填走 `Gemv::launch_mma`（`mma3` 系列，`mma.sync`）；`launch_mma5` 的 fragment 路径没有接入 Inkling 模型（2026-11-26 按评审核实源码后更正，原文误写为 `mma5`） |
 | `crates/kernels/src/ops.rs:1131` | `launch_q` 的共享内存超过 48 KB 就报错 | sm_89 的静态共享内存上限同样是 48 KB，无变化 |
 | `crates/kernels-src/cu/inkling.cu` | `#define MAX_CTX 8192`；解码注意力把 `logit[MAX_CTX]`（32 KB）放在静态共享内存 | 上下文硬上限；4090 每 SM 100 KB，占用率低于 A100 |
 | `crates/kernels/src/inkling.rs:408,912,1221` | 注意力启动器检查 capacity ≤ MAX_CTX、head_dim 128、`n_rel` 上限 | 同上 |
@@ -42,7 +42,7 @@
 |---|---|---|---|
 | A 上卡 | 构建 `ASTRAL_CUDA_ARCHS=89`；新增 `ArchProfile::Sm89`（family F80，`sm_target` "89"，`cp_async`、int8 TC、FP8 TC 为 true，fp4 为 None），更新第 249 行的测试 | T05、T07、T11 | selftest 全部 PASS；`astral hw` 输出 `sm89` |
 | B 观测 | 新增 `ASTRAL_TRACE=<path>`。按 slot 输出 JSONL：pass、物理层、残差 RMS、controller gain/forget 统计、mix 权重、路由 top-8 id 与权重、注意力熵（抽样）、每遍结束时的 logit lens。只在 eager 模式（`ASTRAL_NO_GRAPH=1`）下生效 | T15 | trace 关闭时 logits 与关闭前逐位一致；trace 开启时 G2 不回退 |
-| C 调优 | 用 CUDA event、`kbench`、nsys 时间线找热点；调整 GEMV 每块行数、`mma5` 的 tile 与 stage（适配 100 KB）、carveout（`ASTRAL_CARVEOUT`）、dp4a 与 mma 的切换（`ASTRAL_DECODE_DP4A`、`ASTRAL_SMALL_DP4A`）、注意力 split 数（`ASTRAL_ATT_SPLITS`）；之后评估 Ada 的 FP8 `mma.sync` 用于 Q8_0 部分 | T16 | G3 |
+| C 调优 | 用 CUDA event、`kbench`、nsys 时间线找热点；调整 GEMV 每块行数、`mma3` 的 tile 与 stage（适配 100 KB）、carveout（`ASTRAL_CARVEOUT`）、dp4a 与 mma 的切换（`ASTRAL_DECODE_DP4A`、`ASTRAL_SMALL_DP4A`）、注意力 split 数（`ASTRAL_ATT_SPLITS`）；之后评估 Ada 的 FP8 `mma.sync` 用于 Q8_0 部分 | T16 | G3 |
 | D 长上下文 | SWA slot 改为长度 1024 + 草稿余量的环形缓冲；全局 slot 用分块 online softmax，logits 不放共享内存；长预填分块；可选全局 KV 用 q8 | T17 | G4 |
 | E 循环控制 | 遍数可配置（`--passes`，或解析 varloop 配置）；跨遍 KV 策略开关；早停钩子 | T18 | 3 遍时与改前逐位一致；varloop 可在 1–6 遍下运行 |
 | F 草稿器 | 4090 上的 DSpark（现有实现）；DFlash2 移植（5 层 qwen3 类结构，可复用 `qwen.rs` 的 kernel） | T13、T14、R7 | 投机解码与普通贪心等价（[05](05_validation.md) §3） |

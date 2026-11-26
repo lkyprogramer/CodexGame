@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.6 · 2026-11-26
+
+Astral fork 拆成独立公开仓库 [lkyprogramer/inkling-4090-engine](https://github.com/lkyprogramer/inkling-4090-engine)：删除 `patches/astral/`，通用分析脚本迁到 fork 的 `bench/llamacpp_compare/`（新旧名对照见 [08](docs/08_runbooks.md) §9）。按评审（`docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md` §4.1）核实源码后，更正 [04](docs/04_astral_fork.md)：Inkling 的预填走 `mma3`，不是 `mma5`。
+
 ## v3.0.5 · 2026-11-26
 
 T14 性能基线完成，G3 通过：Astral 无草稿 143.1 tok/s，是同一 GGUF 下 llama.cpp 的 1.92 倍。脚本在 `tools/t14/`。另外更正 T13 记录：prompt 格式本来就对（Inkling 模板没有生成提示，模型自己输出 `<|message_model|>`），初稿把接受率低归因于缺少生成提示，是误判。

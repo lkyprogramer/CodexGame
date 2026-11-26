@@ -1,6 +1,6 @@
 # Inkling-2-Mini × RTX 4090 自有引擎实验室 v3.0
 
-**版本：3.0.5 · 2026-11-26（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。**
+**版本：3.0.6 · 2026-11-26（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。**
 
 ## 目标
 
@@ -45,12 +45,17 @@
 
 `python3 -B -m unittest discover -s tests -v` 运行工具测试，`python3 -B tools/check_package.py` 做结构自检，`sha256sum -c PACKAGE_MANIFEST.sha256` 校验包完整性；本次结果见 [VALIDATION](VALIDATION.md)。v2.x 文档包（`docs/atomic-inkling-4090-plan-v2.0`）保留为历史，不再执行。
 
-## Astral fork 补丁
+## Astral fork 仓库
 
-fork 的提交以 `git format-patch` 形式保存在 [`patches/astral/`](patches/astral/)，基线是 `49a0a2b`，分支为 `inkling-4090`。当前没有 GitHub 上的 fork 仓库，这里是唯一的异地副本。复现方式：`git checkout -b inkling-4090 49a0a2b && git am patches/astral/*.patch`。
+fork 已拆成独立的公开项目 **[lkyprogramer/inkling-4090-engine](https://github.com/lkyprogramer/inkling-4090-engine)**（GitHub fork，基线为上游 `49a0a2b`），4090 上的 `$LAB/src/astral` 跟踪其 `main`（远端名 `fork`）。原先放在本包 `patches/astral/` 里的补丁已删除，代码以该仓库为准：
 
-| 补丁 | 内容 |
+| 提交 | 内容 |
 |---|---|
-| 0001 | `ArchProfile::Sm89`；修正 `mxfp4_block` 测试的期望值（T11） |
-| 0002 | 同步上传 / 清零之后先等 legacy stream 完成，再交给 non-blocking stream（修复 T07 的 MXFP4 失败） |
-| 0003 | `astral dump-logits`（输出 llama.cpp KLD base 格式）和 `cmp-prefill` 的诊断输出（T12） |
+| `c240d53` | `ArchProfile::Sm89`；修正 `mxfp4_block` 测试的期望值（T11） |
+| `d17a519` | 同步上传 / 清零之后先等 legacy stream 完成（修复 T07 的 MXFP4 失败） |
+| `d3b402e` | `astral dump-logits` 和 `cmp-prefill` 的诊断输出（T12） |
+| `6b78ffc` | `bench/llamacpp_compare/`：从本包 `tools/w1`、`tools/w2`、`tools/t14` 迁过去的通用分析脚本 |
+| `8189c6f`、`e484873` | 4090 移植文档、基准文档、README / NOTICE / CHANGELOG、GitHub 模板与 CI |
+
+本包只保留实验室专用内容：驱动守卫、停服窗口、ModelScope 下载、执行记录和调用这些分析脚本的 shell 脚本。
+
