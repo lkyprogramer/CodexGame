@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.8 · 2026-11-26
+
+执行 T19。fork 新增 `astral dump-final-logits`、`bench/llamacpp_compare/final_logits.cpp`、`logit_compare.py`（含离线测试，`a8ca269`）；本包新增 `tools/t19/`（manifest、导出、判定脚本、冻结的规则与小体量结果）。按先冻结规则（`92f4c40`）再看候选的顺序，V7 num-2 在 A、B 两组都判 FAIL；分析表明失败来自规则的两个缺陷（窗口 max 被极小概率 token 主导；绝对限值不能跨位置分布迁移），同位置上 Astral 的 prefill / step 差异与 llama.cpp 自身的 ub512 / 逐 token 差异同量级。num-3 提案写在 [05](docs/05_validation.md) §6.4，待用户决定。另发现 Astral prefill 路径两次运行之间不逐位一致（§6.5），[06](docs/06_loop_research.md) 的逐位一致要求限定在 step 路径。
+
 ## v3.0.7 · 2026-11-26
 
 逐条核实用户提交的研究评审（仓库 `docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md`，[09](docs/09_sources.md) S31）后修订文档。Astral 源码相关结论对照 fork 源码核实，外部来源 13 条按固定 commit 抓原文核对（9 条属实，4 条部分属实，按原文修正了表述）。
