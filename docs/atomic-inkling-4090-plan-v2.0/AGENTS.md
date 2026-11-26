@@ -71,3 +71,10 @@ physical-layer 与 logical-visit 映射；各 loop 的 KV 与 convolution；posi
 ## v2.0 统一执行要求
 
 先读docs/00、34–40，以及Magnitude的41/42。L00–L07和M任务只为选中功能生成证据，不成为全部主线的强制前置。Tier不释放GPU KV，Pool另做N类Attention资格；Q8_0不按BF16比例估算。完整StateInventory、next-logits/cursor、typed subrecord目录、raw pending峰值、reader/update/replay事件与有限overflow回退必须闭合。Schema只验证结构；缺L01语义验证不能授缓存能力。Magnitude是inference engine，browser-agent是另一个仓库；不因Magnitudes源码存在就切换Atomic底座或重开旧no-benefit路线。
+
+## v2.1 现场与上游补充
+
+- 现场（2026-11-26只读观察，43 §2）：driver 610.57.04、Toolkit仅CUDA 12.3、PCIe Gen3 x16、62.46 GiB RAM、根分区可用213G（替代“SSD约600GB”）；生产Strata占23.3 GiB显存与约44.6 GiB RSS。
+- 用户已授权为本测试停启 `openclaw-qwen38-next.service`；只能用43 §9的包装脚本（idle检查、EXIT trap恢复、health确认），不得pkill/kill生产进程，不改驱动/power limit/page cache。上文“不要自行停生产”对此授权窗口以外仍有效。
+- mainline llama.cpp b12751是T02必选跨引擎oracle；Atomic与mainline差异未解释前不得作正式Mini基线。上游未合并PR只认锁定head SHA。是否把底座换成mainline是用户决策（D-BASE），执行代理不得自行切换。
+- W1–W3探索数字记为 `exploratory_gpu`，不能填G1–G6 PASS。

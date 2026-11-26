@@ -84,3 +84,9 @@ Atomic已有将旧式hidden_out低秩修正与target output组合的工具。它
 ~~~
 
 这是待现场填充的结构，不是可直接启动的模型配置。非空文件hash和来源绑定由T00/T02验证后才进入后续任务。
+
+## v2.1 · GGUF布局与候选更新
+
+官方checkpoint本身是NVFP4专家+MXFP8+BF16，“高精度参考”指与之等价或无损上转的Q8_0/BF16 GGUF。GGUF存在三种布局：mainline `inkling2_loop`（ggml-org、unsloth `Mainline_Support/`）、unsloth自有loop布局（unsloth根目录）、Atomic（AtomicChat AD-*）；张量字节可能相同而metadata/名称不同，且有最低引擎版本（mainline ≥ b12611）。`asset_fingerprint`增加 `gguf_layout` 与最低引擎版本字段，换布局即新model epoch。
+
+主力候选改为NVFP4 / IQ4_NL / UD-Q4_K_XL / UD-IQ4_XS（14.65–16.42 GiB），Q8_0为KLD参考，IQ2_M降为可选smoke。新增DFlash2草稿器资产（incoai，需#33073转换）。固定revision、大小与用途见[43 §6](43_upstream_llamacpp_4090_site.md)；下载后仍按本篇§2生成逐文件SHA256。

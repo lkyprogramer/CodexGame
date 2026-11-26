@@ -98,3 +98,7 @@ Atomic 持有 CUDA context、stream、图、allocator、预算和请求状态。
 包内 `tools/preflight.py`、`tools/paired_stats.py` 和 `tests/test_tools.py` 可立即运行。`tools/inkling-lab/lab.py`、CacheManager、SM89 Pool 与文中 NEW 路径是将来由对应任务实现的工程接口。没有这些实现时，实验状态保持 NOT_RUN/BLOCKED；不得复制伪命令生成 PASS。
 
 每次工程代理开始任务，读取 README、AGENTS、本篇、任务所属专题及机器 DAG。以当前版本合同约束行动，保存原始证据；不修改生产、不安装新 GPU 工具链来“验证文档”。
+
+## 9. v2.1 修订
+
+阶段A增加mainline b12751跨引擎oracle与上游修复回移植；T04后写D-BASE底座复核记录（是否继续Atomic由用户决定）；128K容量以indexed bias（#33063）为关键路径；T07/K系列先验证上游CUDA融合（#33060）再自研；T06新增DFlash2扩展。4090现场事实、停服窗口W0–W4及命令见[43](43_upstream_llamacpp_4090_site.md)。任务ID、DAG、148项测试与全部门槛不变。

@@ -95,7 +95,7 @@ sha256sum .work/models/mini-anchor/Inkling-2-Mini-AD-IQ2_M.gguf \
   --alias inkling4090-candidate --host 127.0.0.1 --port 18081
 ~~~
 
-若该KV格式/FA/模型op不支持，保存错误并标该能力行BLOCKED；F16或其他参数是新profile，不偷偷改完继续沿用q8标签。不要自动停止占用GPU的生产进程。
+若该KV格式/FA/模型op不支持，保存错误并标该能力行BLOCKED；F16或其他参数是新profile，不偷偷改完继续沿用q8标签。目标4090上生产Strata占满显存；只通过[43 §9](43_upstream_llamacpp_4090_site.md)的窗口包装脚本停启生产，禁止用pkill或直接kill生产进程。
 
 另一个终端只做API可用性smoke：
 
@@ -159,3 +159,7 @@ RESEARCH_ONLY命令见11/12。2DSD应固定S44实验分支，核查40所列runne
 ## v2缓存与Magnitude入口
 
 L00后拟提供cache-run，见38；Magnitude M任务见42。当前仅包内preflight/paired_stats/helper tests可直接执行。未实现后端、语义验证器或未连接目标机时保持NOT_RUN/BLOCKED。源码下载、模型运行、安装依赖与部署均需处在后续实际工程授权范围。
+
+## v2.1 · mainline对照与4090窗口
+
+现场Toolkit是 `/usr/local/cuda-12.3`，§3构建前先 `export PATH=/usr/local/cuda-12.3/bin:$PATH`；生产在跑时可用内存约9 GiB，构建默认放进停服窗口。mainline b12751及PR变体（L0–L3）的固定构建、SM89算子检查、下载集和带自动恢复的停服包装见[43 §9](43_upstream_llamacpp_4090_site.md)。§4的AtomicChat IQ2_M锚点降为可选；主线smoke改用mainline布局的IQ4级文件，同一文件分别由Atomic A0与mainline L0加载做跨引擎对照。

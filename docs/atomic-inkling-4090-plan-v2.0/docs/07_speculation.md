@@ -73,3 +73,9 @@ greedy优先实现；若sampling中使用确定性lookup，q是one-hot，不能�
 ## v2.0 · 成本按运行条件失效
 
 借鉴Magnitude的draft controller，但保留原目标与门槛。成本记录绑定model/representation、context class、active sequences、graph/kernel、驻留比例、KV Tier/Pool、预算和draft/verify资格。任何字段改变生成新CostEpoch，unknown不可填0；plain对照过期时在冻结预算内重测。先离线比较合法固定宽度，再决定是否立项在线控制；不复制上游acceptance prior。成本包含draft、verify、feature catch-up、接受/拒绝回滚、切换、prefill及后台争用，收益看已提交token与完整请求。MGX09/10与M02见[42](42_magnitude_integration.md)。
+
+## v2.1 · 社区DSpark数据与DFlash2候选
+
+mainline DSpark（#32218）社区报告：固定n_max 2–4最好，prose常持平或变慢；默认f16 draft KV可挤爆显存；verify batch大小变化导致graph重建（Vulkan约25 ms/次）。因此§2的宽度顺序改为 AR→k=1→2→3→4，k=7只作诊断；draft KV类型显式等于target并计入容量；记录graph复用；按code/Java/工具JSON/prose分层。
+
+DFlash2（incoai草稿器，S54/S55）作为T06扩展T06-DF2：在DSpark G2后、以最佳固定k DSpark为对照配对比较；#33073转换器与#33049语义交叉核对，不一致即BLOCKED。完整说明见[43 §7](43_upstream_llamacpp_4090_site.md)。

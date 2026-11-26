@@ -53,6 +53,17 @@
 | S45 | [NVIDIA CUDA Rust current main at v2 audit](https://github.com/NVIDIA/cuda-rust/tree/f35d6ccc2e03a54e73e3796f415f11313e439d50) | #1866后当前main；相对S22的14文件增量审计 |
 | S46 | [CUDA oxide writer coverage fix PR1866](https://github.com/NVIDIA/cuda-rust/pull/1866) | 写入witness、前置assert、仅1D writes_all_elems；不扩大证明范围 |
 | S47 | [Magnitude current main](https://github.com/magnitudedev/magnitude/tree/3aba40fda19fdaacc345c91c5e711a3bca2f9ee3) | 统一ledger、传输退休、专家回放、cost epoch与Pi观测；当前无Inkling注册 |
+| S48 | [llama.cpp mainline b12751](https://github.com/ggml-org/llama.cpp/tree/532d67426bb874f06a8acc6959af81b34206f7f9) | v2.1 mainline oracle pin；观察时 master 为 `9c003a9`；见 43 |
+| S49 | [PR32217](https://github.com/ggml-org/llama.cpp/pull/32217)、[PR32694](https://github.com/ggml-org/llama.cpp/pull/32694)、[PR32704](https://github.com/ggml-org/llama.cpp/pull/32704) | mainline Inkling 2 / `inkling2_loop` 模型与 loop slot 修复（已合并） |
+| S50 | [PR32799](https://github.com/ggml-org/llama.cpp/pull/32799)、[PR32381](https://github.com/ggml-org/llama.cpp/pull/32381)、[PR32833](https://github.com/ggml-org/llama.cpp/pull/32833)、[PR32855](https://github.com/ggml-org/llama.cpp/pull/32855) | tokenizer ignore_merges、chat parser/grammar、mix 方向（已合并；Atomic pin 缺 #32799/#32855） |
+| S51 | [PR33053](https://github.com/ggml-org/llama.cpp/pull/33053)；[PR33063 head](https://github.com/ggml-org/llama.cpp/tree/a5e173111058076bb620752397b9072c5d20c429) | indexed bias 图与稠密回退（已合并）；CUDA FA indexed bias（未合并） |
+| S52 | [PR33060 head](https://github.com/ggml-org/llama.cpp/tree/89478df95ac525f61d9c9bdfcdf0ca76a8d2c505)；[PR32943 head](https://github.com/ggml-org/llama.cpp/tree/b68cf35dc5bc188c1b595149bf3b71089befd752) | CUDA Inkling 融合与 top-k MoE 融合；作者 sm_120/GB10 数据，未合并 |
+| S53 | [PR32773](https://github.com/ggml-org/llama.cpp/pull/32773)；[Issue33040](https://github.com/ggml-org/llama.cpp/issues/33040) | DSpark draft KV/graph rebuild 实测（Vulkan）；双 5060 Ti 放置、compute buffer 与 DSpark 实测 |
+| S54 | [PR33049 head](https://github.com/ggml-org/llama.cpp/tree/39e7ac1eb71529e8c8195fa18a15cc6fdc446867)；[PR33073 head](https://github.com/ggml-org/llama.cpp/tree/f4fd1dce91c6d115a6ab0fb6751265cfe58e1d6b) | Inkling DFlash2 运行时修复 / 含转换的实现，均未合并 |
+| S55 | [incoai/Inkling-2-Mini-DFlash2](https://huggingface.co/incoai/Inkling-2-Mini-DFlash2/tree/4f9088ea66c21f2b99ed657d1941c306b03e84d2) | DFlash2 草稿器 config 与作者 H200 SGLang 数据 |
+| S56 | [ggml-org GGUF](https://huggingface.co/ggml-org/Inkling-2-Mini-GGUF/tree/0bdc580634ceac4c4d921f452777bf44228de9af) | mainline 布局 IQ4_NL/NVFP4/Q8_0/BF16 文件与大小 |
+| S57 | [unsloth GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF/tree/8078d149286eec7193795413b9e0643da6d11fa1)（Mainline_Support/README） | 两种布局、≥b12611 要求、mainline DSpark drafter 文件 |
+| S58 | [PR32777](https://github.com/ggml-org/llama.cpp/pull/32777)、[PR33058](https://github.com/ggml-org/llama.cpp/pull/33058)、[PR33072](https://github.com/ggml-org/llama.cpp/pull/33072) | 显存受限/多卡时 loop-aware 放置与 MoE cache 去重（未合并，仅 T09 参考） |
 
 `manifests/source-lock.json`记录核心pin；[source-audit.json](../manifests/source-audit.json)记录49项Atomic/squid静态核查路径与Git blob SHA。Git blob SHA不等于下载模型文件的SHA256，也不代表二进制或GPU资格。
 
@@ -114,3 +125,9 @@ v1.2当时来源登记35项、机器源锁30项；[CUDA Rust审计](../manifests
 LoomKV论文的约0.71是BF16记录比例；GPU有效容量、分配开销和完整Inkling状态另算。Tier不压缩活动GPU KV；Pool改Attention，输出仅可声明符合数值合同。GAAC/ZipFusion不自动覆盖Inkling的SWA、多token验证和逐loop状态。Magnitude SSD主要面向专家权重，不是L03完整会话SSD恢复的实现证明。
 
 所有来源只能提出候选与资格边界。真实模型/硬件测试目录中的每一项保持NOT_RUN；本轮新完成的只有来源核查、设计与文档工具验证。
+
+## 9. v2.1 上游刷新与现场观察
+
+新增S48–S58，共58项登记来源；机器源锁仍是42项（新pin集中记录在[43](43_upstream_llamacpp_4090_site.md)和本表，下一次源锁修订再并入）。本节纠正v2.0的一个事实边界：S12不只是Atomic DSpark的出处，mainline已合并正式Mini、DSpark与多项正确性修复，必须作为T02跨引擎oracle。
+
+§4中“没有目标机现场记录”的部分由43 §2的只读观察补充：driver 610.57.04 / CUDA UMD 13.3、Toolkit 12.3、PCIe Gen3 x16、62.46 GiB RAM、根分区可用213G、生产占用23.3 GiB显存。这仍不是T00交付，GPU空闲态与工具链锁定待W1。社区与作者数字（S52–S55）只作实验设计输入。

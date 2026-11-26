@@ -1,7 +1,7 @@
 # Atomic Engine × Inkling × RTX 4090 完整工程执行包
 
-**版本：2.0 · 2026-11-26（Asia/Shanghai）**  
-**43篇专题、44个任务、148项计划验证；另含机器合同、来源锁、辅助工具和交付检查。**  
+**版本：2.1 · 2026-11-26（Asia/Shanghai）**  
+**44篇专题、44个任务、148项计划验证；另含机器合同、来源锁、辅助工具和交付检查。**  
 **交付：完整设计与AI实施输入。目标推理引擎尚未在本轮实现或测量。**
 
 ## 这次重新组织后的主线
@@ -26,6 +26,7 @@
 - **缓存必须完整。** KV、SWA、逐loop conv、必要控制/draft状态、cursor和next logits一起决定续接资格。对象编码、完整checkpoint、活跃GPU lease分别建模。
 - **Magnitude是推理引擎。** 重点借鉴一个物理store一份账本、DMA/最后读者退休、有界预取、因果路由回放、CostEpoch和被动观测。当前没有Inkling family适配；其专家SSD路径不证明完整会话SSD恢复。
 - **纠正2DSD旧判断。** `feat/inkling-dspark@962874f…`已有公开实验runner；旧版漏查，R03由BLOCKED改为NOT_RUN。正式Mini匹配drafter、Atomic适配和SM89仍需资格。
+- **v2.1：mainline llama.cpp已能运行正式Mini。** b12751作为T02跨引擎oracle和回移植来源；Atomic `fb69fff`已确认缺#32799分词等4项上游修复。128K在4090上的首要约束是attention相对位置bias（稠密回退vs #33063），不是权重；IQ4级+Q8 KV预计可全驻留。DFlash2作为T06扩展。4090只读现场与停服窗口见[43](docs/43_upstream_llamacpp_4090_site.md)。
 - **CUDA Rust更新单独保留来源链。** 当前S45为`f35d6ccc…`；原141文件详细审计仍绑定历史S22，不能把旧proof/CI迁移成新版本证据。4090不使用TMA/PDL/TMEM/tcgen05等更高架构路径。
 
 具体事实和固定链接见[02](docs/02_evidence_register.md)、[22](docs/22_integration_matrix.md)、[33](docs/33_lossless_source_audit.md)、[40](docs/40_upstream_refresh.md)、[41](docs/41_magnitude_source_audit.md)。所有作者数字和外部CI均与目标机测试隔离。
@@ -52,6 +53,7 @@
 | 自动底层优化 | [27 CUDA Rust/证明](docs/27_cuda_rust_source_audit.md) · [28后端](docs/28_custom_backend_architecture.md) · [29受限搜索](docs/29_automated_kernel_optimization.md) · [30算子](docs/30_sm89_kernel_program.md) · [31 K任务](docs/31_kernel_tasks.md) · [32 AX验证](docs/32_kernel_validation_runbook.md) |
 | 完整缓存系统 | [33论文/codec审计](docs/33_lossless_source_audit.md) · [34状态/格式](docs/34_cache_state_contracts.md) · [35 Tier](docs/35_tier_cache_design.md) · [36 Pool](docs/36_compressed_pool_sm89.md) · [37资源协同](docs/37_unified_resource_policy.md) · [38 L任务](docs/38_cache_tasks.md) · [39 LX/UX验证](docs/39_cache_validation.md) |
 | Magnitude融合 | [41源码/分支](docs/41_magnitude_source_audit.md) · [42 M任务/测试](docs/42_magnitude_integration.md) |
+| v2.1上游与现场 | [43 mainline刷新/4090现场/窗口命令](docs/43_upstream_llamacpp_4090_site.md) |
 
 机器材料见[manifests说明](manifests/README.md)，执行记录模板见`templates/`。Schema能拒绝部分无效结构，但不能验证GPU真执行、实际hash、事件寿命、抽样独立性和授权；这些需要后续语义验证器与真实证据。
 

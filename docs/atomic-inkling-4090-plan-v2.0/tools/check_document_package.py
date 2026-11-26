@@ -63,7 +63,7 @@ def main():
     ck(not set(('LX27','LX28','LX29')) & set(byid['L05']['required_cache_tests']),'conditional tests became global')
     checks['conditional_cache_tests_explicit']=True
     source_ids=re.findall(r'^\| (S\d{2}) \|',(p/'docs/02_evidence_register.md').read_text(),re.M)
-    ck(len(source_ids)==len(set(source_ids))==47,'source register uniqueness/count')
+    ck(len(source_ids)==len(set(source_ids))==58,'source register uniqueness/count')
     pins=read('manifests/source-lock.json')['sources'];ck(len(pins)==42,'source pin count')
     ck(len({s['id'] for s in pins})==len(pins),'duplicate source pin')
     ck(all(s['id'] in source_ids for s in pins),'unregistered source pin')
@@ -97,7 +97,7 @@ def main():
             ck(dest.exists(),'broken link '+str(f.relative_to(p))+' '+target)
     checks.update(markdown_files=counts['md'],fenced_blocks=counts['fences'],shell_blocks_syntax_only=counts['bash'],relative_links=counts['links'])
     checks['topic_documents']=len(list((p/'docs').glob('*.md')))
-    ck(checks['topic_documents']==43,'topic document count')
+    ck(checks['topic_documents']==44,'topic document count')
     report={'scope':'document_structure_only','target_execution':'NOT_RUN','grants_qualification':False,
             'harness_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'status':'PASS' if not errors else 'FAIL','checks':checks,'errors':errors}

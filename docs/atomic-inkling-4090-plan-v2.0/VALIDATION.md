@@ -57,3 +57,16 @@ sha256sum -c PACKAGE_MANIFEST.sha256
 Ghost外部CPU CI、历史CUDA Rust CPU/proof/GPU-less与Blackwell结果仍分列于原观察文件；新f35d6ccc的10条Actions success只是摘要。2DSD exact head查询0条Actions只是查询观察；不推断作者未本地测试。作者H800/H100/B200、Metal和其他显卡测量都不是目标4090结果。
 
 后续仍需T00实机调查、选定资产构建、正式R3状态/数值/质量、DSpark拒绝取消、真实codec、SM89 kernel、长上下文与Pi/Java服务测试。单项5%、迁移10%、CI/p95/非劣、8h且200请求soak保持原合同。T12形成可审查候选；当前文档不授予G7生产切换权限。
+
+## 5. v2.1 增量验证（2026-11-26）
+
+| 项目 | 观察结果 | 证明范围 |
+|---|---|---|
+| `check_document_package.py` | PASS：44专题、58登记来源、42源锁、44任务/148测试不变、54个Markdown、33个shell片段 `bash -n` 通过、300个相对链接有效；结果写入[document-checks](validation/document-checks.json) | 文档结构；期望值按CHANGELOG v2.1更新 |
+| helper unittest | 9项通过 | 既有工具行为不变 |
+| `check_cache_schema.py` | 57/57吻合 | Schema合同未改动 |
+| `sha256sum -c PACKAGE_MANIFEST.sha256` | 全部OK（清单已按v2.1重算） | 包完整性 |
+| 上游/资产来源 | GitHub PR状态、merge/head SHA、HF revision与文件大小经API读取；Atomic pin逐文件读取确认4项差异 | 静态来源身份；未构建、未运行 |
+| 4090现场 | ssh只读查询（nvidia-smi、free、df、lsblk、systemctl、历史PCIe结果文件） | 不是T00交付；GPU被生产占用，空闲态未测 |
+
+[package-checks](validation/package-checks.json)保留v2.0记录不改。43中的窗口脚本与构建命令只做了语法检查，没有在4090执行；148项计划测试仍全部NOT_RUN。

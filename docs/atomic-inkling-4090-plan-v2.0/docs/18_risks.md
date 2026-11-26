@@ -77,3 +77,7 @@ K07独立backend需要真实相邻op/布局/分派关键路径、现有ggml接�
 7. Magnitude的量化codec/自动调优或并发目标被直接套为Atomic/Q8/单active路径。
 
 每项有L/M任务与LX/UX/MX用例；失败按原两轮有trace的修正上限结案，不以重写backend规避NO_BENEFIT。
+
+## v2.1 · DFlash2重开边界与上游漂移
+
+Inkling DFlash2（S54/S55）是不同target、不同草稿器与不同引擎实现，满足上文“不同模型/不同实现的新证据”才能重开的条件，只开放T06-DF2实验，不追认也不推翻旧Strata结论。上游未合并PR以锁定head SHA为准，head变化即新candidate；Atomic pin与mainline的已确认差异（43 §4）在T02解释或回移植前，Atomic输出不能作正式Mini基线。

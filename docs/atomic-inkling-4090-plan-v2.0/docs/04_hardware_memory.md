@@ -86,3 +86,9 @@ T04是容量诊断任务：记录每个profile的FIT / DOES_NOT_FIT / UNSUPPORTE
 ## v2.0 · 物理内存账与驻留权利
 
 Magnitude的ledger机制补入统一预算：一个physical_store内同一allocation只计一次；claim/reservation是尚可使用的权利，allocated是实际物理块，retiring仍被设备引用，必须继续占容量。pool内部granule转owner不能伪装成释放物理内存。采用同一个BudgetSnapshot(sample_id, ledger_epoch)与自身分配日志做准入，不能拼接不同时间的OS余量。GPU和RAM是分离容量，不搬用统一内存机器的grant公式。细节及MGX01–03见[41](41_magnitude_source_audit.md)、[42](42_magnitude_integration.md)。
+
+## v2.1 · 现场观察与128K容量的新主约束
+
+43 §2记录了只读现场：24564 MiB总显存、PCIe Gen3 x16（历史pinned H2D约8.1 GB/s）、62.46 GiB RAM、Toolkit 12.3、根分区可用213G；生产Strata运行时占23.3 GiB显存和约44.6 GiB RSS，实验必须停服。§7“不关闭现有服务”按用户2026-11-26授权修订为：只经[43 §9](43_upstream_llamacpp_4090_site.md)的包装脚本停启 `openclaw-qwen38-next.service` 并自动恢复；驱动、power limit、page cache仍不动。
+
+上游#33053后，后端不支持indexed bias时每个全局attention物化 `n_kv×ubatch×24` 的F32 bias（约2.5–4.4份副本），128K、ub512估算15–26 GiB。§4阶梯表每行增加ubatch与“稠密回退/indexed bias(#33063)”两列；IQ4级权重+Q8 KV的全驻留草案见43 §5，以实测buffer日志为准。按8 GB/s PCIe，专家streaming预期无收益空间，T09默认等待T04的DOES_NOT_FIT证据。
