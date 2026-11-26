@@ -4,7 +4,7 @@
 
 - 参考实现：**同一个 GGUF（A1）上的 llama.cpp b12751**。Astral 的模型语义本来就是逐步照 llama.cpp 写的，同文件对比可以排除量化差异。
 - 阈值相对于参考自身的噪声底设定：Astral 不会被要求比 llama.cpp 自己更一致。
-- 下文 §3 的阈值随 v3.0 冻结。噪声底 N0 在 T12 中**先于** Astral 的 KLD 测量。
+- 下文 §3 的阈值随 v3.0 冻结；V7 于 v3.0.4 经用户同意修订（原阈值为“全词表最大绝对差 ≤ 1.0 logit”）。噪声底 N0 在 T12 中**先于** Astral 的 KLD 测量。
 
 ## 2. 验证阶梯
 
@@ -32,10 +32,10 @@ V4 若 Astral 缺少 logits 导出，在 T12 中补一个只读的导出路径�
 | V4 Astral 对 llama.cpp | 平均 KLD ≤ max(2·N0_mean, 0.005)；p99 ≤ max(2·N0_p99, 0.05)；在参考 top-2 margin ≥ 0.5 logit 的位置上 top-1 一致率 ≥ 99.5% |
 | V5 | 在 llama.cpp 自身一致的 prompt 上，前 128 token 完全相同；若有分歧，分歧点在参考中的 top-2 margin 必须 < 0.5 logit |
 | V6 | 16 个 prompt × 500 位置；不一致只允许出现在 margin ≤ 1.0 logit 的位置 |
-| V7 | argmax 相同，且最大绝对差 ≤ 1.0 logit |
+| V7 | argmax 相同；距 top 16 logit 以内的 token 上最大绝对差 ≤ N0_near_p99；KL(step‖prefill) ≤ N0_p99。N0_near_p99 是 llama.cpp `-ub 512` 对 `-ub 1` 时，每个位置在同一窗口内最大 log-prob 差的 p99（2026-11-26 实测 3.15）；N0_p99 与 V4 的定义相同（实测 0.0284）。全词表最大差只记录，不参与判定 |
 | V8 | teacher-forced 下，投机 token 与普通贪心不同的位置全部是近平局（margin ≤ 1.0 logit） |
 
-阈值来源：Unsloth 报告 Q4_K_XL 对 Q8 的 KLD 为 0.0107，同一文件跨引擎的差异应明显低于量化误差，因此平均 KLD 下限取 0.005。Astral 作者在 H100 上观察到批量 kernel 与单 token kernel 的差异最多约 1 logit，V6–V8 的 1.0 logit 来自这里。tqllm 精确模式对 BF16 的 KLD 0.0023 只作外部旁证。
+阈值来源：Unsloth 报告 Q4_K_XL 对 Q8 的 KLD 为 0.0107，同一文件跨引擎的差异应明显低于量化误差，因此平均 KLD 下限取 0.005。Astral 作者在 H100 上观察到批量 kernel 与单 token kernel 的差异最多约 1 logit，V6–V8 的 1.0 logit 来自这里。tqllm 精确模式对 BF16 的 KLD 0.0023 只作外部旁证。 V7 改为相对噪声底判定的原因：T12 实测 llama.cpp 自身批量对逐 token，在概率窗口内有 19.4% 的位置最大差超过 1.0（p99 3.15），原阈值连参考实现自己都达不到；尾部 token 的绝对差对分布几乎没有影响，所以改用窗口内的差和 KL 来判定。
 
 ## 4. 性能测量协议（G3）
 
