@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "provenance": "engineering_policy_proposed_in_this_pack_not_measured_or_paper_claim",
+  "performance": {
+    "single_optimization_median_reduction_min": 0.05,
+    "main_model_migration_median_reduction_min": 0.1,
+    "positive_effect_ci_level": 0.95,
+    "key_stratum_p95_ratio_max": 1.05,
+    "confirm_min_independent_cases": 30,
+    "explore_pairs": 12,
+    "bootstrap_resamples": 10000,
+    "bootstrap_unit": "independent_case_within_predeclared_stratum",
+    "tail_min_requests_per_cell": 200,
+    "same_gpu_parallel_benchmarks": 1
+  },
+  "quality": {
+    "java_independent_tasks_min": 150,
+    "tool_independent_cases_min": 300,
+    "java_noninferiority_margin_pp": 2,
+    "tool_noninferiority_margin_pp": 1,
+    "one_sided_confidence": 0.95,
+    "critical_tool_errors_allowed": 0,
+    "critical_constraint_regressions_allowed": 0
+  },
+  "service": {
+    "default_active_generations": 1,
+    "logical_subagents": 3,
+    "vision_enabled": false,
+    "soak_min_hours": 8,
+    "soak_min_requests": 200,
+    "requires_explicit_production_rollout_authorization": true
+  },
+  "resources": {
+    "gpu_reserve_min_gib": 1.5,
+    "gpu_reserve_rule": "max(1.5 GiB, measured external peak + 0.5 GiB)",
+    "host_initial_os_agent_reserve_gib": 8,
+    "persistent_swap_allowed": false,
+    "capacities_are_runtime_measured": true
+  },
+  "stopping": {
+    "max_profiler_justified_correction_rounds": 2,
+    "unmeasured_status": "NOT_RUN",
+    "missing_hardware_or_runner_status": "BLOCKED",
+    "no_benefit_is_valid_result": true
+  }
+}

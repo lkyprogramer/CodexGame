@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "package_version": "2.0",
+  "target_arch": "sm_89",
+  "target_device": "RTX 4090",
+  "runtime_qualification": "NOT_RUN",
+  "source_commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+  "policy": "Hardware support, frontend support, operation/template support, compiled output, actual execution and model qualification are separate capabilities.",
+  "architecture_limits": {
+    "max_warps_per_sm": 48,
+    "registers_32bit_per_sm": 65536,
+    "max_registers_per_thread": 255,
+    "max_blocks_per_sm": 24,
+    "shared_bytes_per_sm": 102400,
+    "max_shared_bytes_per_block": 101376,
+    "dynamic_shared_opt_in_above_bytes": 49152,
+    "actual_sm_count": null,
+    "actual_l2_bytes": null,
+    "source": "https://docs.nvidia.com/cuda/ada-tuning-guide/index.html",
+    "note": "Per-chip resources and available dynamic shared memory must still be queried at T00; do not use full AD102 L2 as actual RTX 4090 L2.",
+    "dynamic_shared_opt_in_note": "The threshold concerns per-block shared allocation: static plus dynamic must obey the function limit; over-48KiB use requires dynamic allocation and explicit opt-in. Do not check dynamic bytes alone."
+  },
+  "routes": [
+    {
+      "id": "cuda_cpp",
+      "role": "baseline_and_candidate",
+      "source_support": "SUPPORTED",
+      "target_qualification": "NOT_RUN",
+      "proof_route": "NOT_REQUESTED",
+      "minimum_toolchain": "Existing Atomic toolchain to be frozen by T00; do not inherit Rust minimum automatically."
+    },
+    {
+      "id": "cuda_oxide_simt",
+      "role": "optional_aot_kernel_frontend",
+      "source_support": "SUPPORTED",
+      "target_qualification": "NOT_RUN",
+      "rust_pin": "1.99.1",
+      "cuda_header_minimum": "13.0",
+      "proof_route": "SCOPED_PREVIEW",
+      "source": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-target-spec/src/lib.rs"
+    },
+    {
+      "id": "cutile_rs_baseline",
+      "role": "optional_tile_frontend",
+      "source_support": "SUPPORTED",
+      "target_qualification": "NOT_RUN",
+      "rust_pin": "1.98.0",
+      "minimum_emitted_tile_ir": "13.2",
+      "proof_route": "NOT_ASSUMED",
+      "source": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-ir/src/requirements.rs"
+    },
+    {
+      "id": "cutile_rs_fp8",
+      "role": "excluded_on_sm89_at_pin",
+      "source_support": "UNSUPPORTED",
+      "minimum_sm": 90,
+      "dtypes": [
+        "f8E4M3FN",
+        "f8E5M2"
+      ],
+      "source": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-ir/src/requirements.rs"
+    },
+    {
+      "id": "cutile_rs_fp4_scaled_mma",
+      "role": "excluded_on_sm89_at_pin",
+      "source_support": "UNSUPPORTED",
+      "minimum_sm": 100,
+      "minimum_emitted_tile_ir": "13.3",
+      "source": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-ir/src/requirements.rs"
+    },
+    {
+      "id": "cute_rs_preview",
+      "role": "excluded_on_sm89_at_pin",
+      "source_support": "UNSUPPORTED",
+      "allowed_targets": [
+        "sm_100a",
+        "sm_103a",
+        "sm_107a",
+        "sm_120a"
+      ],
+      "source": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-mlir-export/src/profile.rs"
+    }
+  ],
+  "instruction_families": {
+    "eligible_when_exact_form_supported": [
+      "ordinary_cp_async",
+      "warp_shuffle",
+      "ldmatrix",
+      "mma_sync_fp16_bf16",
+      "dp4a",
+      "cuda_graph"
+    ],
+    "excluded_on_sm89": [
+      "TMA",
+      "thread_block_cluster",
+      "DSMEM",
+      "PDL",
+      "wgmma",
+      "tcgen05",
+      "TMEM",
+      "native_block_scaled_fp4"
+    ],
+    "numeric_format_note": "FP8 hardware availability on Ada does not override the pinned Tile frontend SM90 requirement or make the existing quantized model a native FP8 model."
+  },
+  "runtime_rules": {
+    "owner": "Atomic_existing_backend",
+    "new_device_context": false,
+    "new_weight_allocator": false,
+    "jit_during_steady_decode": false,
+    "single_gpu_performance_worker": 1,
+    "single_active_generation": 1,
+    "all_enabled_routes_require_profile_gates": true
+  },
+  "introduced_package_version": "1.2",
+  "source_scope": "Detailed frontend support was audited at historical S22. S45 is the current research checkout; its 14-file proof delta is recorded separately. No old evidence grants new runtime qualification.",
+  "current_research_commit": "f35d6ccc2e03a54e73e3796f415f11313e439d50"
+}

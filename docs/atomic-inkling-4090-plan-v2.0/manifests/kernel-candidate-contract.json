@@ -1,0 +1,1385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SM89 kernel candidate facts v1 (not a qualification decision)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_kind",
+    "candidate_id",
+    "task_id",
+    "qualification",
+    "target_arch",
+    "capability_key_sha256",
+    "target_fingerprint",
+    "frontend",
+    "optimization_class",
+    "contract",
+    "build",
+    "proof",
+    "execution",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "record_kind": {
+      "const": "kernel_candidate_facts"
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "enum": [
+        "K00",
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07"
+      ]
+    },
+    "qualification": {
+      "const": "NOT_ASSESSED"
+    },
+    "target_arch": {
+      "const": "sm_89"
+    },
+    "capability_key_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "target_fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "frontend": {
+      "enum": [
+        "UNSELECTED",
+        "cuda_cpp",
+        "cuda_oxide_simt",
+        "cutile_rs"
+      ]
+    },
+    "optimization_class": {
+      "enum": [
+        "E",
+        "N"
+      ]
+    },
+    "contract": {
+      "type": "object",
+      "required": [
+        "shape_scope",
+        "dtype_layout_scope",
+        "state_effects",
+        "assumptions_enforced_by"
+      ],
+      "properties": {
+        "shape_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "dtype_layout_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "state_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "assumptions_enforced_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "required": [
+        "status",
+        "actual_argv",
+        "exit_code",
+        "kernel_symbol",
+        "ptx_isa",
+        "artifact_mode",
+        "flags",
+        "unchecked_indexing",
+        "device_debug_proof_bypass"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "NOT_RUN",
+            "SUCCESS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "actual_argv": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "kernel_symbol": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "ptx_isa": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "artifact_mode": {
+          "enum": [
+            "UNSELECTED",
+            "AOT_CUBIN",
+            "PTX_JIT"
+          ]
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unchecked_indexing": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "device_debug_proof_bypass": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "proof": {
+      "type": "object",
+      "required": [
+        "requested",
+        "status",
+        "unit_kind",
+        "properties",
+        "assumptions",
+        "allowed_axioms",
+        "counts",
+        "all_properties_proved",
+        "actual_argv",
+        "exit_code",
+        "export_only",
+        "trusted_components",
+        "unproved_links",
+        "compiler_semantics_proved",
+        "numeric_equivalence_proved"
+      ],
+      "properties": {
+        "requested": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "NOT_REQUESTED",
+            "NOT_RUN",
+            "PROVED_SCOPED",
+            "FAILED",
+            "UNKNOWN",
+            "UNSUPPORTED",
+            "ERROR"
+          ]
+        },
+        "unit_kind": {
+          "enum": [
+            "NONE",
+            "POST_MEM2REG_MIR"
+          ]
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "allowed_axioms": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "propext",
+              "Quot.sound",
+              "Classical.choice"
+            ]
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "total",
+            "proved",
+            "failed",
+            "unknown",
+            "sorry_ax"
+          ],
+          "properties": {
+            "total": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "proved": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "failed": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unknown": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "sorry_ax": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "all_properties_proved": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "actual_argv": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "export_only": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "trusted_components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "unproved_links": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "compiler_semantics_proved": {
+          "const": false
+        },
+        "numeric_equivalence_proved": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "kind",
+        "status",
+        "evidence_kind",
+        "gpu_name",
+        "gpu_uuid",
+        "actual_arch",
+        "driver_version",
+        "kernel_launch_count",
+        "completed_event_verified",
+        "oracle_status",
+        "raw_timing_artifact",
+        "reason_code"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "not_run",
+            "compile_only",
+            "ptx_static_check",
+            "arch_skipped",
+            "actual_gpu_execution"
+          ]
+        },
+        "status": {
+          "enum": [
+            "NOT_RUN",
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "evidence_kind": {
+          "enum": [
+            "not_run",
+            "document_check",
+            "local_compile",
+            "other_gpu",
+            "target_4090"
+          ]
+        },
+        "gpu_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "gpu_uuid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "actual_arch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "driver_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "kernel_launch_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "completed_event_verified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "oracle_status": {
+          "enum": [
+            "NOT_RUN",
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "raw_timing_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "object",
+      "required": [
+        "kernel_contract",
+        "abi_contract",
+        "toolchain_lock",
+        "source",
+        "dependency_lock",
+        "verified_ir",
+        "emitted_ir",
+        "ptx",
+        "cubin",
+        "tile_ir",
+        "tile_bytecode",
+        "tileiras",
+        "resource_report",
+        "sass",
+        "checker_input",
+        "checker_output",
+        "proof_policy",
+        "transcriber",
+        "verifier",
+        "lean_toolchain",
+        "raw_execution",
+        "input_fixture",
+        "output",
+        "oracle_log",
+        "inventory"
+      ],
+      "properties": {
+        "kernel_contract": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "abi_contract": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toolchain_lock": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dependency_lock": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verified_ir": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "emitted_ir": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ptx": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cubin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tile_ir": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tile_bytecode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tileiras": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource_report": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sass": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checker_input": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checker_output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proof_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transcriber": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verifier": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lean_toolchain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_execution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "input_fixture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "oracle_log": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inventory": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "build": {
+            "properties": {
+              "status": {
+                "const": "SUCCESS"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "frontend": {
+            "not": {
+              "const": "UNSELECTED"
+            }
+          },
+          "build": {
+            "properties": {
+              "exit_code": {
+                "const": 0
+              },
+              "actual_argv": {
+                "minItems": 1
+              },
+              "kernel_symbol": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_mode": {
+                "enum": [
+                  "AOT_CUBIN",
+                  "PTX_JIT"
+                ]
+              }
+            }
+          },
+          "artifacts": {
+            "properties": {
+              "kernel_contract": {
+                "$ref": "#/$defs/artifact"
+              },
+              "abi_contract": {
+                "$ref": "#/$defs/artifact"
+              },
+              "toolchain_lock": {
+                "$ref": "#/$defs/artifact"
+              },
+              "source": {
+                "$ref": "#/$defs/artifact"
+              },
+              "dependency_lock": {
+                "$ref": "#/$defs/artifact"
+              },
+              "emitted_ir": {
+                "$ref": "#/$defs/artifact"
+              },
+              "resource_report": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "frontend": {
+            "enum": [
+              "cuda_cpp",
+              "cuda_oxide_simt"
+            ]
+          },
+          "build": {
+            "properties": {
+              "status": {
+                "const": "SUCCESS"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "artifacts": {
+            "properties": {
+              "ptx": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "frontend": {
+            "const": "cutile_rs"
+          },
+          "build": {
+            "properties": {
+              "status": {
+                "const": "SUCCESS"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "build": {
+            "properties": {
+              "artifact_mode": {
+                "const": "AOT_CUBIN"
+              }
+            }
+          },
+          "artifacts": {
+            "properties": {
+              "tile_ir": {
+                "$ref": "#/$defs/artifact"
+              },
+              "tile_bytecode": {
+                "$ref": "#/$defs/artifact"
+              },
+              "tileiras": {
+                "$ref": "#/$defs/artifact"
+              },
+              "cubin": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "build": {
+            "properties": {
+              "status": {
+                "const": "SUCCESS"
+              },
+              "artifact_mode": {
+                "const": "AOT_CUBIN"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "artifacts": {
+            "properties": {
+              "cubin": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "requested": {
+                "const": false
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "status": {
+                "const": "NOT_REQUESTED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "requested": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "status": {
+                "not": {
+                  "const": "NOT_REQUESTED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "all_properties_proved": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "status": {
+                "const": "PROVED_SCOPED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "proof": {
+            "properties": {
+              "status": {
+                "const": "PROVED_SCOPED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "frontend": {
+            "const": "cuda_oxide_simt"
+          },
+          "build": {
+            "properties": {
+              "unchecked_indexing": {
+                "const": false
+              },
+              "device_debug_proof_bypass": {
+                "const": false
+              },
+              "flags": {
+                "not": {
+                  "contains": {
+                    "enum": [
+                      "--unchecked-indexing",
+                      "--device-debug"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "contract": {
+            "properties": {
+              "shape_scope": {
+                "minItems": 1
+              },
+              "dtype_layout_scope": {
+                "minItems": 1
+              },
+              "assumptions_enforced_by": {
+                "minItems": 1
+              }
+            }
+          },
+          "proof": {
+            "properties": {
+              "requested": {
+                "const": true
+              },
+              "unit_kind": {
+                "const": "POST_MEM2REG_MIR"
+              },
+              "properties": {
+                "minItems": 1
+              },
+              "assumptions": {
+                "minItems": 1
+              },
+              "trusted_components": {
+                "minItems": 1
+              },
+              "unproved_links": {
+                "minItems": 1
+              },
+              "exit_code": {
+                "const": 0
+              },
+              "actual_argv": {
+                "minItems": 1
+              },
+              "export_only": {
+                "const": false
+              },
+              "all_properties_proved": {
+                "const": true
+              },
+              "counts": {
+                "properties": {
+                  "total": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "proved": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "failed": {
+                    "const": 0
+                  },
+                  "unknown": {
+                    "const": 0
+                  },
+                  "sorry_ax": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          },
+          "artifacts": {
+            "properties": {
+              "kernel_contract": {
+                "$ref": "#/$defs/artifact"
+              },
+              "abi_contract": {
+                "$ref": "#/$defs/artifact"
+              },
+              "source": {
+                "$ref": "#/$defs/artifact"
+              },
+              "dependency_lock": {
+                "$ref": "#/$defs/artifact"
+              },
+              "toolchain_lock": {
+                "$ref": "#/$defs/artifact"
+              },
+              "verified_ir": {
+                "$ref": "#/$defs/artifact"
+              },
+              "checker_input": {
+                "$ref": "#/$defs/artifact"
+              },
+              "checker_output": {
+                "$ref": "#/$defs/artifact"
+              },
+              "proof_policy": {
+                "$ref": "#/$defs/artifact"
+              },
+              "transcriber": {
+                "$ref": "#/$defs/artifact"
+              },
+              "verifier": {
+                "$ref": "#/$defs/artifact"
+              },
+              "lean_toolchain": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "kind": {
+                "const": "not_run"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "NOT_RUN",
+                  "BLOCKED"
+                ]
+              },
+              "evidence_kind": {
+                "const": "not_run"
+              },
+              "kernel_launch_count": {
+                "type": "null"
+              },
+              "completed_event_verified": {
+                "enum": [
+                  null,
+                  false
+                ]
+              },
+              "oracle_status": {
+                "const": "NOT_RUN"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "compile_only",
+                  "ptx_static_check",
+                  "arch_skipped"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "evidence_kind": {
+                "not": {
+                  "const": "target_4090"
+                }
+              },
+              "kernel_launch_count": {
+                "enum": [
+                  null,
+                  0
+                ]
+              },
+              "completed_event_verified": {
+                "enum": [
+                  null,
+                  false
+                ]
+              },
+              "oracle_status": {
+                "const": "NOT_RUN"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "kind": {
+                "const": "actual_gpu_execution"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "capability_key_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "target_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "build": {
+            "properties": {
+              "status": {
+                "const": "SUCCESS"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              },
+              "evidence_kind": {
+                "const": "target_4090"
+              },
+              "gpu_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "gpu_uuid": {
+                "type": "string",
+                "minLength": 1
+              },
+              "actual_arch": {
+                "const": "sm_89"
+              },
+              "driver_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kernel_launch_count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "artifacts": {
+            "properties": {
+              "raw_execution": {
+                "$ref": "#/$defs/artifact"
+              },
+              "input_fixture": {
+                "$ref": "#/$defs/artifact"
+              },
+              "inventory": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "kind": {
+                "const": "actual_gpu_execution"
+              },
+              "status": {
+                "const": "PASS"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "completed_event_verified": {
+                "const": true
+              },
+              "oracle_status": {
+                "const": "PASS"
+              }
+            }
+          },
+          "artifacts": {
+            "properties": {
+              "output": {
+                "$ref": "#/$defs/artifact"
+              },
+              "oracle_log": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Structural validation only. A semantic validator must verify files/hashes, authentic commands/device/launch coverage, expected obligation count and sum, property coverage/assumptions, complete capability binding, all raw tests, timing statistics and independent gate evidence. This schema never grants qualification."
+}

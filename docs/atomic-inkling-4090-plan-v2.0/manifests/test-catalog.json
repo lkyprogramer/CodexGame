@@ -1,0 +1,1322 @@
+{
+  "schema_version": "1.0",
+  "test_count": 148,
+  "scope": "Planned qualification tests; none executed on target GPU in this pack",
+  "tests": [
+    {
+      "id": "TC01",
+      "scenario": "每build/profile核对资产、resolved配置",
+      "acceptance": "模型/草稿/模板/精度/路径指纹一致",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC02",
+      "scenario": "旧budget的model/spec、4096及ubatch32边界",
+      "acceptance": "原guard明确拒绝；不删guard冒充资格",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC03",
+      "scenario": "200条中英/Unicode/工具历史fixture",
+      "acceptance": "模板、特殊token、input IDs一致",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC04",
+      "scenario": "32prompt的prefill/decode映射",
+      "acceptance": "24物理层、48visit与真实cache slot对应",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC05",
+      "scenario": "128prompt、≥4096个teacher-forced位置",
+      "acceptance": "覆盖各pass与global/SWA；符合E/N合同",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC06",
+      "scenario": "per-loop支持的chunk 1/7/31/32/127/128/512/1024",
+      "acceptance": "分块与非分块目标一致；last-loop只按10的固定prefill/B1 oracle资格，B>1先证明语义",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC07",
+      "scenario": "global KV扩容、量化block/page边界",
+      "acceptance": "有效区、position、scale正确",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC08",
+      "scenario": "SWA满环、绕回及覆盖后reject",
+      "acceptance": "数据/写指针/绝对位置恢复",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC09",
+      "scenario": "conv初期与跨环，回滚前1–4位置",
+      "acceptance": "被拒候选不影响后续logits",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC10",
+      "scenario": "每pass开始/结束处中断",
+      "acceptance": "loop bank/controller不漏跑或重复",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC11",
+      "scenario": "每合格k的接受前缀0..k，8边界×16seed",
+      "acceptance": "correction/bonus正确；随后AR64tokens一致",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC12",
+      "scenario": "DSpark每状态成员的fork/reset/reject",
+      "acceptance": "feature visit、Markov及恢复语义正确",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC13",
+      "scenario": "小词表枚举与错误residual负例",
+      "acceptance": "p/q实际分布、one-hot、零概率、EOS正确",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC14",
+      "scenario": "1000序列，seed重放/交错请求",
+      "acceptance": "完整RNG账本隔离，无盲回拨或重复draw",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC15",
+      "scenario": "cancel/异常/预算变更时释放lease",
+      "acceptance": "CUDA工作/图引用完毕后才回收地址",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC16",
+      "scenario": "prefix长度0/1、SWA/page边界及中途编辑",
+      "acceptance": "精确token前缀、COW隔离、正确miss",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC17",
+      "scenario": "20次epoch/模板/codec/loop切换",
+      "acceptance": "不兼容缓存失效；在途请求不混epoch",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC18",
+      "scenario": "100例EOS/stop/UTF-8跨token和spec块",
+      "acceptance": "finish_reason正确；未commit内容不外发",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC19",
+      "scenario": "queue/prefill/draft/verify/commit/stream各50次abort",
+      "acceptance": "终态唯一；下个请求等于干净实例",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC20",
+      "scenario": "容量±1、超长工具结果、输出reserve边界",
+      "acceptance": "明确接受/拒绝；零静默截断",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC21",
+      "scenario": "连续100次save/restore/cancel",
+      "acceptance": "续接等于完整重算，无资源持续增长",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC22",
+      "scenario": "缓存损坏、半写、旧格式、磁盘不足",
+      "acceptance": "拒绝恢复并安全重算，不用污染状态",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC23",
+      "scenario": "图形状/地址/版本变化，k7→k0等切换",
+      "acceptance": "只选已资格图；旧引用安全退役",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "TC24",
+      "scenario": "1主+2/3子请求，50种交错序列",
+      "acceptance": "状态隔离，active generation≤1，无持锁等child",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC01",
+      "scenario": "≥150个独立Java8真实任务，配对A/B，固定仓库/隐藏测试/预算",
+      "acceptance": "≥150个独立Java8真实任务，配对A/B，固定仓库/隐藏测试/预算",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC02",
+      "scenario": "≥300个独立工具场景：选择、参数、历史回填、错误恢复、流式边界",
+      "acceptance": "≥300个独立工具场景：选择、参数、历史回填、错误恢复、流式边界",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC03",
+      "scenario": "Java8编译/API/依赖约束及禁止改动的关键fixture全部通过",
+      "acceptance": "Java8编译/API/依赖约束及禁止改动的关键fixture全部通过",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC04",
+      "scenario": "64K、C128K、P128K按实际承诺分层；早期约束、跨文件关系、干扰位置",
+      "acceptance": "64K、C128K、P128K按实际承诺分层；早期约束、跨文件关系、干扰位置",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC05",
+      "scenario": "超时、工具失败、重试、自纠错；失败保留并计入完成率/惩罚耗时",
+      "acceptance": "超时、工具失败、重试、自纠错；失败保留并计入完成率/惩罚耗时",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC06",
+      "scenario": "Q4相对同权重/同R3的Q8 KV（或已注明F16）独立非劣实验",
+      "acceptance": "Q4相对同权重/同R3的Q8 KV（或已注明F16）独立非劣实验",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC07",
+      "scenario": "varloop/last-loop/LoopCD/2DSD按各自目标；质量和成本分别报告",
+      "acceptance": "varloop/last-loop/LoopCD/2DSD按各自目标；质量和成本分别报告",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "QC08",
+      "scenario": "主力迁移相对现有Strata/NInfer的适用任务评估；不扩大scanner范围",
+      "acceptance": "主力迁移相对现有Strata/NInfer的适用任务评估；不扩大scanner范围",
+      "source_document": "docs/13_correctness_quality.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF01",
+      "scenario": "generic CUDA串行4K/16K，spec off",
+      "acceptance": "3prompt×3次smoke；只判断能否继续",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF02",
+      "scenario": "同模型系统/kernel候选",
+      "acceptance": "每primary cell探索12pairs；确认≥30独立case",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF03",
+      "scenario": "AR、已资格固定k、最佳固定k与自适应k",
+      "acceptance": "全部计入draft/verify/rollback/搬运；目标一致",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF04",
+      "scenario": "64K、C128K、P128K cold/warm",
+      "acceptance": "每档12pairs可行性；发布速度结论须补确认样本",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF05",
+      "scenario": "真实Pi/Java8任务",
+      "acceptance": "质量集按冻结任务计E2E；失败/timeout不丢弃",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF06",
+      "scenario": "1主+2/3子agent排队，GPU active=1",
+      "acceptance": "queue、session切换、makespan；真并发另测",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF07",
+      "scenario": "装载、保存/恢复、容量与offload",
+      "acceptance": "GPU/host/SSD峰值、实际H2D/D2H及恢复净收益",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "PF08",
+      "scenario": "p95保护与资源soak",
+      "acceptance": "每承诺tail的cell≥200requests；soak≥8h且≥200请求",
+      "source_document": "docs/14_benchmarks.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV01",
+      "scenario": "Pi文本/工具SSE、usage、断连与错误码replay",
+      "acceptance": "reasoning/visible/tool内容正确；未commit/半tool call不可执行",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV02",
+      "scenario": "1主+2/3子agent，50到达/取消/timeout序列",
+      "acceptance": "active generation=1；队列有界/可观察；parent等child时不持GPU slot",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV03",
+      "scenario": "session续接、模型/codec/模板epoch切换",
+      "acceptance": "请求不混epoch；cache失效或完整重算；新旧状态不串扰",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV04",
+      "scenario": "abort、OOM、GPU错误、超时、重试及半响应",
+      "acceptance": "终态唯一、资源回收、错误显式；副作用有稳定call ID/去重记录",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV05",
+      "scenario": "≥8h且≥200请求，包含所承诺64K/128K各≥10次",
+      "acceptance": "无泄漏、持续swap、OOM或SLO违规；固定同一候选与资源轨迹",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV06",
+      "scenario": "实际切回保留的NInfer/Strata适用profile",
+      "acceptance": "启动/健康/3个代表请求通过；恢复时间与积压变化有实测",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV07",
+      "scenario": "独立端口replay/shadow与业务fixture",
+      "acceptance": "禁止重复真实工具副作用；单卡不够双驻留则隔离时段顺序replay",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "SV08",
+      "scenario": "明确授权后的分阶段灰度与回退演练",
+      "acceptance": "会话固定版本；记录授权、阶段、样本、SLO、停止与回退执行",
+      "source_document": "docs/20_acceptance.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX01",
+      "scenario": "main/tag/PR head、同名不同GGUF、不同binary/模板/dispatch、过期reference缓存、R/head/conv/pool几何错误",
+      "acceptance": "固定完整指纹；几何不符在launch前拒绝；未知路径BLOCKED；不能按basename或EXACT字符串授参考资格",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX02",
+      "scenario": "同资产R3，至少32短prompt，逐visit/slot中间态和最终logits",
+      "acceptance": "首个偏差可定位；E/N分类与冻结容差一致；无共同资产时不生成同目标speedup",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX03",
+      "scenario": "一个physical专家被不同loop/phase多次访问，部分冷热visit",
+      "acceptance": "权重只计一次，trace保留visit维度；不能共享未授权KV/conv或重复计权重内存",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX04",
+      "scenario": "源布局、重编码、staging、双缓冲与graph同时存活",
+      "acceptance": "按真实bytes计峰值；110→134扩张正确；不把mmap/RAM释放等同实际PSS下降",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX05",
+      "scenario": "完整层、热度、成本评分三策略，固定与held-out trace",
+      "acceptance": "预测收益和真实CPU/GPU关键路径分别记录；hit率提高不能单独PASS性能",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX06",
+      "scenario": "热度phase shift、循环热点不同、context增长挤压专家、未知hot文件",
+      "acceptance": "不读未来token信息；安全重新准入，最坏迁移/尾延迟有界；预算不足显式失败或合格回退",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX07",
+      "scenario": "每个换出/换入阶段注入取消、短读、OOM、旧lease/graph引用",
+      "acceptance": "只在event完成且generation一致后发布；半更新不可见，错误context退役",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX08",
+      "scenario": "IQ3_S所有编码/符号/scale类、行/专家边界、padding、畸形block",
+      "acceptance": "dequant与约定dot逐值/逐结果核对；非法输入失败；布局身份和分配膨胀完整",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX09",
+      "scenario": "布局相同但activation/head/kernel归约方式变化，含near-tie logits",
+      "acceptance": "存储E与计算N分开；KL/top1等采用原冻结容差；不能用局部bit-identical覆盖整条路径",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX10",
+      "scenario": "prefill B1与各支持B，P=B-1/B/B+1、多个块、循环边界",
+      "acceptance": "teacher-forced逐位置state/logit一致；固定relative bias、sink、conv/SWA与position",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX11",
+      "scenario": "expert分组后scatter、top-k重复边界、padding、稀疏路由与归约",
+      "acceptance": "输出回到原token/槽顺序；数值改变显式N类；sort/gather/scatter计入时间",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX12",
+      "scenario": "每个relay超时，尤其最后handoff；CPU异常、迟到ack、取消",
+      "acceptance": "错误sticky；没有污染logit/token/tool提交；错误epoch不可复用，预算内重建",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX13",
+      "scenario": "100次load/unload、capture失败、图更新、pool并发调用、worker退出",
+      "acceptance": "无活动地址被释放/复用；资源可回收；单调用者约束成立；host/GPU量测无持续泄露",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX14",
+      "scenario": "A→B→A及A→B→C→A；前缀编辑、不同epoch/loop/codec",
+      "acceptance": "恢复与重算的完整Inkling状态及后续输出按合同一致；不只检查KV长度",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX15",
+      "scenario": "大小会话混合、host预算边缘、快照驱逐、恢复峰值、复制途中失败",
+      "acceptance": "先reserve再copy再发布；预算覆盖weights/layout/staging/opening/live snapshot/保留量；失败释放预留",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX16",
+      "scenario": "one-hot lookup proposal，采样含top-k/top-p/惩罚；接受/拒绝与恢复",
+      "acceptance": "acceptance/residual使用实际过滤后p；proposal为确定性复制；一般draft不能套此特例；合成分布和GPU状态分开验证",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX17",
+      "scenario": "接受前缀每一位置遇EOS、max_new、emit取消；随后save/restore/续写",
+      "acceptance": "未commit后缀的KV/conv/controller/采样历史不泄漏；仅缩短pos不能通过；RNG按原事件合同处理",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX18",
+      "scenario": "Inkling各真实head几何、short/global/SWA、sink/bias/softcap、Q4 codec切换",
+      "acceptance": "逐路径明确dispatch；不支持组合加载前拒绝；通用TC/Q4不冒充Inkling资格",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX19",
+      "scenario": "held-out Java/copy-heavy/new-code/review/tool，短/64K/128K与冷热",
+      "acceptance": "平衡AB/BA、实际token、全部失败case、独立case统计；沿原G3/G4/G5/SLO门槛",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "GX20",
+      "scenario": "空fixture、缺pair、错误hash、只打印FAIL但exit0、缺usage、synthetic混入",
+      "acceptance": "比较器FAIL/BLOCKED且非零退出；缺token标null不可换成chunk；无原始证据不能授gate PASS",
+      "source_document": "docs/26_ghost_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX01",
+      "scenario": "source/依赖/compiler/flags/contract变一byte，旧manifest与缓存仍在",
+      "acceptance": "identity失效；旧artifact/proof/资格不复用；缺hash不能通过",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX02",
+      "scenario": "SM89配置夹TMA/PDL/cluster/不支持MMA、超shared/register/launch资源",
+      "acceptance": "明确静态/编译/准入拒绝；实际target可核对；跳过分支不算能力",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX03",
+      "scenario": "0/1、tile±1、大shape、负数转unsigned、length×stride溢出",
+      "acceptance": "不产生越界地址；0按合同no-op/拒绝；机器整数溢出在launch前拒绝",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX04",
+      "scenario": "非连续stride、misalignment、子view/部分overlap、错quant layout/scale",
+      "acceptance": "只接受声明布局与alias；不静默reinterpret或重排精度",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX05",
+      "scenario": "生成器改R/quant/sampler、容差、mask/barrier、oracle、search budget",
+      "acceptance": "权限/schema/policy拒绝；候选不能修改判分和产品目标",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX06",
+      "scenario": "重复候选换名、搜索超额/超时、并行GPU runner、历史NO_BENEFIT路线",
+      "acceptance": "content去重、总预算和单卡租约生效；无新trace不重启旧路线",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX07",
+      "scenario": "proof缺失/NOT_RUN/timeout/UNKNOWN/UNSUPPORTED/ERROR、零义务、Lean缺失",
+      "acceptance": "不得获得PROVED_SCOPED；必要proof未完成不得授verified资格",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX08",
+      "scenario": "正确proof配错IR/PTX/cubin/flags/symbol/ABI/旧模板",
+      "acceptance": "artifact binding失败；module load前拒绝；哈希关联不冒充编译证明",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX09",
+      "scenario": "verified/emitted IR脱离同次冻结构建、被未登记替换、unsupported/unknown操作、export-only或device-debug",
+      "acceptance": "缺绑定/旁路被拒绝；正常后续优化不要求两IR字节相等；inspection不算证明，局部属性不外推",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX10",
+      "scenario": "未允许axiom/TCB、shape/alias前提不满足、整数语义不一致、float路由无动态index合同",
+      "acceptance": "拒绝或保留UNKNOWN；range与路由内容分证；假设有可执行guard",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX11",
+      "scenario": "C++/Rust参数宽度/packing/ABI version/symbol/设备地址归属错配",
+      "acceptance": "launch前拒绝；两前端按同语义做实际ABI roundtrip",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX12",
+      "scenario": "shim创建/销毁借用context/stream/arena、线程current-context错配",
+      "acceptance": "唯一owner规则成立；异常恢复宿主context；下请求无影响",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX13",
+      "scenario": "enqueue后立即Drop/free/cancel，pinned输入提前复用",
+      "acceptance": "lease保留到末次使用event完成；无提前回收或无限泄露",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX14",
+      "scenario": "copy stream省event/wait、写lease重叠、staging提前覆盖",
+      "acceptance": "顺序与范围oracle能抓到；合法依赖链才准入，不能靠default stream偶然同步",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX15",
+      "scenario": "graph重放中module unload/换kernel/arena generation变/capture失败",
+      "acceptance": "旧图安全退役；新key重新资格；没有过期函数/地址引用",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX16",
+      "scenario": "enqueue成功后异步错误，下一API才见错误",
+      "acceptance": "不误报READY；sticky fault禁token/tool commit；不原位fallback污染context",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX17",
+      "scenario": "最后kernel/event超时、GPU未确认停止、迟到完成、旧epoch恢复",
+      "acceptance": "不复用地址/ticket；drain或隔离重建，同预算由committed prefix恢复",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX18",
+      "scenario": "sanitizer检测错误但app exit0、过滤全部kernel、零case、子进程漏跟踪、GPU skip",
+      "acceptance": "runner非零且清点真实覆盖；缺日志或无执行不能PASS",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX19",
+      "scenario": "global越界/misalignment、arena slice越界但仍在同allocation内",
+      "acceptance": "memcheck加slice/canary/独立范围oracle，不能声称工具覆盖全部逻辑边界",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX20",
+      "scenario": "shared race、未初始化有效数据、divergent barrier、cp.async等待/复用错误",
+      "acceptance": "各工具与针对性oracle能失败；global/跨stream问题不由racecheck兜底",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX21",
+      "scenario": "极值/近零/合法-inf mask/NaN/near-tie、稀疏或集中expert、动态ID越界/重复、offset/scatter错配、尾块",
+      "acceptance": "E精确映射；N冻结误差/route；非法index不越界且禁commit；有效NaN/Inf FAIL",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX22",
+      "scenario": "同physical weight不同visit、每loop KV/conv/controller、B变化",
+      "acceptance": "保留真实24/48映射与全部有效状态；局部证明不替代模型oracle",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX23",
+      "scenario": "每已资格k的拒绝位置、EOS/stop/cancel/max_new后save/restore/续写",
+      "acceptance": "与独立重算oracle一致；无suffix状态泄露，RNG不盲回拨",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX24",
+      "scenario": "module/graph/workspace/repack/pinned/staging同时存活，context增长及JIT/编译峰值",
+      "acceptance": "原ledger+NVML/PSS满足GPU/host预算与保留量；无swap/隐藏副本",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX25",
+      "scenario": "profiler/无profiler、冷/热、首次JIT/capture/repack与steady-state",
+      "acceptance": "分账但请求E2E包含实际成本；正式PF不混profile/sanitizer计时",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX26",
+      "scenario": "看holdout后换赢家、重复case冒充n、多candidate逐个95%CI挑最好、丢timeout",
+      "acceptance": "拒绝违规结论；独立集或预登记校正，失败惩罚与完整配对保留",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX27",
+      "scenario": "registry旧driver/module/ABI/layout、未知shape、budget/graph变化",
+      "acceptance": "完整key不匹配不选候选；只在预提交且状态干净时走原合法fallback",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "AX28",
+      "scenario": "禁用candidate、epoch切换、worker重建、连续load/unload/取消/soak",
+      "acceptance": "同预算合格回退；无重复tool副作用或lease泄露；原8h服务门不减少",
+      "source_document": "docs/32_kernel_validation_runbook.md",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "LX01",
+      "scenario": "codec/source/dictionary/layout/stateinventory changed with stale cache",
+      "acceptance": "identity mismatch refuses reuse and never transfers old qualification",
+      "extends": [
+        "TC01",
+        "TC17",
+        "AX01"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX02",
+      "scenario": "Q8_0 compressed record mislabeled BF16 or paper ratio applied to Q8 budget",
+      "acceptance": "format mismatch and unmeasured budget rejected; same-target claim fails",
+      "extends": [
+        "TC01",
+        "GX18"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX03",
+      "scenario": "all raw bit patterns, signed zero, subnormal, nonfinite payload, scale/quant blocks and tails",
+      "acceptance": "byte-identical lossless roundtrip independent of model numerical validity; model-validity checks still reject invalid active values",
+      "extends": [
+        "AX21"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX04",
+      "scenario": "incompressible/random/high-entropy blocks and maximum encoded size",
+      "acceptance": "bounded output and raw fallback fit reserved peak; average ratio never used as hard bound",
+      "extends": [
+        "GX15",
+        "AX24"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX05",
+      "scenario": "length/offset/index overflow, malformed symbol table, truncated chunk and expansion bomb",
+      "acceptance": "host/device range guards reject before unsafe read/write; no partial model state publication",
+      "extends": [
+        "AX03",
+        "AX04",
+        "AX19"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX06",
+      "scenario": "checksum collision candidate, reordered/missing/duplicated chunk and wrong slot/range",
+      "acceptance": "complete manifest validation and exact content/domain checks reject; hash lookup alone not a prefix proof",
+      "extends": [
+        "TC16",
+        "TC22"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX07",
+      "scenario": "StateInventory omits conv/controller/draft member or lacks rebuild proof",
+      "acceptance": "qualification BLOCKED; independent prompt recompute catches later state drift",
+      "extends": [
+        "TC09",
+        "TC10",
+        "TC12",
+        "TC21"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX08",
+      "scenario": "prefix ends inside cached block with only end-of-block conv snapshot",
+      "acceptance": "use earlier complete checkpoint and replay suffix or miss; never crop KV and reuse later conv",
+      "extends": [
+        "TC16",
+        "GX14"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX09",
+      "scenario": "same text but different token IDs/template/tool serialization/position/scope",
+      "acceptance": "refuse prefix reuse except exact legal token prefix and identity",
+      "extends": [
+        "TC03",
+        "TC16",
+        "TC17"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX10",
+      "scenario": "resume last emitted token already/ not yet in KV; pending correction or bonus",
+      "acceptance": "cursor contract prevents duplication/skip; next logits and AR64 continuation match",
+      "extends": [
+        "TC11",
+        "GX17"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX11",
+      "scenario": "SWA, conv, codec block, page and prefill boundaries crossed together",
+      "acceptance": "valid spans, absolute positions, write cursors and complete state match independent oracle",
+      "extends": [
+        "TC06",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX12",
+      "scenario": "last-loop cache saved under one prefill partition restored under another or B>1",
+      "acceptance": "target/policy mismatch rejected; storage block cannot silently change semantic partition",
+      "extends": [
+        "TC06",
+        "TC17"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX13",
+      "scenario": "cross-request model prefix sharing with source RNG/grammar/tool state attached",
+      "acceptance": "only permitted model state is shared; new request states are independently rebuilt and isolated; same prompt/target/permissions across A/B cannot reuse request-private continuation binding",
+      "extends": [
+        "TC14",
+        "TC24",
+        "SV03"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX14",
+      "scenario": "save during in-flight draft, partial pass or uncommitted branch",
+      "acceptance": "quiesce/rollback to complete committed boundary or refuse save; unpublished suffix never leaks",
+      "extends": [
+        "TC10",
+        "TC11",
+        "TC12",
+        "GX17"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX15",
+      "scenario": "cancel/short-read/OOM/disk-full at each save, encode, publish, restore phase",
+      "acceptance": "atomic visibility, reservation release and safe retained source; no partially restored session",
+      "extends": [
+        "TC19",
+        "TC22",
+        "GX07",
+        "GX15"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX16",
+      "scenario": "raw and encoded representations retained together with metadata/scratch/staging",
+      "acceptance": "unique allocation ledger counts real duplicates and alias once; observed GPU/host peaks within reserves",
+      "extends": [
+        "GX04",
+        "GX15",
+        "AX24"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX17",
+      "scenario": "host pinning in place versus separate pinned copy, mmap/page cache and anonymous repack",
+      "acceptance": "physical-memory accounting avoids doublecount and omission; pinned is charged in host domain",
+      "extends": [
+        "GX04",
+        "AX24"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX18",
+      "scenario": "small compressed objects, page slack, fragmentation, metadata and delayed reclamation",
+      "acceptance": "allocated ratio and peak reported separately from payload ratio; steady ratio not used for admission",
+      "extends": [
+        "GX15",
+        "AX24"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX19",
+      "scenario": "restore fits steady state but not transient old/new state plus raw decode target",
+      "acceptance": "reject before copy or make safe eviction/checkpoint choice; fallback must fit same budget",
+      "extends": [
+        "GX15",
+        "AX17",
+        "AX24"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX20",
+      "scenario": "Pool seal/unseal with raw tail, speculative writes and shared prefix readers",
+      "acceptance": "COW/private writes, commit watermark and reader leases preserved; no unverified block published",
+      "extends": [
+        "TC11",
+        "TC15",
+        "TC16",
+        "AX23"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX21",
+      "scenario": "graph replay while pool page/metadata/module/arena generation changes",
+      "acceptance": "old resources remain leased; graph invalidated or qualified indirect update; no stale address/function",
+      "extends": [
+        "TC23",
+        "GX13",
+        "AX15"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX22",
+      "scenario": "late encoder/decoder/DMA completion or error after request cancel/epoch rotation",
+      "acceptance": "sticky fault stops commit; late result retires only, cannot publish to new epoch; check view reuse within unchanged arena and stale logical resume generation",
+      "extends": [
+        "TC19",
+        "AX16",
+        "AX17"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX23",
+      "scenario": "Tier restore plus foreground expert fetch plus background flush under PCIe pressure",
+      "acceptance": "bounded tickets/pinned/chunks, priority applied, foreground and tail latency measured; no claimed free overlap",
+      "extends": [
+        "GX05",
+        "GX06",
+        "PF07",
+        "PF08"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX24",
+      "scenario": "codec CPU/DRAM contention with CPU experts, tokenizer and Java tools",
+      "acceptance": "record actual shared-resource workload and Agent makespan; standalone codec GB/s cannot grant E2E PASS",
+      "extends": [
+        "PF05",
+        "PF06",
+        "PF07"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX25",
+      "scenario": "Pool global/SWA/sink/relative-bias/softcap/head geometry/stride and tails",
+      "acceptance": "every dispatch explicitly supported or clean fallback; same decoded inputs compared to raw reference",
+      "extends": [
+        "TC05",
+        "GX18",
+        "AX21",
+        "AX22"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX26",
+      "scenario": "byte-exact codec with changed attention reduction/accumulation and near-tie routes",
+      "acceptance": "E codec and N attention separately qualified; frozen tolerance and required QC cannot be bypassed",
+      "extends": [
+        "TC05",
+        "GX09",
+        "AX21",
+        "QC01",
+        "QC02"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX27",
+      "scenario": "Pool plus each qualified native k/B, rejection position, EOS/stop/max_new/cancel",
+      "acceptance": "full state/RNG/cursor after restore and AR64 continuation correct; actual q and final target unchanged",
+      "extends": [
+        "TC11",
+        "TC12",
+        "TC13",
+        "TC14",
+        "GX17",
+        "AX23"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md",
+      "applicability": {
+        "selected_profile_field": "config.spec_method",
+        "values": [
+          "native_dspark"
+        ],
+        "requires_task": "T06",
+        "unselected": "reviewed_not_applicable_no_qualification"
+      }
+    },
+    {
+      "id": "LX28",
+      "scenario": "2DSD tree depth/frozen/fork with compressed sealed prefix and private branch state",
+      "acceptance": "actual proposal ledger, finalized watermark and all rejected branch state isolated; experimental source is not qualification",
+      "extends": [
+        "TC11",
+        "TC13",
+        "TC14",
+        "QC07"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md",
+      "applicability": {
+        "selected_profile_field": "config.spec_method",
+        "values": [
+          "2dsd"
+        ],
+        "requires_task": "R03",
+        "unselected": "reviewed_not_applicable_no_qualification"
+      }
+    },
+    {
+      "id": "LX29",
+      "scenario": "LoopCD reference/final coda states with cache restore",
+      "acceptance": "guided target and readonly reference preserved; unguided p cannot masquerade as guided verifier",
+      "extends": [
+        "TC10",
+        "TC17",
+        "QC07"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md",
+      "applicability": {
+        "selected_profile_field": "config.guidance",
+        "values": [
+          "loopcd_hidden",
+          "loopcd_logits"
+        ],
+        "requires_task": "R04",
+        "unselected": "reviewed_not_applicable_no_qualification"
+      }
+    },
+    {
+      "id": "LX30",
+      "scenario": "warm/cold/partial hit/miss/invalidation/eviction/churn at 64K C128K P128K",
+      "acceptance": "actual input/reused/computed tokens and all costs saved; no truncation or selected fastest-only report",
+      "extends": [
+        "PF04",
+        "PF07",
+        "TC20"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX31",
+      "scenario": "schema-only PASS, missing artifact, zero GPU launches, synthetic ratio and omitted paired failures",
+      "acceptance": "semantic validator rejects; source/CPU/GPU/model/business evidence remain distinct; reject legacy config aliases, selected-cache missing artifacts and capability-mismatched plans",
+      "extends": [
+        "GX20",
+        "AX18",
+        "AX26"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md"
+    },
+    {
+      "id": "LX32",
+      "scenario": "A-B-C-A switching, >=100 repeated save/restore/cancel, original 8h service soak",
+      "acceptance": "active generation=1, no leakage/swap/OOM/tool duplication, original 200 request and context coverage unchanged",
+      "extends": [
+        "TC21",
+        "TC24",
+        "GX14",
+        "AX28",
+        "SV05"
+      ],
+      "status": "NOT_RUN",
+      "source_document": "docs/39_cache_validation.md",
+      "scopes": {
+        "L03": "functional_save_restore_cancel_repeat_100; no full service G6",
+        "L07": "full functional plus >=8h and >=200 requests after T11"
+      }
+    },
+    {
+      "id": "UX01",
+      "scenario": "2DSD runner_check prefix-equal but output lengths differ; empty result set; returncode0 with mismatch",
+      "acceptance": "qualification wrapper rejects every mismatch/empty set; compare full state and exact lengths, not only first_divergence",
+      "source_document": "docs/39_cache_validation.md",
+      "status": "NOT_RUN",
+      "upstream_fact_document": "docs/40_upstream_refresh.md"
+    },
+    {
+      "id": "UX02",
+      "scenario": "2DSD native exact/served, Atomic quant oracle, formal/varloop and pinned revisions mixed",
+      "acceptance": "reject incompatible comparison; native FP64/served Hopper rounding is a diagnostic reference, not automatically Atomic oracle",
+      "source_document": "docs/39_cache_validation.md",
+      "status": "NOT_RUN",
+      "upstream_fact_document": "docs/40_upstream_refresh.md"
+    },
+    {
+      "id": "UX03",
+      "scenario": "2DSD lagged read sharing with static graph full planes and Humming import without actual SM89 launch",
+      "acceptance": "measure actual allocated bytes; no capacity grant from sharing; compile/launch/output evidence mandatory",
+      "source_document": "docs/39_cache_validation.md",
+      "status": "NOT_RUN",
+      "upstream_fact_document": "docs/40_upstream_refresh.md"
+    },
+    {
+      "id": "UX04",
+      "scenario": "cuda-oxide reverse writes, prior trapping assertion, 2D writes_all_elems and stale proof artifact",
+      "acceptance": "pin f35d6ccc revision; reject unsupported2D coverage and stale witnesses; prove scope then independently test GPU numerical behavior",
+      "source_document": "docs/39_cache_validation.md",
+      "status": "NOT_RUN",
+      "upstream_fact_document": "docs/40_upstream_refresh.md"
+    },
+    {
+      "id": "MGX01",
+      "scenario": "同一allocation多个view、pool转移、claim未分配、释放未完成",
+      "acceptance": "每块仅计一次；reserved/retiring占准入直到真实完成",
+      "owner_task": "M00",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_TEST",
+      "minimum_scope": "Future implemented ledger/reservation semantic CPU tests, not Markdown/JSON structural validation",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX02",
+      "scenario": "OS sample与allocate/free交错、stale generation、split VRAM/RAM",
+      "acceptance": "决定使用同snapshot+ledger epoch，自身变化不成others",
+      "owner_task": "M00",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_TEST",
+      "minimum_scope": "Future implemented ledger/reservation semantic CPU tests, not Markdown/JSON structural validation",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX03",
+      "scenario": "state/verify扩展刚好够或差1byte、整数溢出",
+      "acceptance": "失败不launch/commit，accepted状态不变，checked算术",
+      "owner_task": "M00",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_TEST",
+      "minimum_scope": "Future implemented ledger/reservation semantic CPU tests, not Markdown/JSON structural validation",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX04",
+      "scenario": "DMA延迟、两读者、取消、晚event、device fault",
+      "acceptance": "DMA或任一读者未结束不可复用；fault隔离；无假完成",
+      "owner_task": "M01",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "FAULT_INJECTION_GPU_TEST",
+      "minimum_scope": "Atomic-owned actual CUDA transfer/event fixture required for GPU lifetime claims; CPU simulation alone is insufficient",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX05",
+      "scenario": "pool空、跨pool索引上限、hint占满、demand新到",
+      "acceptance": "需求保留不被hint占用，无越界/无界扩容，有背压",
+      "owner_task": "M01",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_AND_GPU_TEST",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX06",
+      "scenario": "队列排序、reprice、queued/issuing/inflight取消",
+      "acceptance": "显式policy一致；只撤销queued；连续hint不饿死demand",
+      "owner_task": "M01",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_TEST",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX07",
+      "scenario": "R3逐loop/visit真实route；LRU/frequency/reuse/未来oracle",
+      "acceptance": "因果策略不看未来；NextRead/Bélády只作miss与held对照，不推出stall或预取速度上界；物理共享和逻辑visit分开",
+      "owner_task": "M01",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "OFFLINE_REPLAY",
+      "minimum_scope": "Causal replay CPU fixtures required; real R3 route replay additionally required for selected expert residency/prefetch claims",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX08",
+      "scenario": "all-resident/可预测stream/随机route/SSD冷和page-cache热",
+      "acceptance": "分开compulsory/eviction miss；记录实际demand stall、causal lead time、DMA/compute重叠、带宽/队列干扰、unused、峰值及配对E2E。小Bélády gap不能单独否定预取；依原收益门可结案NO_BENEFIT",
+      "owner_task": "M01",
+      "required_when": "prefetch.enabled=true; required for performance/capacity qualification",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "PAIRED_GPU_EXPERIMENT",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX09",
+      "scenario": "tier/pool/residency/context/graph/verify资格改变",
+      "acceptance": "旧成本失效；unknown非0；plain受预算刷新；safe boundary切换",
+      "owner_task": "M02",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_TEST",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX10",
+      "scenario": "plain vs合法draft宽度，含catch-up/switch/prefill",
+      "acceptance": "既有≥5%/≥10%收益、CI、p95≤5%退化和质量门不变",
+      "owner_task": "M02",
+      "required_when": "spec_control.enabled=true; required to qualify the changed control policy",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "PAIRED_GPU_EXPERIMENT",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX11",
+      "scenario": "改变dtype/driver/NVRTC/layout/model/预算/shape域",
+      "acceptance": "旧产物不冒充旧资格；不完整coverage不能生产采用",
+      "owner_task": "M02",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_MODEL_TEST",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX12",
+      "scenario": "CRLF/UTF8拆包、多data、无DONE、坏JSON、非2xx",
+      "acceptance": "不改token/tool流，EOF不当成功，unknown字段兼容",
+      "owner_task": "M03",
+      "required_when": "observability.enabled=true",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_PROTOCOL_TEST",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX13",
+      "scenario": "Pi/Java8 abort、慢消费者、observer卡住、晚DMA",
+      "acceptance": "队列与观测缓冲有界，取消不提前回收设备资源、不发布新工具调用，不自动重试有外部副作用的工具",
+      "owner_task": "M03",
+      "required_when": "observability.enabled=true",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_PROTOCOL_AND_GPU_TEST",
+      "minimum_scope": "Exact selected profile and data scope; inherited gates remain separate",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX14",
+      "scenario": "Atomic生成时启动Magnitude参考或调优",
+      "acceptance": "全局GPU lease拒绝第二活跃生成，实验串行，VisionOff",
+      "owner_task": "M03",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "SERVICE_EXPERIMENT",
+      "minimum_scope": "Same-profile T01 exclusive experiment lease + T11 service active=1 evidence; reject second active generation",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX15",
+      "scenario": "固定 Magnitude family registry、architecture 拒绝代码和 source pin，核对正式 Mini 未有已验证适配",
+      "acceptance": "给出静态拒绝证据和 UNSUPPORTED/BLOCKED 边界；不构建完整 Magnitude runner、不安装、不转换模型、不改 R3",
+      "owner_task": "M00",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "STATIC_SOURCE_CHECK",
+      "minimum_scope": "STATIC_SOURCE_CHECK: fixed registry/recognize/source-pin refusal evidence; no Magnitude runner, model conversion, install or inference",
+      "production_enabled": false
+    },
+    {
+      "id": "MGX16",
+      "scenario": "相同shape的Q8_0与affine/rotated",
+      "acceptance": "格式不同先拒绝，无损保持原bytes，新quant另过N/质量门",
+      "owner_task": "M00",
+      "required_when": "owner task selected; minimum evidence scope below",
+      "source_document": "docs/42_magnitude_integration.md",
+      "status": "NOT_RUN",
+      "evidence_kind": "CPU_REFERENCE_AND_MODEL_TEST",
+      "minimum_scope": "Representation identity and CPU refusal/byte-preservation fixtures; no new quantized KV implementation",
+      "production_enabled": false
+    }
+  ],
+  "package_version": "2.0"
+}

@@ -1,0 +1,1930 @@
+{
+  "schema_version": "1.0",
+  "package_version": "1.2",
+  "audit_date": "2026-11-25",
+  "timezone": "Asia/Shanghai",
+  "evidence_kind": "public_source_audit",
+  "repository": {
+    "full_name": "NVIDIA/cuda-rust",
+    "url": "https://github.com/NVIDIA/cuda-rust",
+    "default_branch": "main",
+    "pin": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+    "tree_sha": "17345a24abc5d6a5b5dd153b99353a59ee3f6324",
+    "committer_date": "2026-11-23T15:43:36Z",
+    "proof_root": "cuda-oxide/oxide-proofs-preview",
+    "license_for_inspected_proof_code": "Apache-2.0"
+  },
+  "hardening": {
+    "branch": "fix/oxide-proofs-hardening",
+    "head_sha": "b569d9bc9f79ebe6d186cf9b177cb00311739bcc",
+    "pull_request": 1857,
+    "pull_request_url": "https://github.com/NVIDIA/cuda-rust/pull/1857",
+    "state": "closed",
+    "merged_at": "2026-11-23T15:43:37Z",
+    "squash_merge_sha": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+    "compare_status": "diverged",
+    "ahead_by": 2,
+    "behind_by": 1,
+    "main_blob_count": 5350,
+    "branch_blob_count": 5350,
+    "blob_differences": [],
+    "interpretation": "All hardening source already present on main. Diverged commit history is a squash-merge artifact; full file trees are identical."
+  },
+  "release_pins": {
+    "cuda_oxide": {
+      "tag": "cuda-oxide/v0.4.0",
+      "commit": "9d0c9bfbc954a9a29565ab81b78da70f054d8e04",
+      "published_at": "2026-11-11T07:59:14Z"
+    },
+    "cutile_rs": {
+      "tag": "cutile-rs/v0.5.0",
+      "tag_object": "48836d24c8ddca4dd05a9fbe2f3435f68db694e3",
+      "commit": "e706cab335828f6be1a6d5990e7a9c2ce08e1cb0",
+      "published_at": "2026-11-05T06:31:39Z"
+    }
+  },
+  "toolchains": {
+    "simt_rust": "1.99.1",
+    "shared_host_rust": "1.98.0",
+    "tile_rust_pin": "1.98.0",
+    "tile_rust_readme_minimum": "1.89",
+    "shared_cuda_header_minimum": 13000,
+    "simt_cuda_toolkit_minimum": "13.0",
+    "simt_llvm_documented_minimum": 21,
+    "tile_sm89_emitted_ir_minimum": "13.2",
+    "tile_recommended_toolkit": "13.5",
+    "cute_cutlass_compiler": "4.8.1",
+    "simt_llvm_requirement_scope": "LLVM21 is a documented optional/minimal path, not a guarantee for all kernels; exact PTX/intrinsics decide.",
+    "simt_complete_examples_ci_llvm_floor": 23
+  },
+  "driver_observations": {
+    "shared_loader_policy": "reject runtime CUDA major < compile CUDA major when cuDriverGetVersion succeeds",
+    "cuda_13_general_minor_compatibility_branch_minimum": "R580",
+    "cuda_13_2_ga_corresponding_linux_driver": "595.45.04",
+    "tile_13_2_sm89_r580_observed_test": null,
+    "ptx_compatibility_requires_actual_output_version_check": true,
+    "exact_user_driver": null
+  },
+  "article": {
+    "url": "https://nihalpasham.github.io/posts/provably-safe-gpu-kernels/?v=3",
+    "title": "Provably Safe and Fast GPU Kernels in Rust",
+    "displayed_publication": "November 2026",
+    "html_sha256": "56a90f5577c08a938828fc0e0135ef1567f27cd5df0c3631777f795c042f4839",
+    "external_links": [
+      "https://github.com/NVIDIA/cuda-rust"
+    ]
+  },
+  "proof_scope": {
+    "representation": "PostMem2Reg MirFunc and ControlFlowCfg",
+    "properties": [
+      "MirNoOobGlobal for named slices",
+      "MirNoOobShared for named SharedArray",
+      "MirDisjointWrites",
+      "MirNoSharedRace within modeled CTA phases/mbarrier handoffs",
+      "MirWritesAllElems",
+      "UniformBarriers",
+      "TmemLifecycle and MirNoOobTmem",
+      "MirNoOobClusterRank",
+      "MirAssertRedundant"
+    ],
+    "not_claimed": [
+      "floating-point/quantization numerical correctness",
+      "functional equivalence of a whole kernel to a model op",
+      "arbitrary unsafe/global pointer safety",
+      "all device/runtime concurrency",
+      "semantic equivalence from Rust/MIR through final PTX/cubin",
+      "optimal performance",
+      "RTX 4090 or Inkling speedup"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Quot.sound",
+      "Classical.choice"
+    ],
+    "source_scan_explicit_axiom_sorry_admit_declarations": 0,
+    "source_scan_is_not_lean_execution": true,
+    "cache_key_components": [
+      "Lean toolchain pin text",
+      "proof library .olean or .lean bytes",
+      "generated Lean source"
+    ],
+    "cache_marker_is_cryptographic_certificate": false,
+    "proof_bound_to_final_binary_semantics": false,
+    "export_only_is_proof_pass": false,
+    "runner_wall_clock_timeout_observed": false,
+    "generated_lean_max_heartbeats": 20000000,
+    "generated_lean_max_rec_depth": 65536
+  },
+  "critical_limits": [
+    {
+      "id": "partial_gemm_proof",
+      "source_path": "cuda-oxide/examples/safe_gemm_sol_final/src/kernels.rs",
+      "line_ranges": [
+        [
+          152,
+          156
+        ],
+        [
+          700,
+          703
+        ]
+      ],
+      "finding": "Proof clauses omit out safety/coverage; explicit unsafe vector output store remains."
+    },
+    {
+      "id": "unsupported_gpu_exit_zero",
+      "source_path": "cuda-oxide/examples/safe_gemm_sol_final/src/main.rs",
+      "line_ranges": [
+        [
+          212,
+          243
+        ],
+        [
+          509,
+          523
+        ]
+      ],
+      "finding": "Unsupported hardware can validate only PTX target/entry or print a note and return success. Exit zero is not GPU execution evidence."
+    },
+    {
+      "id": "export_only_skips_proof",
+      "source_path": "cuda-oxide/crates/lean-exporter/src/runner.rs",
+      "line_ranges": [
+        [
+          58,
+          61
+        ],
+        [
+          369,
+          403
+        ]
+      ],
+      "finding": "Inspection mode returns before Lean validation and assert elision."
+    },
+    {
+      "id": "optional_lean_test_skip",
+      "source_path": "cuda-oxide/crates/lean-exporter/tests/export.rs",
+      "line_ranges": [
+        [
+          35,
+          48
+        ]
+      ],
+      "finding": "Some tests skip when Lean missing unless CUDA_OXIDE_REQUIRE_LEAN=1; official proof CI sets this flag."
+    }
+  ],
+  "performance_claims": [
+    {
+      "source": "primary_article",
+      "hardware": "NVIDIA B200",
+      "evidence_kind": "author_reported_microbenchmark",
+      "square_shapes": [
+        4096,
+        8192,
+        16384
+      ],
+      "verified_tflops": [
+        1858.4,
+        2082.3,
+        2118.4
+      ],
+      "unsafe_tflops": [
+        1855.5,
+        2081.4,
+        2118.1
+      ],
+      "code_input_dtype": "fp16",
+      "code_output_dtype": "bf16",
+      "code_accumulation_dtype": "fp32",
+      "applicable_to_sm89_without_reproduction": false,
+      "applicable_to_inkling_end_to_end": false
+    }
+  ],
+  "source_file_count": 141,
+  "files": [
+    {
+      "path": ".github/workflows/ci-status.yml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "1b7a72791d515e8416558abe86b25199efe1667d",
+      "sha256": "5c6e00719f0aa2f1737c5cea14889f8eb69209fda6b0d06f35ed8d381d55c2dc",
+      "bytes": 2626,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/.github/workflows/ci-status.yml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a5971cc6cc1ec50b3e23c83e120decd29defb332",
+      "sha256": "7c8e25b4e0399c074d904515467716c2ee4e4c7b597f766b3a5847c5935e005d",
+      "bytes": 3729,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/.github/workflows/ci.yml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": ".github/workflows/cutile-rs.yml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c4d891f8c8e89ec2437695295d22a2bcf4bfd003",
+      "sha256": "a3f3efceab00ab2a8b984e25d048c22fe2af7df76c31ec5c9fb2d167bf0b4b83",
+      "bytes": 22524,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/.github/workflows/cutile-rs.yml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": ".github/workflows/examples-compile.yml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c86d1ffededed267bb956ffa45d6f6c214ffaf15",
+      "sha256": "9e54597472bb42f986322956d4fca3128d4dc52fe63f984aa2fca8a47d44bb44",
+      "bytes": 20230,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/.github/workflows/examples-compile.yml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": ".github/workflows/unit-tests.yml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "7b4045d01f5549ce46dfb07e2fa1ebe806c0c844",
+      "sha256": "00037d79aca8ce5aa2618d6ea8c85473219499f90332a76c6fc5f39e6ef425ee",
+      "bytes": 14575,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/.github/workflows/unit-tests.yml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "eb754a21f93284d521c5e46b5f69006e5b9a795d",
+      "sha256": "08bb6a120bb96a3e75a97d2a4b2c7623a520a07758c6878ade6c2b25289cc7e5",
+      "bytes": 13244,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/AGENTS.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "9604bae1d54867e35a52d7acf7e734af55d039fe",
+      "sha256": "1acb59514a9acda09ced983d48596689a0469621379efd86dec554862b9867b9",
+      "bytes": 18485,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/CONTRIBUTING.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "Cargo.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "b8d8c3027817b3d25558a8443c2a5baf82b87f99",
+      "sha256": "dcbd41a59cd18b1eef1f62e80095bd464a6f699a4640f6593bf113dbbe31adfa",
+      "bytes": 685,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/Cargo.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "8f0174016b29c9b31e6f0b5691dbd0199ca1542f",
+      "sha256": "c961003ea133e26df4d994331a39fd2264e468875431ca5eb43de4061fd1c6f5",
+      "bytes": 6235,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-async/src/cuda_graph.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3dbf57ebfbc298dc111f21c0fa066491d9a84315",
+      "sha256": "965251d21438bbb62a3f405a03dae714395ad5c0c813a4903fbad51c79592e64",
+      "bytes": 29024,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-async/src/cuda_graph.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-async/src/device_operation.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "41d7d317e0811b0cd0009a90f1ddde80c515352d",
+      "sha256": "3109fac480df9fd0b082fbc97a2ceafc2d021c8112ad894481cda721dc70b5ea",
+      "bytes": 67296,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-async/src/device_operation.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-bindings/build.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "73c75f92e8454f9396d5b5a2409e30cae17885b5",
+      "sha256": "864fcb5773bb72e7a64b38cfa13f05cf17092223fefa6c37677978f6ef53fbab",
+      "bytes": 19183,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-bindings/build.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-bindings/src/dyn_load.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a13a7c3c682c656620441112d3e392d1cee66c70",
+      "sha256": "2ef64cdeda511802dfe4a786d92f619bf6b34dce99df1141a18b11f4f7004938",
+      "bytes": 6177,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-bindings/src/dyn_load.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-bindings/src/lib.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "423c935cf274aad3c6ebe71ced4fd1e0ac246566",
+      "sha256": "a85a14162e4d19727426cdb611d3d70a1463dbaee3fa6a495914b67abd8edb88",
+      "bytes": 9945,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-bindings/src/lib.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/allocation.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "11358744fb64707f690f9ce105ae2fc61748d963",
+      "sha256": "cfa3af8f397c3f6131ade8d80eda97714136c03cd24d7eda4f5790251a343243",
+      "bytes": 14492,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/allocation.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/context.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "5d8270254d5a70135dd1324a47c14eb391ad0cb0",
+      "sha256": "eedc4988d93044264f48b664e4cd418c34be3005d8a5fe8bac0ffe416b4a93e6",
+      "bytes": 24771,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/context.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/device_buffer.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "ad4c188137e2fbe74cea29604bc5076f670da214",
+      "sha256": "ceeae4ca139b5dce4a309c1b7bd7a9a61b744aa90c5835c264fa977b879d8ebb",
+      "bytes": 50975,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/device_buffer.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/launch.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a3a870ebc874a40ee50e26bf954ee8ff164c14c6",
+      "sha256": "293e24b8bb1182654e6a6050461cebd3d6ff3f8c85e815ed1f59bc8dddcade32",
+      "bytes": 64324,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/launch.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/launch_raw.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "53c0b0f1fc96cf4b88387679b8925cfad8562c95",
+      "sha256": "29d9c29f3bd1d58b4c505dcd0f17ff535937e08cae368ba8188dc18daa68bf87",
+      "bytes": 14478,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/launch_raw.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/lib.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "9d48e1113218305b6c3dd370112b379fe94fb6a6",
+      "sha256": "ea5d17780df6dd0d19f790ee35f6614d96186b6ed75206c046a21eaf2b71f046",
+      "bytes": 1616,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/lib.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/memory.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a35e08c6ccd07f406518ef371a522361a41610ad",
+      "sha256": "d74fdadb7fcb322e360b6e1bfdf306c765902010b78650b53c72977716ee8418",
+      "bytes": 8407,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/memory.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/module.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a3624ad66ec2b32cad7e38fa68b3017fad1f4277",
+      "sha256": "a3cf45ab24428b7452b0013a98e30bb1b1f30319888f9aec014a873bb2aa3afc",
+      "bytes": 19308,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/module.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/runtime.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "07200048cf25c5b79e3af0735cb5c168c8d1098e",
+      "sha256": "03379b3c93a8f8ae1c88565a3451949d0f98f86737814519dffebb10adde73bc",
+      "bytes": 49890,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/runtime.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-core/src/stream.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "ee807b775ff9e60dfb450b1f4350af3e886184ec",
+      "sha256": "d95cdb19530f0a273eee2c303fab55d50801b40ede6ec99d22d510a28a32df8e",
+      "bytes": 2905,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-core/src/stream.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/AGENTS.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "d4dcb76899ee962a3f77454a4c9cea5cd5f1c428",
+      "sha256": "933311ce7f4bcbbb0bcaaa2b96e11ab2d259e3a9f8d2c8efd0c7157a0e2d4228",
+      "bytes": 14650,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/AGENTS.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/Cargo.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "d407ab16b5e7f1789aa3f74b4dac797313d01d33",
+      "sha256": "f05922e238bde33a46b2de922ebc75ca3e217c692b35663993c8ec50bd629ccd",
+      "bytes": 7414,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/Cargo.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/Justfile",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "43a020b05f1c51b3f56b79b323952c26c232724d",
+      "sha256": "862a1c7bd1177f0fabe3fe9f0fb847d8257549130bc743b46341a83b48a58a0a",
+      "bytes": 13091,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/Justfile",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c167d705fd2e4e698eb5f2741a5d5956d09fbcd7",
+      "sha256": "680b867af5e5f188b6203eed9abb830e7a0fbaa8d730ad6a17713dba2a097d11",
+      "bytes": 21013,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cargo-oxide/src/commands/lean_export.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "8e9473b8b3c95375b1da488c6b6074f352842b48",
+      "sha256": "5f652b4342d99e318232558ae7fe387ce7ecb9ebd94ba96a86df6080f47c76c3",
+      "bytes": 28063,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cargo-oxide/src/commands/lean_export.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cargo-oxide/src/commands/materialize.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "80dee3ee405823f7d26d5e048af2fe12ab4758c2",
+      "sha256": "2c740ca0c2ec3fdecc94ff2ccf786dd230f8d85621f44fd8e038a59b5a92d605",
+      "bytes": 12395,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cargo-oxide/src/commands/materialize.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-artifact-finalizer/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "2eea3549631dc2ab10c637a51f63fb6c10d5c57d",
+      "sha256": "c1da5591dd9293f181943914eb40b147526036204c760f308b3bcd477a49fdfb",
+      "bytes": 1851,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-artifact-finalizer/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-artifact-finalizer/src/lib.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "7d4b9ac4ec2ac8b859e37dd881e4b22eef2c9d6e",
+      "sha256": "9947966342969cac4aa581db5b52e678a7518a217e4f204d7a1a55a855c8d211",
+      "bytes": 23652,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-artifact-finalizer/src/lib.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-device/src/async_copy.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "9363eb5700de28b960baacf6a978f44feaedbecf",
+      "sha256": "b186d4b82ea7bd90f18c1cd11dad245905eae1b4287e047c60e4d2e71df20d7e",
+      "bytes": 352,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-device/src/async_copy.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-device/src/generated/async_copy.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3ff447f67c7934d238614aaeb1ad86725badb901",
+      "sha256": "830722d90ded8ea1f49e4bc8781cc92f2d2c40e440f38c81436695c4cd99fced",
+      "bytes": 11936,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-device/src/generated/async_copy.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-device/src/mma_frag.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c90273bbe86a0e7ffad8e08feac27f1fec477bfa",
+      "sha256": "445dbd6a2054838690bfc9f9960c5b9f8945e670601d57dd7e91713967bbd047",
+      "bytes": 18233,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-device/src/mma_frag.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-device/src/shared.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "bdf7db11055f10c05f6bfd8535379986d79acd1b",
+      "sha256": "47902c3ed826dd305cd82b7abaf41f94ac066df3d7a6d37de945d781b2c42fb9",
+      "bytes": 24799,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-device/src/shared.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-device/src/warp.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "08b11ba89a22df970d3257a8904d47dffce91cdd",
+      "sha256": "684bfea46e9762311129390dd9ece282e5dfbb467e22a044442e52b95c013fe1",
+      "bytes": 67700,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-device/src/warp.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-device/src/wmma.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "832437dbdde82a6aa738c7ad945c440d8f997cbf",
+      "sha256": "44d9d71ffb563d20f184ba6a2bf9ae0b632956abe6dfd0c84131816ace7bc1a0",
+      "bytes": 17292,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-device/src/wmma.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-macros/src/cuda_module/launchers.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "bb7a0acd320e259b219e4f060766dab868c841aa",
+      "sha256": "b2d3316903b1619867a452807dd6e070b5db06f9d5b9d79fadc18c55fe381452",
+      "bytes": 58826,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-macros/src/cuda_module/launchers.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-macros/src/kernel/codegen.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "bed365a04f5dd106494103ae4f5978110f8b3d49",
+      "sha256": "215019e44618d6a56621ffbcf8e9d5c194a712127de32c5af118b7e10d1a80ab",
+      "bytes": 27887,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-macros/src/kernel/codegen.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-macros/src/launch.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "2ad12e9753efc3c14e5f083cbd2a4397d12345c0",
+      "sha256": "612ce8b9d5698472239e612950db87629434d11937aba0f6b7781e15d64d5af1",
+      "bytes": 30942,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-macros/src/launch.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-macros/src/verify.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "9b92f626b992fe5e61ca08a2b5981e092a212bbc",
+      "sha256": "2fc3b6bfacf7dcbcd50572dc79bbe52d7842df4c827d5cdd383819dcdd04b00d",
+      "bytes": 42944,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-macros/src/verify.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-codegen/src/prep.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "5b5b533e433ae6d754abfd8c3e3a9a0d8c8b6e6c",
+      "sha256": "13355e1053416b5d8d00b8d3fe18d2407e58a1e30da2bea3cdecea59db9d5eb6",
+      "bytes": 43568,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-codegen/src/prep.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-codegen/src/target/arch.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "8b60f1d3f8920b9f225c096025e1f5dac0f92860",
+      "sha256": "96933b69fb55c0351bceb05fa0e7733c25e8fed1189ed3d0f7ea34a330cf0b51",
+      "bytes": 6526,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-codegen/src/target/arch.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-codegen/src/target/features.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "d859173af4711fcedce2dc23d6243015aa026ce0",
+      "sha256": "989b80aaae8f67caadfb3ce2e054328ad4ac753f6556653a79baa12f77d5e3d6",
+      "bytes": 6479,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-codegen/src/target/features.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-codegen/src/target/select.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "7f1c9ebc74fc0a1dbeee9ca74e098ed97fc6046e",
+      "sha256": "2af9ecc74b8be143d010be800b8559e4cc05a2d29c0974ecc24fb2f5fd37e4c0",
+      "bytes": 13044,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-codegen/src/target/select.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-codegen/src/verify.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "5839f7dbcb3723c3268905af737be85969e04805",
+      "sha256": "b5f1db89203d5e9f3a8d7aa946e7ca16e39dd69ba431bb79c62749a07e73cfa9",
+      "bytes": 15254,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-codegen/src/verify.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-mlir-export/src/lib.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "114ee5c1988418eede41c2db0e29fc6ed8a085d9",
+      "sha256": "812f000026476636566b6ab08649c3f60ce705186263636c1d7f157cbf7ba9af",
+      "bytes": 2147,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-mlir-export/src/lib.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-oxide-mlir-export/src/profile.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "bc5871bfb743b0f92a76d51a3d7f98c9fbf2a8ef",
+      "sha256": "1e2b5b24f4ef2bc25d2f6914a58ff9793adbd994e43a4f8d37cd7f482d326b5d",
+      "bytes": 18462,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-oxide-mlir-export/src/profile.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/cuda-target-spec/src/lib.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "caf9e8f1612c5f703f54b73a9b5b105b116c0cc3",
+      "sha256": "61abb6317d3448800655ed094f95afc58f28b8aa3fba42e481233cad14446707",
+      "bytes": 34290,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/cuda-target-spec/src/lib.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "1d5a2758d9ab287bea43d0a0f26bc5f507a19a86",
+      "sha256": "1ff7f86cd6dc588de5d882bd60bf95dd0b330eff2f8670a3071ab9425deb6e0d",
+      "bytes": 3804,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/arithmetic.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "96d00a761e1aef3467a1047149a30160d27ba32b",
+      "sha256": "be663986b5a617c5b0b81a90e99f188cda4e7e13325d9ad0f941c330011b0b67",
+      "bytes": 756,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/arithmetic.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/async_copy_stage.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c9c0c94fcf3e197ec45265082e3a1a39f2332ddb",
+      "sha256": "f81cd76a888b0c8cc452cf6caa0341d4db41e6d14789cacd36ee845daf2d3b06",
+      "bytes": 6440,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/async_copy_stage.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/cluster_clc_stage.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3dea7dfc4ab2ec7942dd211652b1a1df39a4fcb9",
+      "sha256": "f78622af5ff6aa8f9937f7afd1c07767b51de1d6096df4ae4ac9fd235fb54379",
+      "bytes": 15535,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/cluster_clc_stage.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/sgemm_tiled.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f11a3deb5b7fe511099cf429372d0718ad667ace",
+      "sha256": "b6197448427ef6f9b40ad87a0938ddd542a704b01b2062de27a2ab2ae5b7f407",
+      "bytes": 27244,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/sgemm_tiled.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/subwarp_multibuf.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "0c68c0273bcd96d5ba03a985787cb6a0043f9134",
+      "sha256": "a234bddcbea7f32c55fe39b3b430be60c045150508f81af1fe725e9c5017f01e",
+      "bytes": 19722,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/subwarp_multibuf.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/tcgen05_matmul.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "e798de49aa7a01034afe7c76ec228a179709016d",
+      "sha256": "0d24a9368ed1fca78f9008f0e2f7ca976c58548019d37d2c426a0ba72d94f87b",
+      "bytes": 19445,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/tcgen05_matmul.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/vecadd.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "851c5a05d138c58e3807649a64aef7216d058a06",
+      "sha256": "5b5b0e29b66c8b9211952df78a1702aeda0673d11724393e121a6807c5bc853e",
+      "bytes": 3811,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/vecadd.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/warp_reduce.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "9e9d8769d9efa3916ac1b0d26f724a44b5b14104",
+      "sha256": "04b0691b444f735d4feba75ff59921364da0b11c051df3221e743ea226b0af01",
+      "bytes": 11495,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/warp_reduce.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/fixtures/warp_ring_stage.mir",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3e741621d041e499d7581c57e2e7ccab12b61478",
+      "sha256": "909ceda5b9e5a331b524b0eb52ec333bd66b1f01c7c12e76578cab12882220af",
+      "bytes": 21915,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/fixtures/warp_ring_stage.mir",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/src/codegen.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "6578277c12a7d896071fd76fe29a7ac261bf0179",
+      "sha256": "e786c984d36efd3fd100507f5119a71588030d42f207223c1d9d83bae876a577",
+      "bytes": 23118,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/src/codegen.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/src/lib.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "001f8f979de2ac50b00d75c4d809e80c74139a60",
+      "sha256": "0d6e72585e96c5384f80b58dd51cc8bf74a9bcd347988595e353d67cc6bc6092",
+      "bytes": 7690,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/src/lib.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/src/runner.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "19c57397bf00620c3cb2cbb09c6b3c2fdeb1972c",
+      "sha256": "a7b3130399e4127d7161b0c518bbf1d4964fdf4a086f920da85869b4b4c8ff9b",
+      "bytes": 17622,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/src/runner.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/src/spec.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "1015cd90a3e32900693c3e5bdac61f9826c1c965",
+      "sha256": "f60be277706ae08b8b2d6b7a210d345e80911fa77cbe81c5383cf297f15f83b2",
+      "bytes": 13672,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/src/spec.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/src/ssa.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "051ac56ecef9bb0d60268b4d7766506bf3a4004f",
+      "sha256": "6008e59b540511d0b6cf3adf70d7cb9c85c9098f4abc7665701cb37cce296f46",
+      "bytes": 18250,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/src/ssa.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/src/translate/program.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "fe074be3375e1e3f4209c0e38ad6bbbbab5509af",
+      "sha256": "91ad134d5c4e0dc60d9d9cdf5a89ae1a46b24e1c2e4d4ee20772e654c1509093",
+      "bytes": 188686,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/src/translate/program.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/lean-exporter/tests/export.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "1cbb2dca003778aee541aa5904627ec441492984",
+      "sha256": "ab7c479aec27e8098e2b7e6117d6a1f3131d7e3872352805189932885867231f",
+      "bytes": 140764,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/lean-exporter/tests/export.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/rustc-codegen-cuda/STATUS.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "be59072f419df7bbffb9743b76090811e5fc5ddb",
+      "sha256": "029008f24430b94108d31d6346a5c732059467bc96f42dc597378e8a4259e375",
+      "bytes": 5221,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/rustc-codegen-cuda/STATUS.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/rustc-codegen-cuda/examples/cp_async_small/src/main.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "dd4fe2373853fc3812b6114db3264dea603a9911",
+      "sha256": "3c7a2be52f27b6ee066a0a8bdf8e1cb6afb565daccde0a2962f7f0459a31ceb2",
+      "bytes": 10819,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/rustc-codegen-cuda/examples/cp_async_small/src/main.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/rustc-codegen-cuda/examples/cpp_consumes_rust_device/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a2fccddaa9bcf57d8abf61534c62ea46121ac384",
+      "sha256": "ad98800c01da467217f5a5c9c64a1e44b7935c60c79dffbe86eeb93922854b70",
+      "bytes": 4832,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/rustc-codegen-cuda/examples/cpp_consumes_rust_device/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/rustc-codegen-cuda/examples/cpp_consumes_rust_device/cuda-caller/run_test.sh",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "8ef6abfebf0866733cc54feba08451ff4315b9fb",
+      "sha256": "b61ad3fbd9e4c599aeab8b382715d6bb3ce38628d2f41ec0f364c04d3730b0de",
+      "bytes": 3266,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/rustc-codegen-cuda/examples/cpp_consumes_rust_device/cuda-caller/run_test.sh",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/rustc-codegen-cuda/examples/cutile_inter_kernel/src/main.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "de801156b49ef05cb86af5373fd7b4311230d07f",
+      "sha256": "706ffbec5ea2e4666fdadbe911598fe4e78af951385ea9e5b214fbcbee0445db",
+      "bytes": 6497,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/rustc-codegen-cuda/examples/cutile_inter_kernel/src/main.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/crates/rustc-codegen-cuda/examples/device_ffi_test/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "d02e6056cd31b78bcf6e49b3f1e1cba36b9be994",
+      "sha256": "b4789b0a9cb4b1e2150d5ee9feb42a926baf4d793a84724c14994d06f9abfd13",
+      "bytes": 10388,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/crates/rustc-codegen-cuda/examples/device_ffi_test/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/advanced/matrix-multiply-accelerators.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "78cebce4672473749e5afd22a5a22ca178990c32",
+      "sha256": "6915e6fc9e3f1adad2940694981cb1d89fac4a5c335df95082ed38a96cd15df2",
+      "bytes": 15382,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/advanced/matrix-multiply-accelerators.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/advanced/shared-memory-and-synchronization.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "15c91916039dc293eb7926e65e5e4621f8ef561e",
+      "sha256": "d6394ed480aa636bb1aa96705da92bbe128f0464db8122505e39230fb350776f",
+      "bytes": 21552,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/advanced/shared-memory-and-synchronization.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/appendix/building-from-source.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f3049e37b5b170e89021f1ab7facf236d2835c76",
+      "sha256": "2e644c94e08dcc90922277e1aa39cfe97717c032f97f3acb275b5ead5d087d71",
+      "bytes": 10962,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/appendix/building-from-source.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/appendix/supported-features.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "b90a37ee5cd4acbbdb87c776ec97d7f72c1a5bbc",
+      "sha256": "5754a9f8eb8dc3d1e7c635be374c1d792dcf1ff424472ab3c8519094cfdd0821",
+      "bytes": 34016,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/appendix/supported-features.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/cute/build-with-cutlass.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3d1872d9738d05a9492447e45a5d50732b365d0f",
+      "sha256": "e79d3a0c777b8244bfe6c3e6bd2de99a54acbfb75481aea8243bc3c44607e8c1",
+      "bytes": 4665,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/cute/build-with-cutlass.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/cute/overview.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "08582493409929f36c6566e15d2bfdb1941942c9",
+      "sha256": "501e25d9bcd3c1eae9c9b3abf4645946cdd52109ec6002671529759f90c3701f",
+      "bytes": 4422,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/cute/overview.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/cute/support-matrix.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "d7c1353f9fbe5320f379ba6a089e34d0f89c98f3",
+      "sha256": "0b47874fd80208908b1dd0bcacc0c84c673d140b16856d61a9079b881683d82e",
+      "bytes": 14578,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/cute/support-matrix.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/getting-started/installation.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "bcab4fcb6eb827c4c5af74f65a1a32c7f93bd995",
+      "sha256": "7b161b4230669fec68005dfdec6f55d7f0621ca1c10e7c09fd771e6c1029abbc",
+      "bytes": 18421,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/getting-started/installation.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/gpu-programming/launching-kernels.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a2ff6bad377fa3aef649ecd6227d13cd82addbdc",
+      "sha256": "5f1b82bc64c9df2b9762e242a0162212c555099c9251a8617a95c23c69ee71bc",
+      "bytes": 27929,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/gpu-programming/launching-kernels.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/gpu-programming/memory-and-data-movement.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "e85dfd126e12f909a72f60de1e7147790397c599",
+      "sha256": "b03fe8d865b593c51a8796bf4e4b11a9ea9550bc7bd0a47133b1604973621aa9",
+      "bytes": 28740,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/gpu-programming/memory-and-data-movement.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cuda-oxide/cuda-oxide-book/gpu-safety/verified-kernels.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f31005fa9f41a7552231469c0a21cc2227f457ea",
+      "sha256": "97351a7553657dbb4461ea2ca4bc8185262735da1a7da0a0b047cfbb2b45e40c",
+      "bytes": 36031,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/cuda-oxide-book/gpu-safety/verified-kernels.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/examples/safe_gemm_sol_final/src/kernels.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f4dbe79800e114dc4a89ac80a1a1a9aba0778155",
+      "sha256": "e9cb0e0f16a3666ec4dfa1adcbc196e06cd6e176a822b8efb45fb5bbd5c8c416",
+      "bytes": 35583,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/examples/safe_gemm_sol_final/src/kernels.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/examples/safe_gemm_sol_final/src/main.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "6680834223cb9629d802b3a4c0e6c3f4e12f7177",
+      "sha256": "9141832921ec24af28b1709ed24d40160b923fda79e2e30604c432bc3224dcc6",
+      "bytes": 22017,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/examples/safe_gemm_sol_final/src/main.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/examples/safe_vecadd/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "eaf7311451ec820324a92dd6dc44d573e45d3e8e",
+      "sha256": "96d7e4d8f8bcbb1fff95eb499386774ce0214baa6f4240ec4aa09dd5df94261c",
+      "bytes": 1506,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/examples/safe_vecadd/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/examples/safe_vecadd/src/main.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "4fefb94ba8921140b85c16527cf96a46f4f64ffb",
+      "sha256": "bf040eede3f27663feb580e2c0a393ef95438ad2d4f99b50a52b5bb43db1cdaf",
+      "bytes": 4513,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/examples/safe_vecadd/src/main.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "4d6c036e5d51c7df15fb7a4a16876d9647b1d364",
+      "sha256": "a00e39751720d9ec350ad348a4a40505280097af5f0679298193959fd84ce930",
+      "bytes": 3208,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Contracts/Access.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "b04dae906aa1e6b17d9efb7c07713e17f1a76338",
+      "sha256": "058da24298578e264a0e92cc69bb816b34d3b6ca83c2c0803d45977c5d6c302d",
+      "bytes": 5770,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Contracts/Access.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Contracts/ControlFlow.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "1a64089529e20fa527ec83948deb86937cecdc42",
+      "sha256": "215c2c7a71840377d20f3959e0f53e7a22d8f2a56feb42e828a3ffb6cccb092b",
+      "bytes": 11317,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Contracts/ControlFlow.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Contracts/Program.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "4d1339564c597ba5bdba925a0b7708f3b6a46d51",
+      "sha256": "9843681b178d120fd9a0b7045cd6e8dec71a3302ba5d5f25a0c5dd933af3215a",
+      "bytes": 12807,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Contracts/Program.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/ControlFlow.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "2783db1e57210f9bee3ab8401922afab5f02c111",
+      "sha256": "62ae0bfaf31de8dcbc89e01b97f4d0a8846aebf5ae0182c7454165838bc7905e",
+      "bytes": 55266,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/ControlFlow.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/Launch.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "2c5d2265436d623f8ef9c33a7e56b237a4fd77e9",
+      "sha256": "ab93060c283563a2ba6150819e671e41b490a511f72b5ac51b785154d1267690",
+      "bytes": 1802,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/Launch.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/Program.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "20f3beb5fda227644b3b6d3c2ac1588c129d1208",
+      "sha256": "d8ac0c24db2ae753936b78ec3b612e4059613099d4225f4474bed48526db7a52",
+      "bytes": 30618,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/Program.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/Scalar.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c8b5700852525a0845d3380cc47f25181ebd99ff",
+      "sha256": "9defdd56b64611d43c61611da13fe277978dc197c5725f89a53eacf48c92ebec",
+      "bytes": 4529,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Mir/Scalar.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Bounds.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "21af7787061bbb76e1e360ee27d0c2e3385836d0",
+      "sha256": "775285635fc09ef31dcddbb0f0c16e7fe849842c1486ab147ff6f1a0052d148d",
+      "bytes": 2612,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Bounds.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/ControlFlow.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "2f2702249e77d514aef7066c5e631ba556fe3df9",
+      "sha256": "205805d20e43b3129bc3b13f66f2fdfe31fe3e1d11814e73feeac69d542b9441",
+      "bytes": 514,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/ControlFlow.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/ControlFlow/Lattice.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "5c1e36aec3f30a37bd5fb816651ebd0d8ca85f6a",
+      "sha256": "08e821417b3341e5236f6687f3201a912b762925943ece8f39bd904bbe2d9d3d",
+      "bytes": 54404,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/ControlFlow/Lattice.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/ControlFlow/Soundness.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "5eb5c7d583cc39cc9cf9d5eb19ebd0ace3995a6b",
+      "sha256": "3ce34017d11f85438cb1eea267f7fb03393cd9da0d29ecf5a0ca1d5e654e312b",
+      "bytes": 25422,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/ControlFlow/Soundness.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Launch.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "edde124fdf9ca30c706452964b1fc4e4b8decdb2",
+      "sha256": "c5fbaf352ad662ea1f3a0839dee1855f1c069761be222f63a3589bb1b5bc719f",
+      "bytes": 10019,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Launch.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "85bf76956ec0fbc71d894d66c069a5fd2641b2d8",
+      "sha256": "1e79299c2abb0bf3cf2da7882543950cdc1d4bcb4798f76a08fe03d47a002496",
+      "bytes": 1225,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Exec.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "afc91d5faa95bf1727989fa523c097277d68b32f",
+      "sha256": "8089a330e118dea907115c25585bb16f13075be5b76cf57f34f251015ce38219",
+      "bytes": 47749,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Exec.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Expr.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f095a7aff2e858056a9bd88c532d3cf794114600",
+      "sha256": "69df5a45b05c04f5dcd9728ef3de11cba4800e09de35e5699a36e9df5b12ddae",
+      "bytes": 45657,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Expr.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Invariant.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "fb408597c486eb694b5a5d66fb0868b9da050613",
+      "sha256": "2ed2d61160a7215aa21891d06922b1e7531304fdb5e3ff63d3b998d1c1408353",
+      "bytes": 49731,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Invariant.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/LoopBounds.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "84135381e4829cced141d73d50f281dd2a5f8389",
+      "sha256": "6900b068fce9b4319d9b11f067da61710c6506fbc59869a3e4bae72c798552d0",
+      "bytes": 24188,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/LoopBounds.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Tactic.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c21422d79f0fa721a1da03c54f5693666012ad36",
+      "sha256": "e66ea62f33c1942e203fb5d2b3db7457c0e45c6998d122a4ab961d791aad4028",
+      "bytes": 27840,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Tactic.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Vc.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3f0f741fc9b23504417d983419c42b505752cee7",
+      "sha256": "e82b3625ad0d4033b6e0825bf6f74e9d5f1700a79e1e96ca16b2df5850e45f52",
+      "bytes": 86042,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/CudaOxide/Proofs/Program/Vc.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "0bbc81711ba87aa523c408683dbefc326fcfb0a4",
+      "sha256": "9352e7ce2b2aa73020d01e6676f06ad243226b62415769bdcdeeb494c54cbd8d",
+      "bytes": 7083,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/check-exporter.py",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "5d02c594d00c64af9737c7fae0ea67d2181056d2",
+      "sha256": "a4daed7a65f8e079c376b4aaea17b0a307d84692706e9ccbe48f87dfd6644db2",
+      "bytes": 55645,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/check-exporter.py",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/check.py",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c0757b39d349fc9199587912c2d445a4083f264c",
+      "sha256": "295e493368336b813e5b337b2992947d054b0a4f34183405e2e1d63b08ccc07b",
+      "bytes": 3724,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/check.py",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/lakefile.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "edf13b41749ba4ded014a94f36b98a224a4fea06",
+      "sha256": "0706186934cde75fa61df905904ec18c57829989af63276881a3903a04a9fa7a",
+      "bytes": 253,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/lakefile.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/lean-toolchain",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "a8afa7d1b02d96f0671eba854a8dc4b416beb473",
+      "sha256": "3aac669c7a910ec2389f4e4f921b605adf6ebf2d1e0c9b9cd0be4d33f3f5db71",
+      "bytes": 25,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/lean-toolchain",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/exporter/Scalar.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "4e4702c17698cf5e5886868b47fc29c7deee2579",
+      "sha256": "7bb778dc26d856332d4ab28c00a39a904082c26a7c486dfa6cfb7df4452c2277",
+      "bytes": 2221,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/exporter/Scalar.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/Accepted.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "fc4a4597fae879d320b375734f31f1531a6bd4a2",
+      "sha256": "0f14853987471a61c8db21a61e8be01750cdba6922653c891b792222ec8274fd",
+      "bytes": 2852,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/Accepted.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/Counterexamples.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "b1f33581d9fe70d974844e81421cfab0959ee286",
+      "sha256": "e1b6c528ad03fa1b45247084e0fdd9f6442d27ed8182a9b2e5a9706144be6ef8",
+      "bytes": 1879,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/Counterexamples.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedCoverage.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c9c01f58dab5ee840e2df06bed313ca7cd083574",
+      "sha256": "8b6e50fc67892199c10015bec814836d07058b428b386f277c734ecf9599e56e",
+      "bytes": 443,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedCoverage.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedInclusiveGuard.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "8de987b75fcc22abdfb816032c7aeb1d2d0a1225",
+      "sha256": "cb45ca29a2b4c0bdbd3f96baa323c868ab42e9ced277732047f33862e6226b10",
+      "bytes": 397,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedInclusiveGuard.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedLaneOnly.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "7e6c816e59c1810ed96e323b5f7dbffa8a0a5421",
+      "sha256": "fb4d3c1071fe57a3e70d3c4b8f3d95216c2b61c180186265217e035abc1c3aa4",
+      "bytes": 671,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedLaneOnly.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedMissingLength.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "fbc136bc94144cb540211fbd81d5fcd18ec2fd3d",
+      "sha256": "b81946202ab2ce048f8abdf07927f77e4cb7efb2cf4c4266d21a17f47038325b",
+      "bytes": 322,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedMissingLength.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedMutSliceRace.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "b58f1f01f72bb7d2d2736a9fce078d464301d969",
+      "sha256": "4e3d04a46c8ddc73b2c87160c454c9e0871e26ce03e15f005f326ccc5ccde75e",
+      "bytes": 577,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedMutSliceRace.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedTmemColOverflow.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "928ebb69e3136814f86a655fe7690dde42d055c7",
+      "sha256": "44af51f3bc3c011b8a5bfbf9cf2290dc3b0b7a3866cdfe8fdc78acdea6cfca7b",
+      "bytes": 1104,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedTmemColOverflow.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedTmemWarpSlice.lean",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "3fa7eddd7e5e4f4a5111c8dd4cd5ff99e8a95235",
+      "sha256": "0663de230047c5da60e35d49b9dcc423c62bf9e94f639054d54483677575a67c",
+      "bytes": 1174,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/oxide-proofs-preview/tests/vecadd/RejectedTmemWarpSlice.lean",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/rust-toolchain.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c827fac49c850709486fcd66db33f8405c28f76c",
+      "sha256": "a52fb5c97a2974a9af3581cc779d0763e89f7cd025b5343530f597be742cc8a9",
+      "bytes": 149,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/rust-toolchain.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime",
+        "proof"
+      ]
+    },
+    {
+      "path": "cuda-oxide/scripts/smoketest.sh",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "787d0e7d08b1a76e68f68790b9649d6c4786fb32",
+      "sha256": "29173ab7e6555f8b82f408413d2e1f46269c5464f4c7a336594c4596b00af57a",
+      "bytes": 145706,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cuda-oxide/scripts/smoketest.sh",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/Cargo.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "99958fff8967871628bc5f9543912b5b31eb52b5",
+      "sha256": "827820f00924d229820283b2b298721fafaa7430c03a640745d418157bd4559f",
+      "bytes": 4043,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/Cargo.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "fe639c31af09c9bb735ce2ac7ea39f063a0d9330",
+      "sha256": "160c4138c5e6f81d41d5922f522783aac0c1905513083f5de2cee88c767f8ae9",
+      "bytes": 12712,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-book/guide/interoperability.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "8a8461bb440c8a76015f132e75ef51f56d89d5b7",
+      "sha256": "9a72453f51fb646ccf514e1af21a511a2352c85566073e606c485979d6755357",
+      "bytes": 13358,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-book/guide/interoperability.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-book/guide/jit-compilation.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "6125de0e59f38843ba648b6bb1b5792e919c2f70",
+      "sha256": "54660d87dd9c782ed4ebe4925c5843d095e12c0fccd2c15d03e4885bb510e4ed",
+      "bytes": 25177,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-book/guide/jit-compilation.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-book/reference/compatibility.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "1c01ec42eaf18e3e6511312314f10a6d07bd070d",
+      "sha256": "97c882014a22e1c02f396b2b36c09ea71f5da5e86948c46565149f544c91bcba",
+      "bytes": 10807,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-book/reference/compatibility.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-examples/src/requirements.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "c80d2b5ae12be9327adb0ae94d8c0cba028d3a4f",
+      "sha256": "295dda0d2667822786eeddeb347b019129d0a2a18911bfde7cf0e2619d735ed6",
+      "bytes": 7168,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-examples/src/requirements.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-ir/src/capabilities.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f7fb026f9bbed09027c6c7d2e7fa444f4a796fbb",
+      "sha256": "8895eb0f13442ca0706d8a86348ef9dc54b60e7b3c7e8d4d7ac0ab61234ee88b",
+      "bytes": 15444,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-ir/src/capabilities.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-ir/src/requirements.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "2f2fed9246a63c7965cae17034a7326e621f5b3e",
+      "sha256": "323eb267d9ce1f411e90d7609717efb7095e1fd5aec96db023df79f6e6afd0cd",
+      "bytes": 11665,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-ir/src/requirements.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-ir/src/verify_target.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "92f4948d641627accff4e21e9eca1b59ef5eeac5",
+      "sha256": "dca09369784b6bb176de494234a73c9c15f58e4c333bc35164a2c19bd02005b4",
+      "bytes": 36580,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-ir/src/verify_target.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-kernels/README.md",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "d097d263c2227e78cb45e7a41b1c0c3f8749fb50",
+      "sha256": "ce790bc415997cb2e71a6d15532d2acdcf91842c478dc9920ed86596c15b8b02",
+      "bytes": 11029,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-kernels/README.md",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-kernels/src/experimental/gemm_variants.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "86c1629e2a05d482cef792cb9808fb05b88b96b7",
+      "sha256": "c83f266e9f5ccf604876db1ec615c79c34dbc423bdbd73199f76f5e8eac1e715",
+      "bytes": 9935,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-kernels/src/experimental/gemm_variants.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-kernels/src/experimental/moe_f16.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "f974ed5e21fe92ba1e02830c2776837f5b2147af",
+      "sha256": "f3290e6fbbcdb4b171bb53b6b3b3d778d81783b16886690631f6c2aaa60df6c1",
+      "bytes": 38706,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-kernels/src/experimental/moe_f16.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/cutile-kernels/src/experimental/qkv.rs",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "65dae73d551d1016ae2d5cc454c71ac52f8d0458",
+      "sha256": "1991ea0127e86059544a3dbbc86c28ecd68a5f1cee07ef332e0f42865aeec520",
+      "bytes": 13503,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/cutile-kernels/src/experimental/qkv.rs",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/rust-toolchain.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "45d77336c10f76f3b5539fd10d089ac6729e4088",
+      "sha256": "43446a25086218c94f86227270c00901b157daeab8d5c3a1506bce0d321fe336",
+      "bytes": 306,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/rust-toolchain.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "cutile-rs/scripts/run_gpu_tests.sh",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "ed84f7ec816fef255b690d01df362c06ef987e54",
+      "sha256": "37c430098936803732a0659b2de24e425d3585f8d7b3e64aeb05125f8254ae66",
+      "bytes": 10593,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/cutile-rs/scripts/run_gpu_tests.sh",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "git_blob_sha1": "0724b3bf69ea2a0b25e1e2ba173b96abf0e9bdf5",
+      "sha256": "b047da722546017898020d59b65ff7015ec8c78905176e944444e758667d03b9",
+      "bytes": 383,
+      "url": "https://github.com/NVIDIA/cuda-rust/blob/5e5c77b19a4b3204d6542bab2f0fde2a4eed824b/rust-toolchain.toml",
+      "git_blob_verified": true,
+      "audit_scopes": [
+        "compiler_runtime"
+      ]
+    }
+  ],
+  "local_execution": {
+    "rust_build": "NOT_RUN",
+    "lean_check": "NOT_RUN",
+    "sm89_probe": "NOT_RUN",
+    "atomic_integration": "NOT_RUN",
+    "inkling_benchmark": "NOT_RUN"
+  },
+  "scope_note": "Hashes identify retrieved public source bytes; no source or external CI observation grants target runtime qualification. Source text and transient retrieval caches are not bundled.",
+  "observed_relevant_refs": [
+    {
+      "ref": "fix/oxide-proofs-hardening",
+      "commit": "b569d9bc9f79ebe6d186cf9b177cb00311739bcc",
+      "scope": "identity_observation; detailed content audit is main plus proof hardening tree comparison"
+    },
+    {
+      "ref": "main",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "scope": "identity_observation; detailed content audit is main plus proof hardening tree comparison"
+    },
+    {
+      "ref": "release/v0.5.x",
+      "commit": "deecff63f4a6d28de1054c73b03e13f41c730ab8",
+      "scope": "identity_observation; detailed content audit is main plus proof hardening tree comparison"
+    }
+  ]
+}

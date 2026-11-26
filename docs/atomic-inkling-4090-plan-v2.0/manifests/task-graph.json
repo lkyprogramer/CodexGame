@@ -1,0 +1,1270 @@
+{
+  "schema_version": "1.0",
+  "scope": "design_plan_not_implementation",
+  "created_at": "2026-11-25",
+  "timezone": "Asia/Shanghai",
+  "root_source": "AtomicBot-ai/atomic-engine@fb69fff02101b048a0a165a3b502712dd2ca978f",
+  "status_vocabulary": [
+    "NOT_RUN",
+    "RUNNING",
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "NO_BENEFIT",
+    "DEFERRED",
+    "SKIPPED_WITH_EVIDENCE"
+  ],
+  "dependency_policy": "Core dependencies require completed, reviewed task deliverables. produces_gate_evidence is not a requirement to pass every gate scope before task completion. T03 screening does not grant full G5; T04 may complete with FIT/DOES_NOT_FIT/UNSUPPORTED diagnosis and DOES_NOT_FIT legally triggers T09 while G4 stays failed/blocked for that profile. Every selected runtime feature still needs its explicit capability gate. Optional branches may close NO_BENEFIT/SKIPPED_WITH_EVIDENCE with a reviewed profile-specific fallback decision.",
+  "release_policy": "T12 is a reviewable release candidate only; G7 needs explicit production rollout authorization in the execution session.",
+  "tasks": [
+    {
+      "id": "T00",
+      "title": "现场调查与资产/工具链锁定",
+      "depends_on": [],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G0"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T01",
+      "title": "实验工具、证据schema与参考接口",
+      "depends_on": [
+        "T00"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G0"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T02",
+      "title": "正式Mini普通CUDA串行基线",
+      "depends_on": [
+        "T01"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G1"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T03",
+      "title": "量化与业务质量基线",
+      "depends_on": [
+        "T02"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G5"
+      ],
+      "completion_rule": "Quality screening and candidate selection completed; full G5 remains separate and is aggregated at T12."
+    },
+    {
+      "id": "T04",
+      "title": "容量与早期长上下文探测",
+      "depends_on": [
+        "T03"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G4"
+      ],
+      "completion_rule": "Complete audited capacity diagnosis for attempted profile rows, with FIT/DOES_NOT_FIT/UNSUPPORTED. A capacity gap is an output, not a false G4 PASS and not a blocker to launching T09."
+    },
+    {
+      "id": "T05",
+      "title": "完整状态事务与回放",
+      "depends_on": [
+        "T02"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T06",
+      "title": "原生DSpark固定宽度",
+      "depends_on": [
+        "T03",
+        "T05"
+      ],
+      "kind": "optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T07",
+      "title": "SM89 profiler驱动算子优化",
+      "depends_on": [
+        "T04",
+        "T05"
+      ],
+      "kind": "optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T08",
+      "title": "图复用、自适应k与lookup",
+      "depends_on": [
+        "T06"
+      ],
+      "kind": "optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T09",
+      "title": "Inkling离散CUDA预算与驻留",
+      "depends_on": [
+        "T04",
+        "T05"
+      ],
+      "kind": "conditional_capacity",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G4"
+      ],
+      "completion_rule": "Qualify required budget profile, or skip only for a measured complete profile fingerprint. Reopen after draft/k/B/ubatch/graph/context/asset changes invalidate capacity evidence."
+    },
+    {
+      "id": "T10",
+      "title": "长上下文与continuation资格",
+      "depends_on": [
+        "T04",
+        "T05"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G4"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T11",
+      "title": "服务队列、协议与故障隔离",
+      "depends_on": [
+        "T10"
+      ],
+      "kind": "core",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G6"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "R01",
+      "title": "last-loop KV容量与质量研究",
+      "depends_on": [
+        "T04",
+        "T05"
+      ],
+      "kind": "research",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G4",
+        "G5"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "R02",
+      "title": "varloop目标与深度adapter",
+      "depends_on": [
+        "T02",
+        "T05"
+      ],
+      "kind": "research",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G1",
+        "G2",
+        "G5"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "R03",
+      "title": "完整Inkling二维投机集成",
+      "depends_on": [
+        "R02",
+        "T06"
+      ],
+      "kind": "research",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G5"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record.",
+      "source_update": "Public experimental Inkling runner exists at 2DSD feat/inkling-dspark@962874f303c3142406ab3eecfae2bb51567815c9; formal-model drafter availability and SM89 qualification remain separate."
+    },
+    {
+      "id": "R04",
+      "title": "LoopCD结构态与guided readout",
+      "depends_on": [
+        "R02",
+        "T05"
+      ],
+      "kind": "research",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G5"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "R05",
+      "title": "已通过研究机制的交互实验",
+      "depends_on": [
+        "R01",
+        "R03",
+        "R04"
+      ],
+      "kind": "research",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G5"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "T12",
+      "title": "主力候选验收与回退演练",
+      "depends_on": [
+        "T03",
+        "T10",
+        "T11"
+      ],
+      "kind": "release_candidate",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "completion_rule": "Deliver implemented or scoped evidence with review; capability qualification is a separate gate record."
+    },
+    {
+      "id": "G00",
+      "title": "固定Ghost来源、参考适配与失败oracle",
+      "depends_on": [
+        "T01",
+        "T02",
+        "T03"
+      ],
+      "kind": "optional_reference",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G0",
+        "G2"
+      ],
+      "source_document": "docs/25_ghost_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12."
+    },
+    {
+      "id": "G01",
+      "title": "循环感知专家驻留与有界交换",
+      "depends_on": [
+        "G00",
+        "T04",
+        "T05",
+        "T09"
+      ],
+      "kind": "conditional_capacity",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "source_document": "docs/25_ghost_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12.",
+      "profile_condition": "Requires T09 implemented capability, or an explicit same-profile full-residency skip decision; a skipped CUDA bank cannot be treated as implemented."
+    },
+    {
+      "id": "G02",
+      "title": "精确runtime布局与格式执行",
+      "depends_on": [
+        "G00",
+        "T03",
+        "T05"
+      ],
+      "kind": "conditional_optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "source_document": "docs/25_ghost_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12."
+    },
+    {
+      "id": "G03",
+      "title": "Prefill专家分组与权重复用",
+      "depends_on": [
+        "G00",
+        "T05",
+        "T07"
+      ],
+      "kind": "conditional_optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "source_document": "docs/25_ghost_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12.",
+      "conditional_dependencies": [
+        {
+          "id": "T09",
+          "when": "budget_mode requires expert tiering"
+        }
+      ]
+    },
+    {
+      "id": "G04",
+      "title": "有界CPU/GPU relay实验",
+      "depends_on": [
+        "G00",
+        "G01",
+        "T05",
+        "T09"
+      ],
+      "kind": "conditional_research",
+      "status": "DEFERRED",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G6"
+      ],
+      "source_document": "docs/25_ghost_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12.",
+      "start_condition": "A new Inkling profiler trace and recorded DECISION support potential G3 benefit; historical no-benefit is not automatically reopened."
+    },
+    {
+      "id": "G05",
+      "title": "完整Inkling闲置会话快照",
+      "depends_on": [
+        "G00",
+        "T10",
+        "T11"
+      ],
+      "kind": "conditional_service",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G6"
+      ],
+      "source_document": "docs/25_ghost_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12."
+    },
+    {
+      "id": "K00",
+      "title": "来源、工具链、SM89与证明能力探针",
+      "depends_on": [
+        "T01"
+      ],
+      "kind": "optional_reference",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G0",
+        "G2"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver pinned source/toolchain/frontend support matrix and scoped probe evidence with real executed/skipped counts. Source or CPU proof completion does not grant RTX4090 execution or Inkling qualification."
+    },
+    {
+      "id": "K01",
+      "title": "搜索、产物、证明和资格合同",
+      "depends_on": [
+        "K00"
+      ],
+      "kind": "optional_tooling",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G0",
+        "G2"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12. Every enabled runtime feature requires its exact-profile qualification."
+    },
+    {
+      "id": "K02",
+      "title": "单热点、有限搜索域与成本计划",
+      "depends_on": [
+        "K00",
+        "T04",
+        "T05"
+      ],
+      "kind": "conditional_optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver a reviewed single-hotspot hypothesis, critical-path/Amdahl evidence, finite candidate space, frozen search/confirmation data and budget, or a scoped NO_BENEFIT/SKIPPED_WITH_EVIDENCE decision. Not every hypothesis must become code.",
+      "conditional_dependencies": [
+        {
+          "id": "T06",
+          "when": "selected shape/profile executes native speculation; require matching capability evidence"
+        },
+        {
+          "id": "T09",
+          "when": "selected budget_mode requires expert tiering; require matching capability evidence"
+        }
+      ]
+    },
+    {
+      "id": "K03",
+      "title": "受限生成、编译与证明绑定",
+      "depends_on": [
+        "K01",
+        "K02"
+      ],
+      "kind": "optional_optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G0",
+        "G2"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver constrained candidate/build/proof tooling and exact artifact binding. Build/proof task completion does not require K04/K05 to pass; target execution stages remain gated on their actual prerequisites to avoid a dependency cycle."
+    },
+    {
+      "id": "K04",
+      "title": "ggml-cuda局部注入、ABI与异步所有权",
+      "depends_on": [
+        "K01",
+        "K02",
+        "K03"
+      ],
+      "kind": "optional_optimization",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G4"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver reviewed implemented or scoped evidence. Task completion is separate from capability gates; unselected optional tasks do not block T12. Every enabled runtime feature requires its exact-profile qualification.",
+      "conditional_dependencies": [
+        {
+          "id": "T06",
+          "when": "selected shape/profile executes native speculation; require matching capability evidence"
+        },
+        {
+          "id": "T09",
+          "when": "selected budget_mode requires expert tiering; require matching capability evidence"
+        }
+      ]
+    },
+    {
+      "id": "K05",
+      "title": "Sanitizer、数值、循环状态与资源资格",
+      "depends_on": [
+        "K03",
+        "K04",
+        "T03",
+        "T05"
+      ],
+      "kind": "optional_qualification",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G4",
+        "G5"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Complete scoped dynamic/operator/model/state/resource evidence for the selected candidate. Full business G5 remains separate and is aggregated by K06/T12; source tests and partial numerical checks do not grant full quality qualification.",
+      "conditional_dependencies": [
+        {
+          "id": "T06",
+          "when": "selected shape/profile executes native speculation; require matching capability evidence"
+        },
+        {
+          "id": "T09",
+          "when": "selected budget_mode requires expert tiering; require matching capability evidence"
+        }
+      ]
+    },
+    {
+      "id": "K06",
+      "title": "独立确认、registry与回退交付",
+      "depends_on": [
+        "K05",
+        "T10",
+        "T11"
+      ],
+      "kind": "optional_qualification",
+      "status": "NOT_RUN",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver independently confirmed performance/quality/resource/service evidence or a reviewed NO_BENEFIT/BLOCKED result, plus exact registry/fallback scope. No production G7 authorization is implied."
+    },
+    {
+      "id": "K07",
+      "title": "独立ggml backend的条件原型",
+      "depends_on": [
+        "K02",
+        "K05",
+        "K06"
+      ],
+      "kind": "conditional_research",
+      "status": "DEFERRED",
+      "blocker": null,
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "source_document": "docs/31_kernel_tasks.md",
+      "completion_rule": "Deliver reviewed defer/no-benefit decision, or progress a separately authorized bounded prototype through P0 interface matrix, P1 one fixed subgraph, P2 formal Mini serial/full state, and P3 full original qualification. K07 is never a universal prerequisite of T12.",
+      "start_condition": "Remain DEFERRED until a new DECISION identifies measured residual cross-op critical-path cost that can exceed the original G3 gate, a concrete limitation of the minimal existing-backend interface, successful ownership/fallback lessons, complete op/buffer/event/copy/alias coverage and a bounded maintenance/prototype budget. New Rust tooling alone or a local NO_BENEFIT does not satisfy this trigger."
+    },
+    {
+      "id": "L00",
+      "title": "Loom来源与格式/机制冻结",
+      "depends_on": [
+        "T01"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G0"
+      ],
+      "deliverables": [
+        "pinned source audit",
+        "Tier/Pool support matrix",
+        "license map",
+        "paper-code-target evidence split"
+      ],
+      "kind": "optional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "NEW tools/inkling-lab/cache_profiles.py",
+        "NEW profiles/cache-capabilities.json",
+        "NEW tests/test-cache-contracts.py"
+      ],
+      "required_cache_tests": [
+        "LX01",
+        "LX02"
+      ]
+    },
+    {
+      "id": "L01",
+      "title": "完整状态、对象和预算合同",
+      "depends_on": [
+        "L00",
+        "T05"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G0",
+        "G2"
+      ],
+      "deliverables": [
+        "source-bound StateInventory",
+        "cache object schema",
+        "restore transaction and lifetime contract",
+        "resource identity and worst-case admission"
+      ],
+      "kind": "optional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "NEW common/atomic-cache-record.h",
+        "NEW common/atomic-cache-state.h",
+        "NEW common/atomic-cache-state.cpp",
+        "NEW tests/test-atomic-cache-state.cpp"
+      ],
+      "required_cache_tests": [
+        "LX07",
+        "LX08",
+        "LX09",
+        "LX10",
+        "LX13",
+        "LX14",
+        "LX15",
+        "LX19",
+        "LX21",
+        "LX22"
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "真实KV格式codec资格与成本",
+      "depends_on": [
+        "L00",
+        "T03",
+        "T04"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G2",
+        "G4"
+      ],
+      "deliverables": [
+        "Q8_0/F16/BF16 corpus where supported",
+        "byte roundtrip and malformed input results",
+        "worst-case expansion",
+        "payload/allocation/full-state ratios",
+        "codec critical-path cost"
+      ],
+      "kind": "optional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "NEW tools/inkling-lab/cache_corpus.py",
+        "NEW tools/inkling-lab/cache_codecs.py",
+        "NEW common/atomic-cache-codec.h",
+        "NEW tests/test-cache-codecs.py"
+      ],
+      "required_cache_tests": [
+        "LX02",
+        "LX03",
+        "LX04",
+        "LX05",
+        "LX06",
+        "LX16",
+        "LX17",
+        "LX18"
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "Tier闲置完整状态压缩与恢复",
+      "depends_on": [
+        "L01",
+        "L02",
+        "T10"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G6"
+      ],
+      "deliverables": [
+        "host then SSD snapshot path",
+        "reserve-before-copy",
+        "atomic publish",
+        "independent recompute oracle",
+        "cache miss and corruption recovery"
+      ],
+      "kind": "conditional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "NEW common/atomic-cache-tier.h",
+        "NEW common/atomic-cache-tier.cpp",
+        "NEW ggml/src/ggml-cuda/atomic-cache-codec.cu",
+        "NEW tests/test-atomic-cache-tier.cpp"
+      ],
+      "required_cache_tests": [
+        "LX08",
+        "LX11",
+        "LX12",
+        "LX15",
+        "LX16",
+        "LX17",
+        "LX19",
+        "LX21",
+        "LX22",
+        "LX23",
+        "LX30",
+        "LX32"
+      ],
+      "required_cache_test_scopes": {
+        "LX32": [
+          "functional_save_restore_cancel_repeat_100",
+          "same_owner_no_duplication"
+        ],
+        "excluded_until_L07": [
+          "service_soak_8h_200_requests"
+        ]
+      },
+      "gate_evidence_scope": {
+        "G6": "component fault/continuation evidence only; full service soak at L07/T12 after T11"
+      }
+    },
+    {
+      "id": "L04",
+      "title": "Pool受限SM89压缩attention",
+      "depends_on": [
+        "L01",
+        "L02",
+        "T04",
+        "T05"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G2",
+        "G4"
+      ],
+      "conditional_dependencies": [
+        {
+          "id": "K05",
+          "when": "a new K-provider/frontend is selected; applicable K00-K05 evidence required"
+        }
+      ],
+      "deliverables": [
+        "one actual geometry/dtype B1 provider",
+        "raw-tail and page ownership",
+        "E codec and N attention evidence separated",
+        "all temporary/retained memory"
+      ],
+      "kind": "conditional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "NEW ggml/src/ggml-cuda/atomic-kv-pool.cuh",
+        "NEW ggml/src/ggml-cuda/atomic-kv-pool.cu",
+        "NEW tests/test-atomic-kv-pool.cpp"
+      ],
+      "required_cache_tests": [
+        "LX03",
+        "LX04",
+        "LX05",
+        "LX18",
+        "LX19",
+        "LX20",
+        "LX21",
+        "LX22",
+        "LX25",
+        "LX26"
+      ]
+    },
+    {
+      "id": "L05",
+      "title": "Pool完整模型profile资格",
+      "depends_on": [
+        "L04",
+        "T10"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G2",
+        "G4",
+        "G5"
+      ],
+      "conditional_dependencies": [
+        {
+          "id": "T06",
+          "when": "native_dspark selected"
+        },
+        {
+          "id": "T09",
+          "when": "expert tiering selected"
+        },
+        {
+          "id": "R03",
+          "when": "2dsd selected"
+        },
+        {
+          "id": "R04",
+          "when": "LoopCD selected"
+        }
+      ],
+      "deliverables": [
+        "actual global/SWA/prefill/graph matrix",
+        "full state continuation and rollback",
+        "numerical and quality evidence"
+      ],
+      "kind": "conditional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "MODIFY L04 local pool/provider files",
+        "NEW tests/test-atomic-kv-pool-state.cpp",
+        "NEW profiles/cache-model-capabilities.json"
+      ],
+      "required_cache_tests": [
+        "LX11",
+        "LX12",
+        "LX20",
+        "LX21",
+        "LX22",
+        "LX25",
+        "LX26"
+      ],
+      "conditional_required_tests": [
+        {
+          "test_ids": [
+            "LX27"
+          ],
+          "when": {
+            "config.spec_method": [
+              "native_dspark"
+            ]
+          },
+          "requires_task": "T06"
+        },
+        {
+          "test_ids": [
+            "LX28"
+          ],
+          "when": {
+            "config.spec_method": [
+              "2dsd"
+            ]
+          },
+          "requires_task": "R03"
+        },
+        {
+          "test_ids": [
+            "LX29"
+          ],
+          "when": {
+            "config.guidance": [
+              "loopcd_hidden",
+              "loopcd_logits"
+            ]
+          },
+          "requires_task": "R04"
+        }
+      ],
+      "applicability_rule": "Evaluate against frozen executed profile; selected missing evidence BLOCKED; unselected reviewed scope SKIPPED_WITH_EVIDENCE grants no capability."
+    },
+    {
+      "id": "L06",
+      "title": "选择机制的耦合实验",
+      "depends_on": [
+        "L01"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G5"
+      ],
+      "selected_feature_dependency_rule": "Each experiment plan explicitly lists qualified L03 and/or L05 plus its original feature gates; validation rejects missing selected feature evidence. Do not require all optional features globally.",
+      "deliverables": [
+        "bounded factorial plan",
+        "memory/PCIe/CPU interference traces",
+        "frozen winner or NO_BENEFIT"
+      ],
+      "kind": "optional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "NEW tools/inkling-lab/cache_coupling.py",
+        "NEW profiles/cache-factorial-plans.json"
+      ],
+      "required_cache_tests": [
+        "LX16",
+        "LX17",
+        "LX18",
+        "LX23",
+        "LX24",
+        "LX30",
+        "LX31"
+      ]
+    },
+    {
+      "id": "L07",
+      "title": "独立确认与候选服务交付",
+      "depends_on": [
+        "L06",
+        "T10",
+        "T11"
+      ],
+      "status": "NOT_RUN",
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "deliverables": [
+        "original threshold confirmation",
+        "cold/warm/fallback coverage",
+        "8h and >=200 request soak",
+        "reviewable T12 evidence; no G7 authorization"
+      ],
+      "kind": "optional_cache",
+      "blocker": null,
+      "source_document": "docs/38_cache_tasks.md",
+      "completion_rule": "Reviewed deliverable completion is separate from capability gates; selected cache features need explicit profile-scoped evidence. Unselected cache tasks do not block T12.",
+      "planned_files": [
+        "MODIFY tools/inkling-lab/qualification.py planned by T01",
+        "NEW profiles/cache-release-candidate.json",
+        "NEW tests/test-cache-service-replay.py"
+      ],
+      "required_cache_tests": [
+        "LX30",
+        "LX31",
+        "LX32"
+      ],
+      "required_cache_test_scopes": {
+        "LX32": [
+          "all_functional_and_service_soak_8h_200_requests"
+        ]
+      }
+    },
+    {
+      "id": "M00",
+      "title": "Magnitude 来源/表示边界与共享 ledger、reserve 合同",
+      "kind": "optional_mechanism_contract",
+      "status": "NOT_RUN",
+      "depends_on": [
+        "T01"
+      ],
+      "conditional_dependencies": [],
+      "shared_component_dependencies": [
+        {
+          "component_id": "atomic.resource-ledger.v1",
+          "relationship": "single implementation shared with L01; first selected task implements missing core, later task consumes exact-hash evidence and idempotent deltas",
+          "not_a_global_task_edge": "L01",
+          "does_not_complete_other_task": true
+        }
+      ],
+      "produces_gate_evidence": [
+        "G0",
+        "G2"
+      ],
+      "source_document": "docs/42_magnitude_integration.md",
+      "required_magnitude_tests": [
+        "MGX01",
+        "MGX02",
+        "MGX03",
+        "MGX15",
+        "MGX16"
+      ],
+      "conditional_magnitude_tests": [],
+      "planned_files": [
+        "NEW common/atomic-resource-ledger.h",
+        "NEW common/atomic-resource-ledger.cpp",
+        "NEW tests/test-atomic-resource-ledger.cpp",
+        "NEW tools/inkling-lab/magnitude_profiles.py",
+        "NEW profiles/shared-core-delivery.json",
+        "MODIFY tools/inkling-lab/manifest.py planned by T01",
+        "MODIFY tools/inkling-lab/capabilities.py planned by T01",
+        "MODIFY existing L01 shared ledger files instead of creating duplicates if already implemented"
+      ],
+      "completion_rule": "Source/representation refusal evidence plus implemented shared-ledger semantic CPU tests. Document/schema checks alone never satisfy MGX01–03. Shared-component receipt is reused by L01, without granting L01 complete-state capability.",
+      "selected_feature_dependency_rule": "M00 does not require all L tasks. Integrating real state sizing consumes T05/L01 members only when that runtime/cache consumer is selected; unsupported state remains blocked.",
+      "blocker": null
+    },
+    {
+      "id": "M01",
+      "title": "传输寿命、需求保留 staging 与路由回放；条件预取",
+      "kind": "conditional_resource_optimization",
+      "status": "NOT_RUN",
+      "depends_on": [
+        "M00",
+        "T05"
+      ],
+      "conditional_dependencies": [
+        {
+          "id": "T04",
+          "when": "real model route study, expert prefetch, or capacity/performance conclusion is selected"
+        },
+        {
+          "id": "T09",
+          "when": "selected profile requires discrete expert tiering; require its actual matching capability"
+        },
+        {
+          "id": "G01",
+          "when": "enhancing the selected G01 expert residency/streaming path"
+        },
+        {
+          "id": "L03",
+          "when": "integrating the selected Tier checkpoint transfer path"
+        },
+        {
+          "id": "L05",
+          "when": "testing a selected full-model Pool migration/transfer path"
+        }
+      ],
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "source_document": "docs/42_magnitude_integration.md",
+      "required_magnitude_tests": [
+        "MGX04",
+        "MGX05",
+        "MGX06",
+        "MGX07"
+      ],
+      "conditional_magnitude_tests": [
+        {
+          "id": "MGX08",
+          "when": "prefetch.enabled=true; required for performance/capacity qualification",
+          "selection_predicate": {
+            "profile.prefetch.enabled": true
+          }
+        }
+      ],
+      "planned_files": [
+        "NEW common/atomic-transfer-ticket.h",
+        "NEW common/atomic-transfer-ticket.cpp",
+        "NEW tests/test-atomic-transfer-ticket.cpp",
+        "NEW tools/inkling-lab/expert_route_replay.py",
+        "NEW tests/inkling_lab/test_expert_route_replay.py",
+        "NEW profiles/expert-transfer-policy.json",
+        "MODIFY src/llama-inkling-residency.h/.cpp planned by G01 only if selected",
+        "MODIFY src/llama-inkling-cuda-banks.h planned by T09 only if selected",
+        "MODIFY common/atomic-cache-tier.cpp planned by L03 only if selected"
+      ],
+      "completion_rule": "Shared transfer/staging semantics, actual Atomic-owned DMA fixture evidence, and causal offline replay tests. Replay yields miss/held comparisons, not stall or prefetch speed bounds. Prefetch decisions require actual demand stall, causal lead time, measured DMA/compute overlap, bandwidth/queue interference and paired E2E evidence; a small NextRead gap alone cannot reject prefetch.",
+      "selected_feature_dependency_rule": "Conditional edges gate only their selected runtime stage. Building the common ticket/replay code does not wait for every G/L feature. A skipped or absent expert bank cannot satisfy a streaming capability.",
+      "blocker": null
+    },
+    {
+      "id": "M02",
+      "title": "CostEpoch、投机决策与 kernel 产物资格绑定",
+      "kind": "conditional_policy_optimization",
+      "status": "NOT_RUN",
+      "depends_on": [
+        "M00"
+      ],
+      "conditional_dependencies": [
+        {
+          "id": "T06",
+          "when": "measuring or changing native DSpark decision/control"
+        },
+        {
+          "id": "T08",
+          "when": "adapting draft width/graph selection or lookup beyond qualified fixed-width DSpark"
+        },
+        {
+          "id": "T09",
+          "when": "cost epochs observe a selected discrete expert tiering profile"
+        },
+        {
+          "id": "G01",
+          "when": "cost epochs observe the selected G01 residency policy"
+        },
+        {
+          "id": "K01",
+          "when": "integrating selected KernelLab artifact/evidence records"
+        },
+        {
+          "id": "K05",
+          "when": "using a selected new kernel provider in runtime experiments"
+        }
+      ],
+      "produces_gate_evidence": [
+        "G0",
+        "G2",
+        "G3"
+      ],
+      "source_document": "docs/42_magnitude_integration.md",
+      "required_magnitude_tests": [
+        "MGX09",
+        "MGX11"
+      ],
+      "conditional_magnitude_tests": [
+        {
+          "id": "MGX10",
+          "when": "spec_control.enabled=true; required to qualify the changed control policy",
+          "selection_predicate": {
+            "profile.spec_control.enabled": true
+          }
+        }
+      ],
+      "planned_files": [
+        "NEW common/atomic-cost-epoch.h",
+        "NEW common/atomic-cost-epoch.cpp",
+        "NEW tests/test-atomic-cost-epoch.cpp",
+        "NEW profiles/cost-epochs.json",
+        "NEW tests/inkling_lab/test_artifact_evidence_binding.py",
+        "MODIFY common/speculative.cpp only for selected qualified T06/T08 path",
+        "MODIFY tools/inkling-lab/capabilities.py planned by T01",
+        "MODIFY tools/inkling-lab/kernel_contracts.py planned by K01 only if selected"
+      ],
+      "completion_rule": "Implemented epoch/evidence invalidation tests and explicit unknown handling; runtime speculation requires MGX10 plus original model/quality gates. Artifact cache alone cannot grant qualification.",
+      "selected_feature_dependency_rule": "No unconditional K task requirement. Native Atomic artifacts can exercise evidence contracts without a new frontend, provider, or backend. No automatic production tuning.",
+      "blocker": null
+    },
+    {
+      "id": "M03",
+      "title": "可选 Pi/Java8 观测与选中组合的服务资格",
+      "kind": "optional_service_qualification",
+      "status": "NOT_RUN",
+      "depends_on": [
+        "M00",
+        "T11"
+      ],
+      "conditional_dependencies": [
+        {
+          "id": "M01",
+          "when": "selected final profile enables M01 transfer/residency/prefetch changes"
+        },
+        {
+          "id": "M02",
+          "when": "selected final profile enables CostEpoch-based policy or artifact-evidence changes"
+        },
+        {
+          "id": "L06",
+          "when": "selected plan compares cache with residency/speculation interactions"
+        },
+        {
+          "id": "L07",
+          "when": "selected service candidate enables Tier or Pool cache"
+        },
+        {
+          "id": "K06",
+          "when": "selected service candidate enables a new KernelLab provider"
+        }
+      ],
+      "produces_gate_evidence": [
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "source_document": "docs/42_magnitude_integration.md",
+      "required_magnitude_tests": [
+        "MGX14"
+      ],
+      "conditional_magnitude_tests": [
+        {
+          "id": "MGX12",
+          "when": "observability.enabled=true",
+          "selection_predicate": {
+            "profile.observability.enabled": true
+          }
+        },
+        {
+          "id": "MGX13",
+          "when": "observability.enabled=true",
+          "selection_predicate": {
+            "profile.observability.enabled": true
+          }
+        }
+      ],
+      "planned_files": [
+        "NEW common/atomic-inference-observation.h",
+        "NEW common/atomic-inference-observation.cpp",
+        "NEW tests/inkling_lab/test_atomic_observations.py",
+        "NEW integrations/pi/atomic-observation.ts only if Pi observation selected",
+        "NEW integrations/java8/AtomicSseObservation.java only if Java8 observation selected",
+        "NEW profiles/magnitude-mechanisms-release.json",
+        "MODIFY tools/server/server-context.cpp only for opted-in observation path",
+        "MODIFY tools/inkling-lab/qualification.py planned by T01"
+      ],
+      "completion_rule": "Selected observation contracts and combined-profile gates with exclusive GPU ownership, original quality/performance requirements, trace/rollback evidence. Unselected observation remains disabled; M03 is never a universal T12 prerequisite.",
+      "selected_feature_dependency_rule": "Aggregate only actual selected mechanisms. Reuse same-profile T11/L07/K06 evidence when complete; do not repeat unchanged suites or claim unselected features passed.",
+      "blocker": null
+    }
+  ],
+  "status_scope": "task_deliverable_completion_not_capability_qualification",
+  "package_version": "2.0",
+  "optional_feature_policy": "G00-G05 are optional task IDs, distinct from qualification gates G0-G7. They do not become universal T12 dependencies. Each enabled feature requires its profile-specific qualification; unselected features may remain NOT_RUN/DEFERRED or close with reviewed NO_BENEFIT/SKIPPED_WITH_EVIDENCE. K00-K07 are also optional. K07 is initially DEFERRED; no new frontend or backend is a universal T12 prerequisite. Only selected profiles consume applicable K evidence and original G2-G6 gates.",
+  "updated_at": "2026-11-26",
+  "cache_feature_policy": {
+    "active_request_cross_tier_kv_paging": "DEFERRED",
+    "selected_features_require_qualified_dependencies": true,
+    "selection_is_not_production_authorization": true,
+    "initial_active_generations": 1
+  },
+  "magnitude_shared_core": {
+    "component_id": "atomic.resource-ledger.v1",
+    "shared_by": [
+      "M00",
+      "L01"
+    ],
+    "single_implementation": true,
+    "receipt_path": "profiles/shared-core-delivery.json",
+    "no_global_dependency_edge": true,
+    "semantics": "First selected task supplies missing shared core. Later task consumes exact-hash evidence and idempotent deltas; neither task automatically passes the other's full scope.",
+    "document_check_is_semantic_test": false
+  },
+  "magnitude_feature_policy": "Resolve selected profile from config.mechanism_profile_ref; conditional selection never grants capability or production authorization. Shared ledger/tickets/evidence are implemented once."
+}

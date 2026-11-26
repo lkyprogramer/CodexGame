@@ -1,0 +1,1729 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inkling lab run evidence contract v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "task_id",
+    "status",
+    "evidence_kind",
+    "qualification_scope",
+    "claim",
+    "optimization_class",
+    "engine",
+    "hardware",
+    "model",
+    "config",
+    "workload",
+    "execution",
+    "measurements",
+    "oracle",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "enum": [
+        "T00",
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "T12",
+        "G00",
+        "G01",
+        "G02",
+        "G03",
+        "G04",
+        "G05",
+        "K00",
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "L00",
+        "L01",
+        "L02",
+        "L03",
+        "L04",
+        "L05",
+        "L06",
+        "L07",
+        "M00",
+        "M01",
+        "M02",
+        "M03"
+      ]
+    },
+    "status": {
+      "enum": [
+        "NOT_RUN",
+        "RUNNING",
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "NO_BENEFIT",
+        "DEFERRED",
+        "SKIPPED_WITH_EVIDENCE"
+      ]
+    },
+    "evidence_kind": {
+      "enum": [
+        "not_run",
+        "hardware_inventory",
+        "document_check",
+        "synthetic_test",
+        "cpu_reference",
+        "other_gpu",
+        "target_4090"
+      ]
+    },
+    "qualification_scope": {
+      "enum": [
+        "target_4090",
+        "cpu_algorithm",
+        "document_tools",
+        "inventory"
+      ]
+    },
+    "claim": {
+      "enum": [
+        "collection",
+        "correctness",
+        "performance",
+        "quality",
+        "capacity",
+        "service"
+      ]
+    },
+    "optimization_class": {
+      "enum": [
+        "E",
+        "N",
+        "Q"
+      ]
+    },
+    "engine": {
+      "type": "object",
+      "required": [
+        "repository",
+        "baseline_commit",
+        "candidate_commit",
+        "binary_sha256",
+        "dirty",
+        "build_manifest_sha256"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "baseline_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "candidate_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "binary_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "build_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hardware": {
+      "type": "object",
+      "required": [
+        "inventory_sha256",
+        "gpu_name",
+        "gpu_arch",
+        "driver_version",
+        "cuda_toolkit_version",
+        "cuda_runtime_version",
+        "isolated_for_timing"
+      ],
+      "properties": {
+        "inventory_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "gpu_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gpu_arch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "driver_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cuda_toolkit_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cuda_runtime_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isolated_for_timing": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "asset_id",
+        "family",
+        "revision",
+        "weights_manifest_sha256",
+        "tokenizer_sha256",
+        "chat_template_sha256",
+        "target_fingerprint",
+        "draft_fingerprint"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "formal_mini",
+            "varloop_research",
+            "reference_model"
+          ]
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "weights_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tokenizer_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "chat_template_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "target_fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "draft_fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "required": [
+        "loop_count",
+        "kv_policy",
+        "weight_quantization",
+        "kv_k_type",
+        "kv_v_type",
+        "spec_method",
+        "candidate_k",
+        "guidance",
+        "temperature",
+        "top_p",
+        "seed",
+        "active_generation",
+        "vision",
+        "budget_mode",
+        "prompt_tokens_expected",
+        "max_new_tokens",
+        "context_capacity_requested",
+        "lookahead_reserve_tokens"
+      ],
+      "properties": {
+        "loop_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kv_policy": {
+          "enum": [
+            "per_loop",
+            "last_loop",
+            "lagged_shared_last"
+          ]
+        },
+        "weight_quantization": {
+          "type": "string"
+        },
+        "kv_k_type": {
+          "type": "string"
+        },
+        "kv_v_type": {
+          "type": "string"
+        },
+        "spec_method": {
+          "enum": [
+            "none",
+            "native_dspark",
+            "2dsd",
+            "prompt_lookup"
+          ]
+        },
+        "candidate_k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "guidance": {
+          "enum": [
+            "none",
+            "loopcd_hidden",
+            "loopcd_logits"
+          ]
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0
+        },
+        "top_p": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "active_generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "vision": {
+          "type": "boolean"
+        },
+        "budget_mode": {
+          "enum": [
+            "ordinary_cuda",
+            "discrete_budget",
+            "reference"
+          ]
+        },
+        "prompt_tokens_expected": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_new_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "context_capacity_requested": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lookahead_reserve_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cache_contract": {
+          "type": "object",
+          "required": [
+            "policy",
+            "lag_window_tokens",
+            "shared_layer_scope",
+            "swa_window_tokens",
+            "prefill_semantics",
+            "prefill_chunk_tokens",
+            "decode_verify_semantics"
+          ],
+          "properties": {
+            "policy": {
+              "enum": [
+                "per_loop",
+                "last_loop",
+                "lagged_shared_last"
+              ]
+            },
+            "lag_window_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "shared_layer_scope": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "uniqueItems": true
+            },
+            "swa_window_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "prefill_semantics": {
+              "type": "string",
+              "minLength": 1
+            },
+            "prefill_chunk_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "decode_verify_semantics": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "guidance_contract": {
+          "type": "object",
+          "required": [
+            "paper",
+            "mode",
+            "reference_pass",
+            "strength_rule",
+            "omega",
+            "omega_max",
+            "readout_contract"
+          ],
+          "properties": {
+            "paper": {
+              "const": "2610.02185v1"
+            },
+            "mode": {
+              "enum": [
+                "loopcd_hidden",
+                "loopcd_logits"
+              ]
+            },
+            "reference_pass": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "strength_rule": {
+              "enum": [
+                "fixed",
+                "adaptive"
+              ]
+            },
+            "omega": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "omega_max": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "readout_contract": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "strength_rule": {
+                    "const": "fixed"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "omega": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "strength_rule": {
+                    "const": "adaptive"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "omega_max": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          ],
+          "additionalProperties": false
+        },
+        "twodsd_schedule": {
+          "type": "object",
+          "required": [
+            "upstream_block_size",
+            "r1",
+            "r2"
+          ],
+          "properties": {
+            "upstream_block_size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "r1": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "r2": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "cache_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "object_contract",
+            "codec_profile",
+            "state_inventory",
+            "resource_admission",
+            "transfer_policy"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "raw",
+                "tier",
+                "pool",
+                "hybrid_pool"
+              ]
+            },
+            "object_contract": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "codec_profile": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state_inventory": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resource_admission": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transfer_policy": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "mechanism_profile_ref": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": true,
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "cache_profile_ref"
+            ]
+          },
+          {
+            "required": [
+              "state_inventory_ref"
+            ]
+          },
+          {
+            "required": [
+              "resource_admission_ref"
+            ]
+          },
+          {
+            "required": [
+              "transfer_policy_ref"
+            ]
+          }
+        ]
+      }
+    },
+    "workload": {
+      "type": "object",
+      "required": [
+        "fixture_manifest_sha256",
+        "case_ids",
+        "pair_id",
+        "stratum",
+        "prefix_cache_state",
+        "os_page_cache_state",
+        "process_state",
+        "timeout_ms"
+      ],
+      "properties": {
+        "fixture_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "case_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "pair_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stratum": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prefix_cache_state": {
+          "enum": [
+            "cold",
+            "warm",
+            "unknown"
+          ]
+        },
+        "os_page_cache_state": {
+          "enum": [
+            "cold",
+            "warm",
+            "unknown"
+          ]
+        },
+        "process_state": {
+          "enum": [
+            "cold",
+            "warm"
+          ]
+        },
+        "timeout_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "argv",
+        "started_at",
+        "finished_at",
+        "return_code",
+        "test_count",
+        "failed_count"
+      ],
+      "properties": {
+        "argv": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "finished_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "return_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "test_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "failed_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "measurements": {
+      "type": "object",
+      "required": [
+        "prompt_tokens_actual",
+        "output_tokens_committed",
+        "truncated",
+        "ttft_ms",
+        "tpot_ms",
+        "server_e2e_ms",
+        "agent_e2e_ms",
+        "gpu_peak_bytes",
+        "host_peak_pss_bytes",
+        "accepted_draft_tokens",
+        "proposed_draft_tokens"
+      ],
+      "properties": {
+        "prompt_tokens_actual": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "output_tokens_committed": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ttft_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "tpot_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "server_e2e_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "agent_e2e_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gpu_peak_bytes": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "host_peak_pss_bytes": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "accepted_draft_tokens": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "proposed_draft_tokens": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "oracle": {
+      "type": "object",
+      "required": [
+        "reference_run_id",
+        "result",
+        "reason"
+      ],
+      "properties": {
+        "reference_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_kind": {
+            "not": {
+              "const": "not_run"
+            }
+          },
+          "artifacts": {
+            "minItems": 1
+          },
+          "execution": {
+            "properties": {
+              "return_code": {
+                "const": 0
+              },
+              "test_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "failed_count": {
+                "const": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          },
+          "qualification_scope": {
+            "const": "target_4090"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_kind": {
+            "const": "target_4090"
+          },
+          "engine": {
+            "properties": {
+              "candidate_commit": {
+                "type": "string"
+              },
+              "binary_sha256": {
+                "type": "string"
+              },
+              "build_manifest_sha256": {
+                "type": "string"
+              },
+              "dirty": {
+                "const": false
+              }
+            }
+          },
+          "hardware": {
+            "properties": {
+              "inventory_sha256": {
+                "type": "string"
+              },
+              "gpu_arch": {
+                "const": "sm_89"
+              }
+            }
+          },
+          "model": {
+            "properties": {
+              "weights_manifest_sha256": {
+                "type": "string"
+              },
+              "target_fingerprint": {
+                "type": "string"
+              },
+              "tokenizer_sha256": {
+                "type": "string"
+              },
+              "chat_template_sha256": {
+                "type": "string"
+              }
+            }
+          },
+          "measurements": {
+            "properties": {
+              "truncated": {
+                "const": false
+              },
+              "prompt_tokens_actual": {
+                "type": "number",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "model": {
+            "properties": {
+              "family": {
+                "const": "formal_mini"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "loop_count": {
+                "const": 3
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "guidance": {
+                "enum": [
+                  "loopcd_hidden",
+                  "loopcd_logits"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "required": [
+              "guidance_contract"
+            ],
+            "properties": {
+              "loop_count": {
+                "minimum": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "kv_policy": {
+                "enum": [
+                  "last_loop",
+                  "lagged_shared_last"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "required": [
+              "cache_contract"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "kv_policy": {
+                "const": "lagged_shared_last"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "cache_contract": {
+                "properties": {
+                  "policy": {
+                    "const": "lagged_shared_last"
+                  },
+                  "lag_window_tokens": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "kv_policy": {
+                "const": "last_loop"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "cache_contract": {
+                "properties": {
+                  "policy": {
+                    "const": "last_loop"
+                  },
+                  "prefill_chunk_tokens": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "spec_method": {
+                "const": "native_dspark"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "loop_count": {
+                "const": 3
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "spec_method": {
+                "const": "2dsd"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "required": [
+              "twodsd_schedule"
+            ]
+          },
+          "model": {
+            "properties": {
+              "family": {
+                "const": "varloop_research"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          },
+          "qualification_scope": {
+            "const": "target_4090"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "hardware": {
+            "properties": {
+              "gpu_name": {
+                "type": "string",
+                "pattern": "RTX 4090"
+              },
+              "driver_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inventory_sha256": {
+                "type": "string"
+              }
+            }
+          },
+          "model": {
+            "properties": {
+              "revision": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "workload": {
+            "properties": {
+              "fixture_manifest_sha256": {
+                "type": "string"
+              },
+              "case_ids": {
+                "minItems": 1
+              },
+              "timeout_ms": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "argv": {
+                "type": "array",
+                "minItems": 1
+              },
+              "started_at": {
+                "type": "string",
+                "minLength": 1
+              },
+              "finished_at": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "oracle": {
+            "properties": {
+              "result": {
+                "const": "PASS"
+              },
+              "reference_run_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          },
+          "qualification_scope": {
+            "const": "target_4090"
+          },
+          "claim": {
+            "enum": [
+              "performance",
+              "capacity",
+              "service"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "measurements": {
+            "properties": {
+              "gpu_peak_bytes": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "host_peak_pss_bytes": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          },
+          "qualification_scope": {
+            "const": "target_4090"
+          },
+          "claim": {
+            "enum": [
+              "performance",
+              "service"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "hardware": {
+            "properties": {
+              "isolated_for_timing": {
+                "const": true
+              }
+            }
+          },
+          "measurements": {
+            "properties": {
+              "ttft_ms": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "server_e2e_ms": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "output_tokens_committed": {
+                "type": "number",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          },
+          "config": {
+            "properties": {
+              "spec_method": {
+                "enum": [
+                  "native_dspark",
+                  "2dsd"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "model": {
+            "properties": {
+              "draft_fingerprint": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "guidance": {
+                "const": "loopcd_hidden"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "guidance_contract": {
+                "properties": {
+                  "mode": {
+                    "const": "loopcd_hidden"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {
+              "guidance": {
+                "const": "loopcd_logits"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "guidance_contract": {
+                "properties": {
+                  "mode": {
+                    "const": "loopcd_logits"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          },
+          "config": {
+            "required": [
+              "cache_profile"
+            ],
+            "properties": {
+              "cache_profile": {
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "tier",
+                      "pool",
+                      "hybrid_pool"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "cache_profile": {
+                "properties": {
+                  "object_contract": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    }
+                  },
+                  "codec_profile": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    }
+                  },
+                  "state_inventory": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    }
+                  },
+                  "resource_admission": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    }
+                  },
+                  "transfer_policy": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

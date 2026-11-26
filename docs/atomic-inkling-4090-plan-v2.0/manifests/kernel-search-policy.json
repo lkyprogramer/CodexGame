@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "package_version": "2.0",
+  "status": "PROPOSED_NOT_EXECUTED",
+  "policy_revision": "sm89-kernel-search-v1",
+  "target_arch": "sm_89",
+  "existing_validation_policy": "manifests/validation-policy.json",
+  "budget_is_authorization": false,
+  "freeze_before_observing_results": true,
+  "budget": {
+    "hotspot_families": 1,
+    "distinct_candidates_total": 24,
+    "gpu_microbench_finalists": 4,
+    "e2e_exploration_finalists": 2,
+    "independent_confirmation_candidates": 1,
+    "profiler_supported_revision_rounds_after_initial": 2,
+    "cpu_compile_proof_cumulative_wall_seconds": 7200,
+    "gpu_exploration_cumulative_wall_seconds": 14400,
+    "compile_timeout_seconds_per_candidate": 300,
+    "proof_timeout_seconds_per_candidate": 300,
+    "verification_quality_soak_budget": "separate; never truncate required qualification to fit exploration"
+  },
+  "initial_parameter_domains": {
+    "block_threads": [
+      64,
+      128,
+      256
+    ],
+    "vector_width": [
+      1,
+      2,
+      4
+    ],
+    "pipeline_stages": [
+      1,
+      2
+    ],
+    "note": "Illustrative domains only, not a Cartesian grid. Actual shape, dtype, resources and frontend narrow legality."
+  },
+  "data_split": [
+    "correctness_development",
+    "performance_exploration",
+    "independent_performance_confirmation",
+    "quality_holdout"
+  ],
+  "immutable_for_generator": [
+    "oracle",
+    "fixtures",
+    "holdout",
+    "model_identity",
+    "validation_thresholds",
+    "resource_reserves",
+    "search_budget",
+    "history_stop_registry",
+    "production_registry"
+  ],
+  "excluded_changes": [
+    "loop_count",
+    "kv_sharing",
+    "last_loop",
+    "guidance",
+    "2dsd",
+    "sampler_rng",
+    "router_topk_semantics",
+    "new_quantization",
+    "training",
+    "cpu_pool_rewrite",
+    "unreviewed_inline_ptx",
+    "unsafe_escape",
+    "production_online_search",
+    "runtime_download",
+    "unbounded_persistent_kernel"
+  ],
+  "observability": {
+    "all_candidates_retained": true,
+    "deduplicate_by_content_hash": true,
+    "actual_launch_and_output_required": true,
+    "profiled_runs_are_formal_timing": false,
+    "gpu_performance_workers": 1,
+    "clock_or_power_changes_authorized": false
+  },
+  "selection": {
+    "primary_endpoint": "Original preregistered complete request latency reduction",
+    "confirmation": "Freeze one winner before independent holdout; new data or preregistered multiple/sequential method required for adaptive reuse.",
+    "no_benefit_does_not_trigger_rewrite": true
+  },
+  "promotion": "Candidate facts and scoped proof do not grant gates; original G2-G6 and G7 execution-session authorization remain separate.",
+  "introduced_package_version": "1.2"
+}

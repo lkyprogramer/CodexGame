@@ -1,0 +1,686 @@
+{
+  "scope": "document_and_helper_schema_validation_only",
+  "synthetic_instances_persisted": false,
+  "target_engine_model_gpu_executed": false,
+  "validated_at_utc": "2026-11-25T18:10:54.688887+00:00",
+  "jsonschema_version": "4.26.0",
+  "package": "/workspace/scratch/2ef8b195a810/atomic-inkling-4090-plan-v2.0",
+  "input_sha256": {
+    "manifests/run-contract.json": "74c59171145eb61ea9b37e382a83dc72f5856c7a4b7a93e2fdbb9365d56323ca",
+    "manifests/gate-contract.json": "fe02fe4ca7bdc879e62eb6975aaea67721ad4995761d5b16f4dbc81b153a43d3",
+    "manifests/run-example.json": "bf2d9e1c7828d676dad37ff9178dd758fae3ebaff17af10558fbe31c2ee9418d",
+    "manifests/gate-example.json": "5ea5057c4a307412dce85f0e038193d20d51042231647a92874691ce87afeda7"
+  },
+  "schema_checks": [
+    {
+      "schema": "run",
+      "draft": "2020-12",
+      "valid": true
+    },
+    {
+      "schema": "gate",
+      "draft": "2020-12",
+      "valid": true
+    }
+  ],
+  "not_run_examples": [
+    {
+      "name": "run_NOT_RUN_example",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "gate_NOT_RUN_example",
+      "schema": "gate",
+      "valid": true,
+      "errors": []
+    }
+  ],
+  "synthetic_positive_controls": [
+    {
+      "name": "run_correctness",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_performance",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_capacity",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_native_dspark",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_guidance",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_last_loop",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_lagged",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "run_2dsd",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "gate_G0_inventory",
+      "schema": "gate",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "gate_G3_distinct_AB_keys",
+      "schema": "gate",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "gate_G7_synthetic_authorization_shape",
+      "schema": "gate",
+      "valid": true,
+      "errors": []
+    }
+  ],
+  "historical_negative_fixtures": [
+    {
+      "name": "formal_mini_R2",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config/loop_count",
+      "expected_validator": "const",
+      "errors": [
+        {
+          "instance_path": "/config/loop_count",
+          "schema_path": "/allOf/2/then/properties/config/properties/loop_count/const",
+          "validator": "const",
+          "message": "3 was expected"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "guidance_missing_contract",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config",
+      "expected_validator": "required",
+      "errors": [
+        {
+          "instance_path": "/config",
+          "schema_path": "/allOf/3/then/properties/config/required",
+          "validator": "required",
+          "message": "'guidance_contract' is a required property"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "last_loop_missing_contract",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config",
+      "expected_validator": "required",
+      "errors": [
+        {
+          "instance_path": "/config",
+          "schema_path": "/allOf/4/then/properties/config/required",
+          "validator": "required",
+          "message": "'cache_contract' is a required property"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "lagged_missing_lag_window",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config/cache_contract",
+      "expected_validator": "required",
+      "errors": [
+        {
+          "instance_path": "/config/cache_contract",
+          "schema_path": "/properties/config/properties/cache_contract/required",
+          "validator": "required",
+          "message": "'lag_window_tokens' is a required property"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "last_loop_missing_partition",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config/cache_contract",
+      "expected_validator": "required",
+      "errors": [
+        {
+          "instance_path": "/config/cache_contract",
+          "schema_path": "/properties/config/properties/cache_contract/required",
+          "validator": "required",
+          "message": "'prefill_chunk_tokens' is a required property"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "native_R4",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config/loop_count",
+      "expected_validator": "const",
+      "errors": [
+        {
+          "instance_path": "/config/loop_count",
+          "schema_path": "/allOf/2/then/properties/config/properties/loop_count/const",
+          "validator": "const",
+          "message": "3 was expected"
+        },
+        {
+          "instance_path": "/config/loop_count",
+          "schema_path": "/allOf/7/then/properties/config/properties/loop_count/const",
+          "validator": "const",
+          "message": "3 was expected"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "formal_as_2dsd_target",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/model/family",
+      "expected_validator": "const",
+      "errors": [
+        {
+          "instance_path": "/model/family",
+          "schema_path": "/allOf/8/then/properties/model/properties/family/const",
+          "validator": "const",
+          "message": "'varloop_research' was expected"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "2dsd_missing_schedule",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config",
+      "expected_validator": "required",
+      "errors": [
+        {
+          "instance_path": "/config",
+          "schema_path": "/allOf/8/then/properties/config/required",
+          "validator": "required",
+          "message": "'twodsd_schedule' is a required property"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "guidance_mode_mismatch",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/config/guidance_contract/mode",
+      "expected_validator": "const",
+      "errors": [
+        {
+          "instance_path": "/config/guidance_contract/mode",
+          "schema_path": "/allOf/13/then/properties/config/properties/guidance_contract/properties/mode/const",
+          "validator": "const",
+          "message": "'loopcd_hidden' was expected"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "raw_run_self_certifies_gate",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/",
+      "expected_validator": "additionalProperties",
+      "errors": [
+        {
+          "instance_path": "/",
+          "schema_path": "/additionalProperties",
+          "validator": "additionalProperties",
+          "message": "Additional properties are not allowed ('gate_decisions' was unexpected)"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "empty_run_claims_PASS",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/artifacts",
+      "expected_validator": "minItems",
+      "errors": [
+        {
+          "instance_path": "/evidence_kind",
+          "schema_path": "/allOf/0/then/properties/evidence_kind/not",
+          "validator": "not",
+          "message": "'not_run' should not be valid under {'const': 'not_run'}"
+        },
+        {
+          "instance_path": "/artifacts",
+          "schema_path": "/allOf/0/then/properties/artifacts/minItems",
+          "validator": "minItems",
+          "message": "[] should be non-empty"
+        },
+        {
+          "instance_path": "/execution/return_code",
+          "schema_path": "/allOf/0/then/properties/execution/properties/return_code/const",
+          "validator": "const",
+          "message": "0 was expected"
+        },
+        {
+          "instance_path": "/execution/test_count",
+          "schema_path": "/allOf/0/then/properties/execution/properties/test_count/type",
+          "validator": "type",
+          "message": "None is not of type 'integer'"
+        },
+        {
+          "instance_path": "/execution/failed_count",
+          "schema_path": "/allOf/0/then/properties/execution/properties/failed_count/const",
+          "validator": "const",
+          "message": "0 was expected"
+        },
+        {
+          "instance_path": "/evidence_kind",
+          "schema_path": "/allOf/1/then/properties/evidence_kind/const",
+          "validator": "const",
+          "message": "'target_4090' was expected"
+        },
+        {
+          "instance_path": "/engine/candidate_commit",
+          "schema_path": "/allOf/1/then/properties/engine/properties/candidate_commit/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/engine/binary_sha256",
+          "schema_path": "/allOf/1/then/properties/engine/properties/binary_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/engine/build_manifest_sha256",
+          "schema_path": "/allOf/1/then/properties/engine/properties/build_manifest_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/engine/dirty",
+          "schema_path": "/allOf/1/then/properties/engine/properties/dirty/const",
+          "validator": "const",
+          "message": "False was expected"
+        },
+        {
+          "instance_path": "/hardware/inventory_sha256",
+          "schema_path": "/allOf/1/then/properties/hardware/properties/inventory_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/hardware/gpu_arch",
+          "schema_path": "/allOf/1/then/properties/hardware/properties/gpu_arch/const",
+          "validator": "const",
+          "message": "'sm_89' was expected"
+        },
+        {
+          "instance_path": "/model/weights_manifest_sha256",
+          "schema_path": "/allOf/1/then/properties/model/properties/weights_manifest_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/model/target_fingerprint",
+          "schema_path": "/allOf/1/then/properties/model/properties/target_fingerprint/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/model/tokenizer_sha256",
+          "schema_path": "/allOf/1/then/properties/model/properties/tokenizer_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/model/chat_template_sha256",
+          "schema_path": "/allOf/1/then/properties/model/properties/chat_template_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/measurements/truncated",
+          "schema_path": "/allOf/1/then/properties/measurements/properties/truncated/const",
+          "validator": "const",
+          "message": "False was expected"
+        },
+        {
+          "instance_path": "/measurements/prompt_tokens_actual",
+          "schema_path": "/allOf/1/then/properties/measurements/properties/prompt_tokens_actual/type",
+          "validator": "type",
+          "message": "None is not of type 'number'"
+        },
+        {
+          "instance_path": "/hardware/gpu_name",
+          "schema_path": "/allOf/9/then/properties/hardware/properties/gpu_name/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/hardware/driver_version",
+          "schema_path": "/allOf/9/then/properties/hardware/properties/driver_version/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/hardware/inventory_sha256",
+          "schema_path": "/allOf/9/then/properties/hardware/properties/inventory_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/model/revision",
+          "schema_path": "/allOf/9/then/properties/model/properties/revision/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/workload/fixture_manifest_sha256",
+          "schema_path": "/allOf/9/then/properties/workload/properties/fixture_manifest_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/workload/case_ids",
+          "schema_path": "/allOf/9/then/properties/workload/properties/case_ids/minItems",
+          "validator": "minItems",
+          "message": "[] should be non-empty"
+        },
+        {
+          "instance_path": "/workload/timeout_ms",
+          "schema_path": "/allOf/9/then/properties/workload/properties/timeout_ms/type",
+          "validator": "type",
+          "message": "None is not of type 'number'"
+        },
+        {
+          "instance_path": "/execution/argv",
+          "schema_path": "/allOf/9/then/properties/execution/properties/argv/type",
+          "validator": "type",
+          "message": "None is not of type 'array'"
+        },
+        {
+          "instance_path": "/execution/started_at",
+          "schema_path": "/allOf/9/then/properties/execution/properties/started_at/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/execution/finished_at",
+          "schema_path": "/allOf/9/then/properties/execution/properties/finished_at/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        },
+        {
+          "instance_path": "/oracle/result",
+          "schema_path": "/allOf/9/then/properties/oracle/properties/result/const",
+          "validator": "const",
+          "message": "'PASS' was expected"
+        },
+        {
+          "instance_path": "/oracle/reference_run_id",
+          "schema_path": "/allOf/9/then/properties/oracle/properties/reference_run_id/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "PASS_with_failed_oracle",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/oracle/result",
+      "expected_validator": "const",
+      "errors": [
+        {
+          "instance_path": "/oracle/result",
+          "schema_path": "/allOf/9/then/properties/oracle/properties/result/const",
+          "validator": "const",
+          "message": "'PASS' was expected"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "performance_not_isolated",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/hardware/isolated_for_timing",
+      "expected_validator": "const",
+      "errors": [
+        {
+          "instance_path": "/hardware/isolated_for_timing",
+          "schema_path": "/allOf/11/then/properties/hardware/properties/isolated_for_timing/const",
+          "validator": "const",
+          "message": "True was expected"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "native_PASS_without_draft_fingerprint",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/model/draft_fingerprint",
+      "expected_validator": "type",
+      "errors": [
+        {
+          "instance_path": "/model/draft_fingerprint",
+          "schema_path": "/allOf/12/then/properties/model/properties/draft_fingerprint/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "capacity_PASS_without_peak_memory",
+      "schema": "run",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/measurements/gpu_peak_bytes",
+      "expected_validator": "type",
+      "errors": [
+        {
+          "instance_path": "/measurements/gpu_peak_bytes",
+          "schema_path": "/allOf/10/then/properties/measurements/properties/gpu_peak_bytes/type",
+          "validator": "type",
+          "message": "None is not of type 'number'"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "G7_PASS_without_authorization",
+      "schema": "gate",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/authorization",
+      "expected_validator": "type",
+      "errors": [
+        {
+          "instance_path": "/authorization",
+          "schema_path": "/allOf/1/then/properties/authorization/type",
+          "validator": "type",
+          "message": "None is not of type 'object'"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "G3_PASS_without_comparison_contract",
+      "schema": "gate",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/comparison_contract",
+      "expected_validator": "type",
+      "errors": [
+        {
+          "instance_path": "/comparison_contract",
+          "schema_path": "/allOf/2/then/properties/comparison_contract/type",
+          "validator": "type",
+          "message": "None is not of type 'object'"
+        }
+      ],
+      "check_passed": true
+    },
+    {
+      "name": "candidate_input_without_capability_key",
+      "schema": "gate",
+      "control_valid": true,
+      "rejected": true,
+      "expected_error_observed": true,
+      "expected_path": "/input_run_records/1/capability_key_sha256",
+      "expected_validator": "type",
+      "errors": [
+        {
+          "instance_path": "/input_run_records/1/capability_key_sha256",
+          "schema_path": "/properties/input_run_records/items/allOf/0/then/properties/capability_key_sha256/type",
+          "validator": "type",
+          "message": "None is not of type 'string'"
+        }
+      ],
+      "check_passed": true
+    }
+  ],
+  "ghost_task_id_positive_fixtures": [
+    {
+      "name": "G00_task_id",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "G01_task_id",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "G02_task_id",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "G03_task_id",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "G04_task_id",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    },
+    {
+      "name": "G05_task_id",
+      "schema": "run",
+      "valid": true,
+      "errors": []
+    }
+  ],
+  "ghost_task_id_negative_fixtures": [
+    {
+      "name": "G99_task_id",
+      "rejected": true,
+      "expected_error_observed": true,
+      "errors": [
+        {
+          "instance_path": "/task_id",
+          "schema_path": "/properties/task_id/enum",
+          "validator": "enum",
+          "message": "'G99' is not one of ['T00', 'T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T09', 'T10', 'T11', 'R01', 'R02', 'R03', 'R04', 'R05', 'T12', 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'K00', 'K01', 'K02', 'K03', 'K04', 'K05', 'K06', 'K07', 'L00', 'L01', 'L02', 'L03', 'L04', 'L05', 'L06', 'L07', 'M00', 'M01', 'M02', 'M03']"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "limitations": [
+    "Structure and local helper validation only; no Ghost/Atomic build, model inference, GPU, memory capacity, quality or production run was performed.",
+    "Synthetic PASS instances exist only in validator memory and carry explicitly synthetic metadata; they are not run evidence, qualification decisions or authorization.",
+    "JSON Schema cannot verify real artifact content/hash, target identity across files, actual AB/BA execution, actual timing, evidence authenticity or live G7 authority.",
+    "Cross-field numeric relationships and semantic correctness remain responsibilities of the planned T01 validator.",
+    "Negative tests cover the 18 named historical cases plus G99; this is not exhaustive mutation or security testing."
+  ],
+  "counts": {
+    "draft202012_schemas_valid": 2,
+    "not_run_examples_valid": 2,
+    "positive_controls_valid": 11,
+    "historical_negative_fixtures_checked": 18,
+    "historical_negative_fixtures_rejected_for_expected_reason": 18,
+    "ghost_task_id_positive_fixtures_valid": 6,
+    "ghost_G99_rejected_for_expected_reason": 1,
+    "failures": 0
+  },
+  "validation_result": "PASS"
+}

@@ -1,0 +1,921 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:atomic-inkling:v2:cache-object",
+  "title": "Atomic complete checkpoint and cache representation contract",
+  "description": "Structure only. Semantic validation, real artifact integrity, resource admission and runtime qualification are separate and not implemented by this proposal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_kind",
+    "record_mode",
+    "qualification",
+    "object_id",
+    "object_kind",
+    "publication_state",
+    "identity",
+    "prefix",
+    "cursor",
+    "state_inventory",
+    "chunks",
+    "resource_plan_ref",
+    "operation_log_ref",
+    "continuation_binding"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0"
+    },
+    "record_kind": {
+      "const": "cache_checkpoint"
+    },
+    "record_mode": {
+      "enum": [
+        "planned",
+        "observed"
+      ]
+    },
+    "qualification": {
+      "const": "NOT_ASSESSED"
+    },
+    "object_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "object_kind": {
+      "enum": [
+        "model_prefix_checkpoint",
+        "request_continuation_checkpoint"
+      ]
+    },
+    "publication_state": {
+      "enum": [
+        "PLANNED",
+        "BUILDING",
+        "VALIDATED",
+        "PUBLISHED",
+        "RETIRED",
+        "QUARANTINED"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_fingerprint",
+        "draft_fingerprint",
+        "state_inventory_sha256",
+        "state_format_version",
+        "semantic_partition_sha256",
+        "storage_namespace",
+        "permission_scope_sha256",
+        "producer_capability_sha256"
+      ],
+      "properties": {
+        "target_fingerprint": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "draft_fingerprint": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "state_inventory_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "state_format_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_partition_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "storage_namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "permission_scope_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "producer_capability_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        }
+      }
+    },
+    "prefix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "token_count",
+        "token_ids_ref",
+        "token_ids_sha256",
+        "absolute_start_position",
+        "parent_checkpoint_id",
+        "checkpoint_boundary_complete"
+      ],
+      "properties": {
+        "token_count": {
+          "$ref": "#/$defs/nullableCount"
+        },
+        "token_ids_ref": {
+          "$ref": "#/$defs/nullableArtifact"
+        },
+        "token_ids_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "absolute_start_position": {
+          "$ref": "#/$defs/nullableCount"
+        },
+        "parent_checkpoint_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checkpoint_boundary_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "committed_tokens",
+        "kv_consumed_tokens",
+        "next_forward_position",
+        "last_emitted_in_kv",
+        "pending_correction_or_bonus",
+        "next_logits_recipe_ref",
+        "quiescent_committed_boundary"
+      ],
+      "properties": {
+        "committed_tokens": {
+          "$ref": "#/$defs/nullableCount"
+        },
+        "kv_consumed_tokens": {
+          "$ref": "#/$defs/nullableCount"
+        },
+        "next_forward_position": {
+          "$ref": "#/$defs/nullableCount"
+        },
+        "last_emitted_in_kv": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "pending_correction_or_bonus": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "next_logits_recipe_ref": {
+          "$ref": "#/$defs/nullableArtifact"
+        },
+        "quiescent_committed_boundary": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "state_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "member_id",
+          "source_symbols",
+          "scope",
+          "disposition",
+          "chunk_ids",
+          "rebuild_or_absence_proof_ref"
+        ],
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_symbols": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "scope": {
+            "enum": [
+              "per_logical_slot",
+              "per_sequence",
+              "per_request",
+              "per_branch",
+              "runtime_resource_only"
+            ]
+          },
+          "disposition": {
+            "enum": [
+              "PERSIST",
+              "REBUILD",
+              "ABSENT_AT_BOUNDARY",
+              "DO_NOT_SERIALIZE_RUNTIME_HANDLE"
+            ]
+          },
+          "chunk_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "rebuild_or_absence_proof_ref": {
+            "$ref": "#/$defs/nullableArtifact"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "disposition": {
+                  "const": "PERSIST"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "chunk_ids": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "disposition": {
+                  "enum": [
+                    "REBUILD",
+                    "ABSENT_AT_BOUNDARY"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "rebuild_or_absence_proof_ref": {
+                  "$ref": "#/$defs/artifact"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "disposition": {
+                  "const": "DO_NOT_SERIALIZE_RUNTIME_HANDLE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "chunk_ids": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "chunks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "chunk_id",
+          "component",
+          "logical_slot",
+          "token_range",
+          "raw_format",
+          "raw_bytes",
+          "raw_sha256",
+          "representations",
+          "logical_layout"
+        ],
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "component": {
+            "enum": [
+              "global_k",
+              "global_v",
+              "swa_k",
+              "swa_v",
+              "conv",
+              "loop_controller",
+              "draft_state",
+              "sampler_rng",
+              "service_commit",
+              "position_metadata",
+              "other_declared_state"
+            ]
+          },
+          "logical_slot": {
+            "$ref": "#/$defs/nullableCount"
+          },
+          "token_range": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "begin",
+              "end_exclusive"
+            ],
+            "properties": {
+              "begin": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "end_exclusive": {
+                "$ref": "#/$defs/nullableCount"
+              }
+            }
+          },
+          "raw_format": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dtype",
+              "layout_sha256",
+              "quant_block_elements",
+              "quant_block_bytes",
+              "byte_order"
+            ],
+            "properties": {
+              "dtype": {
+                "type": "string",
+                "minLength": 1
+              },
+              "layout_sha256": {
+                "$ref": "#/$defs/nullableSha"
+              },
+              "quant_block_elements": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "quant_block_bytes": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "byte_order": {
+                "enum": [
+                  "little",
+                  "big",
+                  "not_applicable"
+                ]
+              }
+            }
+          },
+          "raw_bytes": {
+            "$ref": "#/$defs/nullableCount"
+          },
+          "raw_sha256": {
+            "$ref": "#/$defs/nullableSha"
+          },
+          "representations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "representation_id",
+                "kind",
+                "codec_profile_sha256",
+                "location_domain",
+                "encoded_sha256",
+                "stored_bytes",
+                "allocated_bytes",
+                "output_upper_bound_bytes",
+                "resource_id",
+                "artifact_ref",
+                "physical_allocation",
+                "view_generation",
+                "arena_generation"
+              ],
+              "properties": {
+                "representation_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "kind": {
+                  "enum": [
+                    "raw",
+                    "lossless_encoded"
+                  ]
+                },
+                "codec_profile_sha256": {
+                  "$ref": "#/$defs/nullableSha"
+                },
+                "location_domain": {
+                  "enum": [
+                    "gpu",
+                    "host",
+                    "ssd"
+                  ]
+                },
+                "encoded_sha256": {
+                  "$ref": "#/$defs/nullableSha"
+                },
+                "stored_bytes": {
+                  "$ref": "#/$defs/nullableCount"
+                },
+                "allocated_bytes": {
+                  "$ref": "#/$defs/nullableCount"
+                },
+                "output_upper_bound_bytes": {
+                  "$ref": "#/$defs/nullableCount"
+                },
+                "resource_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "artifact_ref": {
+                  "$ref": "#/$defs/nullableArtifact"
+                },
+                "physical_allocation": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/physicalAllocationKey"
+                    }
+                  ]
+                },
+                "view_generation": {
+                  "$ref": "#/$defs/nullableCount"
+                },
+                "arena_generation": {
+                  "$ref": "#/$defs/nullableCount"
+                }
+              }
+            }
+          },
+          "logical_layout": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "physical_layer",
+              "loop_pass",
+              "head_begin",
+              "head_end_exclusive",
+              "shape",
+              "strides_bytes",
+              "valid_bytes"
+            ],
+            "properties": {
+              "physical_layer": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "loop_pass": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "head_begin": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "head_end_exclusive": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "valid_bytes": {
+                "$ref": "#/$defs/nullableCount"
+              },
+              "shape": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "strides_bytes": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "resource_plan_ref": {
+      "$ref": "#/$defs/nullableArtifact"
+    },
+    "operation_log_ref": {
+      "$ref": "#/$defs/nullableArtifact"
+    },
+    "continuation_binding": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/continuationBinding"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "publication_state": {
+            "enum": [
+              "VALIDATED",
+              "PUBLISHED"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_mode": {
+            "const": "observed"
+          },
+          "identity": {
+            "properties": {
+              "target_fingerprint": {
+                "$ref": "#/$defs/sha"
+              },
+              "state_inventory_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "semantic_partition_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "permission_scope_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "producer_capability_sha256": {
+                "$ref": "#/$defs/sha"
+              }
+            }
+          },
+          "prefix": {
+            "properties": {
+              "token_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "token_ids_ref": {
+                "$ref": "#/$defs/artifact"
+              },
+              "token_ids_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "checkpoint_boundary_complete": {
+                "const": true
+              },
+              "absolute_start_position": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "cursor": {
+            "properties": {
+              "quiescent_committed_boundary": {
+                "const": true
+              },
+              "committed_tokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "kv_consumed_tokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "next_forward_position": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "last_emitted_in_kv": {
+                "type": "boolean"
+              },
+              "pending_correction_or_bonus": {
+                "const": false
+              },
+              "next_logits_recipe_ref": {
+                "$ref": "#/$defs/artifact"
+              }
+            }
+          },
+          "state_inventory": {
+            "minItems": 1
+          },
+          "chunks": {
+            "minItems": 1,
+            "items": {
+              "properties": {
+                "raw_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "raw_sha256": {
+                  "$ref": "#/$defs/sha"
+                },
+                "raw_format": {
+                  "properties": {
+                    "layout_sha256": {
+                      "$ref": "#/$defs/sha"
+                    }
+                  }
+                },
+                "logical_layout": {
+                  "properties": {
+                    "shape": {
+                      "minItems": 1
+                    },
+                    "strides_bytes": {
+                      "minItems": 1
+                    },
+                    "valid_bytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "representations": {
+                  "items": {
+                    "properties": {
+                      "stored_bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "allocated_bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "output_upper_bound_bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "encoded_sha256": {
+                        "$ref": "#/$defs/sha"
+                      },
+                      "resource_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "artifact_ref": {
+                        "$ref": "#/$defs/artifact"
+                      },
+                      "physical_allocation": {
+                        "$ref": "#/$defs/physicalAllocationKey"
+                      },
+                      "view_generation": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "kind": {
+                              "const": "lossless_encoded"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "codec_profile_sha256": {
+                              "$ref": "#/$defs/sha"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "resource_plan_ref": {
+            "$ref": "#/$defs/artifact"
+          },
+          "operation_log_ref": {
+            "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_mode": {
+            "const": "planned"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "publication_state": {
+            "const": "PLANNED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "object_kind": {
+            "const": "model_prefix_checkpoint"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "chunks": {
+            "items": {
+              "properties": {
+                "component": {
+                  "not": {
+                    "enum": [
+                      "sampler_rng",
+                      "service_commit"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "object_kind": {
+            "const": "request_continuation_checkpoint"
+          },
+          "publication_state": {
+            "enum": [
+              "VALIDATED",
+              "PUBLISHED"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "continuation_binding": {
+            "$ref": "#/$defs/continuationBinding"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "object_kind": {
+            "const": "model_prefix_checkpoint"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "continuation_binding": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "nullableSha": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/sha"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableCount": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "nullableArtifact": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "continuationBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_session_id",
+        "logical_request_id",
+        "resume_generation",
+        "committed_output_tokens",
+        "effect_journal_watermark",
+        "authoritative_journal_ref"
+      ],
+      "properties": {
+        "owner_session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logical_request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resume_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "committed_output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effect_journal_watermark": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authoritative_journal_ref": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "physicalAllocationKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_store_id",
+        "allocation_id",
+        "allocation_generation",
+        "medium"
+      ],
+      "properties": {
+        "physical_store_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allocation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allocation_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "medium": {
+          "enum": [
+            "gpu",
+            "host",
+            "ssd"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "schema_version": "2.0",
+  "record_kind": "resource_policy_proposal",
+  "status": "PROPOSED_NOT_EXECUTED",
+  "units": "bytes",
+  "allocation_identity": [
+    "physical_store_id",
+    "allocation_id",
+    "allocation_generation",
+    "medium"
+  ],
+  "alias_rule": "Count one physical allocation once; actual copies each once. Phase peaks use union of all live resources.",
+  "required_domains": [
+    "gpu",
+    "host",
+    "ssd"
+  ],
+  "required_phases": [
+    "idle",
+    "prefill",
+    "decode",
+    "spec_verify",
+    "seal_encode",
+    "export_store",
+    "restore_decode",
+    "epoch_retirement",
+    "fallback_rebuild"
+  ],
+  "capacity_basis": "Physical totals measured by T00. Reserves exactly preserve validation-policy; external allocations are excluded once, never double charged.",
+  "priority_classes": [
+    "active_forward_dependencies",
+    "selected_request_restore",
+    "required_checkpoint_save",
+    "optional_background_work"
+  ],
+  "required_telemetry": [
+    "payload_bytes",
+    "stored_bytes",
+    "allocated_bytes",
+    "raw_retained_bytes",
+    "raw_open_tail_bytes",
+    "raw_sealed_pending_bytes",
+    "overflow_bytes",
+    "metadata_codebook_bytes",
+    "staging_device_bytes",
+    "pinned_host_bytes",
+    "graph_pool_bytes",
+    "deferred_retirement_bytes",
+    "driver_untracked_bytes",
+    "h2d_bytes",
+    "d2h_bytes",
+    "physical_ssd_read_bytes",
+    "physical_ssd_write_bytes",
+    "reserved_unmaterialized_bytes",
+    "expert_demand_stall_ms",
+    "unused_prefetch_bytes",
+    "transfer_inflight_bytes",
+    "snapshot_sample_id",
+    "ledger_epoch",
+    "cost_epoch"
+  ],
+  "allow_average_ratio_as_hard_bound": false,
+  "allow_same_bytes_for_multiple_benefits": false,
+  "policy_change_boundary": "new request or reviewed quiescent boundary; live lease addresses cannot move",
+  "max_retry_same_incompressible_record": 0,
+  "validation_policy": "manifests/validation-policy.json",
+  "accounting_states": [
+    "unmaterialized_reservation",
+    "allocated",
+    "retiring"
+  ],
+  "snapshot_binding": [
+    "physical_store_id",
+    "sample_id",
+    "ledger_epoch"
+  ],
+  "advance_admission": "Reserve all state/verify/loop writes with checked integer arithmetic before launch; no partial state commit on failure.",
+  "retirement_rule": "Transfer completion AND all readers complete; cancellation after issue does not imply retirement; generation must match.",
+  "prefetch_policy": {
+    "demand_staging_reserved": true,
+    "cancel_only_unissued_hints": true,
+    "absolute_inflight_bounds_required": true,
+    "causal_route_replay_before_policy": true,
+    "all_resident_can_close_no_benefit": true,
+    "belady_scope": "offline miss-count lower bound / avoidable-eviction-miss improvement upper bound; not stall or prefetch latency bound",
+    "prefetch_stop_evidence": [
+      "actual_demand_stall",
+      "causal_lead_time",
+      "dma_compute_overlap",
+      "bandwidth_contention",
+      "paired_end_to_end_effect"
+    ],
+    "belady_is_online_policy": false
+  },
+  "cost_epoch_keys": [
+    "model",
+    "representation",
+    "context_class",
+    "active_sequences",
+    "graph",
+    "kernel",
+    "residency_regime",
+    "cache_profile",
+    "budget",
+    "draft_verify_qualification"
+  ],
+  "unknown_cost_is_zero": false,
+  "view_identity": [
+    "resource_id",
+    "view_generation"
+  ],
+  "arena_identity": [
+    "arena_id",
+    "arena_generation"
+  ],
+  "mapping_rule": "resource_id + view_generation maps to exactly one physical_allocation and byte range. location_domain equals physical_allocation.medium. Views share a physical key; actual copies have distinct keys. Arena generation is independent. Reassigning a subrange increments view_generation even if physical allocation and arena do not change. Cache bindings describe producer evidence, not restorable pointers; restored resources receive fresh bindings."
+}

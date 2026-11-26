@@ -1,0 +1,275 @@
+{
+  "record_kind": "cache_semantic_validation_requirements",
+  "scope": "design_contracts_only_no_validator_implementation",
+  "run_integration": {
+    "config_extension": {
+      "cache_profile": {
+        "mode": "tier",
+        "object_contract": null,
+        "codec_profile": null,
+        "state_inventory": null,
+        "resource_admission": null,
+        "transfer_policy": null
+      }
+    },
+    "measurements_extension": {
+      "cache_payload_ratio": null,
+      "cache_allocated_ratio": null,
+      "complete_snapshot_ratio": null,
+      "encoded_payload_bytes": null,
+      "encoded_allocated_bytes": null,
+      "raw_retained_bytes": null,
+      "raw_tail_peak_bytes": null,
+      "codec_workspace_peak_bytes": null,
+      "cache_metadata_peak_bytes": null,
+      "restore_peak_gpu_bytes": null,
+      "restore_peak_host_bytes": null,
+      "pinned_peak_bytes": null,
+      "h2d_actual_bytes": null,
+      "d2h_actual_bytes": null,
+      "ssd_block_read_bytes": null,
+      "ssd_block_write_bytes": null,
+      "prefix_exact_reused_tokens": null,
+      "prefix_recomputed_suffix_tokens": null,
+      "codec_encode_ms": null,
+      "codec_decode_ms": null,
+      "restore_blocked_ms": null,
+      "expert_fetch_blocked_ms": null,
+      "cache_fallback_count": null
+    },
+    "meaning": "Null means unmeasured; no H800 ratio or BF16 number may substitute. Existing closed engine/hardware/model objects remain closed. Evidence artifacts hold full resource time series and cache operation logs.",
+    "canonical_path": "config.cache_profile",
+    "forbidden_legacy_config_aliases": [
+      "cache_profile_ref",
+      "state_inventory_ref",
+      "resource_admission_ref",
+      "transfer_policy_ref"
+    ],
+    "observed_success_rule": "For PASS records selecting tier/pool/hybrid_pool, all five artifact references are mandatory non-null, existing, hash-valid and capability-matched. Failed/blocked/planned records may retain incomplete references but grant no capability. Raw profiles explicitly declare inapplicable codec fields."
+  },
+  "resource_contract_proposal": {
+    "record_kind": "ResourceAdmissionPlan",
+    "required_fields": [
+      "profile_sha256",
+      "inventory_sha256",
+      "capacity_basis",
+      "gpu_reserve_bytes",
+      "host_reserve_bytes",
+      "pinned_limit_bytes",
+      "resources",
+      "lifetime_intervals",
+      "operation_max_inflight",
+      "worst_case_transition",
+      "fallback_resource_plan",
+      "observed_peak_artifacts"
+    ],
+    "resource_required_fields": [
+      "resource_id",
+      "view_generation",
+      "physical_allocation",
+      "arena_id",
+      "arena_generation",
+      "byte_offset",
+      "byte_length",
+      "allocation_kind",
+      "allocated_bytes",
+      "owner",
+      "category",
+      "view_aliases",
+      "pinned_property",
+      "release_after_event_and_references"
+    ],
+    "domains": [
+      "gpu",
+      "host",
+      "ssd"
+    ],
+    "categories": [
+      "weights",
+      "expert_cache",
+      "draft",
+      "global_kv_raw",
+      "swa_kv_raw",
+      "kv_encoded",
+      "raw_tail",
+      "conv_loop",
+      "snapshot_raw",
+      "snapshot_encoded",
+      "metadata_index",
+      "encode_workspace",
+      "decode_workspace",
+      "attention_workspace",
+      "verify_tree_workspace",
+      "staging",
+      "graph_module",
+      "allocator_slack",
+      "runtime_untracked",
+      "os_agent_reserve"
+    ],
+    "capacity_basis": "One explicit physical-total or allocatable basis per domain; measured external GPU peak is deducted once under the preserved reserve rule.",
+    "peak_rule": "max over operation phases of the union of all live physical allocations; distinct raw/encoded/copy allocations remain distinct; view aliases and pinning in place do not add bytes twice.",
+    "canonical_physical_key": [
+      "physical_store_id",
+      "allocation_id",
+      "allocation_generation",
+      "medium"
+    ],
+    "mapping_rule": "resource_id + view_generation maps to exactly one physical_allocation and byte range. location_domain equals physical_allocation.medium. Views share a physical key; actual copies have distinct keys. Arena generation is independent. Reassigning a subrange increments view_generation even if physical allocation and arena do not change. Cache bindings describe producer evidence, not restorable pointers; restored resources receive fresh bindings.",
+    "physical_accounting_rule": "allocated_bytes on the physical backing is charged once per physical key; reservations are charged only for unmaterialized additional capacity. Internal subrange ownership changes do not release the backing; retiring backing remains charged until completion and all references end."
+  },
+  "transfer_contract_proposal": {
+    "record_kind": "TransferAdmissionPlan",
+    "required_fields": [
+      "policy_sha256",
+      "profile_sha256",
+      "max_inflight_chunks",
+      "max_pinned_bytes",
+      "chunk_size_bounds",
+      "priority_classes",
+      "epoch_ticket_contract",
+      "required_events",
+      "foreground_reservation",
+      "starvation_bound",
+      "cancellation_semantics"
+    ],
+    "initial_priority_proposal": [
+      "active_forward_dependencies",
+      "selected_request_restore",
+      "required_checkpoint_save",
+      "optional_background_work"
+    ],
+    "constraint": "Already submitted DMA is not presumed preemptible. Each bounded chunk retains source and target leases until completion; optional work uses only remaining capacity."
+  },
+  "semantic_rules": [
+    {
+      "id": "CS01",
+      "rule": "Published checkpoint covers every source-bound state member with PERSIST, validated REBUILD or proven absence at the declared boundary; no unknown members."
+    },
+    {
+      "id": "CS02",
+      "rule": "Chunk references, exact token prefix, positions, logical slots and ranges are complete, nonoverlapping where required and consistent with commit cursor."
+    },
+    {
+      "id": "CS03",
+      "rule": "Persisted resource descriptors never serialize stale CUDA pointers, event/stream handles or module/function handles as restorable data."
+    },
+    {
+      "id": "CS04",
+      "rule": "Raw format, quantization blocks, scales, stride, valid bytes and codec profile are compatible; byte roundtrip hashes verified from actual data."
+    },
+    {
+      "id": "CS05",
+      "rule": "Storage block geometry cannot alter semantic prefill partition or per-loop/last-loop/lagged read policy. Such changes require new target identity and qualification."
+    },
+    {
+      "id": "CS06",
+      "rule": "A shorter prefix cannot reuse later conv/controller state; select a complete earlier checkpoint and replay or miss."
+    },
+    {
+      "id": "CS07",
+      "rule": "Cross-request model-prefix reuse does not share RNG, sampler history, grammar/stop/parser state or tool side effects without explicit request-specific rebuild. Request-continuation restore also verifies owner_session_id, logical_request_id, resume_generation and authoritative commit/effect journal; identical prompt/target/permissions do not identify the request."
+    },
+    {
+      "id": "CS08",
+      "rule": "Only committed/quiescent or independently qualified transactional snapshots can be published; tentative suffix and branch data remain private."
+    },
+    {
+      "id": "CS09",
+      "rule": "Every used codec has a bounded output policy, real raw fallback or reviewed worst-case reserve. An average or published ratio cannot authorize allocation."
+    },
+    {
+      "id": "CS10",
+      "rule": "GPU, host, SSD, scratch, staging, raw retention, COW, metadata, page slack, pinned copies and old/new graph/module generations are included in each transition peak."
+    },
+    {
+      "id": "CS11",
+      "rule": "All allocation aliases resolve to one physical identity; actual duplicate copies remain charged; same pinning/mmap backing pages are not charged twice. Join every resource via the canonical physical key and view_generation; arena_generation is independent. Reject unknown/conflicting mappings and stale suballocation views."
+    },
+    {
+      "id": "CS12",
+      "rule": "Restore and fallback both fit the unchanged profile budget before any data-changing submission; evictions require inactive status and completed leases."
+    },
+    {
+      "id": "CS13",
+      "rule": "Every transfer/encode/decode ticket has epoch, unique sequence, source/destination leases and explicit producer/consumer completion dependencies. Tickets bind physical key plus resource_id/view_generation/arena_generation, and must not retire a reused subrange."
+    },
+    {
+      "id": "CS14",
+      "rule": "Late completion cannot publish to another epoch. Unknown completion retains resources; asynchronous errors poison the affected context and prevent token/tool commit."
+    },
+    {
+      "id": "CS15",
+      "rule": "Lossless codec E evidence cannot substitute for Pool attention N evidence or target-changing Q evidence; frozen tolerance and original business quality gates remain required."
+    },
+    {
+      "id": "CS16",
+      "rule": "BF16 raw-vs-Pool comparison and Q8_0-vs-BF16 product comparison are different plans. Formal Mini and varloop draft/runner assets are never silently exchanged."
+    },
+    {
+      "id": "CS17",
+      "rule": "Loom source, CPU codec test, proof, compiled artifact, actual SM89 launch, model state and business evidence are distinct scopes; schema success grants none."
+    },
+    {
+      "id": "CS18",
+      "rule": "Selected feature dependencies are explicit and acyclic per experiment; unselected L/M/G/K/R tasks are not universal T12 dependencies."
+    },
+    {
+      "id": "CS19",
+      "rule": "Source/schema/artifact hashes reference existing files with matching content. No fabricated null replacements, empty test sets or synthetic performance may grant gate PASS."
+    },
+    {
+      "id": "CS20",
+      "rule": "Original 32 task IDs, 96 test IDs and all validation-policy values are preserved unless a documented fresh upstream fact supersedes a particular blocker; no gate is weakened."
+    },
+    {
+      "id": "CS21",
+      "rule": "Pool committed raw blocks survive encoding and publication until last raw readers complete; capacity failure never retracts emitted tokens; pending sealed set and new open tail count at peak."
+    },
+    {
+      "id": "CS22",
+      "rule": "Page-table/map update waits all prior readers; next graph replay waits update completion, or uses an independent generation. Stable pointer alone is insufficient."
+    },
+    {
+      "id": "CS23",
+      "rule": "Zero-suffix restore has a valid next-logits/readout recipe without forwarding the last consumed token twice; request continuation and cross-request model-prefix reuse have different state scopes."
+    },
+    {
+      "id": "CS24",
+      "rule": "Initial format is typed subrecords plus checkpoint directory; raw representation identity, exact valid byte ranges and full container/scratch/inflight budget are verified."
+    },
+    {
+      "id": "CS25",
+      "rule": "Overflow fallback has a finite retry/rebuild bound and a prequalified fitting raw profile, or terminates explicitly; recomputing the same data does not guarantee a better ratio."
+    },
+    {
+      "id": "CS26",
+      "rule": "Before continuation publication, the live coordinator verifies logical owner and resume generation against its authoritative commit/effect high-water marks. An older model checkpoint may only replay already committed inputs without re-emission/effect re-execution, or must fail. Runtime context/ticket epochs are freshly assigned and are not persistent ownership."
+    },
+    {
+      "id": "CS27",
+      "rule": "config.cache_profile is the only run cache extension. Reject legacy aliases, missing non-null artifact bindings for successful selected cache modes, and plans whose resolved hashes or capability identity differ from execution."
+    },
+    {
+      "id": "CS28",
+      "rule": "Resolve conditional tests from the frozen profile: native_dspark→LX27/T06; 2dsd→LX28/R03; loopcd_hidden or loopcd_logits→LX29/R04. Unselected cases do not grant capability; selected missing evidence blocks qualification."
+    },
+    {
+      "id": "CS29",
+      "rule": "Record ownership uses a logical checkpoint ID; the final directory hashes its complete member records. prior_checkpoint_digest, when present, points only to an earlier immutable checkpoint, never to the owning directory. Canonical serialization excludes no fields unless explicitly versioned."
+    }
+  ],
+  "package_version": "2.0",
+  "implementation_task": "L01",
+  "implementation_status": "NOT_RUN",
+  "vocabulary_mapping": {
+    "discovery_to_inventory": {
+      "persist_exact": "PERSIST",
+      "reconstruct_with_proof": "REBUILD",
+      "transient_not_live": "ABSENT_AT_BOUNDARY with source-bound proof",
+      "unsupported": "no publishable inventory item; blocks the chosen boundary"
+    },
+    "runtime_handle": "DO_NOT_SERIALIZE_RUNTIME_HANDLE is a runtime-resource exclusion, not proof that required model state is absent",
+    "persistent_states": "PLANNED/BUILDING/VALIDATED/PUBLISHED/RETIRED/QUARANTINED describe the stored object directory",
+    "operation_states": "Mutable/Sealed/Encoding/Restoring/Ready/Retiring/Aborted describe in-memory operations and leases, not an automatic one-to-one persistent enum mapping"
+  }
+}

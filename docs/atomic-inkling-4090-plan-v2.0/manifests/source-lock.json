@@ -1,0 +1,397 @@
+{
+  "schema_version": "1.0",
+  "as_of": "2026-11-26",
+  "timezone": "Asia/Shanghai",
+  "purpose": "Source audit pins; not downloaded model hashes or runtime qualification.",
+  "sources": [
+    {
+      "id": "S01",
+      "project": "Atomic Engine",
+      "kind": "git",
+      "repository": "https://github.com/AtomicBot-ai/atomic-engine",
+      "ref": "engine-development",
+      "commit": "fb69fff02101b048a0a165a3b502712dd2ca978f"
+    },
+    {
+      "id": "S02",
+      "project": "Inkling-2-Mini formal",
+      "kind": "huggingface_model",
+      "repository": "https://huggingface.co/thinkingmachines/Inkling-2-Mini",
+      "revision": "c9d028302cd0f035fdf8e7e91f089a4ce94d2195",
+      "role": "observed_official_reference"
+    },
+    {
+      "id": "S03",
+      "project": "TML-d24-varloop-research",
+      "kind": "huggingface_model",
+      "repository": "https://huggingface.co/thinkingmachines/TML-d24-varloop-research",
+      "revision": "91a57fe2b779bbd12c0f74d1f518cbd5b84e8d0d",
+      "role": "observed_current_reference_not_2dsd_training_target"
+    },
+    {
+      "id": "S05",
+      "project": "squid5090",
+      "kind": "git",
+      "repository": "https://github.com/tensorfish/squid5090",
+      "commit": "51b85dd17e719a45e93e77a9e49df94c50144b30"
+    },
+    {
+      "id": "S06",
+      "project": "2DSD",
+      "kind": "git",
+      "repository": "https://github.com/SqueezeAILab/2DSD",
+      "commit": "431aade2f1e8ebc98a31158d53c39e554984a83a"
+    },
+    {
+      "id": "S08",
+      "project": "2DSD Inkling drafter",
+      "kind": "huggingface_model",
+      "repository": "https://huggingface.co/minseo25/2dsd-inkling-2-mini-varloop-dspark-drafter",
+      "revision": "fe3e545788b84e879f3eb8b8f426aaceb5fb44c5"
+    },
+    {
+      "id": "S09",
+      "project": "2DSD training target",
+      "kind": "huggingface_model",
+      "repository": "https://huggingface.co/thinkingmachines/TML-d24-varloop-research",
+      "revision": "657b53ba5da7baefe9ff15dca5cd25f5bd3dbaa2",
+      "role": "must_match_drafter_config"
+    },
+    {
+      "id": "S10",
+      "project": "Decoding Looped Transformers Better for (Almost) Free",
+      "kind": "paper",
+      "url": "https://arxiv.org/abs/2610.02185v1",
+      "version": "v1",
+      "implementation_status": "official_code_not_verified"
+    },
+    {
+      "id": "S11",
+      "project": "Transformers PR51161",
+      "kind": "pull_request",
+      "url": "https://github.com/huggingface/transformers/pull/51161",
+      "head": "228bb636a3809f1a46f6f9d4011dfbff89416e5c",
+      "base": "d8f10a82213a3a9db48385aba3a4b57ab535de50",
+      "observed_state": "open"
+    },
+    {
+      "id": "S15",
+      "project": "AtomicChat Mini GGUF README assets",
+      "kind": "huggingface_model",
+      "repository": "https://huggingface.co/AtomicChat/Inkling-2-Mini-GGUF",
+      "revision": "309509848b3151419aa26d069eb03db57fd29a00",
+      "filenames_verified_in_readme": [
+        "Inkling-2-Mini-AD-IQ2_M.gguf",
+        "dspark-Inkling-2-Mini-Q8_0.gguf"
+      ]
+    },
+    {
+      "id": "S16",
+      "project": "Atomic historical raw Metal benchmark",
+      "kind": "git_file",
+      "url": "https://github.com/AtomicBot-ai/atomic-engine/blob/fb69fff02101b048a0a165a3b502712dd2ca978f/docs/atomic-engine-inkling-low-bit-metal.json",
+      "blob_sha": "6385d72eb09677c3d5dc575814620ecb6902ad52",
+      "benchmark_model_revision": "4f0c56af7e0c242e620be6394983d245b8c3fd27",
+      "caution": "different from README Q8 draft revision"
+    },
+    {
+      "id": "S17",
+      "project": "ARLoop",
+      "kind": "git",
+      "repository": "https://github.com/OSU-NLP-Group/ARLoop",
+      "commit": "16c8eaa6e841a6203a068c23394e0dbe69b08c55",
+      "paper": "https://arxiv.org/abs/2611.05234v1",
+      "role": "optional_reference_only"
+    },
+    {
+      "id": "S18",
+      "project": "Ghost Infer latest official main",
+      "kind": "git",
+      "repository": "https://github.com/affifuddin-hazam/ghost-infer",
+      "ref": "main",
+      "commit": "b6cd02e099af2453f3674e047d5f89152f8a662d",
+      "observed_live_official_branches": [
+        "main"
+      ],
+      "role": "source_reference_only"
+    },
+    {
+      "id": "S19",
+      "project": "Ghost Infer 0.5.0",
+      "kind": "git_release",
+      "repository": "https://github.com/affifuddin-hazam/ghost-infer",
+      "tag": "v0.5.0",
+      "commit": "9d15c249d4dbb7c3d376d878748ca71fd1546662",
+      "url": "https://github.com/affifuddin-hazam/ghost-infer/releases/tag/v0.5.0",
+      "published_at": "2026-11-24T05:03:18Z",
+      "code_equal_to_S18": true,
+      "differing_paths": [
+        "README.md",
+        "docs/building.md"
+      ]
+    },
+    {
+      "id": "S20",
+      "project": "Ghost Linux port PR7",
+      "kind": "pull_request",
+      "url": "https://github.com/affifuddin-hazam/ghost-infer/pull/7",
+      "head_repository": "https://github.com/nullbyte61/ghost-infer",
+      "head_ref": "linux",
+      "head": "583708c23e862e1ddb59a2a6bfe3f6fd5ced8e19",
+      "merge": "d470234d443ecab4b1739b7cfbb78058a46b3920",
+      "observed_state": "merged"
+    },
+    {
+      "id": "S21",
+      "project": "Ghost host parking design PR2",
+      "kind": "pull_request",
+      "url": "https://github.com/affifuddin-hazam/ghost-infer/pull/2",
+      "head_repository": "https://github.com/2424830124/ghost-infer",
+      "head_ref": "park-contexts",
+      "head": "7e8923e3c4c35a4fe6241cc7e414b105230bf691",
+      "observed_state": "closed_not_merged",
+      "role": "design_provenance_current_main_implementation_audited_separately"
+    },
+    {
+      "id": "S22",
+      "project": "NVIDIA CUDA Rust historical v1.2 audit main",
+      "kind": "git",
+      "repository": "https://github.com/NVIDIA/cuda-rust",
+      "ref": "main",
+      "commit": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "role": "historical_141_file_audit_pin_superseded_for_new_work_by_S45"
+    },
+    {
+      "id": "S23",
+      "project": "Provably Safe and Fast GPU Kernels in Rust",
+      "kind": "article",
+      "url": "https://nihalpasham.github.io/posts/provably-safe-gpu-kernels/?v=3",
+      "retrieved_date": "2026-11-25",
+      "html_sha256": "56a90f5577c08a938828fc0e0135ef1567f27cd5df0c3631777f795c042f4839",
+      "performance_hardware": "B200",
+      "performance_scope": "author_reported_microbenchmark_not_rtx4090"
+    },
+    {
+      "id": "S24",
+      "project": "CUDA oxide proof hardening PR1857",
+      "kind": "pull_request",
+      "url": "https://github.com/NVIDIA/cuda-rust/pull/1857",
+      "head": "b569d9bc9f79ebe6d186cf9b177cb00311739bcc",
+      "head_ref": "fix/oxide-proofs-hardening",
+      "merge": "5e5c77b19a4b3204d6542bab2f0fde2a4eed824b",
+      "observed_state": "merged",
+      "head_and_main_blob_trees_equal": true,
+      "head_and_main_blob_trees_equal_scope": "S22 historical main only; S45 is newer"
+    },
+    {
+      "id": "S25",
+      "project": "CUDA oxide latest release",
+      "kind": "git_release",
+      "repository": "https://github.com/NVIDIA/cuda-rust",
+      "tag": "cuda-oxide/v0.4.0",
+      "commit": "9d0c9bfbc954a9a29565ab81b78da70f054d8e04",
+      "published_at": "2026-11-11T07:59:14Z",
+      "role": "release_reference_main_preview_is_newer"
+    },
+    {
+      "id": "S26",
+      "project": "cutile-rs latest release",
+      "kind": "git_release",
+      "repository": "https://github.com/NVIDIA/cuda-rust",
+      "tag": "cutile-rs/v0.5.0",
+      "tag_object": "48836d24c8ddca4dd05a9fbe2f3435f68db694e3",
+      "commit": "e706cab335828f6be1a6d5990e7a9c2ce08e1cb0",
+      "published_at": "2026-11-05T06:31:39Z",
+      "role": "release_reference_main_audit_is_separate"
+    },
+    {
+      "id": "S27",
+      "project": "Compute Sanitizer",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S28",
+      "project": "Nsight Compute Profiling Guide",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S29",
+      "project": "CUDA Minor Version Compatibility",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/deploy/cuda-compatibility/latest/minor-version-compatibility.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S30",
+      "project": "PTX ISA",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/cuda/parallel-thread-execution/index.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S31",
+      "project": "CUDA Driver Module Management",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__MODULE.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S32",
+      "project": "CUDA Graphs",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/cuda-graphs.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S33",
+      "project": "CUDA 13.2 GA Release Notes",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/cuda/archive/13.2.0/cuda-toolkit-release-notes/index.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S34",
+      "project": "CUDA Runtime Driver Interoperability",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/cuda/cuda-runtime-api/cuda_runtime_api/group__CUDART__DRIVER.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S35",
+      "project": "Nsight Systems User Guide",
+      "kind": "official_document",
+      "url": "https://docs.nvidia.com/nsight-systems/UserGuide/index.html",
+      "retrieved_date": "2026-11-25",
+      "target_runtime_qualification": "NOT_RUN"
+    },
+    {
+      "id": "S36",
+      "project": "LoomKV",
+      "kind": "paper",
+      "url": "https://arxiv.org/abs/2611.32954v1",
+      "version": "v1",
+      "software_implementation": "official_code_and_license_not_verified",
+      "role": "system_design_reference_not_sm89_qualification"
+    },
+    {
+      "id": "S37",
+      "project": "GAAC paper",
+      "kind": "paper",
+      "url": "https://arxiv.org/abs/2610.38210v2",
+      "version": "v2"
+    },
+    {
+      "id": "S38",
+      "project": "GAAC current main",
+      "kind": "git",
+      "repository": "https://github.com/Intelligent-Microsystems-Lab/GAAC",
+      "ref": "main",
+      "commit": "a2cbcb5eb22b2bf08bb614a01189163b85c07cdd",
+      "license": "MIT",
+      "role": "static_source_reference"
+    },
+    {
+      "id": "S39",
+      "project": "SplitZip paper",
+      "kind": "paper",
+      "url": "https://arxiv.org/abs/2605.01708v4",
+      "version": "v4"
+    },
+    {
+      "id": "S40",
+      "project": "SplitZip current main",
+      "kind": "git",
+      "repository": "https://github.com/Intelligent-Microsystems-Lab/SplitZip",
+      "ref": "main",
+      "commit": "f6960f1487ab4a056f8565d749d355739dc8394a",
+      "license": "MIT",
+      "role": "BF16_and_FP8_codec_reference"
+    },
+    {
+      "id": "S41",
+      "project": "ZipFusion",
+      "kind": "paper",
+      "url": "https://arxiv.org/abs/2610.33719v1",
+      "version": "v1",
+      "software_implementation": "official_code_not_verified"
+    },
+    {
+      "id": "S42",
+      "project": "ZipServ paper",
+      "kind": "paper",
+      "url": "https://arxiv.org/abs/2603.17435v1",
+      "version": "v1",
+      "doi": "10.1145/3779212.3790250"
+    },
+    {
+      "id": "S43",
+      "project": "ZipServ current main",
+      "kind": "git",
+      "repository": "https://github.com/HPMLL/ZipServ_ASPLOS26",
+      "ref": "main",
+      "commit": "15378387cb09634527ab0b20b7abfc9ffd5b62c5",
+      "license": "Apache-2.0",
+      "role": "BF16_weight_decompression_GEMM_reference_not_KV_engine"
+    },
+    {
+      "id": "S44",
+      "project": "2DSD public Inkling experimental branch",
+      "kind": "git",
+      "repository": "https://github.com/SqueezeAILab/2DSD",
+      "ref": "feat/inkling-dspark",
+      "commit": "962874f303c3142406ab3eecfae2bb51567815c9",
+      "role": "public_reference_batched_static_runners_not_atomic_oracle",
+      "formal_mini_registry_target_revision": "1fb4134b9a74f9681054f4ef82e4bf1f458a2337",
+      "formal_mini_default_drafters": [],
+      "varloop_target_revision": "657b53ba5da7baefe9ff15dca5cd25f5bd3dbaa2",
+      "old_global_missing_runner_blocker_revoked": true
+    },
+    {
+      "id": "S45",
+      "project": "NVIDIA CUDA Rust current main at v2 audit",
+      "kind": "git",
+      "repository": "https://github.com/NVIDIA/cuda-rust",
+      "ref": "main",
+      "commit": "f35d6ccc2e03a54e73e3796f415f11313e439d50",
+      "role": "delta_audit_after_S22_not_full_141_file_reaudit"
+    },
+    {
+      "id": "S46",
+      "project": "CUDA oxide writer coverage fix PR1866",
+      "kind": "pull_request",
+      "url": "https://github.com/NVIDIA/cuda-rust/pull/1866",
+      "merge": "f35d6ccc2e03a54e73e3796f415f11313e439d50",
+      "role": "writer_witness_and_1D_coverage_scope",
+      "head": "9f4909a720ec3aeafecb4b8edee9c7570a11b7cd",
+      "observed_state": "merged",
+      "merged_at": "2026-11-25T14:35:35Z",
+      "changed_files": 14
+    },
+    {
+      "id": "S47",
+      "project": "Magnitude current main",
+      "kind": "git",
+      "repository": "https://github.com/magnitudedev/magnitude",
+      "ref": "main",
+      "commit": "3aba40fda19fdaacc345c91c5e711a3bca2f9ee3",
+      "license": "Apache-2.0 at root; Pi package metadata MIT; verify component when copying",
+      "role": "resource_scheduler_evidence_and_observation_reference_not_inkling_backend",
+      "branch_count_observed": 49,
+      "source_files_observed": 58
+    }
+  ],
+  "package_version": "2.0",
+  "target_runtime_qualification": "NOT_RUN"
+}
