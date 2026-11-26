@@ -1,6 +1,6 @@
 # 当前 · v0.2.17 B2 生产（2026-11-20）
 
-生产运行 **B2**（v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + `STRATA_ROUTE_TAIL_SKIP=7` + PT0），2026-11-20 起保持运行。依据见 [生产切换与验证](../reports/V0217-PRODUCTION-SWITCH-20261120.md)，以及 [v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)、[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)。hhtele 可以免密执行 `sudo systemctl start|stop|restart openclaw-qwen38-next.service`；lab 的 GPU 实验先停生产，结束后再启动（脚本里用 EXIT trap 兜底）。
+生产运行 **B2-TS5**：v0.2.17 + [补丁](../patches/v0217-pt0-reply-reuse.patch) + B1 参数 + PT0 + `STRATA_ROUTE_TAIL_SKIP=5`。2026-11-20 起运行 B2（rank 7），2026-11-26 按用户确认改为 rank 5（[依据](../reports/RESULTS-B2APPROX-XP-SURVEY-20261125.md)）。依据见 [生产切换与验证](../reports/V0217-PRODUCTION-SWITCH-20261120.md)，以及 [v0.2.16 基线调优](../reports/V0216-BASELINE-TUNING-20261120.md)、[顺序依赖与 PCE0 复测](../reports/V0216-SEQDEP-PCE0-20261120.md)、[v0.2.17 迁移与尾部跳过对照](../reports/V0217-MIGRATION-TAILSKIP-20261120.md)。hhtele 可以免密执行 `sudo systemctl start|stop|restart openclaw-qwen38-next.service`；lab 的 GPU 实验先停生产，结束后再启动（脚本里用 EXIT trap 兜底）。
 
 已收口：
 
@@ -12,11 +12,12 @@
 
 待办：
 
-1. 真实 Pi 使用一段时间后，在 4090 上运行 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐、按长度分桶的 decode 和引擎 swap。第一批（11-20 至 11-21，63 个请求）见 [v0.2.19 报告](../reports/V0219-UPGRADE-GATE-20261122.md)：读入占 20%，没有出现 PT0 重读，内存稳定。
+1. 真实 Pi 使用一段时间后，在 4090 上运行 `/data/strata-data/prod-observe/observe.sh`，统计真实会话的复用率、冷读、驻留/驱逐、按长度分桶的 decode 和引擎 swap。第一批（11-20 至 11-21，63 个请求）见 [v0.2.19 报告](../reports/V0219-UPGRADE-GATE-20261122.md)：读入占 20%，没有出现 PT0 重读，内存稳定。2026-11-24 起，[生产监控](../tools/monitor/README.md)每分钟采样，每天在 `/data/strata-data/prod-observe/monitor/data/reports/` 生成日报和带时间、同机负载的请求明细。observe.sh 仍可随时手动运行。
 2. 上游发布新版本后，在 4090 上运行 [新版本一键过门](../tools/upgrade_gate/README.md) 的 `upgrade_gate.py all <tag>`：依次取源码、打补丁、编译、组装新树，过 KL 门（停机约 2 分钟），再过任务级门（只跑新版本一臂，以存档的 b2 臂为基线，停机约 2 小时）。全部通过后才用 `switch <tag> --yes` 切换，切换失败会自动回滚。2026-11-21 已用 v0.2.17 自身完成自检。2026-11-22 [评估 v0.2.19](../reports/V0219-UPGRADE-GATE-20261122.md)：质量非劣，但默认配置 decode 慢 13%，关掉 `VERIFY_DEVICE_HITS` 后也只是持平，所以不升级；`/home/hhtele/strata-0.2.19` 保留备用。2026-11-23 [评估 v0.2.20](../reports/V0220-UPGRADE-GATE-20261123.md)，只做 prepare 加 40 题测速：采样对齐后慢 9.9%，不进完整门，不升级。上游 #6536 会把不带采样参数的请求改成 greedy；以后升级时，配置 `env` 里要设 `STRATA_MTP_GREEDY_DEFAULT=0`（v0220 补丁提供），或者单独评估 greedy 的影响。开关变更仍按同样两层门手工执行。
 3. 可选（需要 root 写权限）：用 drop-in 把 unit 的 Description、WorkingDirectory 和日志路径改到新树。
 4. 不换版本、不加内存的方向：[B2 自适应专家层与起点 profile 探针](B2_ADAPT_PROBE_20261123.md)已在 2026-11-23 跑完（4 个 40 题臂，停生产 2 小时 27 分）。`--adapt-every 2`、`--adapt-decay 0.92` 和 b2 臂学到的 profile 每窗口最多只快 0.2%，过门线是 4%：自适应参数判 NO_GAIN，起点 profile 判 NO_HEADROOM，生产配置不变。这只对门题集（prompt 全部 <32K）成立。真实 Pi 请求大多 ≥32K；`--adapt-every 2` 在 4K–32K 段快了约 10%，但样本小、是事后分段。长上下文复测（[预登记与结果](B2_ADAPT_LONG_20261123.md)，2026-11-23，停生产 57 分钟）：用 pisim 两段会话拼成的固定历史回放，120 个请求，其中 70 个 ≥32K，ABBA 共 4 次运行，噪声 0.6%。`--adapt-every 2` 每窗口慢 4.4%，换算到每 token 持平，判 NO_GAIN。CPU 条目减少的那部分被更多 swap 带来的 join 和 GPU-reach 抵消了。自适应层参数这条线到此关闭。
 5. 采样温度：Pi 的思考级别发送 temperature 1.0 / top_p 0.95 / top_k 20，和服务端模型卡默认值相同。[采样探针](B2_SAMPLING_20261123.md)（2026-11-23，停生产约 1 小时 50 分钟）：temperature 0.6 / 0.8 在 ≥32K 的长会话回放上只有 +0.8% / −0.5%，判 NO_GAIN，Pi 配置不变。短 prompt 上 0.6 有 +7%，但每窗口更贵，抵掉了大部分收益，而且出现 1 次重复 token 截断。到这里，现有硬件上的引擎参数和采样都已测完，进入维护模式：有新版本就用 upgrade_gate 评估，平时用 prodlog 观察真实流量。
+6. 2026-11-25 [近似路由、ECAP/DEFER 与 survey 实测](../reports/RESULTS-B2APPROX-XP-SURVEY-20261125.md)：`STRATA_ROUTE_TAIL_SKIP=5` 长上下文 +5%，305 题门非劣，但第二阶段只靠补充判定（OCR 当时占 2–4 核）成立，用户确认后于 2026-11-26 上线：只改 `strata-iq3_xxs.json` 的 env 一行，`IDENTITY.json` 的 config_sha256 由 `d7ee52b0…` 变为 `7fb50fba…`。回滚：`cp strata-iq3_xxs.json.pre-ts5-20261126 strata-iq3_xxs.json` 后重启服务。注意：`upgrade_gate.py` 的基线仍是 rank 7（`TAIL_SKIP = '7'`、KL 存档 auto-ts7、任务门存档 b2 臂）；下次评估新版本前，要先把基线改成 rank 5（KL 存档可用 b2-approx-20261124 的 ts5 运行，任务门可用存档的 b2-route_tail_skip5 臂）。DEFER、ECAP 24 各 +5–6%，被 3.3% 的对照噪声抬高的门线挡住，判 NO_GAIN，要复测需更多对照。S 组、K 组没有收益，QFUSE 和 VERIFY_DEVICE_PLAN 实测不逐位一致。
 
 数据优先规划包的同步见 [26 补遗](../../strata_data_first_rebase_20261120/docs/26_V0217_REBASE_ADDENDUM.md)。
 

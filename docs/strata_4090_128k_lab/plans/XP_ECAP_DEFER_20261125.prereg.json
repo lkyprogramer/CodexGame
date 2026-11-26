@@ -1,0 +1,236 @@
+{
+ "id": "XP-ECAP-DEFER-20261125",
+ "label": "xp-ecap-defer-20261125",
+ "created": "2026-11-25",
+ "status": "PREREGISTERED_NOT_RUN",
+ "question": "On v0.2.17 + PT0 + ECAP (#3545 port) + DEFER (#2690 port) + the M4 lab delay hooks (all env-gated, default off), does the build reproduce production bit for bit when off, and do STRATA_VERIFY_DEFER_CPU or STRATA_VERIFY_ECAP make long-context decode faster by the preregistered bar within the KL screen, before the 305-task gate?",
+ "decision_owner": "the user; adopting an output-changing knob needs the user's confirmation even after every gate passes",
+ "facts": {
+  "build": "upgrade_gate.py prepare v0.2.17 --label v0.2.17-xp --patch v0217-ecap.patch --patch v0217-defer-cpu.patch --patch v0217-lab-delay.patch --target ecap_parity -j 4 (production online)",
+  "ecap": "STRATA_VERIFY_ECAP=N caps distinct experts per verify window (token 0 keeps all k picks; dropped tail entries fold onto a kept, VRAM-resident-first expert); prompt reads are not capped unless STRATA_VERIFY_ECAP_READS=1, so the KL run uses READS=1 (every position capped: a pessimistic proxy) while the replay run does not",
+  "defer": "STRATA_VERIFY_DEFER_CPU=1 adds CPU rows of weight below STRATA_VERIFY_DEFER_CPU_BELOW (default 0.1) one layer late; =check does the same steps and adds them back in the same layer",
+  "bound": "survey 2026-11-25: CPU-side cuts can save at most the GPU spin, about 1.7-2.3 ms of the 18.2 ms window; the M4 delay runs of survey-20261125 measure the slope"
+ },
+ "identity": {
+  "tree": "/home/hhtele/strata-0.2.17-xp (prepare --label v0.2.17-xp)",
+  "engine_sha256": "PREPARE.json of v0.2.17-xp",
+  "config_sha256": "d7ee52b0b8c0df7b9596c52359d5e624876ffdf839675f33d52de28404549174",
+  "gate17_sha256": "517d1689881ce6930b5a15527c5939971a3c56ae8882fa063c7af7b4bbcc6a87",
+  "kl_ids_sha256": "e84597fb7d115a4de6ddcc46fe6bbab9458e4728477a5756289079bcc1cd36a2",
+  "kl_reference_exact_sha256": "a76d721758293dfc8e7ed02beb6a7c9705c5be41558809701f98af0398f5e752",
+  "kl_reference_b2_sha256": "face0cd2b33b31aeb0f844cea4709df28e9ec0872b9212eb3cdcfd88a746db8d",
+  "replay_sha256_expected": "f9d36636f01c0d9404521817660edf06f75c84a6c379f282a4ab808ce0affeb1",
+  "upgrade_gate": "sha256 in ADDENDUM.json (frozen before the first run)"
+ },
+ "verdict_kind": "approx",
+ "kl": {
+  "yardstick": "quant_quality.py run --gpu-experts auto on the production config, as in V0217-TAILSKIP-KL: expert cache filled from the profile, no adaptation, 5 segments x 999 positions; compared with the stored runs auto-ts0-a (exact routing) and auto-ts7 (B2)",
+  "tree_label": "v0.2.17-xp",
+  "tests": [
+   "ecap_parity"
+  ],
+  "identity_run": "off",
+  "runs": [
+   {
+    "run": "off",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7"
+    },
+    "role": "identity: the patched build with every new knob off must equal the stored auto-ts7 run (KL 0, top-1 1.0), else INVALID"
+   },
+   {
+    "run": "lab",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_LAB_DELAY_PRE_US": "20",
+     "STRATA_LAB_DELAY_HIT_US": "20"
+    },
+    "role": "the M4 delays must not change numerics: expected KL 0 against B2 (recorded; the screen cannot fail it)"
+   },
+   {
+    "run": "dchk",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_VERIFY_DEFER_CPU": "check"
+    },
+    "role": "DEFER plumbing: rows added back in the same layer; expected KL against B2 at or near 0"
+   },
+   {
+    "run": "d01",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_VERIFY_DEFER_CPU": "1"
+    }
+   },
+   {
+    "run": "d1",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_VERIFY_DEFER_CPU": "1",
+     "STRATA_VERIFY_DEFER_CPU_BELOW": "1"
+    }
+   },
+   {
+    "run": "e16",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_VERIFY_ECAP": "16",
+     "STRATA_VERIFY_ECAP_READS": "1"
+    }
+   },
+   {
+    "run": "e24",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_VERIFY_ECAP": "24",
+     "STRATA_VERIFY_ECAP_READS": "1"
+    }
+   }
+  ],
+  "screen": {
+   "kl_all_max": 0.1,
+   "kl_agent_max": 0.25
+  },
+  "screen_basis": "the B2 approx screen (about twice B2's own KL against exact routing); stage 3 decides quality"
+ },
+ "workload": {
+  "sources": {
+   "/data/strata-data/pisim-20261120/run/session-A.json": "51fb4bc21eafe636f2b903c38f511c4a1ccf0229ea1b1d18f09b893df116de49",
+   "/data/strata-data/pisim-20261120/run/session-B.json": "9ba0101fa84c9cf998ce8da2f0549e7b7d897d2c302151377489267b30e9f1d8",
+   "/data/strata-data/pisim-20261120/pisim.py": "1453184671dfbdab0e46140f3bd40cc90508af9158dd6f59c0cca6c7dba34769",
+   "/data/strata-data/pisim-20261120/run/RESULT.json": "33ada24daa1880bc2f07b5722af8e7d54bc06d94d1c3801306a823e1aee6fc88"
+  },
+  "stitch": "messages = A.messages + B.messages[1:] (B system dropped)",
+  "requests": "one per assistant message k: messages[:k]; 120 in all (A 71, B 49)",
+  "body": "model, messages, tools = pisim TOOLS, max_tokens 16384, stream false, seed 20261123 + request index (0-based)",
+  "history": "fixed: recorded messages, never the arm's own replies; replies are measured and discarded",
+  "estimated_buckets": {
+   "<4K": {
+    "requests": 3,
+    "recorded_completion_tokens": 2008
+   },
+   "4K-32K": {
+    "requests": 47,
+    "recorded_completion_tokens": 24347
+   },
+   "32K-64K": {
+    "requests": 22,
+    "recorded_completion_tokens": 23531
+   },
+   ">=64K": {
+    "requests": 48,
+    "recorded_completion_tokens": 25187
+   },
+   "max_prompt_est": 102276
+  },
+  "estimate_method": "A prompts as recorded; B prompts = A last prompt + A last completion (61806) + B prompt - 506",
+  "limits": [
+   "fixed history makes the engine re-read the recorded reply each step (hundreds to a few thousand tokens), Pi reuses its own",
+   "pisim system prompt about 800 tokens and 4 tools; no streaming, no NGINX; one session, no switching",
+   "public benchmark text"
+  ]
+ },
+ "controls": [
+  "C0a",
+  "C0b"
+ ],
+ "candidates": [
+  {
+   "run": "D01",
+   "kl_run": "d01",
+   "env": {
+    "STRATA_VERIFY_DEFER_CPU": "1"
+   }
+  },
+  {
+   "run": "E16",
+   "kl_run": "e16",
+   "env": {
+    "STRATA_VERIFY_ECAP": "16"
+   }
+  },
+  {
+   "run": "D1",
+   "kl_run": "d1",
+   "env": {
+    "STRATA_VERIFY_DEFER_CPU": "1",
+    "STRATA_VERIFY_DEFER_CPU_BELOW": "1"
+   }
+  },
+  {
+   "run": "E24",
+   "kl_run": "e24",
+   "env": {
+    "STRATA_VERIFY_ECAP": "24"
+   }
+  }
+ ],
+ "runs": [
+  {
+   "order": 1,
+   "run": "C0a",
+   "arm": "xp0217-control",
+   "args": [],
+   "tree_label": "v0.2.17-xp"
+  },
+  {
+   "order": 2,
+   "run": "D01",
+   "arm": "xp0217-verifydefercpu1",
+   "args": [],
+   "tree_label": "v0.2.17-xp",
+   "env": {
+    "STRATA_VERIFY_DEFER_CPU": "1"
+   },
+   "kl_run": "d01"
+  },
+  {
+   "order": 3,
+   "run": "E16",
+   "arm": "xp0217-verifyecap16",
+   "args": [],
+   "tree_label": "v0.2.17-xp",
+   "env": {
+    "STRATA_VERIFY_ECAP": "16"
+   },
+   "kl_run": "e16"
+  },
+  {
+   "order": 4,
+   "run": "D1",
+   "arm": "xp0217-verifydefercpu1-below1",
+   "args": [],
+   "tree_label": "v0.2.17-xp",
+   "env": {
+    "STRATA_VERIFY_DEFER_CPU": "1",
+    "STRATA_VERIFY_DEFER_CPU_BELOW": "1"
+   },
+   "kl_run": "d1"
+  },
+  {
+   "order": 5,
+   "run": "E24",
+   "arm": "xp0217-verifyecap24",
+   "args": [],
+   "tree_label": "v0.2.17-xp",
+   "env": {
+    "STRATA_VERIFY_ECAP": "24"
+   },
+   "kl_run": "e24"
+  },
+  {
+   "order": 6,
+   "run": "C0b",
+   "arm": "xp0217-control",
+   "args": [],
+   "tree_label": "v0.2.17-xp"
+  }
+ ],
+ "stage2_rules": "approx_verdict unchanged (bar max(4%, 2xAA); loop signs within control max + 1; co-tenant >= 1 core CONTENDED). The co-tenant OCR container is hard-capped at 4 cores since 2026-11-25 and was busy at 2-4 cores when this was written: a supplementary verdict with busy_cpu 4.5 is reported beside the preregistered one and labelled as such",
+ "stage3": "upgrade_gate.py probe xp-ecap-defer-20261125 --tree-label v0.2.17-xp --baseline ts0 --env ... for at most two stage-2 passers, first NONINFERIORITY_ESTABLISHED stops (margin 5%, against stored exact-routing ts0)",
+ "limits": [
+  "ECAP KL uses READS=1 (every position capped), harsher than serving",
+  "DEFER changes the GDN recurrent input one layer late; the replay (up to about 100K) is the long-context check; no layer-wise state comparison in this round",
+  "stage 3 tasks are single-turn and <32K"
+ ]
+}

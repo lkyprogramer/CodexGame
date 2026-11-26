@@ -1,0 +1,253 @@
+{
+ "id": "B2-APPROX-20261124",
+ "label": "b2-approx-20261124",
+ "created": "2026-11-24",
+ "status": "PREREGISTERED_NOT_RUN",
+ "question": "On the B2 production tree, does a stronger routing approximation (tail-skip rank 6 or 5, or a resident-expert route prior of 0.25-1.0 on top of rank 7) make long-context decode at least 4% faster while the 305-task gate stays non-inferior to exact routing (margin 5%) and loop signs do not rise?",
+ "decision_owner": "the user (2026-11-24 accepted output-changing optimizations that pass the quality gates); adopting a candidate changes the production config env and needs the user's confirmation",
+ "facts": {
+  "binary": "engine 0.1.63 of v0.2.17 reads STRATA_ROUTE_PRIOR (a number added to the router logits of experts already on the card; DETAILS.md) and STRATA_ROUTE_TAIL_SKIP (rank; production 7); the prior is off in production",
+  "upstream_prior": "0.2.7 set 1.5 by default on NVIDIA cards of 13 GiB or less (RTX 3060: story +15%, code +37% decode); 0.2.8 took it back (#4402: repetition loops and weaker results in long agent sessions, 4.5 vs 5.6 of 10 agent tasks; 2.0 showed copy/code defects); 0.5 on a 3060: KL 0.0126 against a floor of 0.0012",
+  "tail_skip_kl_20261120": "against exact routing, same placement: rank 9 0.030 (agent 0.092), 8 0.039 (0.115), 7 0.047 (0.136, production), 5 0.074 (0.186); scoring 61.4 / 58.2 / 55.2 / 48.2 s (reports/V0217-TAILSKIP-KL-20261120.md)",
+  "rank7_gate": "305 tasks: rank 7 non-inferior to exact routing, harm upper bound 1.62% at margin 5% (reports/V0217-AGENT-GATE-20261120.md)",
+  "window_cost": "real Pi traffic >= 32K: about 17.4 ms per window, CPU experts about 29% of it; both knobs act on that slice, so their gains share one ceiling (about +40%) and do not add",
+  "forbidden": "STRATA_ROUTE_RESIDENT and STRATA_STAGE_PIN are never enabled (upgrade_gate.arm_env refuses them)"
+ },
+ "identity": {
+  "tree": "/home/hhtele/strata-0.2.17",
+  "engine_sha256": "df2d006b2adc7ad12f169d6839587ff7efc134f5873ba52c238fe207201b32a5",
+  "config_sha256": "d7ee52b0b8c0df7b9596c52359d5e624876ffdf839675f33d52de28404549174",
+  "gate17_sha256": "517d1689881ce6930b5a15527c5939971a3c56ae8882fa063c7af7b4bbcc6a87",
+  "kl_ids_sha256": "e84597fb7d115a4de6ddcc46fe6bbab9458e4728477a5756289079bcc1cd36a2",
+  "kl_reference_exact_sha256": "a76d721758293dfc8e7ed02beb6a7c9705c5be41558809701f98af0398f5e752",
+  "kl_reference_b2_sha256": "face0cd2b33b31aeb0f844cea4709df28e9ec0872b9212eb3cdcfd88a746db8d",
+  "replay_sha256_expected": "f9d36636f01c0d9404521817660edf06f75c84a6c379f282a4ab808ce0affeb1",
+  "upgrade_gate": "sha256 in ADDENDUM.json (frozen before the first run)"
+ },
+ "verdict_kind": "approx",
+ "kl": {
+  "yardstick": "quant_quality.py run --gpu-experts auto on the production config, as in V0217-TAILSKIP-KL: expert cache filled from the profile, no adaptation, 5 segments x 999 positions; compared with the stored runs auto-ts0-a (exact routing) and auto-ts7 (B2)",
+  "identity_run": "ts7",
+  "runs": [
+   {
+    "run": "ts7",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7"
+    },
+    "role": "identity: must equal the stored auto-ts7 run (KL 0, top-1 1.0), else the stage is INVALID"
+   },
+   {
+    "run": "ts6",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "6"
+    }
+   },
+   {
+    "run": "p025",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_ROUTE_PRIOR": "0.25"
+    },
+    "role": "KL curve only, not timed in stage 2"
+   },
+   {
+    "run": "p05",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_ROUTE_PRIOR": "0.5"
+    }
+   },
+   {
+    "run": "p10",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7",
+     "STRATA_ROUTE_PRIOR": "1.0"
+    }
+   }
+  ],
+  "reuse": {
+   "ts5": {
+    "tsv": "/data/strata-data/v0217-kl-20261120/runs/auto-ts5.tsv",
+    "sha256": "79709f6cc7fcc268b686ec4e2255be408121d5ceb86d625745c2117b806cdadc",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "5"
+    }
+   }
+  },
+  "screen": {
+   "kl_all_max": 0.1,
+   "kl_agent_max": 0.25
+  },
+  "screen_basis": "about twice B2's own KL against exact routing (0.047 / agent 0.136), which the 305-task gate accepted with a 1.62% harm bound; the screen only spares the 2-hour gate for candidates far beyond that, the gate decides quality"
+ },
+ "workload": {
+  "sources": {
+   "/data/strata-data/pisim-20261120/run/session-A.json": "51fb4bc21eafe636f2b903c38f511c4a1ccf0229ea1b1d18f09b893df116de49",
+   "/data/strata-data/pisim-20261120/run/session-B.json": "9ba0101fa84c9cf998ce8da2f0549e7b7d897d2c302151377489267b30e9f1d8",
+   "/data/strata-data/pisim-20261120/pisim.py": "1453184671dfbdab0e46140f3bd40cc90508af9158dd6f59c0cca6c7dba34769",
+   "/data/strata-data/pisim-20261120/run/RESULT.json": "33ada24daa1880bc2f07b5722af8e7d54bc06d94d1c3801306a823e1aee6fc88"
+  },
+  "stitch": "messages = A.messages + B.messages[1:] (B system dropped)",
+  "requests": "one per assistant message k: messages[:k]; 120 in all (A 71, B 49)",
+  "body": "model, messages, tools = pisim TOOLS, max_tokens 16384, stream false, seed 20261123 + request index (0-based)",
+  "history": "fixed: recorded messages, never the arm's own replies; replies are measured and discarded",
+  "estimated_buckets": {
+   "<4K": {
+    "requests": 3,
+    "recorded_completion_tokens": 2008
+   },
+   "4K-32K": {
+    "requests": 47,
+    "recorded_completion_tokens": 24347
+   },
+   "32K-64K": {
+    "requests": 22,
+    "recorded_completion_tokens": 23531
+   },
+   ">=64K": {
+    "requests": 48,
+    "recorded_completion_tokens": 25187
+   },
+   "max_prompt_est": 102276
+  },
+  "estimate_method": "A prompts as recorded; B prompts = A last prompt + A last completion (61806) + B prompt - 506",
+  "limits": [
+   "fixed history makes the engine re-read the recorded reply each step (hundreds to a few thousand tokens), Pi reuses its own",
+   "pisim system prompt about 800 tokens and 4 tools; no streaming, no NGINX; one session, no switching",
+   "public benchmark text"
+  ]
+ },
+ "reuse_controls": {
+  "label": "b2-adapt-long-20261123",
+  "runs": [
+   "C0a",
+   "C0b"
+  ],
+  "use": "drift of the fresh controls, recorded only"
+ },
+ "controls": [
+  "C0a",
+  "C0b"
+ ],
+ "candidates": [
+  {
+   "run": "TS5",
+   "kl_run": "ts5",
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "5"
+   }
+  },
+  {
+   "run": "P10",
+   "kl_run": "p10",
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "7",
+    "STRATA_ROUTE_PRIOR": "1.0"
+   }
+  },
+  {
+   "run": "TS6",
+   "kl_run": "ts6",
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "6"
+   }
+  },
+  {
+   "run": "P05",
+   "kl_run": "p05",
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "7",
+    "STRATA_ROUTE_PRIOR": "0.5"
+   }
+  }
+ ],
+ "runs": [
+  {
+   "order": 1,
+   "run": "C0a",
+   "arm": "b2-control",
+   "args": []
+  },
+  {
+   "order": 2,
+   "run": "TS5",
+   "arm": "b2-routetailskip5",
+   "args": [],
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "5"
+   },
+   "kl_run": "ts5"
+  },
+  {
+   "order": 3,
+   "run": "P10",
+   "arm": "b2-routeprior10",
+   "args": [],
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "7",
+    "STRATA_ROUTE_PRIOR": "1.0"
+   },
+   "kl_run": "p10"
+  },
+  {
+   "order": 4,
+   "run": "TS6",
+   "arm": "b2-routetailskip6",
+   "args": [],
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "6"
+   },
+   "kl_run": "ts6"
+  },
+  {
+   "order": 5,
+   "run": "P05",
+   "arm": "b2-routeprior05",
+   "args": [],
+   "env": {
+    "STRATA_ROUTE_TAIL_SKIP": "7",
+    "STRATA_ROUTE_PRIOR": "0.5"
+   },
+   "kl_run": "p05"
+  },
+  {
+   "order": 6,
+   "run": "C0b",
+   "arm": "b2-control",
+   "args": []
+  }
+ ],
+ "design": "stage 1: one production stop for all KL runs; stage 2: controls bracket the candidates, each run a fresh engine of the production tree and config with production stopped and restored between runs, a candidate whose KL screen did not pass is skipped (replay_run refuses it); stage 3: one 305-task arm at a time",
+ "metrics": {
+  "primary": "replay requests with prompt >= 32K: engine decode tok/s (generated / gen_ms)",
+  "secondary": [
+   "ms per window and tokens per window over the same requests",
+   "KL all / agent segment against exact routing, quant_quality scoring time",
+   "stage 3: pass@2 pairs against ts0, decode tok/s against b2"
+  ],
+  "loop_signs": "finish=length replies and the server notices of a repeated token / repeated thinking (server-stdout.txt)",
+  "contention": "mean CPU cores of the docker co-tenants during each replay run, from the production monitor (tools/monitor)"
+ },
+ "rules": {
+  "stage1": "ts7 identical to the stored auto-ts7, else INVALID; a candidate passes with KL against exact routing <= 0.10 (all) and <= 0.25 (agent segment)",
+  "validity": "as the long-context replay (all 120 requests ok and aligned, engine args, no guard), plus env_ok: the run config env equals the preregistered env",
+  "contention": "a run with co-tenant CPU mean >= 1.0 core -> CONTENDED; that run is rerun once (--rerun), the verdict is computed again",
+  "aa": "AA = |C0a - C0b| / mean of the two (>=32K decode tok/s); bar = max(4%, 2 x AA)",
+  "pass": "gain = candidate >=32K decode tok/s / control mean - 1 >= bar, AND finish=length and repeat notices each <= max over the controls + 1",
+  "stage3_choice": "passing candidates by gain; a candidate within 3 points of the fastest with a lower KL (all) goes first; at most two",
+  "stage3": "upgrade_gate.py probe b2-approx-20261124 --baseline ts0 --env <candidate env>: 305 tasks paired with the stored exact-routing ts0 arm, margin 5% (gate17 PREREG), quality_gate.py; stop at the first NONINFERIORITY_ESTABLISHED",
+  "adoption": "recommend only with stage 2 PASS and stage 3 NONINFERIORITY_ESTABLISHED; the user decides; change = add the env to /home/hhtele/strata-0.2.17/strata-iq3_xxs.json and restart, rollback = remove it and restart"
+ },
+ "stage3_commands": {
+  "TS5": "upgrade_gate.py probe b2-approx-20261124 --baseline ts0 --env STRATA_ROUTE_TAIL_SKIP=5",
+  "TS6": "upgrade_gate.py probe b2-approx-20261124 --baseline ts0 --env STRATA_ROUTE_TAIL_SKIP=6",
+  "P10": "upgrade_gate.py probe b2-approx-20261124 --baseline ts0 --env STRATA_ROUTE_PRIOR=1.0",
+  "P05": "upgrade_gate.py probe b2-approx-20261124 --baseline ts0 --env STRATA_ROUTE_PRIOR=0.5"
+ },
+ "limits": [
+  "the KL yardstick pins the expert cache and turns adaptation off; in production the resident set moves, so the prior acts on a different set; KL only screens",
+  "the replay has fixed history and the gate is single-turn coding tasks; #4402 is about long agent sessions, which the replay loop signs and the gate cover only in part; after adoption the production monitor reports decode and loop signs of real traffic",
+  "both knobs share the CPU-expert slice; combinations (e.g. TS6 + P05) are not tested in this round"
+ ],
+ "budget": "production stopped: stage 1 about 15 min; stage 2 at most 6 runs, about 1.5 h, restored between runs; stage 3 about 2 h per arm, at most two arms"
+}

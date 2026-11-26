@@ -1,0 +1,465 @@
+{
+ "id": "SURVEY-20261125",
+ "label": "survey-20261125",
+ "created": "2026-11-25",
+ "status": "PREREGISTERED_NOT_RUN",
+ "question": "From reports/MEGAKERNEL-SQUID5090-SURVEY-20261125.md: (S) do the sampled-draft modes Strata v0.2.17 already has make Pi-sampled long-context decode faster; (K) which of six never-measured knobs documented as bit-identical are bit-identical on the 4090 and faster; (M) how much does one graph node, and a 20 us delay before the doorbell or after the resident experts, add to the window?",
+ "decision_owner": "the user; S and K are production env changes and need the user's confirmation",
+ "verdict_kind": "approx",
+ "verdict_note": "verdict_kind approx only so that `upgrade_gate.py approx` runs the KL block; replay --eval is NOT used for this label. The verdict is tools/upgrade_gate/survey_eval.py, whose sha256 is in SURVEY_EVAL.sha256 beside this file on the 4090, written before the first replay run.",
+ "identity": {
+  "tree": "/home/hhtele/strata-0.2.17",
+  "engine_sha256": "df2d006b2adc7ad12f169d6839587ff7efc134f5873ba52c238fe207201b32a5",
+  "config_sha256": "d7ee52b0b8c0df7b9596c52359d5e624876ffdf839675f33d52de28404549174",
+  "gate17_sha256": "517d1689881ce6930b5a15527c5939971a3c56ae8882fa063c7af7b4bbcc6a87",
+  "kl_ids_sha256": "e84597fb7d115a4de6ddcc46fe6bbab9458e4728477a5756289079bcc1cd36a2",
+  "kl_reference_exact_sha256": "a76d721758293dfc8e7ed02beb6a7c9705c5be41558809701f98af0398f5e752",
+  "kl_reference_b2_sha256": "face0cd2b33b31aeb0f844cea4709df28e9ec0872b9212eb3cdcfd88a746db8d",
+  "replay_sha256_expected": "f9d36636f01c0d9404521817660edf06f75c84a6c379f282a4ab808ce0affeb1",
+  "upgrade_gate": "sha256 in ADDENDUM.json (frozen before the first run)"
+ },
+ "kl": {
+  "yardstick": "quant_quality.py run --gpu-experts auto on the production config, as in V0217-TAILSKIP-KL: expert cache filled from the profile, no adaptation, 5 segments x 999 positions; compared with the stored runs auto-ts0-a (exact routing) and auto-ts7 (B2)",
+  "identity_run": "ts7",
+  "runs": [
+   {
+    "run": "ts7",
+    "env": {
+     "STRATA_ROUTE_TAIL_SKIP": "7"
+    },
+    "role": "identity"
+   },
+   {
+    "run": "l2pf",
+    "env": {
+     "STRATA_L2_PF": "1"
+    }
+   },
+   {
+    "run": "fw2",
+    "env": {
+     "STRATA_FUSE_WAIT": "2"
+    }
+   },
+   {
+    "run": "qil",
+    "env": {
+     "STRATA_QIL": "1"
+    }
+   },
+   {
+    "run": "qfuse",
+    "env": {
+     "STRATA_QFUSE": "1"
+    }
+   },
+   {
+    "run": "devplan",
+    "env": {
+     "STRATA_VERIFY_DEVICE_PLAN": "1"
+    }
+   },
+   {
+    "run": "gprio",
+    "env": {
+     "STRATA_GRAPH_PRIO": "1"
+    }
+   }
+  ],
+  "screen": {
+   "kl_all_max": 0.1,
+   "kl_agent_max": 0.25
+  },
+  "bitwise_rule": "a K knob is BITWISE when its KL against the stored B2 run is 0 and top-1 1.0 (kl_vs_b2 == 0, top1_vs_b2 == 1). Only BITWISE knobs get replay runs; the others are recorded as NOT_BITWISE and leave this lossless group"
+ },
+ "workload": {
+  "sources": {
+   "/data/strata-data/pisim-20261120/run/session-A.json": "51fb4bc21eafe636f2b903c38f511c4a1ccf0229ea1b1d18f09b893df116de49",
+   "/data/strata-data/pisim-20261120/run/session-B.json": "9ba0101fa84c9cf998ce8da2f0549e7b7d897d2c302151377489267b30e9f1d8",
+   "/data/strata-data/pisim-20261120/pisim.py": "1453184671dfbdab0e46140f3bd40cc90508af9158dd6f59c0cca6c7dba34769",
+   "/data/strata-data/pisim-20261120/run/RESULT.json": "33ada24daa1880bc2f07b5722af8e7d54bc06d94d1c3801306a823e1aee6fc88"
+  },
+  "stitch": "messages = A.messages + B.messages[1:] (B system dropped)",
+  "requests": "one per assistant message k: messages[:k]; 120 in all (A 71, B 49)",
+  "body": "model, messages, tools = pisim TOOLS, max_tokens 16384, stream false, seed 20261123 + request index (0-based)",
+  "history": "fixed: recorded messages, never the arm's own replies; replies are measured and discarded",
+  "estimated_buckets": {
+   "<4K": {
+    "requests": 3,
+    "recorded_completion_tokens": 2008
+   },
+   "4K-32K": {
+    "requests": 47,
+    "recorded_completion_tokens": 24347
+   },
+   "32K-64K": {
+    "requests": 22,
+    "recorded_completion_tokens": 23531
+   },
+   ">=64K": {
+    "requests": 48,
+    "recorded_completion_tokens": 25187
+   },
+   "max_prompt_est": 102276
+  },
+  "estimate_method": "A prompts as recorded; B prompts = A last prompt + A last completion (61806) + B prompt - 506",
+  "limits": [
+   "fixed history makes the engine re-read the recorded reply each step (hundreds to a few thousand tokens), Pi reuses its own",
+   "pisim system prompt about 800 tokens and 4 tools; no streaming, no NGINX; one session, no switching",
+   "public benchmark text"
+  ]
+ },
+ "controls": [
+  "C1",
+  "C2",
+  "C3",
+  "C4"
+ ],
+ "candidates": [
+  {
+   "run": "KL2",
+   "kl_run": "l2pf",
+   "env": {
+    "STRATA_L2_PF": "1"
+   }
+  },
+  {
+   "run": "KFW",
+   "kl_run": "fw2",
+   "env": {
+    "STRATA_FUSE_WAIT": "2"
+   }
+  },
+  {
+   "run": "KQI",
+   "kl_run": "qil",
+   "env": {
+    "STRATA_QIL": "1"
+   }
+  },
+  {
+   "run": "KQF",
+   "kl_run": "qfuse",
+   "env": {
+    "STRATA_QFUSE": "1"
+   }
+  },
+  {
+   "run": "KDP",
+   "kl_run": "devplan",
+   "env": {
+    "STRATA_VERIFY_DEVICE_PLAN": "1"
+   }
+  },
+  {
+   "run": "KGP",
+   "kl_run": "gprio",
+   "env": {
+    "STRATA_GRAPH_PRIO": "1"
+   }
+  }
+ ],
+ "runs": [
+  {
+   "order": 1,
+   "run": "C1",
+   "arm": "b2-c1",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1"
+   }
+  },
+  {
+   "order": 2,
+   "run": "S1",
+   "arm": "b2-s1",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_SPEC_COUPLED": "1"
+   }
+  },
+  {
+   "order": 3,
+   "run": "KL2",
+   "arm": "b2-kl2",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_L2_PF": "1"
+   },
+   "kl_run": "l2pf"
+  },
+  {
+   "order": 4,
+   "run": "S3",
+   "arm": "b2-s3",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_SPEC_PROB": "1",
+    "STRATA_SPEC_PROB_GATE": "top"
+   }
+  },
+  {
+   "order": 5,
+   "run": "KFW",
+   "arm": "b2-kfw",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_FUSE_WAIT": "2"
+   },
+   "kl_run": "fw2"
+  },
+  {
+   "order": 6,
+   "run": "C2",
+   "arm": "b2-c2",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1"
+   }
+  },
+  {
+   "order": 7,
+   "run": "S2",
+   "arm": "b2-s2",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_SPEC_COUPLED": "1",
+    "STRATA_SPEC_GUMBEL": "1"
+   }
+  },
+  {
+   "order": 8,
+   "run": "KQI",
+   "arm": "b2-kqi",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_QIL": "1"
+   },
+   "kl_run": "qil"
+  },
+  {
+   "order": 9,
+   "run": "KQF",
+   "arm": "b2-kqf",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_QFUSE": "1"
+   },
+   "kl_run": "qfuse"
+  },
+  {
+   "order": 10,
+   "run": "KDP",
+   "arm": "b2-kdp",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_VERIFY_DEVICE_PLAN": "1"
+   },
+   "kl_run": "devplan"
+  },
+  {
+   "order": 11,
+   "run": "KGP",
+   "arm": "b2-kgp",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_GRAPH_PRIO": "1"
+   },
+   "kl_run": "gprio"
+  },
+  {
+   "order": 12,
+   "run": "C3",
+   "arm": "b2-c3",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1"
+   }
+  },
+  {
+   "order": 13,
+   "run": "MD8",
+   "arm": "b2-md8",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_DUMMY_NODES": "8"
+   }
+  },
+  {
+   "order": 14,
+   "run": "MPF",
+   "arm": "b2-mpf",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_VERIFY_PROFILE": "1",
+    "STRATA_COMMIT_TIMING": "1"
+   }
+  },
+  {
+   "order": 15,
+   "run": "MLP",
+   "arm": "b2-mlp",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_LAB_DELAY_PRE_US": "20"
+   },
+   "tree_label": "v0.2.17-xp"
+  },
+  {
+   "order": 16,
+   "run": "MLH",
+   "arm": "b2-mlh",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_LAB_DELAY_HIT_US": "20"
+   },
+   "tree_label": "v0.2.17-xp"
+  },
+  {
+   "order": 17,
+   "run": "C4",
+   "arm": "b2-c4",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1"
+   }
+  },
+  {
+   "order": 18,
+   "run": "S1b",
+   "arm": "b2-s1b",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_SPEC_COUPLED": "1"
+   }
+  },
+  {
+   "order": 19,
+   "run": "S2b",
+   "arm": "b2-s2b",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_SPEC_COUPLED": "1",
+    "STRATA_SPEC_GUMBEL": "1"
+   }
+  },
+  {
+   "order": 20,
+   "run": "S3b",
+   "arm": "b2-s3b",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_SPEC_PROB": "1",
+    "STRATA_SPEC_PROB_GATE": "top"
+   }
+  },
+  {
+   "order": 21,
+   "run": "KL2b",
+   "arm": "b2-kl2b",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_L2_PF": "1"
+   },
+   "kl_run": "l2pf"
+  },
+  {
+   "order": 22,
+   "run": "KFWb",
+   "arm": "b2-kfwb",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_FUSE_WAIT": "2"
+   },
+   "kl_run": "fw2"
+  },
+  {
+   "order": 23,
+   "run": "KQIb",
+   "arm": "b2-kqib",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_QIL": "1"
+   },
+   "kl_run": "qil"
+  },
+  {
+   "order": 24,
+   "run": "KQFb",
+   "arm": "b2-kqfb",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_QFUSE": "1"
+   },
+   "kl_run": "qfuse"
+  },
+  {
+   "order": 25,
+   "run": "KDPb",
+   "arm": "b2-kdpb",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_VERIFY_DEVICE_PLAN": "1"
+   },
+   "kl_run": "devplan"
+  },
+  {
+   "order": 26,
+   "run": "KGPb",
+   "arm": "b2-kgpb",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1",
+    "STRATA_GRAPH_PRIO": "1"
+   },
+   "kl_run": "gprio"
+  },
+  {
+   "order": 27,
+   "run": "C5",
+   "arm": "b2-c5",
+   "args": [],
+   "env": {
+    "STRATA_SPEC_DEPTH": "1"
+   }
+  }
+ ],
+ "schedule": "phase 1: runs 1-17 in order (K runs skipped when not BITWISE). phase 2 (confirmation): the b-run of every S or K arm whose screen gain is positive, in the order listed, then C5. All runs carry STRATA_SPEC_DEPTH=1 (acceptance by draft depth, print only). MLP / MLH run on the v0.2.17-xp build (its identity is the xp KL run off).",
+ "rules": {
+  "metric": "engine decode tok/s over the requests with prompt >= 32K (ge32k.decode_tok_s); ms per window and tokens per window recorded",
+  "noise": "aa = (max - min) / mean of decode tok/s over the valid controls (C1-C4 in phase 1; C1-C5 for the final verdict)",
+  "bar": "max(0.022, 2 * aa): SpecPilot adoption rule 1% + 2 x noise with the 0.6% ABBA noise of b2-adapt-long, raised when this session is noisier",
+  "screen": "gain1 = run / mean(the two controls bracketing it) - 1; confirm when gain1 > 0",
+  "pass": "mean of the arm's two runs / mean of all valid controls - 1 >= bar, AND each of the two runs is above the mean of all controls, AND (S arms) finish=length and repeat notices each <= max over controls + 1, AND (K arms) BITWISE",
+  "m_runs": "MD8: per-node cost = (MD8 ms_win - mean(C3, C4) ms_win) / (8 x 48); MLP / MLH: slope = delta ms_win / (0.020 ms x 48), against mean(C3, C4); MPF: the per-request stage split, structure only (the profiler changes the graph)",
+  "cotenant": "recorded for every run; a run with co-tenant mean > 4.5 cores (above the container cap) is invalid and rerun once",
+  "invalid": "upgrade_gate replay validity checks; an invalid run is rerun once (--rerun)"
+ },
+ "limits": [
+  "the OCR container (CPU-only, capped at 4 cores) was busy at 2-4 cores when this was written; controls are interleaved and aa reflects it",
+  "S arms change sampled text: their decode tok/s compares different texts, hence two runs each; COUPLED keeps the target sampler, GUMBEL and PROB+top keep the target distribution, so no quality gate (Strata unit tests are not run in this round)",
+  "KL covers prompt-read windows only (head sampling off); K knobs that act only in sampled decode are not seen there",
+  "STRATA_SELECT_LONG is left out (only >= 64K, second graph set, VRAM)"
+ ]
+}
