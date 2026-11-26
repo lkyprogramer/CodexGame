@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.12 · 2026-11-26
+
+T15 完成：fork `2c2f424` 的 `astral trace` 只读探针（schema 见 fork `docs/trace.md`）；探针关、探针开、eager 三者逐位一致，decode 速度不变，主机重算与 GPU 输出对账误差 ≤ 1.1e-6。记录见 [07](docs/07_tasks.md)；[06](docs/06_loop_research.md) §3 注明实现范围。
+
 ## v3.0.11 · 2026-11-26
 
 T20 完成（[07](docs/07_tasks.md)）：fork `18bf3e3` 新增 decode 路径与 DSpark verify 行的 logits 导出；保留集 B 上 prefill、decode、verify 2 / 4 / 8 行按 num-3 全部通过；自由生成首个分歧都在近平局处；c4096 密集 KLD 按 V4 公式通过。长文档 64 个边界位置按 num-3 FAIL，原因是双峰分岔位置（llama 自身也有），[05](docs/05_validation.md) §5 覆盖表、§6.6；长上下文判定口径的建议待用户决定。

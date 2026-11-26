@@ -78,6 +78,8 @@ controller 的 gain 和 forget 都是 **tanh**（HF 实现，S21 已核实），
 
 完整 logits 只为重算 KL、定位分歧或读出校准而保存；**top-k 日志不能代替完整归一化的 KL**。探针不能改变被研究的行为：按位置批量取回小数据，不在每个算子后同步；d17a519 加的同步不能在加探针时顺手删掉。
 
+**实现状态（v3.0.12，T15）**：fork `astral trace` 已覆盖上表除 coda lens 以外的探针，只在 decode 步启用，schema 见 fork `docs/trace.md`；coda lens 和 prefill / verify 路径的探针在 R2 需要时再加。
+
 **Goodfire 的结果作为第一个复现目标**（S26 已核实）：他们在 Inkling-2-Mini 上发现少数巨大的异常激活决定跨遍读哪些块（坐标 2027 / 2304，RMS 归一化后约 +32.4，占平方范数 46%），并比较了 logit lens、tuned lens、coda lens。两步走：① 在 A1（量化后）和自己的输入上重新找异常坐标与块读取行为，2027 只作线索；② 单点干预（替换一个 token、一个 block、一个 pass 的消息或坐标），加同范数随机方向作对照。相关性消失时先查采样位置和量化影响；相关存在但干预无效，就记录为因果解释不成立。
 
 ## 4. KV 压缩的定位
