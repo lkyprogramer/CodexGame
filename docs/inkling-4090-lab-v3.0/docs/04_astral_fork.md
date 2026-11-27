@@ -57,7 +57,7 @@
 | 顺序 | 候选 | 第一个实验 | 继续的条件 |
 |---|---|---|---|
 | K1 | NVFP4 GEMV 的软件解码与访存 | 真实热点形状上小范围扫描每块行数 / 展开参数 | 原算子通过且端到端有收益 |
-| K2 | Q8_0 小形状路径 | T = 1 与 T = 2–8 分别比较 MMA 和 dp4a | 不靠改 dtype 换取隐藏的误差。T = 1 已做（T16 第 1 轮，fork `3f5a49d`）：sm_89 的 decode 改走 dp4a，无草稿 +9.4%；T = 2–8（verify 与草稿）：v3.0.17 用现有开关 `ASTRAL_SMALL_DP4A=1` 测得 DSpark 快 20%（没做 G2），这是 T16 第 2 轮 |
+| K2 | Q8_0 小形状路径 | T = 1 与 T = 2–8 分别比较 MMA 和 dp4a | 不靠改 dtype 换取隐藏的误差。T = 2–8（verify 与草稿）已采用（T16 第 2 轮，fork `aa837c7`）：sm_89 走 dp4a，DSpark 173.9 → 206.3 tok/s，G2 通过。T = 1（decode）在第 1 轮改成 dp4a（+9.4%），但 T20 B 组 decode 的 num-3 FAIL，已撤回，可用 `ASTRAL_DECODE_DP4A=1` 选用；要重新采用，需先让 decode 与 prefill 的差异回到限值内 |
 | K3 | controller / mix / conv 融合 | 只融合时间线上仍独立且可以安全合并的操作（llama.cpp #33060 的五条融合链可作代码参考） | 状态更新顺序与数值门不回退 |
 | K4 | 注意力 split 数 | 按有效长度与 capacity 测空 CTA、split / merge 成本 | 多个长度都没有明显退化 |
 | K5 | verify 的数值一致性 | 相同 token 在不同小批形状下的结果 | 能解释并控制接受率变化 |

@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.18 · 2026-11-27
+
+T16 第 2 轮 PASS（fork `aa837c7`）。sm_89 上 DSpark 的 2–8 行 Q8_0 乘法改走 dp4a，DSpark 从 173.9 提到 206.3 tok/s，相对无草稿 1.44×，G2 全部通过（含 T20 B 组）。**更正 v3.0.16**：第 1 轮的 G2 漏跑了 T20，decode dp4a 让 B 组 decode 的 num-3 FAIL（kl.max 比值 3.55），已撤回；无草稿回到 142.0 tok/s。`tools/t16/t16_g2.sh` 补入 T20，新增 `t16_k2b.sh`。
+
 ## v3.0.17 · 2026-11-27
 
 并入方案 11（S37，原文保留在仓库 `docs/11_inkling4090_new_optimization_plan_20261127.md`），先按 fork `3f5a49d` 核实。
