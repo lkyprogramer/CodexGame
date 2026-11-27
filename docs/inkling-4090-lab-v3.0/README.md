@@ -1,6 +1,6 @@
 # Inkling-2-Mini × RTX 4090 自有引擎实验室 v3.0
 
-**版本：3.0.14 · 2026-11-27（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。v3.0.7 按用户的研究评审核实后修订了验证口径、任务与研究设计；v3.0.14 并入方案 10（新增 T22–T25、R11–R13），见 [CHANGELOG](CHANGELOG.md)。**
+**版本：3.0.15 · 2026-11-27（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。v3.0.7 按用户的研究评审核实后修订了验证口径、任务与研究设计；v3.0.14 并入方案 10（新增 T22–T25、R11–R13），见 [CHANGELOG](CHANGELOG.md)。**
 
 ## 目标
 
@@ -61,6 +61,8 @@ fork 已拆成独立的公开项目 **[lkyprogramer/inkling-4090-engine](https:/
 | `18bf3e3` | decode 路径与 DSpark verify 行的 logits 导出（T20） |
 | `2c2f424` | `astral trace` 只读探针（T15） |
 | `02259e1` | `ASTRAL_PASSES` 遍数覆盖、varloop 原生加载（T18） |
+| `744e32a` | `Gemv::quantize` 写 FP16 平面，selftest 的 GEMM 用例检查输入（T22） |
+| `9593eb4` | SWA 环形缓冲，上下文到 128K + 1024（T17） |
 
 本包只保留实验室专用内容：驱动守卫、停服窗口、ModelScope 下载、执行记录和调用这些分析脚本的 shell 脚本。
 

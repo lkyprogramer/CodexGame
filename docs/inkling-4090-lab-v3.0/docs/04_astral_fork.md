@@ -76,7 +76,7 @@ Ada 有 FP16 / BF16 / INT8 / FP8 Tensor Core，没有 TMA、wgmma、TMEM 和原�
 
 当前 `layer` 先为整批写入 K/V 再做注意力。C 个连续 query、窗口 W 时，同一批需要可见的行最多是 W + C − 1 行；只有 W 行的取模环形缓冲会覆盖同批早期 query 仍要读的行，**即使 C ≤ W 也不安全**。方案二选一并写入设计：给 ring 额外的 staging / 容量（W = 1024、C = 512 时，40 个 SWA visit 合计约多 79.8 MiB，未含投机回滚余量），或者按依赖交错写读的 tile 方案。无论哪种，都用逐 token 的完整缓存作对照。
 
-**T17 的选择（v3.0.14，代码已写、尚未在 4090 上验证）**：采用“额外容量”。SWA slot 的物理行数为 W + max(tmax, 8)，向上取整到 64（默认 tmax 2048 时为 3072 行），位置 j 存在第 j mod rows 行；全局 slot 行数等于 capacity。三个坐标分开：绝对位置（相对 bias、全局层的对数缩放都只用它）、有效长度（session 的 pos，决定哪些位置可读）、物理行（只用于寻址）。这样一批 prefill 写入的行不会覆盖本批最早 query 仍要读的行；verify 被拒绝的行只覆盖已经出窗的位置，之后真正走到这些位置时会重写，所以不需要撤销数据；草稿 KV 仍按全长线性分配，它写入未提交行的做法继续安全。代价是显存：默认分块下 40 个 SWA slot 共 480 MiB（理想的 1024 行为 160 MiB），`ASTRAL_TMAX=512` 时 240 MiB。方案 10 §6.3 的“只读 ring + 本批 delta”能把 SWA 压到 160 MiB 加一份 8 MiB 的共享 prefill delta（verify 另需每个 SWA slot 8 行的小 delta，合计约 1.25 MiB），但所有注意力 kernel 都要改成双段读取，并引入显式的 commit；列为显存不够时的后续候选。
+**T17 的选择（v3.0.14；fork `9593eb4`，v3.0.15 在 4090 上验证，[07](07_tasks.md) T17）**：采用“额外容量”。SWA slot 的物理行数为 W + max(tmax, 8)，向上取整到 64（默认 tmax 2048 时为 3072 行），位置 j 存在第 j mod rows 行；全局 slot 行数等于 capacity。三个坐标分开：绝对位置（相对 bias、全局层的对数缩放都只用它）、有效长度（session 的 pos，决定哪些位置可读）、物理行（只用于寻址）。这样一批 prefill 写入的行不会覆盖本批最早 query 仍要读的行；verify 被拒绝的行只覆盖已经出窗的位置，之后真正走到这些位置时会重写，所以不需要撤销数据；草稿 KV 仍按全长线性分配，它写入未提交行的做法继续安全。代价是显存：默认分块下 40 个 SWA slot 共 480 MiB（理想的 1024 行为 160 MiB），`ASTRAL_TMAX=512` 时 240 MiB。方案 10 §6.3 的“只读 ring + 本批 delta”能把 SWA 压到 160 MiB 加一份 8 MiB 的共享 prefill delta（verify 另需每个 SWA slot 8 行的小 delta，合计约 1.25 MiB），但所有注意力 kernel 都要改成双段读取，并引入显式的 commit；列为显存不够时的后续候选。
 
 ## 4. 提交纪律
 

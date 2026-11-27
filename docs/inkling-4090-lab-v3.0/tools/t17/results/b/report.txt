@@ -1,0 +1,58 @@
+idle GPU memory 1 MiB
+
+V4 (05 section 3): mean <= max(2 N0_mean, 0.005), p99 <= max(2 N0_p99, 0.05), top-1 at margin >= 0.5 >= 99.5%
+16K: N0 mean 0.0050 p99 0.0609 top1 99.8319% -> limits mean 0.0100 p99 0.1218
+   step  positions 8191 mean 0.0040 p99 0.0473 max 5.21 top1 99.89% ppl 2.2421 (llama 2.2439) -> PASS
+   serve positions 8191 mean 0.0031 p99 0.0469 max 2.19 top1 99.87% ppl 2.2419 (llama 2.2439) -> PASS
+   step vs serve: mean 0.0037 p99 0.0451
+32K: N0 mean 0.0021 p99 0.0294 top1 99.9266% -> limits mean 0.0050 p99 0.0588
+   step  positions 16383 mean 0.0022 p99 0.0297 max 4.86 top1 99.90% ppl 1.4321 (llama 1.4297) -> PASS
+   serve positions 16383 mean 0.0017 p99 0.0249 max 2.85 top1 99.93% ppl 1.4288 (llama 1.4297) -> PASS
+   step vs serve: mean 0.0022 p99 0.0337
+
+level | ppl all scored (last 4095) | prefill vs decode at C-63, C: KL max, argmax differ | attn reconstruction max | far mass (>=1024) global p50 | prompt prefill s | decode tok/s | peak MiB (ladder / gen) | KV MiB (formula) | 01 budget KV MiB
+16K | 2.6525 (3.0348) | 5.05e-07, 0 | 6.16e-07 | 0.703 | 3.122 | 126.9 | 19674 / 19674 | 992 | -
+32K | 2.5719 (3.0339) | 1.63e-04, 0 | 1.14e-06 | 0.948 | 6.512 | 115.8 | 20190 / 20190 | 1504 | 1188
+64K | 2.7455 (3.0347) | 3.99e-04, 0 | 6.08e-07 | 0.387 | 13.974 | 97.4 | 21220 / 21220 | 2528 | 2212
+128K | 2.4683 (3.0264) | 6.67e-05, 0 | 1.10e-06 | 0.726 | 31.849 | 73.7 | 23280 / 23280 | 4576 | 4260
+
+runs (tag rc seconds peak MiB):
+  llama16-ub128    0      0.0 18132
+  llama16-ub1      0      0.0 17632
+  astral16-step    0      0.0 19660
+  astral16-serve   0      0.0 19674
+  llama32-ub128    0      0.0 19040
+  llama32-ub1      0      0.0 18148
+  astral32-step    0      0.0 20176
+  astral32-serve   0      0.0 20190
+  ladder16         0      0.0 19674
+  lf16             0      0.0 19674
+  trace16          0      0.0 19770
+  gen16            0      0.0 19674
+  ladder32         0      0.0 20190
+  lf32             0      0.0 20190
+  trace32          0      0.0 20286
+  gen32            0      0.0 20190
+  ladder64         0      0.0 21220
+  lf64             0      0.0 21220
+  trace64          0      0.0 21316
+  gen64            0      0.0 21220
+  ladder128        0      0.0 23280
+  lf128            0      0.0 23280
+  trace128         0      0.0 23376
+  gen128           0      0.0 23280
+  spec32           0      0.0 21702
+
+pass key:
+  {"tokens_target": 32168, "depth": 0.1, "prompt_tokens": 31890, "answer": "", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  {"tokens_target": 32168, "depth": 0.5, "prompt_tokens": 31890, "answer": "", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  {"tokens_target": 32168, "depth": 0.9, "prompt_tokens": 31890, "answer": "14283", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  {"tokens_target": 64936, "depth": 0.1, "prompt_tokens": 64737, "answer": "16339", "reasoning": "The user asks for the secret pass key mentioned in the text. The text includes \"", "found": true}
+  {"tokens_target": 64936, "depth": 0.5, "prompt_tokens": 64737, "answer": "", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  {"tokens_target": 64936, "depth": 0.9, "prompt_tokens": 64737, "answer": "17387", "reasoning": "The user asks for the secret pass key mentioned in the text. The text contains: ", "found": true}
+  {"tokens_target": 130472, "depth": 0.1, "prompt_tokens": 130082, "answer": "", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  {"tokens_target": 130472, "depth": 0.5, "prompt_tokens": 130082, "answer": "", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  {"tokens_target": 130472, "depth": 0.9, "prompt_tokens": 130082, "answer": "", "reasoning": "The user asks: \"What is the secret pass key mentioned in the text above? Answer ", "found": true}
+  peak MiB during the server run: 23282
+
+DSpark at 32K: greedy equal to plain for the first 128 of 128 tokens; plain decode 127 tok at 115.8 tok/s; spec output equals plain greedy for the first 128 / 128 tokens teacher-forced: spec token != plain argmax at 0 / 128 positions, largest logit gap 0.000 
