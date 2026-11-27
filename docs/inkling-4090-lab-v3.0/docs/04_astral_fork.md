@@ -1,6 +1,6 @@
 # 04 · Astral fork 与 sm_89 移植
 
-上游：`syntheticminds-lab/Astral-Inference-Server` @`49a0a2bee3270ad7518cebe7a059496b250180d1`（S10）。fork 后的工作分支为 `inkling-4090`。下文的文件和行号均指这个 commit。
+上游：`syntheticminds-lab/Astral-Inference-Server` @`49a0a2bee3270ad7518cebe7a059496b250180d1`（S10）。fork 是独立公开仓库 `lkyprogramer/inkling-4090-engine` 的 `main`（S30；早期的分支名 `inkling-4090` 已不用）。§2 的文件和行号指上游这个 commit；v3.0.14 新增的几行指 fork 当前代码。
 
 ## 1. 代码地图（只列本项目会碰到的部分）
 
@@ -34,6 +34,9 @@
 | `crates/model/src/inkling.rs` `layer` | `attn_prep` 先把本批 `ntok` 个 token 的 K/V 全部写进缓存，再调用注意力；V 的写入路径是 short conv → 不带可学习 gain 的 per-head RMSNorm → F16 | 做 SWA 环形缓冲时，同批早期 query 需要的行可能被同批后写的行覆盖（WP-D） |
 | `crates/loader/src/inkling_checkpoint.rs:282,473` | MXFP8 转 Q8_0；要求 `model_type == inkling2_loop` | varloop 原生 checkpoint 预计可直接加载（P5 前验证） |
 | kernel 类型 | GEMV/GEMM 入口只有 f32 / bf16 / q8_0 / nvfp4（另有 Qwen 用的 mxfp4） | 只能用 A1 这类 NVFP4 + Q8_0 文件 |
+| fork `crates/model/src/inkling.rs` `forward`（v3.0.14 核实，方案 10 §4.1） | slot 编号：prelude、core 第 1 遍、coda 的 slot 等于物理层（0–5、6–17、18–23）；core 第 2、3 遍是 24–35、36–47。visit 是执行顺序，coda 是 visit 42–47 却用 slot 18–23。DSpark 的 taps `[5,23,41,48]` 按 visit 计数，在进入该 visit 前取，48 是最终 norm 之后 | slot、物理层、visit 三者不能混用；改遍数后 taps 的数字不能照搬（T23） |
+| fork `crates/kernels/src/ops.rs` `QAct::with_f16` / `Gemv::quantize` / `launch_mma`（v3.0.14 核实） | FP16 平面分配时清零；`quantize` 只写 q / d；`launch_mma` 在 n、k 为 64 的倍数且未设 `ASTRAL_MMA_INT8` 时读 FP16 平面。生产路径的 `rms_q8`、`gate_q8`、`situ_q8` 会写 FP16 平面 | “内存已分配”不等于“数据有效”：只经过 `quantize` 的激活喂给 MMA3 会算出零（T22） |
+| fork `crates/model/src/dspark.rs` `Spec::new` | 草稿 K/V 为 FP32，3 层（layer 0、2 为 local，窗口 1024；layer 1 为 global），每层按 capacity + block + 8 行全长分配：约 24 KiB / token | 128K 时约 3.0 GiB，是开 DSpark 跑 128K 能否放下的关键项（[01](01_model.md) §3，T17 / T21） |
 
 推断：4090 上首次构建、selftest 和 `verify-model` 很可能不需要改代码就能通过；需要改的是性能和上下文长度。这是推断，由 T07/T09 验证。
 
@@ -47,6 +50,7 @@
 | D 长上下文 | 四段，顺序不能换：① SWA 环形缓冲，在 8K 内验证绝对位置、窗口包含关系与回滚（只存写指针不足以恢复被覆盖的旧值，要按最大未提交长度留余量或保存撤销数据）；同批写入的覆盖问题见下；② 扩展**已有**的 split attention，把有效长度、物理 capacity、绝对 token 位置分开，逐处检查 `MAX_CTX` 钳位、索引类型、scratch 大小和 graph 捕获；③ 长 prefill 分块与参考对照（relative bias、全局位置缩放、sink、门控、短卷积）；④ 16K → 32K → 64K → 128K，每级记峰值显存与时间 | T17 | G4；§5 的边界用例全部通过 |
 | E 循环控制 | 遍数可配置（`--passes`，或解析 varloop 配置）；跨遍 KV 策略开关（[06](06_loop_research.md) R4 的三臂签名）；早停钩子。R 变化时 visit 数、KV、conv、块消息、coda 都要随之重建，不跨深度复用缓存 | T18 | A1 默认 3 遍时与改前逐位一致；A4 有自己的三遍基线；A4 在 1–5 遍下可运行 |
 | F 草稿器 | 4090 上的 DSpark（现有实现）；DFlash2 移植（5 层 qwen3 类结构，可复用 `qwen.rs` 的 kernel） | T13、T14、R7 | 投机解码与普通贪心等价（[05](05_validation.md) §3） |
+| G 执行映射与消息预计算（v3.0.14，方案 10 §4–§5） | 私有 `inkling_plan.rs` 固定 visit / slot / tap 映射与 graph 身份；第二、三遍入口一次算完该遍 48 个消息（M1 共享源逆 RMS → M2 批量读取 → M3 controller 消息半支），各级独立开关 | T23、T24 | 关闭时逐位一致；中间张量逐项对齐；G2 不回退；端到端有收益 |
 
 ### 3.1 调优候选（T16 / T21，评审 §10.3）
 
@@ -59,12 +63,20 @@
 | K5 | verify 的数值一致性 | 相同 token 在不同小批形状下的结果 | 能解释并控制接受率变化 |
 | K6 | 把 fragment / `mma5` 路径接到 Inkling | 一个真实 MoE 形状，显式计入新布局的权重表示、工作区和数值差异 | 值得扩到整个模型；这是新的布局与 kernel 实验，不是现成开关 |
 | K7 | Q8_0 重编码为 FP8 | 只针对已证实受算力限制的局部 | 质量与时间同时有收益 |
+| K8 | 按真实消费者裁剪激活平面（方案 10 §7.1） | 固定的消费者表：每个激活在当前 kernel 选择下要 Q8、FP16 还是两者；只省去没人读的写入 | 先完成 T22；“请求 FP16 却未写入”在调试模式下报错 |
+| K9 | 短 verify 的 MoE 尾部融合（方案 10 §12.3，参考 mlx-serve #1331 的 few_tail，S35） | nv ≤ 8 时把 `moe_combine_t` → `conv_res_par` 合成按 hidden 列的一个 kernel：只读旧 conv、输出每行 hist，接受后仍由 `conv_commit` 提交 | cur、hist 与接受 0 / 部分 / 全部后的下一 token 都对齐 |
+| K10 | 短 prefill 的 expert 行数特化 tile（方案 10 §7.2） | 记录每个 expert 的真实行数，按 8 / 16 / 32 / 64 行特化 NVFP4 gate_up / down | 计入分桶、padding、额外 launch 与确定性合并；同一 token / expert 映射核对输出 |
+| K11 | split 工作区清零（方案 10 §7.3） | 证明每个被求和读取的元素都被唯一写入（含空 expert、尾行、split 数变化）后删 memset | 证明不了就保留清零；不回到浮点 atomicAdd |
+
+v3.0.14 补充（方案 10 §7.4–§7.6、§12.4）：后置候选有 expert gate / up 与 SiTU 的 epilogue 融合、单 token 输入用固定 pinned packet 上传（先用 `ASTRAL_STEP_TIMING` 看占比，且不删 d17a519 的同步）；K4 注意力可试一个 CTA 覆盖同一 KV head 的 3 个 Q head（GQA = 3）、以及全局层远端（距离 ≥ 1024、bias 为零）的快循环，跨 1024、window 和 split 边界的 tile 走完整路径。Loom 的转置 / 补齐布局与 Metal 的阈值不是 4090 的参数，没有带宽或 cache miss 证据就不换格式。
 
 Ada 有 FP16 / BF16 / INT8 / FP8 Tensor Core，没有 TMA、wgmma、TMEM 和原生 block-scaled FP4。NVFP4 在 4090 上只能软件解码，“Ada 支持 FP8”不代表 Q8_0 可以直接喂给 FP8 MMA；把所有专家常驻展开成 BF16 会超出 24 GB 预算。每次调优之后：同一输入的 graph / eager 对照、G2 回归。固定遍数 R = 1–5 可以各有自己的执行图；逐 token 动态深度要等 R6 / R9 的数据支持。
 
 ### 3.2 SWA 环形缓冲的同批覆盖问题（评审 §11.3，已核实代码顺序）
 
 当前 `layer` 先为整批写入 K/V 再做注意力。C 个连续 query、窗口 W 时，同一批需要可见的行最多是 W + C − 1 行；只有 W 行的取模环形缓冲会覆盖同批早期 query 仍要读的行，**即使 C ≤ W 也不安全**。方案二选一并写入设计：给 ring 额外的 staging / 容量（W = 1024、C = 512 时，40 个 SWA visit 合计约多 79.8 MiB，未含投机回滚余量），或者按依赖交错写读的 tile 方案。无论哪种，都用逐 token 的完整缓存作对照。
+
+**T17 的选择（v3.0.14，代码已写、尚未在 4090 上验证）**：采用“额外容量”。SWA slot 的物理行数为 W + max(tmax, 8)，向上取整到 64（默认 tmax 2048 时为 3072 行），位置 j 存在第 j mod rows 行；全局 slot 行数等于 capacity。三个坐标分开：绝对位置（相对 bias、全局层的对数缩放都只用它）、有效长度（session 的 pos，决定哪些位置可读）、物理行（只用于寻址）。这样一批 prefill 写入的行不会覆盖本批最早 query 仍要读的行；verify 被拒绝的行只覆盖已经出窗的位置，之后真正走到这些位置时会重写，所以不需要撤销数据；草稿 KV 仍按全长线性分配，它写入未提交行的做法继续安全。代价是显存：默认分块下 40 个 SWA slot 共 480 MiB（理想的 1024 行为 160 MiB），`ASTRAL_TMAX=512` 时 240 MiB。方案 10 §6.3 的“只读 ring + 本批 delta”能把 SWA 压到 160 MiB 加一份 8 MiB 的共享 prefill delta（verify 另需每个 SWA slot 8 行的小 delta，合计约 1.25 MiB），但所有注意力 kernel 都要改成双段读取，并引入显式的 commit；列为显存不够时的后续候选。
 
 ## 4. 提交纪律
 
@@ -85,6 +97,7 @@ Ada 有 FP16 / BF16 / INT8 / FP8 Tensor Core，没有 TMA、wgmma、TMEM 和原�
 - 相同前缀 reset 后重算；相同前缀但有效长度不同，检查旧状态没有泄漏；
 - 全局层拆成 near / far 两段时，sink 只参与一次归一化；
 - 当前 capacity 8191 / 8192（生成与投机要预留剩余容量），扩展后加 8193。
+- v3.0.14 补充（方案 10 §6.6）：分块 1 / 7 / 511 / 512 / 1024 / 2048，重点是分块 ≥ W 与跨环；verify 输入 2 / 3 / 4 / 5 / 7 / 8 行（3 / 5 / 7 对应自适应 k = 2 / 4 / 6），接受 0 个 draft 时仍提交 anchor，接受全部时不提前提交 bonus；拒绝发生在环尾、连续两轮拒绝、上一轮长候选到下一轮短候选的旧尾行隔离；reset 后复用同一地址；最后不足一轮的容量；query 位于 ring 最早的有效行；sink 占主导的头；graph 与 eager、trace 开 / 关、prefill → decode → verify 的交界。未写入的行和暂存区填不同的哨兵值，输出不得依赖它们。每个关键测试配一个负控制（错 slot、错一行 bias、提前提交一行），测试必须能失败。
 
 新注意力实现与**同一份 KV** 上的参考计算比较；不同内容的 KV 或不同 cache 策略，不能用同一个“实现一致性”测试掩盖。
 

@@ -15,7 +15,7 @@
 
 - 所有源码、模型、构建、证据放在 `$HOME/inkling-lab-v3/`（下称 `$LAB`），不覆盖机器上已有的任何树。
 - 上游一律锁定 commit / revision（[09](docs/09_sources.md)）；升级另立任务，不自动 pull。
-- Astral fork 在分支 `inkling-4090` 上提交，每个 commit 一个可归因的改动；保留上游 Apache-2.0 头和 NOTICE，新增文件同样标注。
+- Astral fork 在独立仓库 `lkyprogramer/inkling-4090-engine` 的 `main` 上提交（[09](docs/09_sources.md) S30），每个 commit 一个可归因的改动；保留上游 Apache-2.0 头和 NOTICE，新增文件同样标注。
 - 正确性先于速度：先有能失败的测试（selftest、对 llama.cpp 的 golden、贪心序列），再改实现。
 - 一次只改一个变量；同一张 GPU 上的实验串行。
 - 每个任务交付：输入版本、命令、原始输出、结论；原始输出不能只留摘要。

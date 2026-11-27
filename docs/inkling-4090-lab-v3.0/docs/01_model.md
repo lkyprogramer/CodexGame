@@ -30,8 +30,10 @@
 | DSpark 草稿（原生 mtp 转换） | ≈0.6 GiB |
 | KV，Astral 现状（48 slot × capacity，f16） | 192 KiB/token → 8192 时 1.5 GiB；**现状最多约 2.7 万 token**，且被 `MAX_CTX=8192` 卡住 |
 | KV，P4 目标（40 个 SWA 环形 1024 + 8 个全局按需分配） | 160 MiB 固定 + 32 KiB/token → 32K 1.16 GiB；64K 2.16 GiB；128K 4.16 GiB |
+| KV，T17 的实际设计（v3.0.14；SWA slot 为 W + max(tmax, 8) 行，取整到 64；[04](04_astral_fork.md) §3.2） | 默认 tmax 2048：SWA 3072 行，共 480 MiB 固定 + 32 KiB/token → 32K 1.47 GiB；64K 2.47 GiB（比上一行 +14%）；128K 4.47 GiB（+7.5%）。`ASTRAL_TMAX=512` 时 SWA 240 MiB：64K 2.23 GiB，128K 4.23 GiB |
 | conv 状态 | 48 slot × 6656 通道 × 3 × 4 B ≈ 3.7 MiB |
-| 草稿器 KV / 回滚快照、工作区、CUDA graph | 未知，P1 用 `nvidia-smi` 与 `astral hw` 实测 |
+| DSpark 草稿 KV（fork `dspark.rs`，v3.0.14 核实） | FP32，3 层 × 8 头 × 128 × K / V，按 capacity 全长分配：24 KiB/token → 32K 0.75 GiB，64K 1.5 GiB，128K 3.0 GiB |
+| 回滚快照、工作区、CUDA graph | 未知，P1 用 `nvidia-smi` 与 `astral hw` 实测 |
 
 以上都是按已知形状算出的理想稳态容量，不是分配器实测；verify 窗口的暂存、回滚余量、对齐、coda lens 副本、graph、工作区、草稿器和 CUDA context 另计。SWA 环形缓冲还要处理同批写入覆盖（[04](04_astral_fork.md) §3.2：W = 1024、C = 512 时多约 79.8 MiB）。
 
@@ -48,7 +50,7 @@
 
 所以 R1 的深度研究和 128K 研究要分开做：三遍 128K 放得下，不代表五遍、六遍加多套读出缓存也放得下。
 
-结论：P4 完成后，128K（f16 全局 KV、三遍）在 4090 上按预算可行，余量约 1.5–2 GiB（推断，T17 实测）；全局 KV 改成 q8 后可以更长。
+结论：P4 完成后，128K（f16 全局 KV、三遍、**不开草稿**）在 4090 上按预算可行，余量约 1.5–2 GiB（推断，T17 实测）；全局 KV 改成 q8 后可以更长。开 DSpark 时，128K 的草稿 KV 3.0 GiB 加目标 KV 4.47 GiB，与权重、context 合计已超过 24 GiB：要么草稿 KV 压缩（local 层 ring、FP16，T21），要么长上下文时关草稿。G4 的“与预算偏差 10% 以内”按哪一行（P4 目标还是 T17 实际设计）比较，待用户决定（[07](07_tasks.md) T17）。
 
 ## 4. 资产（下载走 ModelScope；以 HF 的 LFS SHA256 校验）
 

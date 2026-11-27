@@ -1,6 +1,6 @@
 # 09 · 来源登记
 
-读取日期均为 2026-11-26。“锁定”是本包使用的版本；升级需要另立任务。
+读取日期均为 2026-11-26（S32–S36 为 2026-11-27）。“锁定”是本包使用的版本；升级需要另立任务。
 
 | ID | 来源 | 锁定 | 用途 |
 |---|---|---|---|
@@ -30,5 +30,10 @@
 | S29 | GitHub `SqueezeAILab/2DSD` 分支 `feat/inkling-dspark` | `962874f303c3142406ab3eecfae2bb51567815c9` | 完整 coda 读出与 feature 契约参考 |
 | S30 | GitHub `lkyprogramer/inkling-4090-engine`（本项目的 Astral fork） | `e484873` 起 | 自有引擎的代码真源 |
 | S31 | 用户提交的研究评审，CodexGame 仓库 `docs/Inkling-4090-Lab-v3-Research-Review-2026-11-26.md` | 提交 `1747d69` | v3.0.7 修订的依据；其中外部来源按本表核实 |
+| S32 | 方案 10，CodexGame 仓库 `docs/10_molt_loomformer_inkling4090_plan.md`（提案 1.0，基于 fork `18bf3e3`、本包 `9f6d4b0`） | 提交 `f145b79` | v3.0.14 新增 T22–T25、R11–R13 与 T16 / T17 / T21 细化的依据；其中代码结论按 fork 源码核实 |
+| S33 | MoLT，arXiv:2611.34923v1（*Mixture-of-Loops Transformer*）；GitHub `hustvl/MoLT` | `1313b83adf05f666726bf009014f5f50ae345b23` | R12、R13 的严格前缀反馈参考 |
+| S34 | LoomFormer，arXiv:2611.30634v2（*Rewirable Circuits in Transformers with Loom Attention*）；GitHub `Caiyun-AI/LoomFormer` | `e52e5761d36066ed62e061a044d8314437cb7b11` | R11、R13 的矩阵深度接口参考 |
+| S35 | GitHub `ddalcu/mlx-serve` PR #1331（已合并） | head `ad695002aa89fda7ac27b901d7474ddc84299af8`，merge `6ba6d34ea0bc265dc19b5b737fa21138b2a228e1` | 开放 verify、few_tail（K9）、成本阶梯、请求隔离、末行 head 的工程参考（T21、T25） |
+| S36 | GitHub `ddalcu/mlx-serve` PR #1330（open draft） | 2026-11-27 查询 head `5e556773ecf6923ada146b44bab534bf05e02ae3`（方案 10 记录时为 `6a22c34`，此后有新提交） | 只作参考，不是 #1331 的超集；采用前另立任务 |
 
 v2.x 中的其他来源（Atomic、Ghost、Magnitude、CUDA Rust 等）只作方法参考（[03](03_engine_landscape.md)），不再锁定，仍保存在 `docs/atomic-inkling-4090-plan-v2.0/docs/02_evidence_register.md`。

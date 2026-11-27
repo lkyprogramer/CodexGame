@@ -59,7 +59,7 @@ V4 的 Astral 侧用 T12 新增的 `astral dump-logits` 导出。llama.cpp KLD b
 |---|---|---|---|
 | 全 step / prefill / prefill → decode / verify 2·4·8 行 | B 组 16 个 prompt：Lp、Lp+1…Lp+16、+32、+64、+96、+128（336 个位置；生成位置 320 个） | num-3，按路径配对，参考侧都是 llama.cpp ub512 对 ub1 | 全部 PASS，比值 0.59–1.09；verify 三种批长逐位相同；每种批长的行号都覆盖到（k = 7 时 0–7 行各至少 7 个位置） |
 | 自由生成 prefill → decode | B 组 16 × 160 token | V5 口径 | 首个分歧全部在近平局处（参考 margin ≤ 0.27）；严格一致的前缀共 895 / 2560 token |
-| 分块与窗口边界 | D 组 4 篇长文档：8/9、64/65、1023–1025、2047–2050、2056/2057、4096/4097（64 个位置） | num-3 | **FAIL**（见 §6.6）：KL mean、max 超过比值限制，起因是个别位置的分岔，不是边界 |
+| 分块与窗口边界 | D 组 4 篇长文档：8/9、64/65、1023–1025、2047–2050、2056/2057、4096/4097（64 个位置） | num-3 | **FAIL**（见 §6.6）：KL mean、max 超过比值限制，argmax 硬门也不通过（prefill 3 处、decode 1 处翻转在参考 margin ≥ 0.5）；超限集中在几个分岔位置，不在边界的系统位置上 |
 | 长上下文密集测量 | c4096 × 4 chunk，2048–4094 位置，共 8188 个 | V4 公式，N0 在同一文件上重测 | step 与 prefill → decode 都满足 V4 |
 | 运行间复现 | D 组 184 个文件 | 逐位 | 0 个不同 |
 
@@ -126,7 +126,7 @@ T19 按冻结的 num-2 规则判 FAIL（[07](07_tasks.md) 执行记录），但�
 
 ### 6.5 Astral prefill 的运行间不确定性（T19 发现，已修复）
 
-同一输入跑两次：Astral **step 路径逐位相同**，**prefill 路径每个位置都不同**（两次之间 KL 均值 7.6e-5、最大 0.0024，`max_near` 最大 4.5，argmax 不变）。llama.cpp 逐 token 两次逐位相同。**根因（消融确认）**：prefill 的两条 split-K 路径——分组张量核 GEMM（`Gemv::launch_mma` / `gemm_mma3`）和 loop controller 的下投影（`InklingOps::ctrl_t`，K 切 8 份）——都用 float `atomicAdd` 合并各分片，舍入取决于 block 完成顺序。只关其中一条仍不可复现，两条都关后 24/24 个文件逐位相同；MoE 分组用的整数 `atomicAdd` 不影响结果；不是竞争条件。直接关掉拆分会让 16 token 的 prefill 慢 40%，所以没有采用。**修复**（fork `35de94a`）：各分片把部分和写进工作区里自己的一份，再由新的 kernel 按分片顺序相加。修复后 prefill 两次运行逐位相同；交替各 8 次的 A/B 中位数：16 token 59.5 → 61.0 ms（+2.5%），128、512 token 无差别。selftest 新增两条路径的可复现性用例（85/85 通过）。修复后，T15 / T18 的“逐位一致”检查在 prefill 路径上同样适用。
+同一输入跑两次：Astral **step 路径逐位相同**，**prefill 路径每个位置都不同**（两次之间 KL 均值 7.6e-5、最大 0.0024，`max_near` 最大 4.5，argmax 不变）。llama.cpp 逐 token 两次逐位相同。**根因（消融确认）**：prefill 的两条 split-K 路径——分组张量核 GEMM（`Gemv::launch_mma` / `gemm_mma3`）和 loop controller 的下投影（`InklingOps::ctrl_t`，K 切 8 份）——都用 float `atomicAdd` 合并各分片，舍入取决于 block 完成顺序。只关其中一条仍不可复现，两条都关后 24/24 个文件逐位相同；MoE 分组用的整数 `atomicAdd` 不影响结果；不是竞争条件。直接关掉拆分会让 16 token 的 prefill 慢 40%，所以没有采用。**修复**（fork `35de94a`）：各分片把部分和写进工作区里自己的一份，再由新的 kernel 按分片顺序相加。修复后 prefill 两次运行逐位相同；交替各 8 次的 A/B 中位数：16 token 59.5 → 61.0 ms（+2.5%），128、512 token 无差别。selftest 新增两条路径的可复现性用例（85/85 通过；**v3.0.14 更正**：GEMM 两组用例的 FP16 输入平面为零，只有 controller 的用例有效，见 [07](07_tasks.md) T22。修复本身由真实模型 prefill 的 24/24 与 T19 的 208 个文件逐位相同证明，不依赖这些用例）。修复后，T15 / T18 的“逐位一致”检查在 prefill 路径上同样适用。
 
 ### 6.6 长上下文的分岔位置（T20 发现）
 
@@ -134,7 +134,19 @@ D 组 64 个位置按 num-3 判为 FAIL：KL mean 比值 2.8 / 2.5（prefill / d
 
 为此在同一批长文本上补了密集测量（`tools/t20/t20_long.sh`）：c4096 × 4 chunk，8188 个位置。N0（llama ub1 对 ub512）为 mean 0.0049、p99 0.0495，是 c512 时的约 2.5 倍，说明长上下文下模型本身对数值噪声更敏感。Astral 对 llama ub512：逐 token mean 0.0053、p99 0.0502；prefill → decode mean 0.0052、p99 0.0487；margin ≥ 0.5 处 top-1 一致率均为 99.87%（llama 自身 99.86%）。按 V4 已批准的公式，限值为 mean ≤ 0.0098、p99 ≤ 0.099、top-1 ≥ 99.5%，两条路径都满足。单点 KL max 为 3.4 / 3.9，llama 自身为 1.0；V4 不判 max。
 
-处理：D 组的 num-3 FAIL 照实记录，不改规则，也不改判。**建议（未生效，待用户决定）**：长上下文的数值一致性用密集 V4 口径（N0 在同一文件上测）判定，num-3 只用于位置足够多、不含分岔点的短上下文集合。
+**更正（v3.0.14，方案 10 §2.5，S32；已按 `tools/t20/results/num3_d_*.json` 核实）**：上面只写了 KL 超限，漏了 argmax 硬门。prefill 有 3 处翻转发生在参考 margin ≥ 0.5 的位置（`d02_s` 1023 的 1.016、`d03_l` 2056 的 1.087、`d03_l` 4096 的 0.703），decode 有 1 处（`d03_l` 2056 的 1.087）。这些位置和分岔位置重合，但按定义不是近平局，不能概括成“参考分母太小”。另外，密集 V4 用的是 W1 语料拼接，D 是指定文档截取再加 chat 指令与模板，两者不是同一批 token，密集 V4 通过不能改判 D。
+
+处理：D 组的 num-3 FAIL 照实记录，不改规则，也不改判。**建议（未生效，待用户决定；v3.0.14 按方案 10 修订，取代原先“num-3 只用于不含分岔点的集合”的说法）**：① D 的全部失败点留作固定回归，不在看到结果后剔除；② 在相同的 D token 前缀上补密集诊断（多位置的 V4 式统计，以及失败点的中间张量和路由 margin 定位）；③ 长文判定规则先冻结（例如密集 V4 加上硬门的例外条件），再在独立的 E 集上验证。B、C、D 已用于诊断，今后只作回归；新的未见集合从 E 开始命名。任务见 [07](07_tasks.md) T25。
+
+### 6.7 测试合同与负控制（v3.0.14，方案 10 §2.4、§7.7、§12.6、§12.7）
+
+- **输入有效**：被测 kernel 实际读取的每个平面都要写入非零、有正负、有幅度差的数据；先检查输出非零、改一个有效输入能改变输出，再比较重复性和参考。分配过的内存不等于有效数据；T19 的 GEMM split-K 自测就是反例（[07](07_tasks.md) T22）。
+- **负控制**：关键测试各配一个必须失败的错误版本，例如错 slot、错一行 bias、漏一个 expert、漏写 FP16 平面、提前提交一行。负例不失败，说明测试本身没有证明力。
+- **候选命中**：开关打开不等于走了那个 kernel。性能 A/B 与数值对照都记录 graph 捕获时实际选中的 kernel、shape、激活平面与 fallback 原因；从未命中的候选不报收益。
+- **请求状态**：Session 复用必须经过完整 reset，不继承上一请求的草稿上下文、接受统计或候选有效长度。“重复得到同样输出”与“等于 plain 输出”是两回事；严格重复性（逐位）与 num-3 容差分开报告。
+- **输出模式**：普通末行、全行与 verify 行可能选不同的 head kernel，三者在同一 hidden 上直接对照，数值保证写明；不为此在生产路径物化全行 logits（2048 × 201024 的 FP32 约 1.53 GiB）。
+
+变化类别在 [06](06_loop_research.md) §1.3 四类之外再细分：round / shape 调度变化（数学相同，舍入路径要测）、目标权重重编码（新权重身份，重做基线）、草稿权重量化（目标与草稿的保证分开，计接受率与净收益）、prompt 模板或 thinking 尾部的改动（输入 token 变化，单独作 API / 模板实验）。
 
 ## 7. 运行记录格式（v3.0.7 起）
 
@@ -148,7 +160,7 @@ stdout.log / stderr.log
 evidence.sha256     上述文件及大文件（logits、KLD base）的 SHA256 与实际路径
 ```
 
-`run.json` 必须包含 `template_hash`、`rendered_token_ids_hash`、`add_generation_prompt`、`special_token_policy`、`eos_policy`、`reasoning_mode`。大文件不进 Git，只记 hash、命令和存放位置。判定脚本必须：检查 case 数、位置数、唯一性与有限值；缺项直接失败；总 verdict 映射到退出码（fork 的 `teacher_forced_verdicts.py` 已按此实现，策略 `tfv-1`）。
+`run.json` 必须包含 `template_hash`、`rendered_token_ids_hash`、`add_generation_prompt`、`special_token_policy`、`eos_policy`、`reasoning_mode`。v3.0.14 起（方案 10 §2.5、§13.8）还要记：二进制的 SHA256 与工作区差异的 hash（T20 的 `identity.txt` 只有 commit 和 `git status`，缺这两项）、遍数与 plan 指纹、capacity / tmax / cache 布局（如 SWA ring 行数）、探针状态、实际选中的 kernel 与激活平面、成本表 hash（T21）。原始大文件可以不进 Git，但要能恢复：保留文件，或保留能逐位重新生成它的二进制、输入与命令；只剩 hash 不算可恢复。大文件不进 Git，只记 hash、命令和存放位置。判定脚本必须：检查 case 数、位置数、唯一性与有限值；缺项直接失败；总 verdict 映射到退出码（fork 的 `teacher_forced_verdicts.py` 已按此实现，策略 `tfv-1`）。
 
 ## 4. 性能测量协议（G3）
 
