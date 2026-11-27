@@ -57,7 +57,7 @@
 | 顺序 | 候选 | 第一个实验 | 继续的条件 |
 |---|---|---|---|
 | K1 | NVFP4 GEMV 的软件解码与访存 | 真实热点形状上小范围扫描每块行数 / 展开参数 | 原算子通过且端到端有收益 |
-| K2 | Q8_0 小形状路径 | T = 1 与 T = 2–8 分别比较 MMA 和 dp4a | 不靠改 dtype 换取隐藏的误差。T = 1 已做（T16 第 1 轮，fork `3f5a49d`）：sm_89 的 decode 改走 dp4a，无草稿 +9.4%；T = 2–8（verify 与草稿）未测 |
+| K2 | Q8_0 小形状路径 | T = 1 与 T = 2–8 分别比较 MMA 和 dp4a | 不靠改 dtype 换取隐藏的误差。T = 1 已做（T16 第 1 轮，fork `3f5a49d`）：sm_89 的 decode 改走 dp4a，无草稿 +9.4%；T = 2–8（verify 与草稿）：v3.0.17 用现有开关 `ASTRAL_SMALL_DP4A=1` 测得 DSpark 快 20%（没做 G2），这是 T16 第 2 轮 |
 | K3 | controller / mix / conv 融合 | 只融合时间线上仍独立且可以安全合并的操作（llama.cpp #33060 的五条融合链可作代码参考） | 状态更新顺序与数值门不回退 |
 | K4 | 注意力 split 数 | 按有效长度与 capacity 测空 CTA、split / merge 成本 | 多个长度都没有明显退化 |
 | K5 | verify 的数值一致性 | 相同 token 在不同小批形状下的结果 | 能解释并控制接受率变化 |
@@ -71,6 +71,14 @@
 v3.0.14 补充（方案 10 §7.4–§7.6、§12.4）：后置候选有 expert gate / up 与 SiTU 的 epilogue 融合、单 token 输入用固定 pinned packet 上传（先用 `ASTRAL_STEP_TIMING` 看占比，且不删 d17a519 的同步）；K4 注意力可试一个 CTA 覆盖同一 KV head 的 3 个 Q head（GQA = 3）、以及全局层远端（距离 ≥ 1024、bias 为零）的快循环，跨 1024、window 和 split 边界的 tile 走完整路径。Loom 的转置 / 补齐布局与 Metal 的阈值不是 4090 的参数，没有带宽或 cache miss 证据就不换格式。
 
 Ada 有 FP16 / BF16 / INT8 / FP8 Tensor Core，没有 TMA、wgmma、TMEM 和原生 block-scaled FP4。NVFP4 在 4090 上只能软件解码，“Ada 支持 FP8”不代表 Q8_0 可以直接喂给 FP8 MMA；把所有专家常驻展开成 BF16 会超出 24 GB 预算。每次调优之后：同一输入的 graph / eager 对照、G2 回归。固定遍数 R = 1–5 可以各有自己的执行图；逐 token 动态深度要等 R6 / R9 的数据支持。
+
+v3.0.17 补充（方案 11，[09](09_sources.md) S37；任务见 [07](07_tasks.md) T26–T31）：
+- T26（草稿 head 的完整分数筛选）只改草稿提案。
+- T27（末层 coda 的 prefill 裁剪）只用于不开草稿的 prefill，属于数学等价改动，但小行数可能走不同的 kernel，舍入要单独测。
+- T28（全局远块稀疏）是目标模型的近似，只用于单 token decode，先做 dense shadow。
+- T29、T30 暂缓。
+- 平台约束：PDL 只在 CC ≥ 9.0 可用，fork 已按此判断，4090 上没有；CUDA 条件图在本机的可用性没有验证（T30 暂缓，暂时不需要）。
+- 不采用：全模型 megakernel、自制 Python → SASS 编译器、把 5090 的 EXLR8 数字当本机目标。
 
 ### 3.2 SWA 环形缓冲的同批覆盖问题（评审 §11.3，已核实代码顺序）
 

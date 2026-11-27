@@ -71,8 +71,34 @@
 - UD-IQ4_XS 与 ggml-org IQ4_NL：Astral 只有 F32 / BF16 / Q8_0 / NVFP4 的 kernel，加载这两个会报 unsupported type。
 - ggml-org NVFP4：ModelScope 上没有，而 A1 已经是 NVFP4 + Q8_0 布局（Astral 在 A100 上读文件头得出；P1 用 `gguf-info` 复核）。
 - varloop 的 GGUF：只有 IQ4_NL / Q8_0 / BF16，所以研究直接用 A4 原生 checkpoint。
+- GSQ-RCO 低位 GGUF（ISTA-DASLab、abenzerps，2026-11-26 发布）：见 §4.1，不替换 A1。
 
 下载、改名、校验之后生成 `$LAB/models/models.lock.json`，逐文件记录来源仓库、ModelScope 路径、HF revision、字节数和 SHA256。磁盘占用：A1+A2+A3+A4 ≈ 61 GB，加上 A5/A6 约 63 GB；工具链与构建产物另需约 30 GB。
+
+### 4.1 候选资产：GSQ-RCO GGUF（v3.0.17 评估，未下载）
+
+来源是两个仓库的模型卡、HF API 与 ModelScope 文件列表（S38、S39），以及 4090 上用 gguf-py 读出的 A1 文件头。
+
+| 仓库（HF revision） | 构建（文件字节） | 量化类型 | ModelScope |
+|---|---|---|---|
+| ISTA-DASLab/Inkling-2-Mini-GSQ-RCO-GGUF @f0da109 | IQ2_S 8,975,863,424；Q2_K_XL 9,792,516,224；IQ3_XXS 10,608,205,952；IQ3_S 11,425,259,648（卡上推荐，任务平均恢复 99.2%） | `ffn_gate_up_exps` 在 IQ1_S–IQ3_S 中逐层选择；`ffn_down_exps` 为 Q2_0 / IQ4_NL；注意力和 LM head 为 IQ4_XS / Q4_K / Q5_K / Q6_K / Q8_0；`token_embd` 为 BF16 | 有镜像，4 个构建 SHA256 前缀一致；**镜像缺 dspark 文件** |
+| abenzerps/Inkling-2-Mini-GSQ-RCO-GGUF @78c95a1 | IQ2_XS 8,476,859,744；IQ3_XS 11,644,899,392（卡上推荐，对 BF16 的 KLD 均值 0.0199）；IQ4_XS 13,577,765,280（KLD 0.0088） | 专家混用 IQ2_XXS–IQ3_S、NVFP4、IQ4_NL、Q2_0；全局注意力（层 5 / 11 / 17 / 23）为 Q8_0；局部注意力为 Q6_K / Q8_0；embedding 与 LM head 为 Q4_K / Q5_K | 有镜像，含 dspark，`SHA256SUMS.txt` 一致 |
+
+A1 的实际构成（文件头）：NVFP4 共 11.47 GB（40 个专家矩阵）；Q8_0 共 6.00 GB（注意力、LM head、`token_embd`，以及 8 个专家矩阵）；合计 17.62 GB。官方发布的专家是 NVFP4 与 MXFP8，所以 A1 的专家与官方同格式（推断：MXFP8 专家转成了 Q8_0；NVFP4 专家是否与官方逐位相同未核实）。
+
+**结论：不替换 A1。** 理由：
+1. **加载不了。** Astral 的权重矩阵只接受 F32 / BF16 / Q8_0 / NVFP4，`astral_quant::dequantize` 也只支持这几种外加 F16；Q2_0 甚至不在 `GgmlType` 枚举里。要支持这些文件，需要给 decode、verify、prefill 写 IQ1_S / IQ1_M / IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS / IQ3_S / IQ4_NL / IQ4_XS / Q2_0 / K 系列的解码与 GEMV / GEMM，并全部重新验证。
+2. **精度更低。** 它们是从官方权重再量化到 2.6–4.2 bpw 的派生资产，A1 基本保持官方精度。本包的研究线（R1–R13）与数值基线（G1–G4、W1 golden、B / C / D 组）都绑定在 A1 上；换资产等于开一个新的实验纪元（§5）。
+3. **显存收益有更便宜的替代。** IQ3_S 整个文件 11.43 GB（10.64 GiB，embedding 也放 GPU 时），比 A1 少约 5.8 GiB。按 32 KiB / token 推算，不开草稿理论上可以到约 32 万 token，但现在的上限是 `MAX_CONTEXT`（132096），突破它还要另做验证；开 DSpark 按 56 KiB / token 推算可以到约 18 万 token。不过 DSpark 跑 128K 也可以靠 T21 的草稿 KV 压缩（local 层 ring 加 FP16，128K 时 3.0 → 约 0.5 GiB），不需要换目标权重。
+4. **速度收益未知，代价确定。** 按构建不同，专家字节少约 15–45%；dense 部分（注意力投影与 LM head）从 Q8_0 降到 Q4_K–Q6_K / IQ4_XS，字节少约 25–50%。T16 第 1 轮之后的 decode GPU 时间里，专家 GEMV 约占 29%，Q8_0 投影与 head 约占 39%。在同等带宽效率下，decode 的理论上限约快 15–45%（推断）；但 K / IQ 系列每字节的解码运算更多（IQ 还要查码本），4090 上能否达到 Q8_0 dp4a 的约 830–950 GB/s 未知，实际收益要实测。
+
+**DSpark 草稿**：
+- 两个仓库的 dspark GGUF 都是用 llama.cpp 从同一个 `mtp.safetensors` 转出来的（ISTA 卡上写明“the draft is not part of the GSQ-RCO search”），权重与 A3 相同。
+- Astral 直接读 A3 的 BF16 `mtp.safetensors`，加载时自己转成 Q8_0，并把 Markov head 折叠进 LM head 后再量化（`fold`），所以这些 GGUF 对 Astral 没有新权重。
+- 有价值的是一个对照问题：草稿保持 BF16 时接受率会不会更高。ISTA 用两个 prompt 测得 Q8_0 与 BF16 接受率相同；abenzerps 的 Q8_0 版（503,850,784 B）特意保留了 BF16 的 Markov head。这一臂并入 T21：比较草稿权重与 `fold` 用 Q8_0 和 BF16 时的接受率与轮次时间。
+- llama.cpp 的 DSpark 对照继续用 A6（503,889,952 B，大小与 abenzerps 版接近，字节不同）。
+
+可选的评估路线是 T31（暂缓）：先在 llama.cpp b12751 上测（卡上要求 ≥ b12611，DSpark ≥ b12720），确认值得之后才考虑给 Astral 写 kernel。
 
 ## 5. 指纹
 

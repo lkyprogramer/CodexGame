@@ -1,6 +1,6 @@
 # 09 · 来源登记
 
-读取日期均为 2026-11-26（S32–S36 为 2026-11-27）。“锁定”是本包使用的版本；升级需要另立任务。
+读取日期均为 2026-11-26（S32–S39 为 2026-11-27）。“锁定”是本包使用的版本；升级需要另立任务。
 
 | ID | 来源 | 锁定 | 用途 |
 |---|---|---|---|
@@ -35,5 +35,8 @@
 | S34 | LoomFormer，arXiv:2611.30634v2（*Rewirable Circuits in Transformers with Loom Attention*）；GitHub `Caiyun-AI/LoomFormer` | `e52e5761d36066ed62e061a044d8314437cb7b11` | R11、R13 的矩阵深度接口参考 |
 | S35 | GitHub `ddalcu/mlx-serve` PR #1331（已合并） | head `ad695002aa89fda7ac27b901d7474ddc84299af8`，merge `6ba6d34ea0bc265dc19b5b737fa21138b2a228e1` | 开放 verify、few_tail（K9）、成本阶梯、请求隔离、末行 head 的工程参考（T21、T25） |
 | S36 | GitHub `ddalcu/mlx-serve` PR #1330（open draft） | 2026-11-27 查询 head `5e556773ecf6923ada146b44bab534bf05e02ae3`（方案 10 记录时为 `6a22c34`，此后有新提交） | 只作参考，不是 #1331 的超集；采用前另立任务 |
+| S37 | 方案 11，CodexGame 仓库 `docs/11_inkling4090_new_optimization_plan_20261127.md`（基于 fork `744e32a`、本包 `19a431a` / v3.0.14） | 提交 `e1941a9` | v3.0.17 新增 T26–T31 的依据。源码结论已按 fork `3f5a49d` 核实；它的外部来源（S01–S16）没有逐条复核，引用时标“方案 11 所述” |
+| S38 | HF `ISTA-DASLab/Inkling-2-Mini-GSQ-RCO-GGUF`（GSQ arXiv:2604.18556，RCO arXiv:2605.00649） | revision `f0da1097633dd7c2f5733e4077cff861be122245` | [01](01_model.md) §4.1 的候选资产；ModelScope 镜像缺 dspark 文件 |
+| S39 | HF `abenzerps/Inkling-2-Mini-GSQ-RCO-GGUF` | revision `78c95a16e097cb30ff975a0374293188aae0c339` | 同上；`SHA256SUMS.txt` 与 ModelScope 一致 |
 
 v2.x 中的其他来源（Atomic、Ghost、Magnitude、CUDA Rust 等）只作方法参考（[03](03_engine_landscape.md)），不再锁定，仍保存在 `docs/atomic-inkling-4090-plan-v2.0/docs/02_evidence_register.md`。

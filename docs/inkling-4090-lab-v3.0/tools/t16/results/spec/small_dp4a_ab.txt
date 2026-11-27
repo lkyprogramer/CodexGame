@@ -1,0 +1,39 @@
+ASTRAL_SMALL_DP4A=1 vs default, fork 3f5a49d (binary 7a8dfbf4...), spec-generate k = 6, 512 tokens, 2 runs each
+run dir: $LAB/runs/t16/smalldp4a-20261127T062450Z (script equivalent: t16_spec_ab.sh ASTRAL_SMALL_DP4A=1)
+prompt  default -> switch tok/s (ratio), ms per round, tokens per round
+p00  158.1 -> 176.9 (1.119x), 13.52 -> 11.02 ms, 2.14 -> 1.95
+p01  147.5 -> 168.8 (1.144x), 13.32 -> 10.82 ms, 1.97 -> 1.82
+p02  139.2 -> 176.0 (1.264x), 13.11 -> 10.92 ms, 1.82 -> 1.92
+p03  195.8 -> 251.5 (1.284x), 14.18 -> 12.10 ms, 2.78 -> 3.04
+p06  196.1 -> 230.2 (1.174x), 14.24 -> 11.81 ms, 2.79 -> 2.72
+p07  189.3 -> 234.1 (1.237x), 14.67 -> 12.55 ms, 2.78 -> 2.94
+mean 171.0 -> 206.3 tok/s, geometric mean ratio 1.202; round 13.84 -> 11.53 ms
+draft step (graph replay): 2.04-2.11 ms -> 1.22-1.24 ms
+the two runs of each arm give the same tokens; default and switch differ (near-tie flips in verify)
+no G2 check yet; default unchanged
+
+raw lines (rep prompt arm ...; arm "mma" = default, "dp4a" = switch):
+1 p00 mma decode 511 tok in 3.236 s = 157.9 tok/s; 239 rounds, 2.14 tokens/round draft step 2.064 ms 5a3fcaf1
+1 p00 dp4a decode 511 tok in 2.887 s = 177.0 tok/s; 262 rounds, 1.95 tokens/round draft step 1.232 ms cf9ee3d1
+1 p01 mma decode 511 tok in 3.466 s = 147.4 tok/s; 260 rounds, 1.97 tokens/round draft step 2.105 ms 1946a51a
+1 p01 dp4a decode 511 tok in 3.033 s = 168.5 tok/s; 280 rounds, 1.82 tokens/round draft step 1.237 ms b31bb580
+1 p02 mma decode 511 tok in 3.672 s = 139.2 tok/s; 280 rounds, 1.82 tokens/round draft step 2.047 ms 13b14657
+1 p02 dp4a decode 511 tok in 2.906 s = 175.9 tok/s; 266 rounds, 1.92 tokens/round draft step 1.222 ms 8dc57bf7
+1 p03 mma decode 511 tok in 2.607 s = 196.0 tok/s; 184 rounds, 2.78 tokens/round draft step 2.041 ms d3a6232d
+1 p03 dp4a decode 511 tok in 2.030 s = 251.8 tok/s; 168 rounds, 3.04 tokens/round draft step 1.237 ms 428c78b4
+1 p06 mma decode 511 tok in 2.607 s = 196.0 tok/s; 183 rounds, 2.79 tokens/round draft step 2.054 ms 230527b7
+1 p06 dp4a decode 511 tok in 2.216 s = 230.6 tok/s; 188 rounds, 2.72 tokens/round draft step 1.239 ms 300e28d2
+1 p07 mma decode 511 tok in 2.698 s = 189.4 tok/s; 184 rounds, 2.78 tokens/round draft step 2.105 ms 0afe7bc0
+1 p07 dp4a decode 511 tok in 2.184 s = 234.0 tok/s; 174 rounds, 2.94 tokens/round draft step 1.233 ms 36584276
+2 p00 mma decode 511 tok in 3.227 s = 158.3 tok/s; 239 rounds, 2.14 tokens/round draft step 2.060 ms 5a3fcaf1
+2 p00 dp4a decode 511 tok in 2.889 s = 176.9 tok/s; 262 rounds, 1.95 tokens/round draft step 1.222 ms cf9ee3d1
+2 p01 mma decode 511 tok in 3.462 s = 147.6 tok/s; 260 rounds, 1.97 tokens/round draft step 2.113 ms 1946a51a
+2 p01 dp4a decode 511 tok in 3.024 s = 169.0 tok/s; 280 rounds, 1.82 tokens/round draft step 1.224 ms b31bb580
+2 p02 mma decode 511 tok in 3.672 s = 139.2 tok/s; 280 rounds, 1.82 tokens/round draft step 2.053 ms 13b14657
+2 p02 dp4a decode 511 tok in 2.902 s = 176.1 tok/s; 266 rounds, 1.92 tokens/round draft step 1.220 ms 8dc57bf7
+2 p03 mma decode 511 tok in 2.612 s = 195.6 tok/s; 184 rounds, 2.78 tokens/round draft step 2.053 ms d3a6232d
+2 p03 dp4a decode 511 tok in 2.034 s = 251.2 tok/s; 168 rounds, 3.04 tokens/round draft step 1.236 ms 428c78b4
+2 p06 mma decode 511 tok in 2.606 s = 196.1 tok/s; 183 rounds, 2.79 tokens/round draft step 2.043 ms 230527b7
+2 p06 dp4a decode 511 tok in 2.223 s = 229.8 tok/s; 188 rounds, 2.72 tokens/round draft step 1.234 ms 300e28d2
+2 p07 mma decode 511 tok in 2.701 s = 189.2 tok/s; 184 rounds, 2.78 tokens/round draft step 2.088 ms 0afe7bc0
+2 p07 dp4a decode 511 tok in 2.182 s = 234.2 tok/s; 174 rounds, 2.94 tokens/round draft step 1.219 ms 36584276

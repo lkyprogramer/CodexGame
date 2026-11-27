@@ -1,5 +1,15 @@
 # 版本变更
 
+## v3.0.17 · 2026-11-27
+
+并入方案 11（S37，原文保留在仓库 `docs/11_inkling4090_new_optimization_plan_20261127.md`），先按 fork `3f5a49d` 核实。
+
+- **新增任务**：T26 草稿 head 完整分数筛选、T27 末层 coda 的 prefill 裁剪、T28 全局远块稀疏（先 shadow），状态均为 NOT_RUN；T29 编辑复用、T30 GPU 连续生成暂缓（T30 由 T16 的主机侧计时否决：0.3%，否决线为 2%）；T31 GSQ-RCO 资产评估（可选，暂缓）。
+- **核实时的新测量**：现有开关 `ASTRAL_SMALL_DP4A=1` 把小批 Q8_0 改走 dp4a，DSpark 快 1.20×，尚未做 G2。另有一轮 DSpark 的 kernel 分解：小批 tensor-core GEMV 约占 40%，head 每轮调用两次，各约 1.26 ms。脚本在 `tools/t16/t16_spec_ab.sh`、`t16_specprof.sh`。
+- **路线调整**：T16 第 2 轮 → T21 → T27 → T26 → T25 长上下文 → T28。
+- **资产评估**：GSQ-RCO 两个仓库（S38、S39）的 IQ / K 系列类型 Astral 不支持，精度也低于 A1，所以不替换 A1；它们的 dspark GGUF 与 A3 的 `mtp.safetensors` 是同一份权重，草稿用 BF16 还是 Q8_0 作为一臂并入 T21（[01](docs/01_model.md) §4.1）。
+- 改动的文档：00、01、04、05、07、09，以及 README。
+
 ## v3.0.16 · 2026-11-27
 
 T16 第 1 轮 PASS（fork `3f5a49d`，`tools/t16/`）。热点表显示：decode 的注意力输入投影融合 GEMV（`multi_mma`）占 GPU 时间的 26%，带宽只有约一半。唯一的候选是 K2，即 sm_89 的 decode 改走 dp4a。结果：无草稿服务基准 143.1 → 156.6 tok/s（llama.cpp 的 2.10×）。G2 全部复判通过（V3–V6、V8，C 组 num-3）。DSpark 相对无草稿的加速降到 1.09×，交给 T21。
