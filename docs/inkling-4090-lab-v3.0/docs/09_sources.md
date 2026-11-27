@@ -38,5 +38,6 @@
 | S37 | 方案 11，CodexGame 仓库 `docs/11_inkling4090_new_optimization_plan_20261127.md`（基于 fork `744e32a`、本包 `19a431a` / v3.0.14） | 提交 `e1941a9` | v3.0.17 新增 T26–T31 的依据。源码结论已按 fork `3f5a49d` 核实；它的外部来源（S01–S16）没有逐条复核，引用时标“方案 11 所述” |
 | S38 | HF `ISTA-DASLab/Inkling-2-Mini-GSQ-RCO-GGUF`（GSQ arXiv:2604.18556，RCO arXiv:2605.00649） | revision `f0da1097633dd7c2f5733e4077cff861be122245` | [01](01_model.md) §4.1 的候选资产；ModelScope 镜像缺 dspark 文件 |
 | S39 | HF `abenzerps/Inkling-2-Mini-GSQ-RCO-GGUF` | revision `78c95a16e097cb30ff975a0374293188aae0c339` | 同上；`SHA256SUMS.txt` 与 ModelScope 一致 |
+| S40 | 方案 12，CodexGame 仓库 `docs/Inkling_4090_Adaptive_Loop_Exploration_Plan_20261127.md`（GPT，基于 fork `aa837c7`、本包 `159edbb` / v3.0.18） | 提交 `ccc951d`；§16 为本包 v3.0.19 的核实与编排补充 | T32–T36、R14 的依据；第 1–15 节的 NEW 接口全部未实现 |
 
 v2.x 中的其他来源（Atomic、Ghost、Magnitude、CUDA Rust 等）只作方法参考（[03](03_engine_landscape.md)），不再锁定，仍保存在 `docs/atomic-inkling-4090-plan-v2.0/docs/02_evidence_register.md`。

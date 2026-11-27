@@ -1,0 +1,16 @@
+== bit identity (ring vs full vs old build)
+p00 ring d41d8cd9 full 47b0d6d5 old 47b0d6d5 | ring:  | old: decode 511 tok in 2.826 s = 180.8 tok/s; 262 rounds, 1.95 tokens/round, acceptance 15.9% of 6 drafts
+p03 ring d41d8cd9 full f74b5e62 old f74b5e62 | ring:  | old: decode 511 tok in 1.969 s = 259.6 tok/s; 168 rounds, 3.04 tokens/round, acceptance 34.0% of 6 drafts
+l16k ring f29c6d6f full f29c6d6f old f29c6d6f | ring: decode 511 tok in 2.381 s = 214.6 tok/s; 163 rounds, 3.13 tokens/round, acceptance 61.3% of 571 verified drafts | old: decode 511 tok in 2.382 s = 214.5 tok/s; 163 rounds, 3.13 tokens/round, acceptance 35.8% of 6 drafts
+== capacity (DSpark, k 6, 256 tokens)
+f32 77824 rc=0 decode 255 tok in 2.155 s = 118.3 tok/s; 81 rounds, 3.15 tokens/round, acceptance 58.9% of 297 verified drafts 
+f32 90112 rc=0 decode 255 tok in 2.088 s = 122.1 tok/s; 67 rounds, 3.81 tokens/round, acceptance 69.2% of 273 verified drafts 
+f32 98304 rc=0 decode 255 tok in 2.462 s = 103.6 tok/s; 78 rounds, 3.27 tokens/round, acceptance 57.7% of 307 verified drafts 
+f32 106496 rc=0 decode 255 tok in 2.290 s = 111.3 tok/s; 63 rounds, 4.05 tokens/round, acceptance 70.1% of 278 verified drafts 
+f32 114688 rc=1  error: cuMemAlloc_v2 failed: CUDA_ERROR_OUT_OF_MEMORY (2)
+f16 77824 rc=0 decode 255 tok in 2.131 s = 119.6 tok/s; 81 rounds, 3.15 tokens/round, acceptance 58.9% of 297 verified drafts 
+f16 90112 rc=0 decode 255 tok in 2.080 s = 122.6 tok/s; 67 rounds, 3.81 tokens/round, acceptance 69.2% of 273 verified drafts 
+f16 98304 rc=0 decode 255 tok in 2.443 s = 104.4 tok/s; 77 rounds, 3.31 tokens/round, acceptance 58.4% of 305 verified drafts 
+f16 106496 rc=0 decode 255 tok in 2.262 s = 112.7 tok/s; 63 rounds, 4.05 tokens/round, acceptance 70.1% of 278 verified drafts 
+f16 114688 rc=0 decode 255 tok in 2.906 s = 87.8 tok/s; 91 rounds, 2.80 tokens/round, acceptance 53.4% of 309 verified drafts 
+f16 122880 rc=1  error: cuMemAlloc_v2 failed: CUDA_ERROR_OUT_OF_MEMORY (2)

@@ -1,6 +1,6 @@
 # Inkling-2-Mini × RTX 4090 自有引擎实验室 v3.0
 
-**版本：3.0.18 · 2026-11-27（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。v3.0.7 按用户的研究评审核实后修订了验证口径、任务与研究设计；v3.0.14 并入方案 10（新增 T22–T25、R11–R13）；v3.0.17 并入方案 11（新增 T26–T31，评估 GSQ-RCO 资产后不替换 A1），见 [CHANGELOG](CHANGELOG.md)。**
+**版本：3.0.19 · 2026-11-27（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。v3.0.7 按用户的研究评审核实后修订了验证口径、任务与研究设计；v3.0.14 并入方案 10（新增 T22–T25、R11–R13）；v3.0.17 并入方案 11（新增 T26–T31，评估 GSQ-RCO 资产后不替换 A1）；v3.0.19 核实并编排方案 12（新增 T32–T36、R14），见 [CHANGELOG](CHANGELOG.md)。**
 
 ## 目标
 
@@ -65,6 +65,7 @@ fork 已拆成独立的公开项目 **[lkyprogramer/inkling-4090-engine](https:/
 | `9593eb4` | SWA 环形缓冲，上下文到 128K + 1024（T17） |
 | `3f5a49d` | sm_89 的 decode 投影改走 dp4a（T16 第 1 轮；因 T20 B 组 decode FAIL 已在 `aa837c7` 撤回） |
 | `aa837c7` | sm_89 上 DSpark 的小批改走 dp4a，decode 回到 tensor core；DSpark 206.3 tok/s（T16 第 2 轮） |
+| `7108b78` | 草稿 sliding-window K/V 改为 ring（逐位相同）、可选 FP16、`ASTRAL_SPEC_LOG`；DSpark 最大容量 73728 → 106496（T21） |
 
 本包只保留实验室专用内容：驱动守卫、停服窗口、ModelScope 下载、执行记录和调用这些分析脚本的 shell 脚本。
 

@@ -1,0 +1,54 @@
+== decode tok/s, mean over prompts of the median over reps
+             sn       sc       ln       lc      all
+plain     142.1    142.1    127.7    127.7    139.2
+burst     187.3    242.3    266.9    307.0    222.4
+model     186.4    236.9    247.5    302.3    218.0
+k1        174.9    192.3    174.9    176.7    179.9
+k2        188.7    224.8    219.6    228.3    205.7
+k3        184.7    237.2    245.0    259.2    212.6
+k4        175.2    237.2    253.4    281.4    210.7
+k5        168.9    234.5    260.3    300.1    209.2
+k6        159.3    226.4    258.1    306.6    202.4
+k7        152.2    221.8    255.1    311.8    197.6
+
+== speedup over plain (geomean over prompts)
+burst     1.314    1.694    2.054    2.395    1.564
+model     1.308    1.658    1.926    2.356    1.539
+k1        1.230    1.353    1.369    1.383    1.291
+k2        1.324    1.578    1.714    1.788    1.470
+k3        1.295    1.663    1.910    2.029    1.508
+k4        1.227    1.660    1.966    2.203    1.482
+k5        1.181    1.637    2.007    2.347    1.459
+k6        1.113    1.579    1.974    2.394    1.401
+k7        1.063    1.543    1.943    2.431    1.359
+
+== round time (ms, median / p90) by drafts verified; short = sn+sc, long = ln+lc
+k1 short n  19696  median  9.239  p90  9.524
+k1 long  n   4228  median 11.059  p90 11.328
+k2 short n  15978  median 10.335  p90 10.759
+k2 long  n   2972  median 12.425  p90 12.890
+k3 short n  14512  median 11.394  p90 11.909
+k3 long  n   2350  median 14.015  p90 14.652
+k4 short n  13764  median 12.516  p90 13.123
+k4 long  n   2004  median 15.622  p90 16.389
+k5 short n  13388  median 13.298  p90 13.978
+k5 long  n   1796  median 16.839  p90 17.691
+k6 short n  13198  median 14.242  p90 14.989
+k6 long  n   1670  median 18.206  p90 19.157
+k7 short n  13088  median 14.972  p90 15.765
+k7 long  n   1574  median 19.452  p90 20.478
+plain short ms/token 7.037 (from tok/s)
+plain long  ms/token 7.832 (from tok/s)
+
+== acceptance of k7: P(accepted >= i) and P(draft i accepted | 1..i-1 accepted)
+sn rounds   9650  mean acc 1.23  ge 0.585 0.313 0.162 0.087 0.047 0.024 0.012  cond 0.585 0.535 0.518 0.536 0.547 0.502 0.522
+sc rounds   3438  mean acc 2.29  ge 0.716 0.511 0.379 0.265 0.185 0.132 0.097  cond 0.716 0.714 0.742 0.699 0.697 0.714 0.736
+ln rounds    908  mean acc 3.53  ge 0.885 0.694 0.615 0.419 0.359 0.311 0.249  cond 0.885 0.784 0.886 0.681 0.858 0.865 0.801
+lc rounds    666  mean acc 5.19  ge 0.958 0.871 0.805 0.724 0.661 0.619 0.553  cond 0.958 0.909 0.924 0.899 0.913 0.936 0.893
+
+== offline fixed k: expected tokens per round / measured round ms -> tok/s (from k7 acceptance)
+            k1       k2       k3       k4       k5       k6       k7   plain
+sn       171.5    183.6    180.7    171.5    165.0    155.7    148.9   142.1
+sc       185.7    215.5    228.8    229.5    229.9    223.9    219.5   142.1
+ln       170.5    207.6    227.9    231.2    235.8    235.2    232.9   127.7
+lc       177.0    227.7    259.3    278.9    298.0    309.6    318.2   127.7

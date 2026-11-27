@@ -1,0 +1,8 @@
+T21 draft-precision arm (t21_llama_acc.sh): llama.cpp DSpark, --spec-draft-n-max 7, one greedy 512-token pass per T21 workload prompt.
+Columns: accepted / drafted tokens, mean decode tok/s.
+                               sn                    sc                    ln                    lc                   all
+local-q8_0   0.187 acc   76.1 t/s  0.331 acc  105.6 t/s  0.478 acc  122.3 t/s  0.645 acc  139.7 t/s  0.264 acc   95.2 t/s
+local-bf16   0.188 acc   74.1 t/s  0.331 acc  102.5 t/s  0.480 acc  119.7 t/s  0.645 acc  136.3 t/s  0.265 acc   92.7 t/s
+unsloth      0.188 acc   74.6 t/s  0.330 acc  103.4 t/s  0.480 acc  120.0 t/s  0.650 acc  137.8 t/s  0.264 acc   93.4 t/s
+Local exports vs unsloth's file: 53 tensors bit-identical; unsloth keeps joint_proj / markov_w1 / markov_w2 in BF16 and
+mask_embd in F32 (the local q8_0 export quantises them); markov_w2.bias differs (fold from A1's Q8_0 head vs the original BF16 head).
