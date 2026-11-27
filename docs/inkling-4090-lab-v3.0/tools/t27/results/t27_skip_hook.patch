@@ -1,0 +1,26 @@
+diff --git a/crates/model/src/inkling.rs b/crates/model/src/inkling.rs
+index 8b78b44..a84e6ad 100644
+--- a/crates/model/src/inkling.rs
++++ b/crates/model/src/inkling.rs
+@@ -1731,12 +1731,20 @@ fn layer(
+         p.f(st, "attn.gate", &s.gate, 0, hh, Vec::new())?;
+     }
+ 
++    // T27 measurement only (wrong outputs): ASTRAL_T27_SKIP=all skips the terminal layer's
++    // attention, O projection and FFN in prefill; =attn skips only its attention read-out.
++    let t27_skip = if ntok > 1 && loop_i.is_none() && ip + 1 == cfg.n_layer { std::env::var("ASTRAL_T27_SKIP").ok() } else { None };
++    if t27_skip.as_deref() == Some("all") {
++        return Ok(());
++    }
+     // Attention, output gate, output projection, post conv into the residual stream. The
+     // first layer of each block starts a new stream; the old one joins the blocks.
+     let shape = AttnShape { heads, kv_heads: kvh, head_dim: hd, n_rel, extent: cfg.rel_extent, window: if l.swa { cfg.n_swa } else { 0 }, capacity, rows };
+     use astral_kernels::inkling::ATT_CHUNK;
+     let mut gated = false;
+-    if ntok == 1 && (hd != 128 || n_rel > 32 || std::env::var_os("ASTRAL_ATTN_SIMPLE").is_some()) {
++    if t27_skip.as_deref() == Some("attn") {
++        // (measurement only: s.attn keeps stale rows)
++    } else if ntok == 1 && (hd != 128 || n_rel > 32 || std::env::var_os("ASTRAL_ATTN_SIMPLE").is_some()) {
+         ex.ops.attn_decode(st, &s.q, &s.r, &s.sinks, &*kc, &*vc, &l.rel_bias, &mut s.attn, &s.pos, shape)?;
+     } else if ntok > 1 && !small_batch(ntok) && hd == 128 && n_rel <= 16 && n_rel.is_multiple_of(4) && !split_prefill() {
+         ex.ops.attn_prefill(st, &s.q, &s.r, &s.sinks, &*kc, &*vc, &l.rel_bias, &mut s.attn, &s.pos, shape, nt)?;

@@ -1,0 +1,32 @@
+== decode tok/s, mean over prompts of the median over reps
+             sn       sc       ln       lc      all
+burst     187.5    242.7    266.0    306.2    222.4
+k7        152.1    221.5    254.1    310.9    197.2
+
+== speedup over plain (geomean over prompts)
+
+== round time (ms, median / p90) by drafts verified; short = sn+sc, long = ln+lc
+k7 short n   6544  median 14.988  p90 15.779
+k7 long  n    787  median 19.526  p90 20.532
+
+== acceptance of k7: P(accepted >= i) and P(draft i accepted | 1..i-1 accepted)
+sn rounds   4825  mean acc 1.23  ge 0.585 0.313 0.162 0.087 0.047 0.024 0.012  cond 0.585 0.535 0.518 0.536 0.547 0.502 0.522
+sc rounds   1719  mean acc 2.29  ge 0.716 0.511 0.379 0.265 0.185 0.132 0.097  cond 0.716 0.714 0.742 0.699 0.697 0.714 0.736
+ln rounds    454  mean acc 3.53  ge 0.885 0.694 0.615 0.419 0.359 0.311 0.249  cond 0.885 0.784 0.886 0.681 0.858 0.865 0.801
+lc rounds    333  mean acc 5.19  ge 0.958 0.871 0.805 0.724 0.661 0.619 0.553  cond 0.958 0.909 0.924 0.899 0.913 0.936 0.893
+
+== offline fixed k: expected tokens per round / measured round ms -> tok/s (from k7 acceptance)
+            k1       k2       k3       k4       k5       k6       k7   plain
+sn           -        -        -        -        -        -    148.8   nan
+sc           -        -        -        -        -        -    219.3   nan
+ln           -        -        -        -        -        -    232.0   nan
+lc           -        -        -        -        -        -    317.0   nan
+burst rounds 8513 mean_ms 11.619 k2:10.337(n4303) k3:11.402(n2288) k4:12.735(n900) k5:13.840(n492) k6:17.864(n530)
+burstdh rounds 8513 mean_ms 12.173 k2:10.876(n4303) k3:11.941(n2288) k4:13.336(n900) k5:14.443(n492) k6:18.479(n530)
+burstdf rounds 8513 mean_ms 11.695 k2:10.399(n4303) k3:11.477(n2288) k4:12.828(n900) k5:13.952(n492) k6:17.975(n530)
+k7 rounds 7576 mean_ms 15.412 k7:15.091(n7576)
+k7dh rounds 7576 mean_ms 15.924 k7:15.605(n7576)
+k7df rounds 7576 mean_ms 15.492 k7:15.174(n7576)
+7108b78dbc6da1b6253ae68354ecc807fca8b021
+ M crates/model/src/dspark.rs
+ M crates/model/src/inkling.rs

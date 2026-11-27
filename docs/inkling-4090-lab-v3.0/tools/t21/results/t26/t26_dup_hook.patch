@@ -1,0 +1,26 @@
+diff --git a/crates/model/src/dspark.rs b/crates/model/src/dspark.rs
+index aa6777a..d92bee9 100644
+--- a/crates/model/src/dspark.rs
++++ b/crates/model/src/dspark.rs
+@@ -753,6 +753,10 @@ impl Spec {
+             Some(h) => gemv.launch_items(st, h, &self.qa_h, kr, &mut self.base, kr, &self.items_head_n[n - 1], 1)?,
+             None => mm_small(gemv, st, &tw.output, &self.qa_h, kr, &mut self.base, &self.items_head)?,
+         }
++        // T26 measurement only: ASTRAL_T26_DUP_HEAD=1 runs the base head again (same result).
++        if std::env::var_os("ASTRAL_T26_DUP_HEAD").is_some() && self.w.head_fp4.is_none() {
++            mm_small(gemv, st, &tw.output, &self.qa_h, kr, &mut self.base, &self.items_head)?;
++        }
+         gemv.launch_ids(st, &self.w.w_h, &self.hid.view(d, n * d)?, du, &mut self.ch, &self.zero_ids.view(0, n)?)?;
+         // Sequential Markov head (greedy).
+         let vp = tw.output.n as usize;
+@@ -762,6 +766,10 @@ impl Spec {
+             gemv.launch(st, &self.w.w_s, &self.x2r, 0, &mut self.raw)?;
+             self.ops.markov_gate(st, &self.raw, &self.ch.view(i * 3 * r, 3 * r)?, &self.cf, &self.w.rnn_bias, &mut self.state, i == 0, &mut self.qa_lat)?;
+             self.ops.fold_argmax(st, &self.w.fold, &self.qa_lat, &self.base.view(i * vp, vp)?, &self.w.fold_bias, vocab, &mut self.part_v, &mut self.part_i, DevIndex::of(token, i as u32 + 1)?)?;
++            // T26 measurement only: ASTRAL_T26_DUP_FOLD=1 repeats the fold + argmax (same result).
++            if std::env::var_os("ASTRAL_T26_DUP_FOLD").is_some() {
++                self.ops.fold_argmax(st, &self.w.fold, &self.qa_lat, &self.base.view(i * vp, vp)?, &self.w.fold_bias, vocab, &mut self.part_v, &mut self.part_i, DevIndex::of(token, i as u32 + 1)?)?;
++            }
+         }
+         Ok(())
+     }

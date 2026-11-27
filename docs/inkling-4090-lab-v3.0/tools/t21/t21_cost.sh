@@ -5,7 +5,8 @@
 # warm-up; per-round logs with ASTRAL_SPEC_LOG. Configurations: plain (no draft), the default
 # adaptive policy (burst, k <= 6), the expected-tokens-per-ms policy (ASTRAL_SPEC_POLICY=model),
 # fixed k = 1..7 (ASTRAL_SPEC_FIXED=1; the draft then proposes k tokens); burst7 (burst, k <= 7) and
-# burstf16 (burst with ASTRAL_DRAFT_KV_F16=1) when named in CONFIGS. usage: t21_cost.sh
+# burstf16 (burst with ASTRAL_DRAFT_KV_F16=1); for T26, burstdh / k7dh (the draft's base head
+# run twice: ASTRAL_T26_DUP_HEAD=1) and burstdf / k7df (fold + argmax twice), when named in CONFIGS. usage: t21_cost.sh
 set -u
 source "$HOME/inkling-lab-v3/env.sh"
 A1="$MODELS/unsloth/Mainline_Support/Inkling-2-Mini-UD-Q4_K_XL.gguf"; AST="$LAB/src/astral/target/release/astral"; PY="$LAB/venv/bin/python"; R="$LAB/runs"; BIN="$LAB/src/llama.cpp/build/bin"
@@ -30,6 +31,10 @@ for C in $CONFIGS; do
     model) e=(ASTRAL_SPEC_POLICY=model);;
     burst7) a=(--k 7);;
     burstf16) e=(ASTRAL_DRAFT_KV_F16=1);;
+    burstdh) e=(ASTRAL_T26_DUP_HEAD=1);;
+    burstdf) e=(ASTRAL_T26_DUP_FOLD=1);;
+    k7dh) e=(ASTRAL_SPEC_FIXED=1 ASTRAL_T26_DUP_HEAD=1); a=(--k 7);;
+    k7df) e=(ASTRAL_SPEC_FIXED=1 ASTRAL_T26_DUP_FOLD=1); a=(--k 7);;
     k*) e=(ASTRAL_SPEC_FIXED=1); a=(--k "${C#k}");;
   esac
   : > "$O/$C.rounds.jsonl"

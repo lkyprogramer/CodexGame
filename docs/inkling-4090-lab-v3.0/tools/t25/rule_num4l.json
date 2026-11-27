@@ -1,0 +1,72 @@
+{
+ "policy": "num-4L",
+ "frozen": "2026-11-27, after set D (diagnosis) and before set E; written by the lab, pending user confirmation",
+ "scope": "chat-templated long documents (>= 4096 tokens), teacher-forced; dense positions FIRST..n-2, the prefill path at every STEP-th length plus the prompt length",
+ "first": 512,
+ "step": 64,
+ "pairs": {
+  "0": "N0 dense: llama ub1 vs ub512",
+  "1": "self serve: Astral step vs serve",
+  "2": "cross step: llama ub1 vs Astral step",
+  "3": "cross serve: llama ub1 vs Astral serve",
+  "4": "llama ub512 vs Astral serve (recorded)",
+  "5": "N0 prefill: llama ub1 vs batch",
+  "6": "self prefill: Astral step vs prefill",
+  "7": "cross prefill: llama ub1 vs Astral prefill"
+ },
+ "checks": [
+  {
+   "path": "serve",
+   "cand": 1,
+   "ref": 0,
+   "kind": "dense"
+  },
+  {
+   "path": "serve",
+   "cand": 3,
+   "ref": 0,
+   "kind": "dense"
+  },
+  {
+   "path": "step",
+   "cand": 2,
+   "ref": 0,
+   "kind": "dense"
+  },
+  {
+   "path": "prefill",
+   "cand": 6,
+   "ref": 5,
+   "kind": "sampled"
+  },
+  {
+   "path": "prefill",
+   "cand": 7,
+   "ref": 5,
+   "kind": "sampled"
+  }
+ ],
+ "limits": {
+  "mean_ratio": 1.5,
+  "dense_p99_ratio": 1.5,
+  "sampled_p90_ratio": 2,
+  "flip_factor": 1.5,
+  "flip_slack": 3,
+  "flip_margins": [
+   0.5,
+   4
+  ],
+  "per_document_mean_ratio": 2.5
+ },
+ "hard": [
+  "every case has all 8 pairs with the expected position counts",
+  "no non-finite rows"
+ ],
+ "recorded_not_judged": [
+  "KL max",
+  "flip margins",
+  "per-document prefill ratios",
+  "generated-token region (positions >= prompt length - 1)"
+ ],
+ "why": "Set D (T20) is a high-sensitivity regime: llama.cpp's own ub1 vs ub512 flips the argmax at 1-2% of positions whose ub1 margin is >= 2 to 8 nats and has KL mean 0.10-0.33, so an absolute argmax gate or absolute KL limits cannot separate engine defects from the regime. Every limit is a ratio to llama.cpp's own shape control on the same positions, pooled over all positions of the set, plus a per-document bound."
+}
