@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.23 · 2026-11-28
+
+T43 Phase 0-A 过门：llama.cpp b12823 上 A1 + DFlash2 的接受长度相对 DSpark 为 sn ×1.70、sc ×1.45，长文档 ×0.82–0.85；llama.cpp 实测 121.3 → 150.3 tok/s；按 Astral 的 T21 成本表预测混合负载 +19%–26%。新增 `tools/t43/`（目标 shim、接受率测试与汇总）。下一步 Phase 1：Astral 实现。
+
 ## v3.0.22 · 2026-11-28
 
 T41 PASS：T25 判定工具改为 fail-closed（负控制按 `negs_expect.json` 登记的期望并入判定，缺件 / NaN / 重复位置判 INCOMPLETE），`t25_e.sh` 传播返回码，`t27_share.sh` 只解析 prefill 字段；新增 `tests/test_t25_judge.py`。T25 E 重判仍 PASS，T27 重算结论不变。用户确认采用 num-4L。
