@@ -29,7 +29,7 @@ def main():
                 probs.append("%s pair %s: %d positions, expected %d" % (name, k, js[k]["positions"], want))
             if js[k].get("nonfinite_rows", 0):
                 probs.append("%s pair %s: non-finite rows" % (name, k))
-        data[name] = ({k: np.load("%s.%s.npz" % (c, k)) for k in map(str, range(8)) if os.path.exists("%s.%s.npz" % (c, k))}, lens)
+        data[name] = ({os.path.basename(f)[len(name) + 6:-4]: np.load(f) for f in glob.glob("%s.*.npz" % c)}, lens)
     if not cases:
         probs.append("no cases")
     if probs:

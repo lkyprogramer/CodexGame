@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.20 · 2026-11-28
+
+fork `e83ef7d`、`df7f95b`。T27、T26 NO_BENEFIT：coda prefill 裁剪只快 2.2–4.0%，草稿 base head 只占 4.8%。T25 长上下文：D 组诊断显示 llama.cpp 自身换批长就会在高 margin 位置翻转，于是在 E 运行之前冻结长文规则 num-4L（[05](docs/05_validation.md) §6.6，**待用户确认**）。E 集 PASS，但已撤回的 dp4a 负控制判不出来。F16 草稿 KV 与 f32 逐 token 相同，改为默认，DSpark 最大 114688；完整 G2 不变。T28 shadow NO_BENEFIT：远历史质量分散，oracle 保留 1/2 时最大漏失仍有 0.22–0.37，可证明安全的跳读为零。T32（L0）：A4 LS 一致率 0.90 / 0.94（100K 为 0.975），A4 + DSpark 200.2 tok/s；门 LS 继续、AD-G0 都不通过，T34 NO_BENEFIT，AD 降为机制研究；更深方向等 AD01。
+
 ## v3.0.19 · 2026-11-27
 
 T21 PASS（fork `7108b78`，`tools/t21/`）。成本表与接受分布表明 burst 策略已接近各负载桶最优的固定 k，保留默认；BF16 草稿无收益；草稿 sliding-window K/V 改为 ring 后逐位相同，DSpark 最大容量 73728 → 106496（可选 FP16 为 114688）。并入方案 12（S40，GPT 的自适应循环方案），核实后在原文 §16 补充现场更正、无损的循环深度自推测路线与各模型的探索编排；新增 T32–T36、[06](docs/06_loop_research.md) R14。

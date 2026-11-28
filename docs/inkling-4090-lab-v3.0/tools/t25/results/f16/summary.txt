@@ -1,0 +1,24 @@
+== 16384
+-- f32
+run 0: prefill 16384 tok 3137.9 ms; decode 255 tok in 1.157 s = 220.4 tok/s; 82 rounds, 3.11 tokens/round, acceptance 61.5% of 283 verified drafts
+run 1: prefill 16384 tok 3140.0 ms; decode 255 tok in 1.143 s = 223.1 tok/s; 82 rounds, 3.11 tokens/round, acceptance 61.5% of 283 verified drafts
+plain decode 255 tok at 127.9 tok/s; spec output equals plain greedy for the first 36 / 256 tokens
+teacher-forced: spec token != plain argmax at 3 / 256 positions, largest logit gap 0.022
+-- f16
+run 0: prefill 16384 tok 3158.9 ms; decode 255 tok in 1.147 s = 222.2 tok/s; 82 rounds, 3.11 tokens/round, acceptance 61.5% of 283 verified drafts
+run 1: prefill 16384 tok 3151.4 ms; decode 255 tok in 1.141 s = 223.5 tok/s; 82 rounds, 3.11 tokens/round, acceptance 61.5% of 283 verified drafts
+plain decode 255 tok at 127.8 tok/s; spec output equals plain greedy for the first 36 / 256 tokens
+teacher-forced: spec token != plain argmax at 3 / 256 positions, largest logit gap 0.022
+spec tokens f32 = f16
+== 100000
+-- f32
+run 0: prefill 100000 tok 23070.9 ms; decode 255 tok in 2.355 s = 108.3 tok/s; 72 rounds, 3.54 tokens/round, acceptance 63.5% of 288 verified drafts
+run 1: prefill 100000 tok 23205.5 ms; decode 255 tok in 2.328 s = 109.6 tok/s; 72 rounds, 3.54 tokens/round, acceptance 62.2% of 294 verified drafts
+plain decode 255 tok at 83.5 tok/s; spec output equals plain greedy for the first 256 / 256 tokens
+teacher-forced: spec token != plain argmax at 0 / 256 positions, largest logit gap 0.000
+-- f16
+run 0: prefill 100000 tok 23198.8 ms; decode 255 tok in 2.352 s = 108.4 tok/s; 72 rounds, 3.54 tokens/round, acceptance 63.5% of 288 verified drafts
+run 1: prefill 100000 tok 23369.0 ms; decode 255 tok in 2.360 s = 108.1 tok/s; 72 rounds, 3.54 tokens/round, acceptance 62.2% of 294 verified drafts
+plain decode 255 tok at 83.4 tok/s; spec output equals plain greedy for the first 256 / 256 tokens
+teacher-forced: spec token != plain argmax at 0 / 256 positions, largest logit gap 0.000
+spec tokens f32 = f16
