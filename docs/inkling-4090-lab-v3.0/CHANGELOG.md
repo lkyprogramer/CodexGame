@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.24 · 2026-11-28
+
+T42 PASS：fork `df7f95b` 的热点重测（decode 1K / 32K / 128K、DSpark 一轮、prefill 2K / 32K）。排序：T43 → K12 → T44 → K15 → K13（先把 prefill 的 `gemv_f32` 改 GEMM）→ K14 → T47。
+
 ## v3.0.23 · 2026-11-28
 
 T43 Phase 0-A 过门：llama.cpp b12823 上 A1 + DFlash2 的接受长度相对 DSpark 为 sn ×1.70、sc ×1.45，长文档 ×0.82–0.85；llama.cpp 实测 121.3 → 150.3 tok/s；按 Astral 的 T21 成本表预测混合负载 +19%–26%。新增 `tools/t43/`（目标 shim、接受率测试与汇总）。下一步 Phase 1：Astral 实现。
