@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.26 · 2026-11-28
+
+T43 PASS。Phase 2：fork `d586fec` 的 `serve --draft-alt` 按上下文长度换草稿器，DFlash2 + DSpark（≥ 4096 token）在 T21 上达到 257.6 tok/s（DSpark 单用 222.5，×1.16），每个桶都取到两者中较好的。Phase 3：开 DFlash2 的最大容量为 122880（DSpark 为 114688；推断的 132096 不成立），120K prompt 上 94–95 tok/s（plain 76.1）；长上下文单 prompt 的结果方向不一致（32K DSpark 好、64K DFlash2 好）。新增 `tools/t43/t43_p3.sh`。
+
 ## v3.0.25 · 2026-11-28
 
 T43 Phase 1 PASS：DFlash2 草稿器在 Astral 实现（fork `509062f`），接受长度与 llama.cpp 参考一致；T21 协议下相对 DSpark 全体 ×1.13（burst）/ ×1.22（固定 k7），短 prompt ×1.20–1.22，长文档 ×0.89–0.91（进入 Phase 2 的按桶选草稿器）；完整 G2 不变。T46 PASS：评估闭环工具 `tools/t46/`，top-k 加尾桶 KL 在 k = 2048 时与全词表 KL 差 0.43%（k = 128 为 4.8%，未达标），默认改为 2048。`t21_cost.sh` 增加 `DRAFT` / `ALT`。
