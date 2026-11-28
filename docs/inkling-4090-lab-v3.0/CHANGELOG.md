@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.21 · 2026-11-28
+
+并入方案 13（S41）、MTB 方案（S42），以及 TensorFold、DFlash2、Mirage / TileLang / Basalt、LoopTitan / QDA / Self-Rewriting 的源码与论文调研（S43–S46；报告在 `research/20261128/`）。用户把目标定为在 4090 上做最极致的定制，不考虑兼容，所以有损与改模型的候选正式进入计划，按 [05](docs/05_validation.md) §6.8 分开命名、分开验收。新增任务 T37–T47（DFlash2 草稿器 T43、全局 KV FP8 / INT8 T44、decode ≡ verify T45、评估闭环 T46、有损专家剪枝 T47、判定工具 fail-closed T41、热点重测 T42，以及改模型的 T37–T40），调优候选 K12–K17，研究项 R15；K7 改判为不做；T33 更正 slot 数并暂缓。核实了方案对已有工作的 8 条更正（[07](docs/07_tasks.md) 的 v3.0.21 记录），其中 T25 E 的判定不是 fail-closed、T27 的计时解析拼接两条属实，由 T41 修复后重判；已有结论不变。清单改由 `tools/make_manifest.sh` 只对 git 可见的文件生成（原清单收了 3 个被忽略的日志）。本版只改文档与工具，4090 上没有运行任何新实验。
+
 ## v3.0.20 · 2026-11-28
 
 fork `e83ef7d`、`df7f95b`。T27、T26 NO_BENEFIT：coda prefill 裁剪只快 2.2–4.0%，草稿 base head 只占 4.8%。T25 长上下文：D 组诊断显示 llama.cpp 自身换批长就会在高 margin 位置翻转，于是在 E 运行之前冻结长文规则 num-4L（[05](docs/05_validation.md) §6.6，**待用户确认**）。E 集 PASS，但已撤回的 dp4a 负控制判不出来。F16 草稿 KV 与 f32 逐 token 相同，改为默认，DSpark 最大 114688；完整 G2 不变。T28 shadow NO_BENEFIT：远历史质量分散，oracle 保留 1/2 时最大漏失仍有 0.22–0.37，可证明安全的跳读为零。T32（L0）：A4 LS 一致率 0.90 / 0.94（100K 为 0.975），A4 + DSpark 200.2 tok/s；门 LS 继续、AD-G0 都不通过，T34 NO_BENEFIT，AD 降为机制研究；更深方向等 AD01。

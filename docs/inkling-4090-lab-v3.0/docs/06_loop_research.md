@@ -67,7 +67,7 @@ controller 的 gain 和 forget 都是 **tanh**（HF 实现，S21 已核实），
 | R4 | 跨遍共享 KV | 三臂，在 8K 内做，不等 T17：**A** per-pass（基线）；**B** last-history，仿 PR51161：核心全局层的历史只由末遍写入，前面的 pass 只读末遍的历史、自己算出的当前 token K/V 不持久化，conv 按 pass 独立（S25 已核实；这是借鉴 PR 的新实验臂，不称为原样复现）；**C** first-pass，仿 prototux：后续 pass 的**全局层**直接读首遍存下的 K/V，自己不存，并跳过这些层的 K/V 投影和 K/V conv；SWA 层和 conv 状态仍按 pass 独立（S15 已核实）。prototux 仓库 README 报告 C 在 3000 token 贪心生成中出现复读，这不能直接否定 B；PR 的短样本一致也不能证明 B 普遍无损。每臂写明 `scope、history_source_pass、current_token_source、write_pass、conv_policy、prefill_chunk_policy` | 与 A 的 KL（[05](05_validation.md) §6 口径）、2K token 长生成的 n-gram 复读率、显存节省 | A1、A4 |
 | R5 | controller 的因果作用 | 分开六种：原始；只去 gain 项；只去 forget 项；gain = forget = 0（恒等合并）；替换消息内容但保留 reader / gate；恢复某个 block 或 pass 的正确消息。先做单点干预（一个 token、一个 block、一个 pass），再考虑整遍消融；大范围置零会让表示离开训练分布，只能说明依赖性 | 正确答案概率、局部 winner-gap、后续路由、任务结果（不只看 PPL） | A1 |
 | R6 | 早停是否值得做 | 三步：① 在完整深度的 trace 上做离线 oracle，得到乐观上界；② 计入 coda / head、探针、状态保存和补算的成本，上界都不够就停；③ 只选一种历史策略（整请求固定深度 / 提交前补齐 / 延后补齐 / 近似历史）。第一版只做“按请求固定 1–5 遍”的质量—延迟曲线；逐 token 动态深度放到后面。不能把 R2 的 raw-lens KL 阈值直接写成循环 break | oracle 上界、计入成本后的净收益 | A4 |
-| R7 | 草稿器 | 先优化原生 DSpark（T21），再评估 DFlash2（A5）或 2DSD 的 loop-conditioned drafter。每个草稿器固定：目标权重与量化 hash、遍数与 cache 策略、feature tap 到 stash 位置的映射、embedding 归一化 / head / softcap / correction 顺序、词表范围与 mask、anchor 与 block 长度、接受 / 拒绝 / 状态恢复规则。有效吞吐 = 提交 token ÷ 真实轮次 wall time（重叠部分不重复相加）。平均接受长度提高不保证加速 | `draft_ms、verify_ms、rollback_ms、committed_tokens、accepted_prefix、bonus_tokens、expert_union_size`。树推测（DFlash2，mlx-serve #1331 的实现，S35）进入本引擎前至少要有：node / parent / depth 与祖先可见性（兄弟、后代不可见），4-tap conv 沿 parent 取输入，接受后沿路径按逻辑时间提交；先证明单链树退化为现有 chain verify；采样时在可穷举的小词表上核对 builder → verify → accept 的输出分布 | A1 + A3 / A5 |
+| R7 | 草稿器 | 先优化原生 DSpark（T21），再评估 DFlash2（A5）或 2DSD 的 loop-conditioned drafter。v3.0.21：DFlash2 拆为 [07](07_tasks.md) T43（taps 与 DSpark 相同，verify 路径不变；S44）。每个草稿器固定：目标权重与量化 hash、遍数与 cache 策略、feature tap 到 stash 位置的映射、embedding 归一化 / head / softcap / correction 顺序、词表范围与 mask、anchor 与 block 长度、接受 / 拒绝 / 状态恢复规则。有效吞吐 = 提交 token ÷ 真实轮次 wall time（重叠部分不重复相加）。平均接受长度提高不保证加速 | `draft_ms、verify_ms、rollback_ms、committed_tokens、accepted_prefix、bonus_tokens、expert_union_size`。树推测（DFlash2，mlx-serve #1331 的实现，S35）进入本引擎前至少要有：node / parent / depth 与祖先可见性（兄弟、后代不可见），4-tap conv 沿 parent 取输入，接受后沿路径按逻辑时间提交；先证明单链树退化为现有 chain verify；采样时在可穷举的小词表上核对 builder → verify → accept 的输出分布 | A1 + A3 / A5 |
 | R8 | 量化误差经循环是放大还是被修正 | A1 是 NVFP4、Q8_0、BF16、F32 混合，不是单一 4 位。分开研究：权重表示误差（同一原始资产转换前后，按物理层）、算术误差（固定权重，切换局部累加 / 舍入路径）、路由不连续（第 8 / 9 名 margin 附近的专家集合变化）、跨遍传播（只在一个 pass 的一个算子注入或恢复误差）、coda 敏感性。“只给第二遍升 Q8”需要第二份权重或运行时转换，先证明某阶段确实敏感再考虑 | 高 margin token、异常激活坐标、块选择与专家选择的变化（不只看平均 KL） | A1、A4 |
 | R9 | 收益来自当前 token 的深度还是历史的深度 | 明确标为反事实的 2 × 2：历史浅 / 深 × 当前 token 浅 / 深。先定义浅 / 深历史的映射（首遍是否锚定、后续 pass 读哪个源缓存、conv 边界如何接续），不得把缺失的 cache 当零或复用最后一个 slot。先在固定 teacher-forced 前缀的少量位置离线做（参考 LoopBridge S14、Late Entry、Loop Behind；后两者不是 Inkling 实验，部分需要训练） | 正确 token 概率、coda 输出、路由；若“深历史 + 浅当前”接近 D，才继续 | A4、A1 |
 | R10 | （可选）局部稳定性 | 固定输入、历史与路由策略，在一个消息或 block 状态上加若干方向、若干幅度的小扰动，比较下一遍和最终读出的变化；按路由是否改变分组。局部增益 `‖δout‖ / ‖δin‖` 只是局部量，不是全局收敛证明（状态不止一个向量，top-k 路由不连续） | 局部增益分布、放大位置 | A1 |
@@ -75,6 +75,7 @@ controller 的 gain 和 forget 都是 **tanh**（HF 实现，S21 已核实），
 | R12 | 严格前缀能否替代同 token 的跨遍消息（方案 10 §10） | 候选 m̂ = G(e_t, H_<t, r)：e_t 只能是当前 token 不依赖被删循环的信息（如 prelude 输出），H 只含已提交前缀；当前 token 的上一遍 bank、未来 token、被拒绝分支不得进入特征，这条边界写进数据 schema 和特征代码。先预测 64 维半投影 W_m RMS(m)（ridge / 小 MLP 作下界），稳定后才重建完整消息。四臂：teacher、oracle、prefix predictor（teacher-forced）、free-run student（KV、conv、草稿特征都由 student 自己产生）；只有最后一臂能支持部署判断。按文档 / 任务拆分数据，长样本切片不跨集合 | 半投影的相对误差与门变化、最终 KL、任务得分；长生成误差持续放大或计入状态维护后无净收益即停 | A1（冻结主干，只训练小预测器） |
 | R13 | 小模型上的 2 × 2：跨遍反馈（同 token / 严格前缀）× 深度内容接口（向量块消息 / Loom 式矩阵）（方案 10 §11） | 四臂共用 tokenizer、数据顺序、上下文、优化器与读出；起点约 8 个物理层（prelude 2 / core 4 × 3 / coda 2）、D 384、dense FFN，参数量按实际计算（200K 词表的 embedding 本身约 77M）。Loom 侧先试静态写基 + 动态 gate + 动态 reader，MShift 单独消融。先做短序列的因果证明测试：稳定展开、按 token 递推、分块 prefill 与逐 token decode 一致；故意接入跨遍同 token 反馈必须让严格前缀检查失败 | token / FLOP / GPU-hour 三种匹配分别报告的质量；长生成稳定性；完整显存与真实成本 | 新的小模型（不是原模型的加速） |
 | R14 | 浅遍能否作深遍的草稿（方案 12（S40，仓库 `docs/Inkling_4090_Adaptive_Loop_Exploration_Plan_20261127.md` §16） §16.2） | 第 p 遍只读同 token 的上一遍和自己那一遍 slot 的历史，所以 d 遍起草、补算剩余遍做 verify 是无损的。先在 eager 诊断模式测接受率（coda 读三遍历史，不是 T18 的 R = d 模型），再按 T21 的成本表估算 | 逐位置接受率、估算与实测的 tok/s、与 A4 + DSpark 对比 | A4，A1 对照 |
+| R15 | 前向标量编辑能否改善循环模型的任务表现（v3.0.21，Self-Rewriting，S46） | 只改少量标量旋钮：controller 的 gain / forget、输出门 bias、router bias、相对位置 bias 的 τ。协议照搬论文：编辑者看不到的 held-out 集、配对置换检验、不显著即撤回；每次只改一个旋钮，先在 T46 的 top-128 KL 上筛 | held-out 正确率、p 值、gencheck 的截断率与复读率、每个正确任务的 token 数（截断减少即吞吐杠杆，接 R1 的“正确任务 / 秒”）；论文是 Qwen 27B 的 dt_bias，迁移到 Inkling 的幅度未知 | A1；A4 |
 
 ## 3. 探针设计（T15 的研究需求）
 
@@ -97,6 +98,8 @@ controller 的 gain 和 forget 都是 **tanh**（HF 实现，S21 已核实），
 **Goodfire 的结果作为第一个复现目标**（S26 已核实）：他们在 Inkling-2-Mini 上发现少数巨大的异常激活决定跨遍读哪些块（坐标 2027 / 2304，RMS 归一化后约 +32.4，占平方范数 46%），并比较了 logit lens、tuned lens、coda lens。两步走：① 在 A1（量化后）和自己的输入上重新找异常坐标与块读取行为，2027 只作线索；② 单点干预（替换一个 token、一个 block、一个 pass 的消息或坐标），加同范数随机方向作对照。相关性消失时先查采样位置和量化影响；相关存在但干预无效，就记录为因果解释不成立。
 
 ## 4. KV 压缩的定位
+
+v3.0.21 更新：用户把目标改为极致定制、可以有损之后，全局层 KV 的 FP8 / INT8 有损量化进入主线，作为 [07](07_tasks.md) T44（参考 TensorFold 的 per-(token, kv head) e4m3 与 Basalt 的 64 通道 INT8，S43、S45）；下面两个小实验仍然保留，作为 T44 之外的补充。原文：
 
 KV 压缩不进主线，先等 T17 的 SWA ring 给出结构性的容量收益（[01](01_model.md) §3）。之后若仍需要，只做两个小实验：
 
@@ -133,3 +136,20 @@ MoLT（S33）与 LoomFormer（S34）提供的是新结构和训练方法，mlx-s
 - **MShift**：保存的是每层进入本层前的原始矩阵 M（不是 shift / norm 之后的读视图），按逻辑 visit 各存一份；权重跨遍共享不代表状态可以共享。投机解码时与 KV、conv 一起按接受前缀提交，接受 0 个 draft 也提交 anchor；“两个槽够单步 decode”不能推广到任意回滚。
 - **MoLT 条件**：同一 forward 里早层写 M、晚层读 M 是正常的深度依赖；把上一遍同一 token 的 M 反馈给下一遍，就重新引入同位置循环，不满足严格前缀条件。固定三遍、稳定递归和冻结 prompt 的 Hybrid 分别验证，不混用“等价”。
 - **进入生产引擎的条件**：研究代码放 fork 的 `bench/research/`，不进默认开关；新权重用新的架构与缓存版本标识，旧 GGUF 不在新路径上“试着跑”；只有质量与真实部署成本都有优势，才写 sm_89 专用 kernel 与 loader。
+
+## 7. 方案 13 的模型改动候选（v3.0.21，S41、S46）
+
+T37–T40 改模型（新参数或新训练），全部是有损候选，按 [05](05_validation.md) §6.8 单独命名、单独验收。共用的合同：
+
+- **缩比参考 M1 / M2**（方案 13 §11）：M1 为 D256、8 层（2 / 4 / 2）、E32 top-2、字节词表；M2 为 24 层（6 / 12 / 6）、Inkling 词表，必须分块计算 CE。基线优化器用 Muon，另跑 AdamW：LoopTitan 中只换 Muon 就有 23.6 mBPB，是循环配方收益的 3.7 倍（S46，自报），不控制它就会把优化器效应算到机制上。每个机制带 LoopTitan 的三类对照（非复访、同参数更深、同 KV / FLOPs），每臂 3 个 seed，匹配 token、FLOP、GPU·h 分别报告。
+- **数据量**：方案 13 的 2M token 太少。LoopTitan 在 0.625B token 时循环配方仍无收益（S46，自报）。筛选从 100M token 起步（推断 M1 约 1–3 GPU·h），或者改用少量 token 就能分化的合成算法任务（N-hop、图任务，R1 已有生成器）。每个机制的停止预算仍为 4 GPU·h。
+- **冻结量化 A4 的可微参考**：T37 全尺寸、T40 与少遍适配器都依赖它。2K 上下文、BF16 检查点、分块 CE、每个专家临时反量化时，推断峰值约 20–21 GiB（方案 13 §9.6 设想的 coda 全展开 BF16 不必要）。缺的是 NVFP4 反向（转置方向）的 GEMM：sm_89 没有 FP4 张量核，用 `mma.sync` BF16 加 `cp.async` 把块反量化到共享内存。
+- **关闭时逐位一致**：新加的支路零初始化（LoopTitan 的 LoRA B = 0），关闭或初值时与 G2 基线逐位一致；训练可用截断 BPTT（LoopTitan 的 `grad_visits`）压显存。
+- **先验**（S46；均为对方自报，迁移到 Inkling 未验证）：
+  - T37：LoopTitan 的统一协议下，per-visit LoRA 与 EMA memory 分别比基线差 8.14 和 21.68 mBPB，“加状态”类机制先验偏负。
+  - T38：各遍梯度余弦为正且逐渐变小，Muon 下降到 0.14；求和的 SNR 中位比 0.993；Muon 的输出是动量的极分解因子，范数匹配在 Muon 下不起作用。只在 M1 上做，无信号即停。
+  - T39：不需要训练，G2 已在噪声地板附近通过，预期收益小；价值在于几小时内给出可证伪的结论。
+  - T40：新颖性最高、工程最重，收益是能力而不是吞吐；先在 tiny 或 M1 上证明拓扑。
+- **少遍档位**（推断，挂在 T35 下）：LoopTitan 的固定遍数模型在未训练的遍数上退化，所以 A1（固定 3 遍）不做降档。A4 按请求降到 R = 2 时 visits 从 48 降到 36，decode 上限约快 1.25–1.3 倍。先测 A4 原生 R = 2 对 R = 3 的 KL 与任务差距；差距大时，才以 R = 3 为 teacher 蒸馏零初始化的每遍增益、norm 或 LoRA 小适配器。
+
+排序：T39 → M1 参考（筛 T37-tiny、T38）→ 冻结 A4 的可微参考 → T37 全尺寸与少遍适配器 → T40 → T38 全尺寸（视 M1 结果，多半不做）。

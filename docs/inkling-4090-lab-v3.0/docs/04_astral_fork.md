@@ -49,7 +49,7 @@
 | C 调优 | 先做分阶段基线和热点表（T16 第一步），再按下面 K1–K7 的顺序每次只挑一个候选；工具用 CUDA event、`kbench`、nsys。性能计数器没有权限就记 N/A，**不为 profile 改驱动配置** | T16、T21 | G3；G2 不回退 |
 | D 长上下文 | 四段，顺序不能换：① SWA 环形缓冲，在 8K 内验证绝对位置、窗口包含关系与回滚（只存写指针不足以恢复被覆盖的旧值，要按最大未提交长度留余量或保存撤销数据）；同批写入的覆盖问题见下；② 扩展**已有**的 split attention，把有效长度、物理 capacity、绝对 token 位置分开，逐处检查 `MAX_CTX` 钳位、索引类型、scratch 大小和 graph 捕获；③ 长 prefill 分块与参考对照（relative bias、全局位置缩放、sink、门控、短卷积）；④ 16K → 32K → 64K → 128K，每级记峰值显存与时间 | T17 | G4；§5 的边界用例全部通过 |
 | E 循环控制 | 遍数可配置（`--passes`，或解析 varloop 配置）；跨遍 KV 策略开关（[06](06_loop_research.md) R4 的三臂签名）；早停钩子。R 变化时 visit 数、KV、conv、块消息、coda 都要随之重建，不跨深度复用缓存 | T18 | A1 默认 3 遍时与改前逐位一致；A4 有自己的三遍基线；A4 在 1–5 遍下可运行 |
-| F 草稿器 | 4090 上的 DSpark（现有实现）；DFlash2 移植（5 层 qwen3 类结构，可复用 `qwen.rs` 的 kernel） | T13、T14、R7 | 投机解码与普通贪心等价（[05](05_validation.md) §3） |
+| F 草稿器 | 4090 上的 DSpark（现有实现）；DFlash2 移植（5 层 qwen3 类结构，可复用 `qwen.rs` 的 kernel；v3.0.21 拆为 [07](07_tasks.md) T43，taps 与 DSpark 相同，verify 路径不变） | T13、T14、R7 | 投机解码与普通贪心等价（[05](05_validation.md) §3） |
 | G 执行映射与消息预计算（v3.0.14，方案 10 §4–§5） | 私有 `inkling_plan.rs` 固定 visit / slot / tap 映射与 graph 身份；第二、三遍入口一次算完该遍 48 个消息（M1 共享源逆 RMS → M2 批量读取 → M3 controller 消息半支），各级独立开关 | T23、T24 | 关闭时逐位一致；中间张量逐项对齐；G2 不回退；端到端有收益 |
 
 ### 3.1 调优候选（T16 / T21，评审 §10.3）
@@ -62,11 +62,17 @@
 | K4 | 注意力 split 数 | 按有效长度与 capacity 测空 CTA、split / merge 成本 | 多个长度都没有明显退化 |
 | K5 | verify 的数值一致性 | 相同 token 在不同小批形状下的结果 | 能解释并控制接受率变化 |
 | K6 | 把 fragment / `mma5` 路径接到 Inkling | 一个真实 MoE 形状，显式计入新布局的权重表示、工作区和数值差异 | 值得扩到整个模型；这是新的布局与 kernel 实验，不是现成开关 |
-| K7 | Q8_0 重编码为 FP8 | 只针对已证实受算力限制的局部 | 质量与时间同时有收益 |
+| K7 | Q8_0 重编码为 FP8 | v3.0.21 改判：不做。e4m3 比 Q8_0 粗（相邻值相对间距 6.7%–12.5%），每权重只省约 6% 字节，decode 受带宽限制，上限约 2.3%；算力受限的 prefill 改走 K13 的 INT8 路线（Q8_0 的 int8 码本身无损） | — |
 | K8 | 按真实消费者裁剪激活平面（方案 10 §7.1） | 固定的消费者表：每个激活在当前 kernel 选择下要 Q8、FP16 还是两者；只省去没人读的写入 | 先完成 T22；“请求 FP16 却未写入”在调试模式下报错 |
 | K9 | 短 verify 的 MoE 尾部融合（方案 10 §12.3，参考 mlx-serve #1331 的 few_tail，S35） | nv ≤ 8 时把 `moe_combine_t` → `conv_res_par` 合成按 hidden 列的一个 kernel：只读旧 conv、输出每行 hist，接受后仍由 `conv_commit` 提交 | cur、hist 与接受 0 / 部分 / 全部后的下一 token 都对齐 |
 | K10 | 短 prefill 的 expert 行数特化 tile（方案 10 §7.2） | 记录每个 expert 的真实行数，按 8 / 16 / 32 / 64 行特化 NVFP4 gate_up / down | 计入分桶、padding、额外 launch 与确定性合并；同一 token / expert 映射核对输出 |
 | K11 | split 工作区清零（方案 10 §7.3） | 证明每个被求和读取的元素都被唯一写入（含空 expert、尾行、split 数变化）后删 memset | 证明不了就保留清零；不回到浮点 atomicAdd |
+| K12 | Q8_0 小 T 统一 kernel（v3.0.21，S43 的 ck_lane / qmmf 契约） | 权重离线重排成 fragment-major，T = 1–8 共用一个 `mma.sync m16n8k32 s8` kernel，每个 lane 一次读 16 B，K 序与 split 只由 (N, K) 决定 | 推断：注意力输入投影现在约 540 GB/s，decode 可快 10%–13%；同时让 Q8_0 部分 decode ≡ verify（T45），K2 不必再在 MMA 与 dp4a 之间取舍。与旧 kernel 同 K 序时逐位一致；T20 三组、num-3、DSpark 接受率 |
+| K13 | prefill 的 INT8 激活 GEMM 与注意力流水（v3.0.21） | 先用 ncu 看已有的 int8 路径 `astral_gemm_nvfp4_mma2`（因精度改走 f16 `mma3`）是否卡在 int → float 转换（可改用 0x4B400000 magic number）；prompt 注意力目前 cp.async 提交后立即等待，改多级流水（无损） | 推断：2K prefill 中两个 GEMM 占 62.7%、只到 f16 峰值的 40%，到 2 倍时 prefill 约 +45%。GEMM 激活改 int8 是有损的（与 decode 同一种量化），需 T19 / T20 重判 |
+| K14 | MoE 链融合（v3.0.21，MTB-03 加 Basalt 的 ticket 收尾） | gate / up 行交错重排后在 GU epilogue 里算 SiTU 与 Q8；Down 最后完成的 block 顺带做 combine + conv + residual，verify 时吞掉 K9 | T = 1 时每个 MoE visit 4 个 kernel，中间张量只有几十 KiB，只省 kernel 边界：单做 SiTU 约 1.5%–2.5%，两处合计推断 3%–5%。行置换不改累加顺序，可逐位一致；先单项，过 3% 线再加 ticket |
+| K15 | split 注意力的 combine 融合与长度决定的 split 映射（v3.0.21，S43 的 ZCAP、S45 的 Basalt） | 最后到达的 split 做合并（自复位计数器）；chunk 到 partial 的映射只由长度决定，不依赖 gridDim | 短上下文约 1%–2%；同时去掉 `astral_ink_attn_split` 的 partial 对 gridDim.y 的依赖（T45）。单行与 verify 行逐位比对、多次 replay |
+| K16 | token embedding 放主机 pinned 内存（v3.0.21，S45 的 Basalt） | 卡上 zero-copy gather，每 token 经 PCIe 读约 2.4 KB | 腾出约 0.49 GB，推断多约 15K 位置（FP8 KV 下约 30K）；记容量与 decode 时间 A/B |
+| K17 | 有界常驻 MoE 片段（v3.0.21，MTB-05 / 06；Mirage 的 Kahn 死锁检查与带 epoch 的计数器、Basalt 的有界等待） | 暂缓：K14 之后仍有边界收益才开；先做 cooperative 启动能否被 graph 捕获的验证 | 上限约 kernel 间隙的 11%–14%，现实 3%–6%；按 MTB 方案 §7.4 的 A / B / C0 / C1 对照分离收益来源 |
 
 v3.0.14 补充（方案 10 §7.4–§7.6、§12.4）：后置候选有 expert gate / up 与 SiTU 的 epilogue 融合、单 token 输入用固定 pinned packet 上传（先用 `ASTRAL_STEP_TIMING` 看占比，且不删 d17a519 的同步）；K4 注意力可试一个 CTA 覆盖同一 KV head 的 3 个 Q head（GQA = 3）、以及全局层远端（距离 ≥ 1024、bias 为零）的快循环，跨 1024、window 和 split 边界的 tile 走完整路径。Loom 的转置 / 补齐布局与 Metal 的阈值不是 4090 的参数，没有带宽或 cache miss 证据就不换格式。
 

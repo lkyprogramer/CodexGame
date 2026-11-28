@@ -1,6 +1,6 @@
 # Inkling-2-Mini × RTX 4090 自有引擎实验室 v3.0
 
-**版本：3.0.20 · 2026-11-28（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。v3.0.7 按用户的研究评审核实后修订了验证口径、任务与研究设计；v3.0.14 并入方案 10（新增 T22–T25、R11–R13）；v3.0.17 并入方案 11（新增 T26–T31，评估 GSQ-RCO 资产后不替换 A1）；v3.0.19 核实并编排方案 12（新增 T32–T36、R14）；v3.0.20 完成 T27、T26、T25 长上下文、T28、T32，见 [CHANGELOG](CHANGELOG.md)。**
+**版本：3.0.21 · 2026-11-28（Asia/Shanghai）。本包是设计与执行输入；P0 与 T07–T14 已在 4090 上执行，结果见 [07](docs/07_tasks.md) 的执行记录。v3.0.7 按用户的研究评审核实后修订了验证口径、任务与研究设计；v3.0.14 并入方案 10（新增 T22–T25、R11–R13）；v3.0.17 并入方案 11（新增 T26–T31，评估 GSQ-RCO 资产后不替换 A1）；v3.0.19 核实并编排方案 12（新增 T32–T36、R14）；v3.0.20 完成 T27、T26、T25 长上下文、T28、T32；v3.0.21 并入方案 13、MTB 方案与 TensorFold 等外部调研（新增 T37–T47、K12–K17、R15，T33 暂缓），见 [CHANGELOG](CHANGELOG.md)。**
 
 ## 目标
 
@@ -30,7 +30,7 @@
 1. [AGENTS](AGENTS.md)：执行合同与红线。
 2. [00 总计划](docs/00_plan.md)：第一性原理、阶段、门槛、停止规则。
 3. [07 任务](docs/07_tasks.md)：唯一的任务清单与依赖；[08 手册](docs/08_runbooks.md)：命令。
-4. 按需：[01 模型](docs/01_model.md) · [02 现场与安全](docs/02_site_and_safety.md) · [03 引擎调研](docs/03_engine_landscape.md) · [04 Astral 移植](docs/04_astral_fork.md) · [05 验证方法](docs/05_validation.md) · [06 循环研究](docs/06_loop_research.md) · [09 来源](docs/09_sources.md)。
+4. 按需：[01 模型](docs/01_model.md) · [02 现场与安全](docs/02_site_and_safety.md) · [03 引擎调研](docs/03_engine_landscape.md) · [04 Astral 移植](docs/04_astral_fork.md) · [05 验证方法](docs/05_validation.md) · [06 循环研究](docs/06_loop_research.md) · [09 来源](docs/09_sources.md)。v3.0.21 的四份外部调研报告在 `research/20261128/`（子代理撰写，关键源码位置已抽查；收益数字多为推断）。
 
 ## 包内工具
 
@@ -42,6 +42,7 @@
 | `tools/preflight.py` | 只读硬件清单（沿用 v2） |
 | `tools/paired_stats.py` | 配对延迟统计，case 等权 bootstrap（沿用 v2） |
 | `tools/check_package.py` | 本包结构自检：链接、代码块、shell 语法、任务/来源 ID 引用 |
+| `tools/make_manifest.sh` | 按 git 可见的文件（跟踪的与未忽略的新文件）重新生成 `PACKAGE_MANIFEST.sha256` 并自检 |
 
 `python3 -B -m unittest discover -s tests -v` 运行工具测试，`python3 -B tools/check_package.py` 做结构自检，`sha256sum -c PACKAGE_MANIFEST.sha256` 校验包完整性；本次结果见 [VALIDATION](VALIDATION.md)。v2.x 文档包（`docs/atomic-inkling-4090-plan-v2.0`）保留为历史，不再执行。
 

@@ -1,6 +1,6 @@
 # 09 · 来源登记
 
-读取日期均为 2026-11-26（S32–S39 为 2026-11-27）。“锁定”是本包使用的版本；升级需要另立任务。
+读取日期均为 2026-11-26（S32–S39 为 2026-11-27，S41–S46 为 2026-11-28）。“锁定”是本包使用的版本；升级需要另立任务。
 
 | ID | 来源 | 锁定 | 用途 |
 |---|---|---|---|
@@ -20,7 +20,7 @@
 | S17 | Strata v0.2.22 与 HF `strata-engine/Inkling-2-Mini-Strata` | `04996a1…`（v2.1 记录） | 可选业务对照（O2） |
 | S20 | GitHub `ggml-org/llama.cpp` b12751 | `532d67426bb874f06a8acc6959af81b34206f7f9` | 数值参考 |
 | S21 | HF transformers `models/inkling2_loop/modeling_inkling2_loop.py` | `3d2d3b3f7bed13f858da128cd932a2f8d36e1490`（v3.0.7 起；此前记为浮动的 main，读取时 85,906 B） | 语义第二参考；controller 的 tanh 门、per-pass cache 已按此 commit 核实 |
-| S22 | llama.cpp PR：已合并 #32217、#32694、#32704、#32799、#32855、#32218、#33053；未合并（2026-11-26 查询）#33060（head `89478df`）、#33063（`a5e1731`）、#33049（`39e7ac1`）、#33073（`f4fd1dc`）、#33062（`93e5e76`）；#33072 已关闭未合并 | 未合并的按 head commit 记录，采用前另立任务 | 长上下文 bias 语义、4090 融合（K3）、DFlash2 契约、NVFP4 转换的参考 |
+| S22 | llama.cpp PR：已合并 #32217、#32694、#32704、#32799、#32855、#32218、#33053；#33073（DFlash2）于 2026-11-26 合入（`55d4828`，首个包含它的 release 为 b12785，2026-11-28 核实）；未合并（2026-11-26 查询）#33060（head `89478df`）、#33063（`a5e1731`）、#33049（`39e7ac1`）、#33062（`93e5e76`）；#33072 已关闭未合并 | 未合并的按 head commit 记录，采用前另立任务 | 长上下文 bias 语义、4090 融合（K3）、DFlash2 契约、NVFP4 转换的参考 |
 | S23 | conda 频道 `nvidia/label/cuda-12.8.1` | label 即版本 | 用户目录 CUDA 编译工具 |
 | S24 | rustup / static.rust-lang.org；备用 rsproxy.cn | Rust 1.100.0（由 S10 的 `rust-toolchain.toml` 决定） | 用户目录 Rust |
 | S25 | HF transformers PR #51161（last-history KV） | 动态 PR 页，状态以 2026-11-26 查询为准（open） | R4 的 B 臂 |
@@ -39,5 +39,11 @@
 | S38 | HF `ISTA-DASLab/Inkling-2-Mini-GSQ-RCO-GGUF`（GSQ arXiv:2604.18556，RCO arXiv:2605.00649） | revision `f0da1097633dd7c2f5733e4077cff861be122245` | [01](01_model.md) §4.1 的候选资产；ModelScope 镜像缺 dspark 文件 |
 | S39 | HF `abenzerps/Inkling-2-Mini-GSQ-RCO-GGUF` | revision `78c95a16e097cb30ff975a0374293188aae0c339` | 同上；`SHA256SUMS.txt` 与 ModelScope 一致 |
 | S40 | 方案 12，CodexGame 仓库 `docs/Inkling_4090_Adaptive_Loop_Exploration_Plan_20261127.md`（GPT，基于 fork `aa837c7`、本包 `159edbb` / v3.0.18） | 提交 `ccc951d`；§16 为本包 v3.0.19 的核实与编排补充 | T32–T36、R14 的依据；第 1–15 节的 NEW 接口全部未实现 |
+| S41 | 方案 13，CodexGame 仓库 `docs/13_inkling_loop_model_extreme_research_plan_20261128.md`（GPT，基于 fork `7108b78`、本包 `475d4c8`） | 提交 `e3c61f4` | T37–T40 的设计、T41 的部分依据；对本包已有工作的核实发现见 [07](07_tasks.md) 的 v3.0.21 记录 |
+| S42 | MTB 方案，CodexGame 仓库 `docs/Inkling_4090_Mirage_TileLang_Basalt_Exploration_Plan_20261128.md`（GPT，基于 fork `e83ef7d`、本包 `32ca786`） | 提交 `e3c61f4` | T41、T42、K14、K17 |
+| S43 | GitHub `MiaAI-Lab/Inkling-2-Mini-RTX-5090-TensorFold`（RTX 5090 / sm_120 上对 `jschmied/TensorFold` `dc2ca8a` 的 0001–0028 补丁集） | `86f1d69` | T44（0003 的 FP8 KV）、T45（qmmf 契约）、K12、K13、K15；分析见 [tensorfold.md](../research/20261128/tensorfold.md)。sm_120 专有的 0014、0024、0025 在 sm_89 上不可用 |
+| S44 | DFlash2：HF `incoai/Inkling-2-Mini-DFlash2`（A5，[01](01_model.md) §4）；`z-lab/dflash` `07ebd93`；论文 arXiv 2602.06036；`tonyd2wild/Inkling-2-Mini-NVFP4-DGX-Spark` `2fe0eb5`（vLLM 补丁与 CPU 参考 `inkling2_dflash2_ref.py`）；llama.cpp #33073（见 S22） | 同左 | T43；分析见 [dflash2.md](../research/20261128/dflash2.md) |
+| S45 | `mirage-project/mirage` `ed771bd`（mpk）、`tile-ai/tilelang` `640fdca`、`losingle/basalt` `aa69624` | 同左 | T44 的 INT8 臂、T47、K14–K17；分析见 [kernels.md](../research/20261128/kernels.md) |
+| S46 | LoopTitan（arXiv 2611.34821v1，`datamllab/LoopTitan` `a9f526a`）、QDA（arXiv 2611.23388v1，`humanfia/qda` `dc39a02`）、Self-Rewriting（arXiv 2611.21885v2） | 同左 | T37–T40 的先验、T46、R15；分析见 [papers.md](../research/20261128/papers.md) |
 
 v2.x 中的其他来源（Atomic、Ghost、Magnitude、CUDA Rust 等）只作方法参考（[03](03_engine_landscape.md)），不再锁定，仍保存在 `docs/atomic-inkling-4090-plan-v2.0/docs/02_evidence_register.md`。

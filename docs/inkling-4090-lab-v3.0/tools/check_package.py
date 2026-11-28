@@ -88,7 +88,7 @@ def main(argv=None):
     checks["tasks"] = len(task_ids)
 
     research = re.findall(r"^\| (R\d+) \|", text.get("docs/06_loop_research.md", ""), re.M)
-    ck(research == ["R%d" % i for i in range(1, 15)], "research ids R1-R14")
+    ck(research == ["R%d" % i for i in range(1, 16)], "research ids R1-R15")
 
     sources_doc = text.get("docs/09_sources.md", "")
     source_ids = re.findall(r"^\| (S\d{2}) \|", sources_doc, re.M)
