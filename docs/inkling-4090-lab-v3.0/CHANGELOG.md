@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.27 · 2026-11-28
+
+T45 PASS：decode 按“只有一行的 verify”执行（fork `d1f4012`，默认），投机解码与无草稿逐 token 相同（DSpark 各 k 与 DFlash2 的 token SHA 一致，V8 分歧 0），完整 G2 通过；plain decode 1K +4.9%、32K +8.4%、128K +18.7%（73.9 → 87.7 tok/s），T14 无草稿 149.6 tok/s。K12 按原设计 NO_BENEFIT（Q8_0 共 6 GB，重排代价大；8 字节加载反而慢 36%，K 切 8 份只快 1.6%），其价值由 T45 的统一 kernel 实现。新增 `astral t45-diff`、`tools/t45/`。
+
 ## v3.0.26 · 2026-11-28
 
 T43 PASS。Phase 2：fork `d586fec` 的 `serve --draft-alt` 按上下文长度换草稿器，DFlash2 + DSpark（≥ 4096 token）在 T21 上达到 257.6 tok/s（DSpark 单用 222.5，×1.16），每个桶都取到两者中较好的。Phase 3：开 DFlash2 的最大容量为 122880（DSpark 为 114688；推断的 132096 不成立），120K prompt 上 94–95 tok/s（plain 76.1）；长上下文单 prompt 的结果方向不一致（32K DSpark 好、64K DFlash2 好）。新增 `tools/t43/t43_p3.sh`。
