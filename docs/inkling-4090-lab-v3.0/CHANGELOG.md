@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.25 · 2026-11-28
+
+T43 Phase 1 PASS：DFlash2 草稿器在 Astral 实现（fork `509062f`），接受长度与 llama.cpp 参考一致；T21 协议下相对 DSpark 全体 ×1.13（burst）/ ×1.22（固定 k7），短 prompt ×1.20–1.22，长文档 ×0.89–0.91（进入 Phase 2 的按桶选草稿器）；完整 G2 不变。T46 PASS：评估闭环工具 `tools/t46/`，top-k 加尾桶 KL 在 k = 2048 时与全词表 KL 差 0.43%（k = 128 为 4.8%，未达标），默认改为 2048。`t21_cost.sh` 增加 `DRAFT` / `ALT`。
+
 ## v3.0.24 · 2026-11-28
 
 T42 PASS：fork `df7f95b` 的热点重测（decode 1K / 32K / 128K、DSpark 一轮、prefill 2K / 32K）。排序：T43 → K12 → T44 → K15 → K13（先把 prefill 的 `gemv_f32` 改 GEMM）→ K14 → T47。

@@ -1,0 +1,24 @@
+== decode tok/s, mean over prompts of the median over reps
+             sn       sc       ln       lc      all
+burst     187.2    242.5    267.3    307.9    222.5
+burst7    187.2    242.4    271.8    310.6    223.2
+k7        151.9    221.6    253.9    311.2    197.2
+
+== speedup over plain (geomean over prompts)
+
+== round time (ms, median / p90) by drafts verified; short = sn+sc, long = ln+lc
+k7 short n  13094  median 14.996  p90 15.784
+k7 long  n   1576  median 19.486  p90 20.511
+
+== acceptance of k7: P(accepted >= i) and P(draft i accepted | 1..i-1 accepted)
+sn rounds   9658  mean acc 1.23  ge 0.584 0.313 0.162 0.086 0.047 0.024 0.013  cond 0.584 0.536 0.517 0.535 0.544 0.515 0.521
+sc rounds   3436  mean acc 2.29  ge 0.718 0.511 0.377 0.265 0.185 0.133 0.099  cond 0.718 0.712 0.738 0.704 0.697 0.717 0.746
+ln rounds    910  mean acc 3.52  ge 0.884 0.692 0.613 0.420 0.358 0.310 0.246  cond 0.884 0.784 0.886 0.685 0.853 0.865 0.794
+lc rounds    666  mean acc 5.19  ge 0.955 0.871 0.808 0.727 0.661 0.616 0.553  cond 0.955 0.912 0.928 0.900 0.909 0.932 0.898
+
+== offline fixed k: expected tokens per round / measured round ms -> tok/s (from k7 acceptance)
+            k1       k2       k3       k4       k5       k6       k7   plain
+sn           -        -        -        -        -        -    148.6   nan
+sc           -        -        -        -        -        -    219.3   nan
+ln           -        -        -        -        -        -    232.1   nan
+lc           -        -        -        -        -        -    317.6   nan
