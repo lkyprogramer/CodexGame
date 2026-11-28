@@ -1,5 +1,9 @@
 # 版本变更
 
+## v3.0.22 · 2026-11-28
+
+T41 PASS：T25 判定工具改为 fail-closed（负控制按 `negs_expect.json` 登记的期望并入判定，缺件 / NaN / 重复位置判 INCOMPLETE），`t25_e.sh` 传播返回码，`t27_share.sh` 只解析 prefill 字段；新增 `tests/test_t25_judge.py`。T25 E 重判仍 PASS，T27 重算结论不变。用户确认采用 num-4L。
+
 ## v3.0.21 · 2026-11-28
 
 并入方案 13（S41）、MTB 方案（S42），以及 TensorFold、DFlash2、Mirage / TileLang / Basalt、LoopTitan / QDA / Self-Rewriting 的源码与论文调研（S43–S46；报告在 `research/20261128/`）。用户把目标定为在 4090 上做最极致的定制，不考虑兼容，所以有损与改模型的候选正式进入计划，按 [05](docs/05_validation.md) §6.8 分开命名、分开验收。新增任务 T37–T47（DFlash2 草稿器 T43、全局 KV FP8 / INT8 T44、decode ≡ verify T45、评估闭环 T46、有损专家剪枝 T47、判定工具 fail-closed T41、热点重测 T42，以及改模型的 T37–T40），调优候选 K12–K17，研究项 R15；K7 改判为不做；T33 更正 slot 数并暂缓。核实了方案对已有工作的 8 条更正（[07](docs/07_tasks.md) 的 v3.0.21 记录），其中 T25 E 的判定不是 fail-closed、T27 的计时解析拼接两条属实，由 T41 修复后重判；已有结论不变。清单改由 `tools/make_manifest.sh` 只对 git 可见的文件生成（原清单收了 3 个被忽略的日志）。本版只改文档与工具，4090 上没有运行任何新实验。

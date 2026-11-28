@@ -138,7 +138,7 @@ D 组 64 个位置按 num-3 判为 FAIL：KL mean 比值 2.8 / 2.5（prefill / d
 
 处理：D 组的 num-3 FAIL 照实记录，不改规则，也不改判。**已生效（用户 2026-11-27 采用；v3.0.14 按方案 10 修订，取代原先“num-3 只用于不含分岔点的集合”的说法）**：① D 的全部失败点留作固定回归，不在看到结果后剔除；② 在相同的 D token 前缀上补密集诊断（多位置的 V4 式统计，以及失败点的中间张量和路由 margin 定位）；③ 长文判定规则先冻结（例如密集 V4 加上硬门的例外条件），再在独立的 E 集上验证。B、C、D 已用于诊断，今后只作回归；新的未见集合从 E 开始命名。任务见 [07](07_tasks.md) T25。
 
-**num-4L（v3.0.20，T25 冻结，待用户确认）**：用于 4K token 以上、套 chat 模板的长文档，teacher-forced。位置为第 512 位到末尾的全部位置；prefill 路径每 64 个长度取一次，另加 prompt 长度。每条候选路径（serve、step、prefill；各自对 Astral step 和对 llama ub1）都与同一批位置上 llama.cpp 自身的形状对照（ub1 对 ub512；prefill 用 ub1 对 batch）比较，全集合位置合并计算：KL 均值比 ≤ 1.5；密集位置 p99 比 ≤ 1.5，抽样位置 p90 比 ≤ 2；参考 margin ≥ 0.5 和 ≥ 4 的 argmax 翻转数各 ≤ 1.5 × 对照 + 3；单份文档的均值比 ≤ 2.5；不得缺位置，不得有非有限值。KL max 只记录。依据：D 组上 llama.cpp 自己换批长，就会在 ub1 margin ≥ 8 的位置翻转约 1%，绝对门不可用。E 集 PASS。局限：已撤回的 dp4a 判不出来（负控制），所以 num-4L 只是长上下文下抓大偏差的门，不能替代 B 组 num-3 与 W1 密集 V4。规则文件为 `tools/t25/rule_num4l.json`，判定脚本为 `t25_judge.py`。
+**num-4L（v3.0.20，T25 冻结；2026-11-28 用户确认采用，v3.0.22 起判定工具 fail-closed，见 §6.8）**：用于 4K token 以上、套 chat 模板的长文档，teacher-forced。位置为第 512 位到末尾的全部位置；prefill 路径每 64 个长度取一次，另加 prompt 长度。每条候选路径（serve、step、prefill；各自对 Astral step 和对 llama ub1）都与同一批位置上 llama.cpp 自身的形状对照（ub1 对 ub512；prefill 用 ub1 对 batch）比较，全集合位置合并计算：KL 均值比 ≤ 1.5；密集位置 p99 比 ≤ 1.5，抽样位置 p90 比 ≤ 2；参考 margin ≥ 0.5 和 ≥ 4 的 argmax 翻转数各 ≤ 1.5 × 对照 + 3；单份文档的均值比 ≤ 2.5；不得缺位置，不得有非有限值。KL max 只记录。依据：D 组上 llama.cpp 自己换批长，就会在 ub1 margin ≥ 8 的位置翻转约 1%，绝对门不可用。E 集 PASS。局限：已撤回的 dp4a 判不出来（负控制），所以 num-4L 只是长上下文下抓大偏差的门，不能替代 B 组 num-3 与 W1 密集 V4。规则文件为 `tools/t25/rule_num4l.json`，判定脚本为 `t25_judge.py`。
 
 ### 6.7 测试合同与负控制（v3.0.14，方案 10 §2.4、§7.7、§12.6、§12.7）
 

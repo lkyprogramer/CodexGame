@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
 """T25: judge a t25_run.sh directory by a frozen num-4L rule (rule_num4l.json).
 
-  t25_judge.py <run dir> <tag> <rule.json>    exit 0 PASS, 1 FAIL, 2 incomplete
+  t25_judge.py <run dir> <tag> <rule.json> [--cases N] [--negs-expect FILE]
+  exit 0 PASS, 1 FAIL, 2 INCOMPLETE, 3 INVALID (a negative control expected to be caught was not,
+  or a listed negative has no registered expectation)
 Pools all positions of the set per pair (from t25_kld.py's .npz), compares candidate pairs with
 llama.cpp's own shape control on the same positions, and prints one JSON report.
+Fail-closed (T41): missing / extra cases, missing pairs, wrong position counts, duplicate positions,
+non-finite KL and missing negative controls are INCOMPLETE; negatives are part of the verdict.
 """
-import glob, json, os, sys
+import argparse, glob, json, os, sys
 import numpy as np
 
 
 def main():
-    d, tag, rf = sys.argv[1:4]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("dir"); ap.add_argument("tag"); ap.add_argument("rule")
+    ap.add_argument("--cases", type=int, help="expected number of cases (default: from ids in identity / inputs)")
+    ap.add_argument("--negs-expect", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "negs_expect.json"))
+    a = ap.parse_args()
+    d, tag, rf = a.dir, a.tag, a.rule
     rule = json.load(open(rf))
     lim = rule["limits"]
     cases = sorted(glob.glob(os.path.join(d, tag + "[0-9]*.json")), key=lambda p: int(os.path.basename(p)[len(tag):-5]))
@@ -29,9 +38,22 @@ def main():
                 probs.append("%s pair %s: %d positions, expected %d" % (name, k, js[k]["positions"], want))
             if js[k].get("nonfinite_rows", 0):
                 probs.append("%s pair %s: non-finite rows" % (name, k))
-        data[name] = ({os.path.basename(f)[len(name) + 6:-4]: np.load(f) for f in glob.glob("%s.*.npz" % c)}, lens)
+        data[name] = ({os.path.basename(f)[len(name) + 6:-4]: dict(np.load(f)) for f in glob.glob("%s.*.npz" % c)}, lens)
+        for k, z in data[name][0].items():
+            if not np.all(np.isfinite(z["kl"])):
+                probs.append("%s pair %s: non-finite KL" % (name, k))
+            if np.unique(z["pos"]).size != z["pos"].size:
+                probs.append("%s pair %s: duplicate positions" % (name, k))
     if not cases:
         probs.append("no cases")
+    if a.cases is not None and len(cases) != a.cases:
+        probs.append("%d cases, expected %d" % (len(cases), a.cases))
+    nf = os.path.join(d, "negs.txt")
+    neg_names = open(nf).read().split() if os.path.exists(nf) else []
+    expect = json.load(open(a.negs_expect)) if os.path.exists(a.negs_expect) else {}
+    for j_, name in enumerate(neg_names):
+        if any(str(8 + j_) not in z for z, _ in data.values()):
+            probs.append("negative %s missing in some cases" % name)
     if probs:
         print(json.dumps({"policy": rule["policy"], "verdict": "INCOMPLETE", "problems": probs}, indent=1)); return 2
     pool = lambda k, f: np.concatenate([f(z[k]) for z, _ in data.values()])
@@ -63,22 +85,27 @@ def main():
         ok_all &= ok
         out.append(res)
     # Negative controls (pairs 8, ...; negs.txt): judged like the cross serve check; each should FAIL.
-    negs = []
-    nf = os.path.join(d, "negs.txt")
-    for j, name in enumerate(open(nf).read().split() if os.path.exists(nf) else []):
+    negs, invalid = [], []
+    for j, name in enumerate(neg_names):
         k = str(8 + j)
-        zs = [z for z, _ in data.values() if k in z]
-        if len(zs) != len(data):
-            negs.append({"name": name, "problem": "missing in some cases"}); continue
+        zs = [z for z, _ in data.values()]
         kc, kr = np.concatenate([z[k]["kl"] for z in zs]), np.concatenate([z["0"]["kl"] for z in zs])
         fc = [int(np.concatenate([(~z[k]["agree"]) & (z[k]["ref_margin"] >= m) for z in zs]).sum()) for m in lim["flip_margins"]]
         fr = [int(np.concatenate([(~z["0"]["agree"]) & (z["0"]["ref_margin"] >= m) for z in zs]).sum()) for m in lim["flip_margins"]]
         per = max(float(z[k]["kl"].mean() / z["0"]["kl"].mean()) for z in zs)
         mr, pr = float(kc.mean() / kr.mean()), float(np.percentile(kc, 99) / np.percentile(kr, 99))
         passes = mr <= lim["mean_ratio"] and pr <= lim["dense_p99_ratio"] and per <= lim["per_document_mean_ratio"] and all(a <= lim["flip_factor"] * b + lim["flip_slack"] for a, b in zip(fc, fr))
-        negs.append({"name": name, "mean_ratio": mr, "p99_ratio": pr, "max_per_document_ratio": per, "flips": [fc, fr], "caught": not passes})
-    print(json.dumps({"policy": rule["policy"], "cases": list(data), "verdict": "PASS" if ok_all else "FAIL", "checks": out, "negative_controls": negs}, indent=1))
-    return 0 if ok_all else 1
+        e = expect.get(name, {}).get("expect")
+        negs.append({"name": name, "mean_ratio": mr, "p99_ratio": pr, "max_per_document_ratio": per, "flips": [fc, fr], "caught": not passes, "expect": e})
+        if e not in ("caught", "below_resolution"):
+            invalid.append("negative %s has no registered expectation in %s" % (name, a.negs_expect))
+        elif e == "caught" and passes:
+            invalid.append("negative %s expected to be caught but passes the rule" % name)
+    if not any(n["expect"] == "caught" and n["caught"] for n in negs):
+        invalid.append("no negative control registered as caught was caught (no evidence the rule has power)")
+    verdict = "INVALID" if invalid else ("PASS" if ok_all else "FAIL")
+    print(json.dumps({"policy": rule["policy"], "cases": list(data), "verdict": verdict, "invalid": invalid, "checks": out, "negative_controls": negs}, indent=1))
+    return 3 if invalid else (0 if ok_all else 1)
 
 
 if __name__ == "__main__":

@@ -19,9 +19,12 @@ for i in $(seq 1 300); do curl -sf http://127.0.0.1:$PORT/health > /dev/null && 
 "$PY" -I "$LAB/pkg/tools/t20/t20_ids.py" http://127.0.0.1:$PORT "$E/ids_e.json" d "${DOCS[@]}" | tee "$E/ids.txt"; rc=$?
 kill $SP; wait $SP 2> /dev/null; sleep 3
 [ $rc -eq 0 ] || exit 1
-IDS="$E/ids_e.json" TAG=e MAN=none GEN=64 NEGS="dp4a:ASTRAL_DECODE_DP4A=1 r2:ASTRAL_PASSES=2" bash "$T/t25_run.sh"
+IDS="$E/ids_e.json" TAG=e MAN=none GEN=64 NEGS="dp4a:ASTRAL_DECODE_DP4A=1 r2:ASTRAL_PASSES=2" bash "$T/t25_run.sh"; rr=$?
 O=$(cat "$LAB/runs/t25/LATEST_e")
-"$PY" -I "$T/t25_judge.py" "$O" e "$T/rule_num4l.json" > "$O/verdict.json"; echo "judge rc=$?" | tee -a "$O/STATUS"
-sha256sum "$T/rule_num4l.json" "$T/t25_judge.py" > "$O/rule.sha256"
+# T41: any failed step makes the run incomplete; the judge's exit code is the script's exit code.
+if [ $rr -ne 0 ] || grep -q ' rc=[1-9]' "$O/STATUS"; then echo "run incomplete (t25_run rc=$rr)" | tee -a "$O/STATUS"; exit 2; fi
+"$PY" -I "$T/t25_judge.py" "$O" e "$T/rule_num4l.json" --cases 6 > "$O/verdict.json"; jr=$?; echo "judge rc=$jr" | tee -a "$O/STATUS"
+sha256sum "$T/rule_num4l.json" "$T/t25_judge.py" "$T/negs_expect.json" > "$O/rule.sha256"
 cat "$O/verdict.json"
-guard
+guard || exit 3
+exit $jr

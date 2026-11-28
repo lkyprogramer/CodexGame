@@ -16,7 +16,10 @@ for n in ${LENS:-512 2048 8192 32768 130944}; do
   for r in $(seq "$REPS"); do
     for m in none attn all; do
       env ASTRAL_CTX=$((n + 64)) ASTRAL_T27_SKIP=$m "$AST" generate "$A1" 2 $IDS > "$O/g$n-$m-$r.log" 2>&1
-      printf '%s\t%s\t%s\t%s\n' $n $m $r "$(grep -o 'in [0-9.]* s' "$O/g$n-$m-$r.log" | tr -dc '0-9.')" >> "$O/res.tsv"
+      # T41: only the prefill field ("prompt N tok in X s"), exactly once; the load line also says "in X s".
+      t=$(grep -o 'prompt [0-9]* tok in [0-9.]* s' "$O/g$n-$m-$r.log" | awk '{print $5}')
+      [ "$(printf '%s\n' "$t" | grep -c .)" -eq 1 ] || { t=NA; echo "g$n-$m-$r parse rc=1" >> "$O/STATUS"; }
+      printf '%s\t%s\t%s\t%s\n' $n $m $r "$t" >> "$O/res.tsv"
     done
   done
 done
